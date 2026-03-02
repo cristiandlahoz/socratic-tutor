@@ -1,0 +1,16 @@
+[project]
+name = "this-studio"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.14.3",
+    "chromadb>=1.5.2",
+    "ebooklib>=0.20",
+    "firecrawl-py>=4.18.0",
+    "numpy>=2.4.2",
+    "ollama>=0.6.1",
+    "sentence-transformers>=5.2.3",
+    "tiktoken>=0.12.0",
+]
