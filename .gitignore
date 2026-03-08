@@ -33,12 +33,31 @@ ENV/
 # ChromaDB / vector stores
 chroma_db/
 
-# Data files
+# Data files (keep dataset.jsonl and parsed/*.json — ignore root-level noise)
 chunks_all.json
-*.json
 
-# Firecrawl cache/output
+# Firecrawl cache/output (external/ is the canonical location now)
 firecrawl/
+
+# ML outputs
+outputs/
+
+# Docker / Compose
+.docker/
+
+# Java / Maven
+backend/target/
+backend/.mvn/
+*.class
+*.jar
+*.war
+
+# Node (Vaadin frontend build)
+node_modules/
+node/
+package-lock.json
+.pnp/
+.yarn/
 
 # IDE / editor
 .idea/

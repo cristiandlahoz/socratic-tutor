@@ -1,0 +1,20 @@
+logging:
+    level:
+        org:
+            atmosphere: warn
+server:
+    port: ${PORT:8080}
+
+spring:
+  docker:
+    compose:
+      lifecycle-management: start_only
+
+  ai:
+    ollama:
+      chat:
+        model: llama3.1b
+
+vaadin:
+    allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux
+    launch-browser: true

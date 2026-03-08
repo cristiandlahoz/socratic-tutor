@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: "postgres:18.1"
+    environment:
+      - 'POSTGRES_DB=socratic-tutor'
+      - 'POSTGRES_USER=postgres'
+      - 'POSTGRES_PASSWORD=postgres'
+    labels:
+      - "org.springframework.boot.service-connection=postgres"
+    volumes:
+      - db_postgres:/var/lib/postgresql
+    ports:
+      - '${POSTGRES_PORT:-4321}:5432'
+
+volumes:
+  db_postgres: { }
