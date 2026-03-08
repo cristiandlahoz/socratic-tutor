@@ -12,5 +12,11 @@ services:
     ports:
       - '${POSTGRES_PORT:-4321}:5432'
 
+  chroma:
+    image: 'chromadb/chroma:1.5.2'
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../chroma_db:/data
 volumes:
   db_postgres: { }

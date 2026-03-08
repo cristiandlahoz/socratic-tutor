@@ -1,9 +1,9 @@
 logging:
-    level:
-        org:
-            atmosphere: warn
+  level:
+    org:
+      atmosphere: warn
 server:
-    port: ${PORT:8080}
+  port: ${PORT:8080}
 
 spring:
   docker:
@@ -13,8 +13,17 @@ spring:
   ai:
     ollama:
       chat:
-        model: llama3.1b
+        model: ${CHAT_MODEL:llama3.1:latest}
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      embedding:
+        model: ${EMBEDDING_MODEL:nomic-embed-text}
+    vectorstore:
+      chroma:
+        initialize-schema: false
+        collection-name: ${VECTOR_STORE_COLLECTION_NAME:socratic_tutor_collection}
+        tenant-name: default_tenant
+        database-name: default_database
 
 vaadin:
-    allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux
-    launch-browser: true
+  allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux
+  launch-browser: true
