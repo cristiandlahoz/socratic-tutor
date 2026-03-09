@@ -20,7 +20,7 @@ spring:
         model: ${CHAT_MODEL:llama3.1:latest}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
-        model: ${EMBEDDING_MODEL:nomic-embed-text}
+        model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
     vectorstore:
       chroma:
         initialize-schema: false
