@@ -8,10 +8,14 @@ server:
 spring:
   docker:
     compose:
-      lifecycle-management: start_only
+      lifecycle-management: none
 
   ai:
     ollama:
+      init:
+        pull-model-strategy: when_missing
+        timeout: 5m
+        max-retries: 1
       chat:
         model: ${CHAT_MODEL:llama3.1:latest}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}

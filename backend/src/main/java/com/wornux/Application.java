@@ -19,4 +19,9 @@ public class Application implements AppShellConfigurator {
         SpringApplication.run(Application.class, args);
     }
 
+//    @Bean
+//    ApplicationRunner runner(VectorStore store){
+//        return (_) -> store.similaritySearch("search_query: for loop");
+//    }
+
 }

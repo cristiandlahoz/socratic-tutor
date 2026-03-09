@@ -22,7 +22,7 @@ from chromadb.config import Settings
 
 CHROMA_DB_PATH = "./chroma_db"
 COLLECTION_NAME = "socratic_tutor_collection"
-EMBED_MODEL = "nomic-embed-text"  # ollama pull nomic-embed-text
+EMBED_MODEL = "qwen3-embedding:0.6b"  # ollama pull qwen3-embedding:0.6b
 BATCH_SIZE = 50
 
 
@@ -34,7 +34,7 @@ BATCH_SIZE = 50
 class ChromaClient:
     """
     Thin wrapper around ChromaDB for the socratic tutor project.
-    Uses Ollama for local embeddings (nomic-embed-text).
+    Uses Ollama for local embeddings (qwen3-embedding:0.6b).
     """
 
     def __init__(
@@ -60,7 +60,7 @@ class ChromaClient:
     # ------------------------------------------------------------------
 
     def embed(self, texts: List[str]) -> List[List[float]]:
-        """Embed a list of texts using Ollama nomic-embed-text."""
+        """Embed a list of texts using Ollama qwen3-embedding:0.6b."""
         embeddings = []
         for text in texts:
             resp = ollama.embeddings(
