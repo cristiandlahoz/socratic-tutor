@@ -17,7 +17,8 @@ spring:
         timeout: 5m
         max-retries: 1
       chat:
-        model: ${CHAT_MODEL:llama3.1:latest}
+        model: ${CHAT_MODEL:qwen3:4b-instruct}
+      #model: ${CHAT_MODEL:qwen2.5-coder:3b}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
@@ -29,6 +30,11 @@ spring:
         collection-name: ${VECTOR_STORE_COLLECTION_NAME:socratic_tutor_collection}
         tenant-name: default_tenant
         database-name: default_database
+
+app:
+  ai:
+    guard:
+      model: ${GUARD_MODEL:qwen2.5:3b-instruct}
 
 vaadin:
   allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux
