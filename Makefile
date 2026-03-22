@@ -1,11 +1,12 @@
 .PHONY: help up down logs build \
-        pipeline parse variants jsonl \
+        pipeline parse variants jsonl jsonl-check \
         ingest train serve \
         backend-dev backend-build \
         lint format test
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 PYTHON     := uv run python
+PYTHON_RAW := uv run --no-project python
 DC         := docker compose
 BACKEND    := backend
 
@@ -24,7 +25,8 @@ help:
 	@echo "    pipeline        Run all pipeline stages (parse → variants → jsonl)"
 	@echo "    parse           Stage 1 – parse raw .txt dialogues"
 	@echo "    variants        Stage 2 – generate synthetic variants (requires Ollama)"
-	@echo "    jsonl           Stage 3 – convert parsed JSON → dataset.jsonl"
+	@echo "    jsonl           Stage 3 – convert synthetic JSON → dataset.jsonl"
+	@echo "    jsonl-check     Validate synthetic JSON before writing dataset.jsonl"
 	@echo "    ingest          Chunk sources and upsert into ChromaDB"
 	@echo ""
 	@echo "  ML"
@@ -64,7 +66,10 @@ variants:
 	$(PYTHON) -m this_studio.pipeline.generate_variants
 
 jsonl:
-	$(PYTHON) -m this_studio.pipeline.to_jsonl
+	$(PYTHON_RAW) scripts/generate_finetune_dataset.py
+
+jsonl-check:
+	$(PYTHON_RAW) scripts/generate_finetune_dataset.py --check
 
 ingest:
 	$(PYTHON) -c "from this_studio.utils.chunking import run_all_sources; run_all_sources()"

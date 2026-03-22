@@ -12,7 +12,7 @@
     },
     {
       "role": "assistant",
-      "content": "Hasta ahora hemos trabajado programas donde todo está dentro del main. Funcionan, sí. Pero hoy quiero que pensemos en que hay lógica o pasos que tienen que ser repetidos varias veces, y para evitar eso utilizamos las funciones. Pero antes de explicar qué es una función, analicemos el siguiente problema:\n\nDesarrollar un programa que determine la nota final de un estudiante. Esta nota es calculada de la siguiente manera:\n\n```\nNotaFinal = (Práctica × 0.30) + (Parcial × 0.30) + (Proyecto × 0.40)\n```\n\nTener presente que el programa debe validar que los valores de ID, las notas de práctica, parcial y proyecto sean mayor que cero.\n\nAntes de escribir código, quiero que pensemos. Si yo les digo: \"Introduce una nota mayor que cero\" y el usuario escribe -5… ¿qué hago?"
+      "content": "Hasta ahora hemos trabajado programas donde todo está dentro del main. Funcionan, sí. Pero hoy quiero que pensemos en que hay lógica o pasos que tienen que ser repetidos varias veces y para evitar eso, utilizamos las funciones. Pero antes de explicar qué es una función, analicemos el siguiente problema:\n\nDesarrollar un programa que determine la nota final de un estudiante. Esta nota es calculada de la siguiente manera:\nNotaFinal = (Práctica × 0.30) + (Parcial × 0.30) + (Proyecto × 0.40). Tener presente que el programa debe validar que los valores de ID, las notas de práctica, parcial y proyecto sean mayores que cero;\n\nAntes de escribir código, quiero que pensemos.\n\nSi yo les digo: \"Introduce una nota mayor que cero\" y el usuario escribe\n-5…\n\n¿Qué hago?"
     },
     {
       "role": "user",
@@ -44,7 +44,7 @@
     },
     {
       "role": "assistant",
-      "content": "Entonces describamos la regla en palabras: \"Si el número no es válido, lo vuelvo a pedir hasta que sea válido.\" ¿Correcto?"
+      "content": "Entonces describamos la regla en palabras:\n\n\"Si el número no es válido, lo vuelvo a pedir hasta que sea válido.\"\n\n¿Correcto?"
     },
     {
       "role": "user",
@@ -52,7 +52,7 @@
     },
     {
       "role": "assistant",
-      "content": "Ahora veamos cómo sería en lenguaje C:\n\n```c\n// Primero validamos el ID\nscanf(\"%d\", &id);\nwhile (id <= 0) {\n    printf(\"Error\\n\");\n    scanf(\"%d\", &id);\n}\n// Luego solicitamos la nota de la práctica y validamos que sea mayor que cero\nscanf(\"%f\", &practica);\nwhile (practica <= 0) {\n    printf(\"Error\\n\");\n    scanf(\"%f\", &practica);\n}\n// Luego solicitamos la nota del parcial y validamos que sea mayor que cero\nscanf(\"%f\", &parcial);\nwhile (parcial <= 0) {\n    printf(\"Error\\n\");\n    scanf(\"%f\", &parcial);\n}\n// Luego solicitamos la nota del proyecto y validamos que sea mayor que cero\nscanf(\"%f\", &proyecto);\nwhile (proyecto <= 0) {\n    printf(\"Error\\n\");\n    scanf(\"%f\", &proyecto);\n}\n```\n\nAhora pregunto algo importante: esa regla… ¿cambia si estoy validando el ID?"
+      "content": "Ahora veamos cómo sería en lenguaje C:\n\n```c\n// Primero Validamos el ID\nscanf(\"%d\", &id);\nwhile(id <= 0) {\n   printf(\"Error\\n\");\n   scanf(\"%d\", &id);\n}\n// Luego solicitamos la nota de la práctica y validamos que sea mayor que cero.\nscanf(\"%f\", &practica);\nwhile(practica <= 0) {\n   printf(\"Error\\n\");\n   scanf(\"%f\", &practica);\n}\n// Luego solicitamos la nota del parcial y validamos que sea mayor que cero.\nscanf(\"%f\", &parcial);\nwhile(parcial <= 0) {\n   printf(\"Error\\n\");\n   scanf(\"%f\", &parcial);\n}\n// Luego solicitamos la nota del proyecto y validamos que sea mayor que cero.\nscanf(\"%f\", &proyecto);\nwhile(proyecto <= 0) {\n   printf(\"Error\\n\");\n   scanf(\"%f\", &proyecto);\n}\n```\n\nAhora pregunto algo importante.\n\nEsa regla… ¿cambia si estoy validando el ID?"
     },
     {
       "role": "user",
@@ -92,7 +92,7 @@
     },
     {
       "role": "assistant",
-      "content": "Exactamente. La regla es siempre la misma. Lo único que cambia es el número que estoy revisando. Es decir, se está repitiendo la lógica para cada dato o variable capturada.\n\n¿La lógica cambia?"
+      "content": "Exactamente. La regla es siempre la misma. Lo único que cambia es el número que estoy revisando. Es decir, se está repitiendo la lógica para cada dato o variable capturada\n\nDéjame hacerte unas preguntas.\n¿La lógica cambia?"
     },
     {
       "role": "user",
@@ -108,7 +108,7 @@
     },
     {
       "role": "assistant",
-      "content": "Si mañana la universidad dice: \"Ahora la nota debe ser mayor que 10\", ¿cuántos lugares tendrías que modificar?"
+      "content": "Si mañana la universidad dice: \"Ahora la nota debe ser mayor que 10\" ¿Cuántos lugares tendrías que modificar?"
     },
     {
       "role": "user",
@@ -132,7 +132,7 @@
     },
     {
       "role": "assistant",
-      "content": "Funciona no siempre significa que está bien diseñado. Si cometes un error en una de las copias, ¿qué podría pasar?"
+      "content": "Funciona no siempre significa que está bien diseñado.\nSi cometes un error en una de las copias, ¿qué podría pasar?"
     },
     {
       "role": "user",
@@ -148,7 +148,7 @@
     },
     {
       "role": "assistant",
-      "content": "Entonces pensemos. Si la regla es siempre la misma — \"pedir hasta que sea mayor que cero\" — ¿podríamos guardarla en un solo lugar?"
+      "content": "Entonces pensemos.\nSi la regla es siempre la misma: \"Pedir hasta que sea mayor que cero\"\n¿podríamos guardarla en un solo lugar?"
     },
     {
       "role": "user",
@@ -156,7 +156,7 @@
     },
     {
       "role": "assistant",
-      "content": "En matemáticas, cuando algo se repite, usamos funciones. Si tengo f(x) = x², no escribo la fórmula cada vez. La defino una vez y la reutilizo. ¿Podríamos hacer lo mismo aquí?"
+      "content": "En matemáticas, cuando algo se repite, usamos funciones.\nSi tengo: f(x) = x²\n\nNo escribo la fórmula cada vez. La defino una vez y la reutilizo.\n\n¿Podríamos hacer lo mismo aquí?"
     },
     {
       "role": "user",
@@ -164,7 +164,7 @@
     },
     {
       "role": "assistant",
-      "content": "Si vamos a crear una función para validar un número, ¿qué debe recibir?"
+      "content": "Si vamos a crear una función para validar un número…\n¿Qué debe recibir?"
     },
     {
       "role": "user",
@@ -180,23 +180,23 @@
     },
     {
       "role": "assistant",
-      "content": "Entonces en C escribiríamos algo así:\n\n```c\nfloat validarMayorQueCero(float valor) {\n    while (valor <= 0) {\n        printf(\"Valor invalido. Introduzca un numero mayor que cero: \");\n        scanf(\"%f\", &valor);\n    }\n    return valor;\n}\n```\n\n¿Qué pasaría si se me olvida el return?"
+      "content": "Entonces en C escribiríamos algo así:\n\n```c\nfloat validarMayorQueCero(float valor)\n{\n    while (valor <= 0)\n    {\n        printf(\"Valor invalido. Introduzca un numero mayor que cero:\");\n        scanf(\"%f\", &valor);\n    }\n    return valor;\n}\n```\n\nQué pasaría si se me olvida el return?"
     },
     {
       "role": "user",
-      "content": "No retornaría nada profe."
+      "content": "No retorna nada, profe."
     },
     {
       "role": "assistant",
-      "content": "¿Están seguros de que no retorna nada? ¿Qué pasa en lenguaje C cuando el programador olvida el return?"
+      "content": "Están seguros que no retorna nada?, qué pasa en lenguaje C cuando el programador olvida el return?"
     },
     {
       "role": "user",
-      "content": "Nada, profesor, porque no se puso el return, la función no encuentra más código y no hace nada."
+      "content": "Nada profesor, porque no se puso el return, la función no encuentra más código y no hace nada."
     },
     {
       "role": "assistant",
-      "content": "No. Recuerden que cuando se olvida el return en una función, su comportamiento sería indefinido."
+      "content": "No, recuerden que cuando se olvida el return en una función, su comportamiento sería indefinido."
     },
     {
       "role": "user",
@@ -204,7 +204,7 @@
     },
     {
       "role": "assistant",
-      "content": "Ahora el programa principal queda así:\n\n```c\n#include <stdio.h>\n\nfloat validarMayorQueCero(float valor) {\n    while (valor <= 0) {\n        printf(\"Valor invalido. Introduzca un numero mayor que 0: \");\n        scanf(\"%f\", &valor);\n    }\n    return valor;\n}\n\nint main() {\n    int n, contador = 1;\n    int id;\n    float practica, parcial, proyecto, notaFinal;\n\n    printf(\"Introduzca la cantidad de estudiantes: \");\n    scanf(\"%d\", &n);\n\n    n = (int)validarMayorQueCero((float)n);\n\n    while (contador <= n) {\n\n        printf(\"\\n=============================\\n\");\n        printf(\"Estudiante #%d\\n\", contador);\n        printf(\"=============================\\n\");\n\n        printf(\"Introduzca ID: \");\n        scanf(\"%d\", &id);\n        id = (int)validarMayorQueCero((float)id);\n\n        printf(\"Introduzca nota practica: \");\n        scanf(\"%f\", &practica);\n        practica = validarMayorQueCero(practica);\n\n        printf(\"Introduzca nota parcial: \");\n        scanf(\"%f\", &parcial);\n        parcial = validarMayorQueCero(parcial);\n\n        printf(\"Introduzca nota proyecto: \");\n        scanf(\"%f\", &proyecto);\n        proyecto = validarMayorQueCero(proyecto);\n\n        notaFinal = (practica * 0.30f) +\n                    (parcial  * 0.30f) +\n                    (proyecto * 0.40f);\n\n        printf(\"Nota final del estudiante %d: %.2f\\n\", id, notaFinal);\n\n        contador = contador + 1;\n    }\n\n    return 0;\n}\n```\n\nEntonces aprendan esto: el while controla cuándo repetir. La función encapsula qué lógica reutilizar. Si repites la misma regla más de una vez, probablemente necesitas una función.\n\nAhora vamos a desarrollar un programa en lenguaje C que permita procesar la compra de N clientes en una tienda.\n\nRequerimientos — para cada cliente el programa debe:\n1. Solicitar el ID del cliente (mayor que cero).\n2. Solicitar la cantidad de artículos comprados (mayor que cero).\n3. Para cada artículo: solicitar precio (mayor que cero) y cantidad comprada (mayor que cero).\n4. Calcular el subtotal del cliente.\n5. Aplicar un descuento: si el subtotal es mayor a 10000 → 10%; si es mayor a 5000 → 5%; en otro caso → sin descuento.\n6. Mostrar el total final del cliente.\n7. Al final, mostrar el total general vendido por la tienda.\n\nRequisito obligatorio: el programa debe utilizar funciones para validar que un número sea mayor que cero, calcular el subtotal de un cliente, calcular el descuento, y mostrar el resumen final del cliente."
+      "content": "Ahora el programa principal queda así:\n\n```c\n#include <stdio.h>\n\n/* Función para validar que un número sea mayor que 0 */\nfloat validarMayorQueCero(float valor) {\n    while (valor <= 0) {\n        printf(\"Valor invalido. Introduzca un numero mayor que 0: \");\n        scanf(\"%f\", &valor);\n    }\n    return valor;\n}\n\nint main() {\n    int n, contador = 1;\n    int id;\n    float practica, parcial, proyecto, notaFinal;\n\n    printf(\"Introduzca la cantidad de estudiantes: \");\n    scanf(\"%d\", &n);\n\n    n = (int)validarMayorQueCero((float)n);\n\n    while (contador <= n) {\n\n        printf(\"\\n=============================\\n\");\n        printf(\"Estudiante #%d\\n\", contador);\n        printf(\"=============================\\n\");\n\n        printf(\"Introduzca ID: \");\n        scanf(\"%d\", &id);\n        id = (int)validarMayorQueCero((float)id);\n\n        printf(\"Introduzca nota practica: \");\n        scanf(\"%f\", &practica);\n        practica = validarMayorQueCero(practica);\n\n        printf(\"Introduzca nota parcial: \");\n        scanf(\"%f\", &parcial);\n        parcial = validarMayorQueCero(parcial);\n\n        printf(\"Introduzca nota proyecto: \");\n        scanf(\"%f\", &proyecto);\n        proyecto = validarMayorQueCero(proyecto);\n\n        notaFinal = (practica * 0.30f) +\n                    (parcial * 0.30f) +\n                    (proyecto * 0.40f);\n\n        printf(\"Nota final del estudiante %d: %.2f\\n\", id, notaFinal);\n\n        contador = contador + 1;\n    }\n\n    return 0;\n}\n```\n\nEntonces aprendan esto:\n\nEl while controla cuándo repetir. La función encapsula qué lógica reutilizar.\nSi repites la misma regla más de una vez, probablemente necesitas una función.\n\nDesarrollar un programa en lenguaje C que permita procesar la compra de\nN clientes en una tienda.\n\nREQUERIMIENTOS:\n\nPara cada cliente el programa debe:\n\n1)  Solicitar el ID del cliente (mayor que cero).\n2)  Solicitar la cantidad de artículos comprados (mayor que cero).\n3)  Para cada artículo:\n    -   Solicitar precio (mayor que cero).\n    -   Solicitar cantidad comprada (mayor que cero).\n4)  Calcular el subtotal del cliente.\n5)  Aplicar un descuento:\n    -   Si el subtotal es mayor a 10000 → aplicar 10%\n    -   Si es mayor a 5000 → aplicar 5%\n    -   En otro caso → no aplicar descuento.\n6)  Mostrar el total final del cliente.\n7)  Al final, mostrar el total general vendido por la tienda.\n\nREQUISITO OBLIGATORIO:\n\nEl programa debe utilizar funciones para:\n\n1)  Validar que un número sea mayor que cero.\n2)  Calcular el subtotal de un cliente.\n3)  Calcular el descuento.\n4)  Mostrar el resumen final del cliente."
     }
   ]
 }

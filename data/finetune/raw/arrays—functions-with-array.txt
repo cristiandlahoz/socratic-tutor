@@ -1,0 +1,415 @@
+--------------------------------------------------------------------------------------------------------------------------------------------
+ARREGLOS
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+Profesor:
+Ok, supongamos que vamos a desarrollar un programa donde necesitamos almacenar la nota de 6 estudiantes.
+
+Luego quiero poder consultar esas notas.
+
+Primera pregunta:
+¿Cómo guardarían ustedes esas 6 notas?
+
+Estudiante:
+Profe, usaría 6 variables.
+
+Profesor:
+Perfecto. ¿Cómo serían?
+
+Estudiante:
+float nota1, nota2, nota3, nota4, nota5, nota6
+
+Profesor:
+Muy bien. Hasta ahí funciona.
+
+
+Profesor:
+Ahora, si yo quiero mostrar todas las notas, ¿cómo lo hago?
+
+Estudiante:
+Profe… tendría que hacer:
+printf nota1
+printf nota2
+printf nota3…
+
+Profesor:
+Exacto.
+¿Eso es práctico?
+
+Estudiante:
+No mucho…
+
+Profesor:
+Ahora pregunto algo importante.
+¿Qué pasa si no son 6 estudiantes… sino 20?
+
+Estudiante:
+Tendría que hacer 20 variables.
+
+Profesor:
+¿Y si son 100?
+
+Estudiante:
+100 variables…
+
+Profesor:
+¿Eso es práctico?
+
+Estudiante:
+No, profe.
+
+Profesor:
+Entonces, ¿cómo lo mejorarías?
+
+Estudiante:
+Profe, uso un for.
+
+Profesor:
+Bien, muéstrame.
+
+Estudiante:
+
+float nota;
+
+for(int i = 1; i <= 6; i++){
+    printf("Introduzca la nota: ");
+    scanf("%f", &nota);
+}
+
+
+Profesor:
+Detente ahí.
+¿Dónde están las 6 notas?
+
+Estudiante:
+En… nota…
+
+Profesor:
+¿Estás guardando 6 valores o uno solo?
+
+Estudiante:
+Uno…
+
+Profesor:
+¿Y qué pasó con los anteriores?
+
+Estudiante:
+Se perdieron…
+
+Profesor:
+Entonces, ¿cómo lo arreglarías?
+
+Estudiante:
+Profe, entonces uso:
+nota1, nota2, nota3…
+
+Profesor:
+¿Y puedes usar esas variables con un for?
+
+Estudiante:
+No… porque no puedo acceder con i…
+
+Profesor:
+Entonces tenemos un problema.
+
+Queremos:
+- Usar un for
+- Manejar muchos datos
+- No repetir variables
+
+Pero con variables simples…
+¿podemos lograrlo?
+
+Estudiante:
+No, profe.
+
+Profesor:
+Entonces pensemos.
+Tenemos muchos datos, del mismo tipo, y queremos recorrerlos.
+
+¿Qué necesitamos?
+
+Estudiante:
+Algo que los agrupe…
+
+Profesor:
+Exactamente.
+Eso se llama un arreglo, el cual es una estructura de memoria contigua, parecida a un gabetero, donde cada gabeta representa un elemento del arreglo.
+
+Profesor:
+En vez de:
+nota1, nota2, nota3…
+
+Ahora tenemos:
+nota[0]
+nota[1]
+nota[2]
+nota[3]
+nota[4]
+nota[5]
+
+Cada posición es un índice y si hacemos la comparación con un gabetero, la posición 0 sería la primera gabeta.
+
+Profesor:
+Ahora sí el for tiene sentido.
+¿Por qué?
+
+Estudiante:
+Porque i representa la posición.
+
+Profesor:
+Ahora vamos a ver el código correcto.
+
+float notas[6];
+
+for(int i = 0; i < 6; i++){
+    printf("Introduzca la nota: ");
+    scanf("%f", &notas[i]);
+}
+
+Profesor:
+Ahora vamos a ver como recorrer un arreglo para mostrar los valores del mismo:
+for(int i = 0; i < 6; i++){
+    printf("Nota: %.2f\n", notas[i]);
+}
+
+
+Profesor:
+Si tienes muchos datos del mismo tipo → usas un arreglo.
+Si quieres recorrerlos → usas un for.
+
+Antes:
+nota1, nota2, nota3…
+
+Ahora:
+notas[i]
+
+Eso es pensar mejor.
+
+Profesor:
+Como tarea Desarrollar un programa en Lenguaje C que permita registrar las notas de un grupo de estudiantes.
+
+El programa debe solicitar la cantidad de estudiantes a evaluar y luego permitir la introducción de las notas correspondientes.
+
+Al finalizar, el programa debe determinar y mostrar:
+
+	+ La nota mayor ingresada
+	+ El número del estudiante que obtuvo dicha nota
+	+ La nota menor ingresada
+	+ El número del estudiante que obtuvo la nota menor.
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+FUNCIONES CON ARREGLOS
+--------------------------------------------------------------------------------------------------------------------------------------------
+Profesor: Pregunto Yo, recuerdan para qué usamos funciones?
+Estudiante: Para no repetir lógica.
+
+Profesor: Correcto. Ahora vamos a unir arreglos y funciones.
+
+Profesor: Si escribo float notas[5]; ¿qué es eso?
+Estudiante: Cinco espacios para guardar datos.
+
+Profesor: Correcto. Es memoria continua.
+Si paso el arreglo a una función, ¿es copia o el mismo?
+Estudiante: Copia.
+Profesor: No. Es el mismo, por eso los cambios se reflejan.
+
+
+Profesor: Necesito llenar un arreglo y buscar datos en el mismo, dónde puedo codificar esto?
+Estudiante: Se puede hacer en main.
+Profesor: Sí, pero tendría que repetir el código si desea buscar un valor en varios arreglos, ¿Cuál sería la solución?
+Estudiante: Funciones.
+
+
+
+Profesor: ¿Cuáles serían los parámetros que debe recibir la función?
+Estudiante: El arreglo, profe
+Profesor: ¿Y no falta algo más, como cuántas casillas o celdas tiene el arreglo?
+Estudiante: Ah… también.
+
+Profesor:
+Ok, entonces la función sería algo como:
+
+void llenarArreglo(float arr[], int n){
+    for(int i=0;i<n;i++){
+        scanf("%f",&arr[i]);
+    }
+}
+
+
+Profesor: Ahora supongamos que un estudiante intenta escribirla así:
+
+void llenarArreglo(float arr[], int n) {
+    for(int i = 0; i < n; i++) {
+        scanf("%f", &arr);
+    }
+}
+
+¿Qué está mal aquí?
+
+Estudiante: Está leyendo en el arreglo.
+
+Profesor: Sí, pero ¿en qué posición?
+
+Estudiante: Ah… en ninguna.
+
+Profesor: Exactamente.
+Falta el índice.
+No basta con poner arr, hay que indicar qué casilla del arreglo se está llenando:
+
+&arr[i]
+
+Profesor: Ahora quiero una función que busque una nota y me diga en qué posición está.
+
+¿Qué debe recibir?
+
+Estudiante: El arreglo.
+
+Profesor: ¿Algo más?
+
+Estudiante: El valor a buscar.
+
+Profesor: ¿Algo más?
+
+Estudiante: Ya.
+
+Profesor: ¿Y cómo sabe hasta dónde recorrer?
+
+Estudiante: Ah, también el tamaño.
+
+Profesor: Exactamente.
+
+
+Profesor: Si la función va a buscar una nota, ¿qué debe devolver?
+
+Estudiante: La nota.
+
+Profesor: ¿La nota?
+Pero si yo ya sé cuál nota estoy buscando, ¿para qué quiero que me devuelva la misma nota?
+
+Estudiante: Ah… verdad.
+
+Profesor: Lo útil es que me devuelva la posición donde está, o -1 si no aparece.
+Es bueno saber que se debe retornar -1 y no cero(0), ya que cero es la primera posición del arreglo.
+
+Profesor: ¿Ahora, si tengo 5 arreglos de notas, necesito desarrollar una función para cada uno arreglo?
+Estudiante: Sí.
+Profesor: No. pues estaríamos repitiendo La lógica y es la misma.
+
+
+Profesor: Entonces la función puede quedar así:
+
+int buscar(float arr[], int n, float valor) {
+    for(int i = 0; i < n; i++) {
+        if(arr[i] == valor) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+Profesor: ¿Qué devuelve si encuentra el valor?
+
+Estudiante: La posición.
+
+Profesor: ¿Y si no lo encuentra?
+
+Estudiante: -1.
+
+Profesor: Supongamos que ahora tengo estos arreglos:
+
+notasParcial1
+
+notasParcial2
+
+notasProyecto
+
+notasFinal
+
+¿Necesito una función distinta para buscar en cada uno?
+
+Estudiante: Sí, profe, una para cada arreglo.
+
+Profesor: ¿Seguro?
+
+Estudiante: Bueno… creo que sí.
+
+Profesor: Pensemos.
+¿La lógica de búsqueda cambia?
+
+Estudiante: No.
+
+Profesor: ¿Qué cambia entonces?
+
+Estudiante: El arreglo.
+
+Profesor: Exactamente.
+Entonces la misma función sirve para todos.
+
+Profesor: Miren:
+
+int pos1 = buscar(notasParcial1, n, 80);
+int pos2 = buscar(notasParcial2, n, 80);
+int pos3 = buscar(notasProyecto, n, 80);
+int pos4 = buscar(notasFinal, n, 80);
+
+Profesor: ¿Qué cambió?
+
+Estudiante: El arreglo que se pasa.
+
+Profesor: ¿Y la lógica?
+
+Estudiante: La misma.
+
+Profesor: Si yo hago esto:
+
+buscar(notasParcial1, n, 80);
+
+dentro de la función, ¿la variable se sigue llamando notasParcial1?
+
+Estudiante: Sí, profe.
+
+Profesor: No.
+Dentro de la función se llama como tú la declares, por ejemplo arr.
+
+La función no trabaja con el “nombre original”.
+Trabaja con el dato que recibe.
+
+Profesor: Entonces aprendan esto:
+
+Un arreglo representa muchos datos del mismo tipo
+
+Cuando se pasa a una función, la función trabaja sobre el mismo arreglo
+
+La función debe recibir también el tamaño
+
+Una misma función puede trabajar con muchos arreglos distintos
+
+La lógica se reutiliza; lo que cambia son los datos
+
+
+
+============================================================
+TAREA
+============================================================
+
+Desarrollar un programa en C que:
+
+- Registre IDs de estudiantes
+- Registre notas
+- Use funciones para llenar arreglos
+- Use una función para buscar valores y devolver su posición
+
+Debe permitir buscar:
+- Un ID
+- Una nota
+
+Si no existe, indicar que no fue encontrado.
+
+Consideraciones:
+- Usar arreglos
+- Usar funciones
+- Función reutilizable
+
+Objetivo:
+Comprender reutilización y trabajo con arreglos en funciones.

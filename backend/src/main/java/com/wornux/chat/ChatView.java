@@ -1,9 +1,7 @@
 package com.wornux.chat;
 
 import com.vaadin.flow.component.Composite;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.messages.MessageInput;
 import com.vaadin.flow.component.messages.MessageList;
 import com.vaadin.flow.component.messages.MessageListItem;
@@ -25,7 +23,6 @@ public class ChatView extends Composite<VerticalLayout> {
     private final ChatService chatService;
     private final MessageList messageList;
     private final MessageInput messageInput;
-    private final Div typingIndicator;
     private final String chatId = UUID.randomUUID().toString();
     private boolean responseInProgress;
 
@@ -43,15 +40,10 @@ public class ChatView extends Composite<VerticalLayout> {
         scroller.setWidthFull();
         getContent().addAndExpand(scroller);
 
-        typingIndicator = createTypingIndicator();
-        typingIndicator.setVisible(false);
-        getContent().add(typingIndicator);
-
         messageInput = new MessageInput();
         messageInput.setWidth("70%");
         messageInput.addSubmitListener(this::onSubmit);
         getContent().add(messageInput);
-        getContent().setHorizontalComponentAlignment(FlexComponent.Alignment.CENTER, typingIndicator);
         getContent().setHorizontalComponentAlignment(FlexComponent.Alignment.CENTER, messageInput);
         getContent().setHorizontalComponentAlignment(FlexComponent.Alignment.CENTER, title);
 
@@ -66,10 +58,12 @@ public class ChatView extends Composite<VerticalLayout> {
 
         var promptMessage = new MessageListItem(submitEvent.getValue(), Instant.now(), "You");
         promptMessage.setUserColorIndex(0);
+        promptMessage.addClassNames("user-message");
         messageList.addItem(promptMessage);
 
         var responseMessage = new MessageListItem("", Instant.now(), "Socratic Tutor");
         responseMessage.setUserColorIndex(1);
+        responseMessage.addClassNames("tutor-message", "tutor-loading");
         messageList.addItem(responseMessage);
 
         var userPrompt = submitEvent.getValue();
@@ -79,17 +73,21 @@ public class ChatView extends Composite<VerticalLayout> {
         uiOptional.ifPresent(ui -> chatService.chatStream(userPrompt, chatId)
                 .subscribe(token -> ui.access(() -> {
                             if (firstTokenReceived.compareAndSet(false, true)) {
-                                typingIndicator.setVisible(false);
+                                responseMessage.removeClassNames("tutor-loading");
                             }
                             responseMessage.appendText(token);
                         }),
                         _ -> ui.access(() -> {
+                            responseMessage.removeClassNames("tutor-loading");
                             if (responseMessage.getText().isBlank()) {
                                 responseMessage.setText("Sorry, something went wrong while generating the response. Please try again.");
                             }
                             setLoadingState(false);
                         }),
-                        () -> ui.access(() -> setLoadingState(false))));
+                        () -> ui.access(() -> {
+                            responseMessage.removeClassNames("tutor-loading");
+                            setLoadingState(false);
+                        })));
 
         if (uiOptional.isEmpty()) {
             setLoadingState(false);
@@ -97,27 +95,9 @@ public class ChatView extends Composite<VerticalLayout> {
 
     }
 
-    private Div createTypingIndicator() {
-        var indicator = new Div();
-        indicator.addClassName("chat-typing-indicator");
-        indicator.getElement().setAttribute("aria-live", "polite");
-
-        var label = new Span("Socratic Tutor is thinking");
-        label.addClassName("chat-typing-label");
-
-        var dots = new Span();
-        dots.addClassName("chat-typing-dots");
-        dots.getElement().setAttribute("aria-hidden", "true");
-        dots.add(new Span(), new Span(), new Span());
-
-        indicator.add(label, dots);
-        return indicator;
-    }
-
     private void setLoadingState(boolean loading) {
         responseInProgress = loading;
         messageInput.setEnabled(!loading);
-        typingIndicator.setVisible(loading);
 
     }
 }

@@ -28,7 +28,7 @@
     },
     {
       "role": "assistant",
-      "content": "Exactamente. Entonces estás repitiendo pasos: ir al listado, seleccionar la materia y agregarla al carrito. ¿Correcto?"
+      "content": "Exactamente. Entonces estás repitiendo pasos. Ir al listado, seleccionar la materia y agregarla al carrito. ¿Correcto?"
     },
     {
       "role": "user",
@@ -44,7 +44,7 @@
     },
     {
       "role": "assistant",
-      "content": "Entonces tenemos repetición en dos lugares:\n1. Juan repite pasos para cada materia.\n2. Yo repito el proceso para cada estudiante.\n\nSi yo les digo que determinen:\n- El monto que pagó cada estudiante\n- El monto total que ganó la universidad\n\n¿Cómo lo harían a lápiz y papel?"
+      "content": "Entonces tenemos repetición en dos lugares:\n1) Juan repite pasos para cada materia.\n2) Yo repito el proceso para cada estudiante.\n\nSi yo les digo que determinen:\n- El monto que pagó cada estudiante\n- El monto total que ganó la universidad\n¿Cómo lo harían a lápiz y papel?"
     },
     {
       "role": "user",
@@ -52,7 +52,7 @@
     },
     {
       "role": "assistant",
-      "content": "Correcto. Primero pedimos la cantidad de estudiantes, la guardamos en una variable n, inicializamos contador en 1 y construimos:\n\n```c\nwhile (contador <= n)\n```\n\nEse es el primer nivel de repetición. Ahora pregunto: dentro de ese while, ¿qué debo solicitar?"
+      "content": "Correcto. Primero pedimos la cantidad de estudiantes.\nLa guardamos en una variable n.\nInicializamos contador en 1. Y construimos:\n\n```c\nwhile (contador <= n)\n```\n\nEse es el primer nivel de repetición.\n\nAhora pregunto. Dentro de ese while, ¿qué debo solicitar?"
     },
     {
       "role": "user",
@@ -68,7 +68,7 @@
     },
     {
       "role": "assistant",
-      "content": "Exactamente. Aquí estamos trabajando con niveles:\n\n- Nivel 1: Estudiantes\n- Nivel 2: Materias dentro de cada estudiante\n\nVisualmente sería así:\n\n```\nEstudiante 1:\n    Materia 1\n    Materia 2\n    Materia 3\n\nEstudiante 2:\n    Materia 1\n    Materia 2\n\nEstudiante 3:\n    Materia 1\n    Materia 2\n    Materia 3\n    Materia 4\n```\n\nEl primer while controla personas — los estudiantes. El segundo while controla elementos dentro de cada persona. Eso es un while anidado.\n\nEntonces necesitamos un contador de materias. ¿Dónde se inicializa ese contador?"
+      "content": "Exactamente.\n\nAquí estamos trabajando con niveles.\n\nNivel 1: Estudiantes\nNivel 2: Materias dentro de cada estudiante\n\nVisualmente sería así:\n\n```text\nEstudiante 1:\n      Materia 1\n      Materia 2\n      Materia 3\n\nEstudiante 2:\n      Materia 1\n      Materia 2\n\nEstudiante 3:\n      Materia 1\n      Materia 2\n      Materia 3\n      Materia 4\n```\n\nEl primer while controla personas, los estudiantes. El segundo while controla elementos dentro de cada persona. Eso es un while anidado.\n\nEntonces necesitamos un contador de materias. ¿Dónde se inicializa ese contador?"
     },
     {
       "role": "user",
@@ -84,7 +84,7 @@
     },
     {
       "role": "assistant",
-      "content": "Correcto. Entonces dentro del while del estudiante inicializamos contadorMateria = 1 y construimos:\n\n```c\nwhile (contadorMateria <= cantidadMaterias)\n```\n\nDentro pedimos: cantidad de créditos y precio por crédito. Multiplicamos créditos * precio y acumulamos en totalEstudiante.\n\nAhora, cuando termina el while de materias, ¿qué representa totalEstudiante?"
+      "content": "Correcto. Entonces dentro del while del estudiante inicializamos contadorMateria = 1 y construimos:\n\n```c\nwhile (contadorMateria <= cantidadMaterias)\n```\n\nDentro pedimos:\n- Cantidad de créditos\n- Precio por crédito\n\nMultiplicamos créditos * precio y acumulamos en TotalEstudiante.\n\nAhora, cuando termina el while de materias, ¿qué representa TotalEstudiante?"
     },
     {
       "role": "user",
@@ -116,7 +116,7 @@
     },
     {
       "role": "assistant",
-      "content": "Correcto. Entonces la inicializamos en cero antes del primer while, y después de calcular el total de cada estudiante, lo sumamos a totalGanadoUniversidad. Así resolvemos el problema utilizando while anidados.\n\nAquí está el programa completo:\n\n```c\n#include <stdio.h>\n\nint main(void) {\n\n    int nEstudiantes;\n    int contadorEst;\n\n    // Debe ir FUERA del while de estudiantes porque\n    // debe acumular lo de TODOS los estudiantes.\n    float totalGanadoUniversidad = 0;\n\n    printf(\"Introduzca la cantidad de estudiantes a evaluar: \");\n    scanf(\"%d\", &nEstudiantes);\n\n    contadorEst = 1;\n\n    while (contadorEst <= nEstudiantes) {\n\n        printf(\"\\n==============================\\n\");\n        printf(\"  Estudiante #%d\\n\", contadorEst);\n        printf(\"==============================\\n\");\n\n        int nMaterias;\n        printf(\"Introduzca la cantidad de materias del estudiante #%d: \", contadorEst);\n        scanf(\"%d\", &nMaterias);\n\n        // Debe reiniciarse en 0 por cada estudiante.\n        // Por eso va DENTRO del while de estudiantes.\n        float totalEstudiante = 0;\n\n        int contadorMat = 1;\n\n        while (contadorMat <= nMaterias) {\n\n            printf(\"\\n--- Materia #%d ---\\n\", contadorMat);\n\n            int creditos;\n            float precioCredito;\n\n            printf(\"Introduzca la cantidad de creditos: \");\n            scanf(\"%d\", &creditos);\n\n            printf(\"Introduzca el precio por credito: \");\n            scanf(\"%f\", &precioCredito);\n\n            float costoMateria = creditos * precioCredito;\n            printf(\"Costo de la materia #%d: %.2f\\n\", contadorMat, costoMateria);\n\n            totalEstudiante = totalEstudiante + costoMateria;\n            contadorMat = contadorMat + 1;\n        }\n\n        printf(\"\\nTOTAL PAGADO por el estudiante #%d: %.2f\\n\", contadorEst, totalEstudiante);\n\n        totalGanadoUniversidad = totalGanadoUniversidad + totalEstudiante;\n        contadorEst = contadorEst + 1;\n    }\n\n    printf(\"\\n=====================================\\n\");\n    printf(\"TOTAL GANADO POR LA UNIVERSIDAD: %.2f\\n\", totalGanadoUniversidad);\n    printf(\"=====================================\\n\");\n\n    return 0;\n}\n```\n\nVamos a explicar paso a paso cómo se ejecutan estos bucles anidados, con 4 estudiantes. Entonces iniciamos con la ejecución paso a paso."
+      "content": "Correcto. Entonces la inicializamos en cero antes del primer while, y después de calcular el total de cada estudiante, lo sumamos a TotalGanadoUniversidad.\n\nAsí resolvemos el problema utilizando while anidados.\n\n```c\n#include <stdio.h>\n\nint main(void) {\n\n    /* =========================\n       NIVEL 1: ESTUDIANTES\n       =========================\n       Este while recorre cada estudiante.\n       Por cada estudiante, dentro, se ejecutará el NIVEL 2 (materias).\n    */\n\n    int nEstudiantes;\n    int contadorEst;\n\n    /* =========================\n       ACUMULADOR GENERAL\n       =========================\n       Debe ir FUERA del while de estudiantes porque\n       debe acumular lo de TODOS los estudiantes.\n    */\n    float totalGanadoUniversidad = 0;\n\n    printf(\"Introduzca la cantidad de estudiantes a evaluar: \");\n    scanf(\"%d\", &nEstudiantes);\n\n    /* Contador del NIVEL 1 */\n    contadorEst = 1;\n\n    while (contadorEst <= nEstudiantes) {\n\n        printf(\"\\n==============================\\n\");\n        printf(\"  Estudiante #%d\\n\", contadorEst);\n        printf(\"==============================\\n\");\n\n        /* =========================\n           DENTRO DE CADA ESTUDIANTE\n           =========================\n           Vamos a pedir cuántas materias tiene este estudiante.\n        */\n        int nMaterias;\n        printf(\"Introduzca la cantidad de materias del estudiante #%d: \", contadorEst);\n        scanf(\"%d\", &nMaterias);\n\n        /* =========================\n           ACUMULADOR POR ESTUDIANTE\n           =========================\n           Debe reiniciarse en 0 por cada estudiante.\n           Por eso va DENTRO del while de estudiantes.\n        */\n        float totalEstudiante = 0;\n\n        /* =========================\n           NIVEL 2: MATERIAS\n           =========================\n           Este while recorre cada materia de ESTE estudiante.\n        */\n        int contadorMat = 1;\n\n        while (contadorMat <= nMaterias) {\n\n            printf(\"\\n--- Materia #%d ---\\n\", contadorMat);\n\n            /* Datos necesarios por materia */\n            int creditos;\n            float precioCredito;\n\n            printf(\"Introduzca la cantidad de creditos: \");\n            scanf(\"%d\", &creditos);\n\n            printf(\"Introduzca el precio por credito: \");\n            scanf(\"%f\", &precioCredito);\n\n            /* Costo de esta materia */\n            float costoMateria = creditos * precioCredito;\n\n            printf(\"Costo de la materia #%d: %.2f\\n\", contadorMat, costoMateria);\n\n            /* =========================\n               INVARIANTE DEL NIVEL 2\n               =========================\n               En cada vuelta, totalEstudiante va guardando\n               la suma parcial de las materias registradas.\n            */\n            totalEstudiante = totalEstudiante + costoMateria;\n\n            /* Avanzamos a la siguiente materia */\n            contadorMat = contadorMat + 1;\n        }\n\n        /* Aquí termina NIVEL 2.\n           totalEstudiante ya es el total final del estudiante. */\n        printf(\"\\nTOTAL PAGADO por el estudiante #%d: %.2f\\n\", contadorEst, totalEstudiante);\n\n        /* =========================\n           ACUMULACIÓN GENERAL\n           =========================\n           Se suma el total del estudiante al total de la universidad.\n        */\n        totalGanadoUniversidad = totalGanadoUniversidad + totalEstudiante;\n\n        /* Avanzamos al siguiente estudiante (NIVEL 1) */\n        contadorEst = contadorEst + 1;\n    }\n\n    /* Al terminar el NIVEL 1, ya tenemos el total general */\n    printf(\"\\n=====================================\\n\");\n    printf(\"TOTAL GANADO POR LA UNIVERSIDAD: %.2f\\n\", totalGanadoUniversidad);\n    printf(\"=====================================\\n\");\n\n    return 0;\n}\n```\n\nok vamos a explicar paso a paso cómo se ejecutan estos bucles anidados utilizando como ejemplo las materias inscritas por cada uno de los estudiantes de esta aula, pero lo haremos con 4 estudiantes. Para esto repetiremos los pasos anteriores pero viendo cómo lo hace el while. Entonces iniciamos con la ejecución paso a paso."
     },
     {
       "role": "user",
@@ -124,7 +124,7 @@
     },
     {
       "role": "assistant",
-      "content": "Bien. Ahora vamos a desarrollar un programa en C que evalúa el índice obtenido por N estudiantes de la universidad. Para calcular el índice de un estudiante, se multiplica la cantidad de créditos de cada materia por la equivalencia de la letra obtenida en la misma. El valor de cada letra es: A = 4, B = 3, C = 2, D = 1.\n\nEl programa debe pedir por cada estudiante la cantidad de materias pasadas y luego, por cada materia, solicitar la cantidad de créditos y la letra obtenida. Al final mostrar el índice promedio de todos los estudiantes."
+      "content": "Bien, ahora vamos a desarrollar un programa en C, el cual evalúa el índice obtenido por N estudiantes de la universidad ABC. Para calcular el índice de un estudiante, se multiplica la cantidad de créditos de cada materia por la equivalencia de la letra obtenida en la misma. El valor de cada letra es la siguiente: A = 4, B = 3, C = 2, D = 1. El programa debe pedir por cada estudiante la materias la cantidad de materias pasadas y luego por cada materia solicitar: la cantidad de créditos y la letra obtenida. Al final mostrar el índice promedio de todos los estudiantes."
     }
   ]
 }
