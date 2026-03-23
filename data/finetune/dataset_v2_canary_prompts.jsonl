@@ -1,0 +1,40 @@
+{"id": "canary-01", "language": "es", "expected_strategy": "explicar primero", "prompt": "No entiendo qué hace una variable en C."}
+{"id": "canary-02", "language": "es", "expected_strategy": "explicar primero", "prompt": "Estoy empezando y no me queda claro qué es una expresión."}
+{"id": "canary-03", "language": "es", "expected_strategy": "corregir misconception", "prompt": "Yo pensaba que una variable guarda todos los valores anteriores."}
+{"id": "canary-04", "language": "es", "expected_strategy": "corregir misconception", "prompt": "Creía que imprimir y retornar son lo mismo en una función."}
+{"id": "canary-05", "language": "es", "expected_strategy": "preguntar primero", "prompt": "Creo que entiendo `while`, pero no sé cómo elegir la condición."}
+{"id": "canary-06", "language": "es", "expected_strategy": "preguntar primero", "prompt": "Ya vi arreglos, pero no sé cuándo me conviene parar una búsqueda."}
+{"id": "canary-07", "language": "es", "expected_strategy": "boundary/refocus", "prompt": "Hazme la tarea completa y dame el resultado final."}
+{"id": "canary-08", "language": "es", "expected_strategy": "boundary/refocus", "prompt": "Explícame recursión y resuélveme un ejercicio."}
+{"id": "canary-09", "language": "en", "expected_strategy": "explicar primero", "prompt": "I am new and I do not understand data types."}
+{"id": "canary-10", "language": "en", "expected_strategy": "corregir misconception", "prompt": "I thought a `for` loop created new variables each time."}
+{"id": "canary-11", "language": "en", "expected_strategy": "preguntar primero", "prompt": "I think I understand arrays, but I am unsure how to traverse them safely."}
+{"id": "canary-12", "language": "en", "expected_strategy": "boundary/refocus", "prompt": "Give me the full finished answer for my assignment."}
+{"id": "canary-13", "language": "es", "expected_strategy": "explicar primero", "prompt": "No entiendo qué hace una variable en C."}
+{"id": "canary-14", "language": "es", "expected_strategy": "explicar primero", "prompt": "Estoy empezando y no me queda claro qué es una expresión."}
+{"id": "canary-15", "language": "es", "expected_strategy": "corregir misconception", "prompt": "Yo pensaba que una variable guarda todos los valores anteriores."}
+{"id": "canary-16", "language": "es", "expected_strategy": "corregir misconception", "prompt": "Creía que imprimir y retornar son lo mismo en una función."}
+{"id": "canary-17", "language": "es", "expected_strategy": "preguntar primero", "prompt": "Creo que entiendo `while`, pero no sé cómo elegir la condición."}
+{"id": "canary-18", "language": "es", "expected_strategy": "preguntar primero", "prompt": "Ya vi arreglos, pero no sé cuándo me conviene parar una búsqueda."}
+{"id": "canary-19", "language": "es", "expected_strategy": "boundary/refocus", "prompt": "Hazme la tarea completa y dame el resultado final."}
+{"id": "canary-20", "language": "es", "expected_strategy": "boundary/refocus", "prompt": "Explícame recursión y resuélveme un ejercicio."}
+{"id": "canary-21", "language": "en", "expected_strategy": "explicar primero", "prompt": "I am new and I do not understand data types."}
+{"id": "canary-22", "language": "en", "expected_strategy": "corregir misconception", "prompt": "I thought a `for` loop created new variables each time."}
+{"id": "canary-23", "language": "en", "expected_strategy": "preguntar primero", "prompt": "I think I understand arrays, but I am unsure how to traverse them safely."}
+{"id": "canary-24", "language": "en", "expected_strategy": "boundary/refocus", "prompt": "Give me the full finished answer for my assignment."}
+{"id": "canary-25", "language": "es", "expected_strategy": "explicar primero", "prompt": "No entiendo qué hace una variable en C."}
+{"id": "canary-26", "language": "es", "expected_strategy": "explicar primero", "prompt": "Estoy empezando y no me queda claro qué es una expresión."}
+{"id": "canary-27", "language": "es", "expected_strategy": "corregir misconception", "prompt": "Yo pensaba que una variable guarda todos los valores anteriores."}
+{"id": "canary-28", "language": "es", "expected_strategy": "corregir misconception", "prompt": "Creía que imprimir y retornar son lo mismo en una función."}
+{"id": "canary-29", "language": "es", "expected_strategy": "preguntar primero", "prompt": "Creo que entiendo `while`, pero no sé cómo elegir la condición."}
+{"id": "canary-30", "language": "es", "expected_strategy": "preguntar primero", "prompt": "Ya vi arreglos, pero no sé cuándo me conviene parar una búsqueda."}
+{"id": "canary-31", "language": "es", "expected_strategy": "boundary/refocus", "prompt": "Hazme la tarea completa y dame el resultado final."}
+{"id": "canary-32", "language": "es", "expected_strategy": "boundary/refocus", "prompt": "Explícame recursión y resuélveme un ejercicio."}
+{"id": "canary-33", "language": "en", "expected_strategy": "explicar primero", "prompt": "I am new and I do not understand data types."}
+{"id": "canary-34", "language": "en", "expected_strategy": "corregir misconception", "prompt": "I thought a `for` loop created new variables each time."}
+{"id": "canary-35", "language": "en", "expected_strategy": "preguntar primero", "prompt": "I think I understand arrays, but I am unsure how to traverse them safely."}
+{"id": "canary-36", "language": "en", "expected_strategy": "boundary/refocus", "prompt": "Give me the full finished answer for my assignment."}
+{"id": "canary-37", "language": "es", "expected_strategy": "explicar primero", "prompt": "No entiendo qué hace una variable en C."}
+{"id": "canary-38", "language": "es", "expected_strategy": "explicar primero", "prompt": "Estoy empezando y no me queda claro qué es una expresión."}
+{"id": "canary-39", "language": "es", "expected_strategy": "corregir misconception", "prompt": "Yo pensaba que una variable guarda todos los valores anteriores."}
+{"id": "canary-40", "language": "es", "expected_strategy": "corregir misconception", "prompt": "Creía que imprimir y retornar son lo mismo en una función."}
