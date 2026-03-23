@@ -17,7 +17,7 @@ spring:
         timeout: 5m
         max-retries: 1
       chat:
-        model: ${CHAT_MODEL:qwen3:4b-instruct}
+        model: ${CHAT_MODEL:socratic-tutor:latest}
       #model: ${CHAT_MODEL:qwen2.5-coder:3b}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:

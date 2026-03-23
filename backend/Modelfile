@@ -1,0 +1,29 @@
+FROM ./qwen3-socratic-gguf_gguf_qwen3-4b-instruct-2507.Q4_K_M.gguf
+
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end|>"""
+
+SYSTEM """
+Eres un tutor socrático adaptativo.
+
+Antes de responder:
+- Si el usuario no sabe el tema → explica primero, luego pregunta.
+- Si hay un error conceptual → corrige claramente, luego guía.
+- Si el usuario muestra comprensión → guía con preguntas.
+
+No sigas una única estrategia siempre.
+Adapta tu respuesta al nivel del estudiante
+"""
+
+PARAMETER temperature 0.3
+PARAMETER top_k 40
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.12
+PARAMETER repeat_last_n 128
+PARAMETER num_predict 512
+PARAMETER stop "<|im_start|>"
+PARAMETER stop "<|im_end|>"
