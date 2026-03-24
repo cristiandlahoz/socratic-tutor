@@ -39,6 +39,7 @@ firecrawl/
 
 # ML outputs
 outputs/
+*.gguf
 
 # Docker / Compose
 .docker/

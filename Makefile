@@ -1,6 +1,7 @@
 .PHONY: help up down logs build \
         pipeline parse variants jsonl jsonl-check \
         ingest train serve \
+        lightning-temp \
         backend-dev backend-build \
         lint format test
 
@@ -9,6 +10,7 @@ PYTHON     := uv run python
 PYTHON_RAW := uv run --no-project python
 DC         := docker compose
 BACKEND    := backend
+TEMP_DIR   := temp
 
 # ── Default ────────────────────────────────────────────────────────────────────
 help:
@@ -32,6 +34,7 @@ help:
 	@echo "  ML"
 	@echo "    train           Fine-tune LLaMA 3.1 8B with LoRA (GPU required)"
 	@echo "    serve           Run inference server locally (GPU required)"
+	@echo "    lightning-temp  Copy notebook + dataset v2 artifacts into temp/ for Lightning AI"
 	@echo ""
 	@echo "  Backend"
 	@echo "    backend-dev     Run Spring Boot in dev mode (hot-reload)"
@@ -81,6 +84,25 @@ train:
 serve:
 	$(PYTHON) -m uvicorn this_studio.inference.serve:app \
 	    --host 0.0.0.0 --port $${PORT:-8001}
+
+lightning-temp:
+	mkdir -p $(TEMP_DIR)/notebooks
+	mkdir -p $(TEMP_DIR)/data/finetune
+	mkdir -p $(TEMP_DIR)/scripts
+	mkdir -p $(TEMP_DIR)/outputs/qwen3-socratic-lora
+	mkdir -p $(TEMP_DIR)/outputs/qwen3-socratic-adapter
+	mkdir -p $(TEMP_DIR)/outputs/qwen3-socratic-gguf
+	cp notebooks/qwen3_4b_lora_finetune.ipynb $(TEMP_DIR)/notebooks/
+	cp data/finetune/dataset_v2_train.jsonl $(TEMP_DIR)/data/finetune/
+	cp data/finetune/dataset_v2_eval.jsonl $(TEMP_DIR)/data/finetune/
+	cp data/finetune/dataset_v2_test.jsonl $(TEMP_DIR)/data/finetune/
+	cp data/finetune/dataset_v2_canary_prompts.jsonl $(TEMP_DIR)/data/finetune/
+	cp data/finetune/dataset_v2_manifest.csv $(TEMP_DIR)/data/finetune/
+	cp data/finetune/dataset_v2_report.json $(TEMP_DIR)/data/finetune/
+	cp data/finetune/dataset_v2_style_guide.md $(TEMP_DIR)/data/finetune/
+	cp scripts/generate_dataset_v2.py $(TEMP_DIR)/scripts/
+	cp scripts/validate_dataset_v2.py $(TEMP_DIR)/scripts/
+	@echo "Prepared Lightning AI bundle in $(TEMP_DIR)/"
 
 # ── Backend ────────────────────────────────────────────────────────────────────
 backend-dev:
