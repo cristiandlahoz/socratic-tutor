@@ -1,3 +1,21 @@
+/*@font-face {*/
+/*  font-family: "Plus Jakarta Sans";*/
+/*  font-style: normal;*/
+/*  font-weight: 200 800;*/
+/*  font-display: swap;*/
+/*  src: url("https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yw.woff2") format("woff2");*/
+/*  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;*/
+/*}*/
+
+/*@font-face {*/
+/*  font-family: "Plus Jakarta Sans";*/
+/*  font-style: normal;*/
+/*  font-weight: 200 800;*/
+/*  font-display: swap;*/
+/*  src: url("https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko40yyygA.woff2") format("woff2");*/
+/*  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;*/
+/*}*/
+
 :root {
   --chat-bg: #1b2029;
   --chat-bg-elevated: #232a36;
@@ -7,10 +25,10 @@
   --chat-border-strong: rgba(126, 146, 184, 0.28);
   --chat-border-soft: rgba(126, 146, 184, 0.24);
   --chat-border-subtle: rgba(123, 144, 182, 0.14);
-  --chat-text: #e8edf7;
-  --chat-text-strong: rgba(241, 245, 252, 0.96);
-  --chat-text-soft: rgba(227, 235, 247, 0.84);
-  --chat-muted: #98a7c0;
+  --chat-text: #FCFCFC;
+  --chat-text-strong: #FCFCFC;
+  --chat-text-soft: #9E9E9E;
+  --chat-muted: #9E9E9E;
   --chat-code: #1f2735;
   --chat-shadow: 0 28px 56px rgba(7, 12, 22, 0.32);
   --chat-shadow-soft: 0 14px 28px rgba(7, 12, 22, 0.28);
@@ -159,7 +177,7 @@ vaadin-drawer-toggle.chat-floating-toggle {
   line-height: 0.95;
   font-weight: 700;
   letter-spacing: -0.03em;
-  color: #f1f5fc;
+  color: var(--chat-text);
 }
 
 .chat-sidebar-badge {
@@ -172,7 +190,7 @@ vaadin-drawer-toggle.chat-floating-toggle {
   border: 1px solid var(--chat-border);
   color: var(--chat-accent-text);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -182,7 +200,84 @@ vaadin-drawer-toggle.chat-floating-toggle {
   color: var(--chat-muted);
   font-size: 1rem;
   line-height: 1.7;
+  font-weight: 550;
   max-width: 18rem;
+}
+
+vaadin-button.chat-sidebar-new-chat {
+  align-self: flex-start;
+  --vaadin-button-background: rgba(60, 72, 95, 0.96);
+  --vaadin-button-border-color: var(--chat-border);
+  --vaadin-button-border-radius: var(--chat-radius-pill);
+  --vaadin-button-border-width: 1px;
+  --vaadin-button-padding: 0.8rem 1rem;
+  --vaadin-button-text-color: var(--chat-accent-text);
+}
+
+vaadin-button.chat-sidebar-new-chat::part(button) {
+  box-shadow: none;
+}
+
+.chat-sidebar-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-height: 0;
+}
+
+.chat-sidebar-history-empty {
+  margin: 0;
+  color: var(--chat-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+vaadin-button.chat-sidebar-history-item {
+  width: 100%;
+  margin: 0;
+  --vaadin-button-padding: 0;
+  --vaadin-button-text-align: left;
+}
+
+vaadin-button.chat-sidebar-history-item::part(button) {
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--chat-border-subtle);
+  border-radius: var(--chat-radius-m);
+  background: rgba(38, 47, 63, 0.72);
+  box-shadow: none;
+}
+
+vaadin-button.chat-sidebar-history-item:hover::part(button) {
+  background: rgba(46, 57, 76, 0.92);
+}
+
+vaadin-button.chat-sidebar-history-item-active::part(button) {
+  background: rgba(56, 69, 93, 0.96);
+  border-color: var(--chat-border-strong);
+}
+
+.chat-sidebar-history-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  box-sizing: border-box;
+}
+
+.chat-sidebar-history-title {
+  color: var(--chat-text-strong);
+  font-size: 0.96rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.chat-sidebar-history-meta {
+  color: var(--chat-muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.03em;
 }
 
 .chat-content-view {
@@ -271,8 +366,9 @@ vaadin-drawer-toggle.chat-floating-toggle {
   font-family: var(--chat-serif), serif;
   font-size: clamp(2.2rem, 4vw, 4rem);
   line-height: 0.95;
+  font-weight: 700;
   letter-spacing: -0.04em;
-  color: #f3f7fd;
+  color: var(--chat-text);
 }
 
 .chat-empty-copy {
@@ -281,6 +377,7 @@ vaadin-drawer-toggle.chat-floating-toggle {
   font-family: var(--chat-serif), serif;
   font-size: clamp(1.05rem, 1.5vw, 1.3rem);
   line-height: 1.75;
+  font-weight: 550;
   color: var(--chat-text-soft);
   text-wrap: pretty;
 }
@@ -317,6 +414,7 @@ vaadin-message.user-message::part(message) {
   border-radius: var(--chat-radius-l) var(--chat-radius-l) 0.45rem var(--chat-radius-l);
   box-shadow: var(--chat-shadow-strong);
   padding: 1rem 1.2rem;
+  font-weight: 550;
   line-height: 1.7;
 }
 
@@ -328,6 +426,7 @@ vaadin-message.tutor-message::part(message) {
   color: var(--chat-text-strong);
   font-family: var(--chat-serif), serif;
   font-size: clamp(1rem, 1.45vw, 1.2rem);
+  font-weight: 550;
   line-height: 1.7;
 }
 
@@ -343,7 +442,7 @@ vaadin-message.tutor-loading::part(header) {
 vaadin-message.tutor-loading::part(name) {
   color: var(--chat-muted);
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -398,6 +497,7 @@ vaadin-text-area.chat-composer-field > textarea {
   color: var(--chat-text-strong);
   font-family: var(--chat-serif), serif;
   font-size: 1.05rem;
+  font-weight: 550;
   line-height: 1.55;
 }
 
