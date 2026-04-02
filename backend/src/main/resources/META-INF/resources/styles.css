@@ -382,8 +382,18 @@ vaadin-button.chat-sidebar-history-item-active::part(button) {
   text-wrap: pretty;
 }
 
-vaadin-message-list.chat-message-list::part(list) {
+vaadin-message-list.chat-message-list::part(list),
+code-message-list.chat-message-list > .code-message-list__list {
   gap: 1.4rem;
+}
+
+code-message-list.chat-message-list {
+  display: block;
+}
+
+code-message-list.chat-message-list > .code-message-list__list {
+  display: flex;
+  flex-direction: column;
 }
 
 vaadin-message > vaadin-avatar {
@@ -467,6 +477,11 @@ vaadin-message.tutor-loading::part(message) {
 
 vaadin-message a {
   color: var(--chat-link);
+}
+
+vaadin-message code-message-body {
+  display: block;
+  width: 100%;
 }
 
 .chat-composer {

@@ -7,8 +7,6 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.messages.MessageList;
-import com.vaadin.flow.component.messages.MessageListItem;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
@@ -39,7 +37,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     private final ConversationService conversationService;
     private final BrowserClientService browserClientService;
     private final Div emptyState;
-    private final MessageList messageList;
+    private final CodeMessageList messageList;
     private final Div historyScroller;
     private final TextArea composerField;
     private final Button sendButton;
@@ -55,7 +53,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         this.browserClientService = browserClientService;
 
         emptyState = createEmptyState();
-        messageList = new MessageList();
+        messageList = new CodeMessageList();
         messageList.setMarkdown(true);
         messageList.setWidthFull();
         messageList.addClassName("chat-message-list");
@@ -174,13 +172,13 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         emptyState.setVisible(false);
         setLoadingState(true);
 
-        var promptMessage = new MessageListItem(prompt, Instant.now(), "You");
+        var promptMessage = new CodeMessageListItem(prompt, Instant.now(), "You");
         promptMessage.setUserColorIndex(0);
         promptMessage.addClassNames("user-message");
         messageList.addItem(promptMessage);
         composerField.clear();
 
-        var responseMessage = new MessageListItem("", Instant.now(), "Socratic Tutor");
+        var responseMessage = new CodeMessageListItem("", Instant.now(), "Socratic Tutor");
         responseMessage.setUserColorIndex(1);
         responseMessage.addClassNames("tutor-message", "tutor-loading");
         messageList.addItem(responseMessage);
@@ -239,9 +237,9 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         historyScroller.getElement().executeJs("this.scrollTop = 0;");
     }
 
-    private MessageListItem toMessageListItem(StoredChatMessage storedChatMessage) {
+    private CodeMessageListItem toMessageListItem(StoredChatMessage storedChatMessage) {
         var isUserMessage = storedChatMessage.role() == MessageType.USER;
-        var item = new MessageListItem(
+        var item = new CodeMessageListItem(
                 storedChatMessage.content(),
                 storedChatMessage.createdAt(),
                 isUserMessage ? "You" : "Socratic Tutor"
