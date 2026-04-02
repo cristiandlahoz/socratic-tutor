@@ -5,6 +5,8 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.UUID;
+
 /**
  * @author @github/cristiandlahoz
  */
@@ -17,9 +19,9 @@ public class ChatService {
         this.chatClient = chatClient;
     }
 
-    public Flux<String> chatStream(String userInput, String chatId) {
+    public Flux<String> chatStream(String userInput, UUID conversationId) {
         return chatClient.prompt()
-                .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, chatId))
+                .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId.toString()))
                 .user(userInput)
                 .stream()
                 .content();
