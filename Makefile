@@ -1,6 +1,6 @@
 .PHONY: help up down logs build \
         pipeline parse variants jsonl jsonl-check \
-        ingest train serve \
+        ingest train serve export-pdf export-tex export-tex-pdf \
         lightning-temp \
         backend-dev backend-build \
         lint format test
@@ -34,6 +34,9 @@ help:
 	@echo "  ML"
 	@echo "    train           Fine-tune LLaMA 3.1 8B with LoRA (GPU required)"
 	@echo "    serve           Run inference server locally (GPU required)"
+	@echo "    export-pdf      Export a notebook to PDF with nbconvert webpdf"
+	@echo "    export-tex      Export a notebook to LaTeX (.tex) with nbconvert"
+	@echo "    export-tex-pdf  Export a notebook to LaTeX and compile it to PDF"
 	@echo "    lightning-temp  Copy notebook + dataset v2 artifacts into temp/ for Lightning AI"
 	@echo ""
 	@echo "  Backend"
@@ -84,6 +87,75 @@ train:
 serve:
 	$(PYTHON) -m uvicorn this_studio.inference.serve:app \
 	    --host 0.0.0.0 --port $${PORT:-8001}
+
+export-pdf:
+	@test -n "$(NOTEBOOK)" || (echo "Set NOTEBOOK=path/to/notebook.py or .ipynb" && exit 1)
+	@case "$(NOTEBOOK)" in \
+		*.py) \
+			NOTEBOOK_VALUE="$(NOTEBOOK)"; \
+			uv run --no-project jupytext --to notebook "$(NOTEBOOK)"; \
+			NOTEBOOK_IPYNB="$${NOTEBOOK_VALUE%.py}.ipynb"; \
+			;; \
+		*.ipynb) \
+			NOTEBOOK_IPYNB="$(NOTEBOOK)"; \
+			;; \
+		*) \
+			echo "NOTEBOOK must end in .py or .ipynb"; \
+			exit 1; \
+			;; \
+	esac; \
+	uv run --no-project --with nbconvert --with playwright python -m nbconvert --to webpdf --allow-chromium-download "$$NOTEBOOK_IPYNB"
+
+export-tex:
+	@test -n "$(NOTEBOOK)" || (echo "Set NOTEBOOK=path/to/notebook.py or .ipynb" && exit 1)
+	@case "$(NOTEBOOK)" in \
+		*.py) \
+			NOTEBOOK_VALUE="$(NOTEBOOK)"; \
+			uv run --no-project jupytext --to notebook "$(NOTEBOOK)"; \
+			NOTEBOOK_IPYNB="$${NOTEBOOK_VALUE%.py}.ipynb"; \
+			;; \
+		*.ipynb) \
+			NOTEBOOK_IPYNB="$(NOTEBOOK)"; \
+			;; \
+		*) \
+			echo "NOTEBOOK must end in .py or .ipynb"; \
+			exit 1; \
+			;; \
+	esac; \
+	uv run --no-project --with nbconvert python -m nbconvert --to latex "$$NOTEBOOK_IPYNB"; \
+	NOTEBOOK_TEX="$${NOTEBOOK_IPYNB%.ipynb}.tex"; \
+	python3 scripts/style_notebook_latex.py "$$NOTEBOOK_TEX"
+
+export-tex-pdf:
+	@test -n "$(NOTEBOOK)" || (echo "Set NOTEBOOK=path/to/notebook.py or .ipynb" && exit 1)
+	@case "$(NOTEBOOK)" in \
+		*.py) \
+			NOTEBOOK_VALUE="$(NOTEBOOK)"; \
+			uv run --no-project jupytext --to notebook "$(NOTEBOOK)"; \
+			NOTEBOOK_IPYNB="$${NOTEBOOK_VALUE%.py}.ipynb"; \
+			;; \
+		*.ipynb) \
+			NOTEBOOK_IPYNB="$(NOTEBOOK)"; \
+			;; \
+		*) \
+			echo "NOTEBOOK must end in .py or .ipynb"; \
+			exit 1; \
+			;; \
+	esac; \
+	uv run --no-project --with nbconvert python -m nbconvert --to latex "$$NOTEBOOK_IPYNB"; \
+	NOTEBOOK_TEX="$${NOTEBOOK_IPYNB%.ipynb}.tex"; \
+	python3 scripts/style_notebook_latex.py "$$NOTEBOOK_TEX"; \
+	if command -v latexmk >/dev/null 2>&1; then \
+		latexmk -xelatex "$$NOTEBOOK_TEX"; \
+	elif command -v tectonic >/dev/null 2>&1; then \
+		tectonic "$$NOTEBOOK_TEX"; \
+	elif command -v xelatex >/dev/null 2>&1; then \
+		xelatex "$$NOTEBOOK_TEX"; \
+		xelatex "$$NOTEBOOK_TEX"; \
+	else \
+		echo "Missing LaTeX engine. Install latexmk, tectonic, or xelatex."; \
+		exit 1; \
+	fi
 
 lightning-temp:
 	mkdir -p $(TEMP_DIR)/notebooks
