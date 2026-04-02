@@ -7,11 +7,13 @@ import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.theme.aura.Aura;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @Push
 @BodySize(height = "100vh", width = "100vw")
 @StyleSheet(Aura.STYLESHEET)
 @StyleSheet("styles.css")
+@ConfigurationPropertiesScan
 @SpringBootApplication
 public class Application implements AppShellConfigurator {
 
