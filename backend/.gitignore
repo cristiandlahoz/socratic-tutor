@@ -14,3 +14,4 @@ src/main/frontend/generated/
 vite.generated.ts
 .factorypath
 messagelist/
+**/bundles
