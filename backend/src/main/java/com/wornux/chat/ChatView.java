@@ -2,22 +2,24 @@ package com.wornux.chat;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Location;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
-import org.springframework.ai.chat.messages.MessageType;
+import com.vaadin.flow.signals.Signal;
 import com.wornux.MainLayout;
+import org.springframework.ai.chat.messages.MessageType;
 
 import java.time.Instant;
 import java.util.List;
@@ -36,14 +38,13 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     private final ChatService chatService;
     private final ConversationService conversationService;
     private final BrowserClientService browserClientService;
+    private final ChatViewState state;
     private final Div emptyState;
     private final CodeMessageList messageList;
     private final Div historyScroller;
     private final TextArea composerField;
     private final Button sendButton;
-    private UUID clientId;
-    private UUID activeConversationId;
-    private boolean responseInProgress;
+    private boolean drawerStateBound;
 
     public ChatView(ChatService chatService,
                     ConversationService conversationService,
@@ -51,13 +52,18 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         this.chatService = chatService;
         this.conversationService = conversationService;
         this.browserClientService = browserClientService;
+        state = new ChatViewState();
 
         emptyState = createEmptyState();
+        emptyState.bindVisible(state.emptyStateVisible());
+
         messageList = new CodeMessageList();
         messageList.setMarkdown(true);
         messageList.setWidthFull();
         messageList.addClassName("chat-message-list");
-        messageList.setItems(List.of());
+        Signal.effect(messageList, () -> messageList.setItems(state.messages().get().stream()
+                .map(messageSignal -> toMessageListItem(messageSignal.get()))
+                .toList()));
 
         var conversationStack = new Div(emptyState, messageList);
         conversationStack.addClassName("chat-conversation-stack");
@@ -66,8 +72,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         historyScroller.setSizeFull();
         historyScroller.addClassName("chat-history");
 
-        DrawerToggle floatingDrawerToggle = new DrawerToggle();
-        floatingDrawerToggle.addThemeVariants(ButtonVariant.AURA_TERTIARY);
+        var floatingDrawerToggle = new DrawerToggle();
+        floatingDrawerToggle.addThemeVariants(ButtonVariant.TERTIARY);
         floatingDrawerToggle.addClassName("chat-floating-toggle");
 
         composerField = new TextArea();
@@ -75,10 +81,14 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         composerField.setPlaceholder("Escribe tu mensaje aqui...");
         composerField.setAriaLabel("Escribe tu mensaje aqui");
         composerField.addClassName("chat-composer-field");
+        composerField.bindValue(state.composerText(), state.composerText()::set);
+        composerField.bindEnabled(state.composerEnabled());
+        composerField.addKeyDownListener(Key.ENTER, _ -> submitPrompt());
 
         sendButton = new Button(new Icon(VaadinIcon.ARROW_UP));
         sendButton.addClassName("chat-send-button");
         sendButton.setAriaLabel("Enviar mensaje");
+        sendButton.bindEnabled(state.sendEnabled());
         sendButton.addClickListener(_ -> submitPrompt());
 
         var root = getContent();
@@ -89,7 +99,9 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        clientId = browserClientService.resolveClientId();
+        ensureMainLayoutBindings();
+        state.clientId().set(browserClientService.resolveClientId());
+
         var draftRequested = event.getLocation()
                 .getQueryParameters()
                 .getSingleParameter(DRAFT_QUERY_PARAMETER)
@@ -102,13 +114,14 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var requestedConversationId = parseUuid(requestedConversationParam).orElse(null);
 
         if (draftRequested) {
-            activeConversationId = null;
-            renderConversation(List.of());
-            updateDrawer(conversationService.listConversations(clientId));
+            state.activeConversationId().set(null);
+            state.replaceMessages(List.of());
+            refreshConversationHistory();
+            historyScroller.getElement().executeJs("this.scrollTop = 0;");
             return;
         }
 
-        var resolvedConversation = conversationService.resolveActiveConversation(clientId, requestedConversationId);
+        var resolvedConversation = conversationService.resolveActiveConversation(state.clientId().peek(), requestedConversationId);
 
         if (requestedConversationParam != null
                 && (requestedConversationId == null
@@ -117,12 +130,13 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
             return;
         }
 
-        activeConversationId = resolvedConversation.activeConversationId();
-        renderConversation(resolvedConversation.messages());
-        updateDrawer(resolvedConversation.conversations());
+        state.activeConversationId().set(resolvedConversation.activeConversationId());
+        state.replaceMessages(resolvedConversation.messages().stream().map(MessageVm::fromStored).toList());
+        state.replaceConversationHistory(resolvedConversation.conversations());
+        historyScroller.getElement().executeJs("this.scrollTop = 0;");
 
-        if (requestedConversationParam == null && activeConversationId != null) {
-            synchronizeAddressBar(activeConversationId);
+        if (requestedConversationParam == null && state.activeConversationId().peek() != null) {
+            synchronizeAddressBar(state.activeConversationId().peek());
         }
     }
 
@@ -159,29 +173,22 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     }
 
     private void submitPrompt() {
-        var prompt = composerField.getValue();
-        if (responseInProgress || prompt.isBlank()) {
+        var prompt = state.composerText().peek();
+        if (state.responseInProgress().peek() || prompt.isBlank()) {
             return;
         }
 
-        if (clientId == null) {
-            clientId = browserClientService.resolveClientId();
+        if (state.clientId().peek() == null) {
+            state.clientId().set(browserClientService.resolveClientId());
         }
 
         var conversationId = ensureConversation(prompt);
-        emptyState.setVisible(false);
-        setLoadingState(true);
+        state.responseInProgress().set(true);
 
-        var promptMessage = new CodeMessageListItem(prompt, Instant.now(), "You");
-        promptMessage.setUserColorIndex(0);
-        promptMessage.addClassNames("user-message");
-        messageList.addItem(promptMessage);
-        composerField.clear();
+        state.messages().insertLast(MessageVm.user(prompt, Instant.now()));
+        state.composerText().set("");
 
-        var responseMessage = new CodeMessageListItem("", Instant.now(), "Socratic Tutor");
-        responseMessage.setUserColorIndex(1);
-        responseMessage.addClassNames("tutor-message", "tutor-loading");
-        messageList.addItem(responseMessage);
+        var responseMessage = state.messages().insertLast(MessageVm.assistantLoading(Instant.now()));
         scrollConversationToBottom();
 
         var uiOptional = getUI();
@@ -190,88 +197,72 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         uiOptional.ifPresent(ui -> chatService.chatStream(prompt, conversationId)
                 .subscribe(token -> ui.access(() -> {
                             if (firstTokenReceived.compareAndSet(false, true)) {
-                                responseMessage.removeClassNames("tutor-loading");
+                                responseMessage.update(MessageVm::stopLoading);
                             }
-                            responseMessage.appendText(token);
+                            responseMessage.update(message -> message.append(token));
                             scrollConversationToBottom();
                         }),
                         _ -> ui.access(() -> {
-                            responseMessage.removeClassNames("tutor-loading");
-                            if (responseMessage.getText().isBlank()) {
-                                responseMessage.setText("Lo siento, ocurrio un problema al generar la respuesta. Intenta nuevamente.");
-                            }
-                            setLoadingState(false);
+                            responseMessage.update(message -> message.fallback("Lo siento, ocurrio un problema al generar la respuesta. Intenta nuevamente."));
+                            state.responseInProgress().set(false);
                             refreshConversationHistory();
                             scrollConversationToBottom();
                         }),
                         () -> ui.access(() -> {
-                            responseMessage.removeClassNames("tutor-loading");
-                            setLoadingState(false);
+                            responseMessage.update(MessageVm::stopLoading);
+                            state.responseInProgress().set(false);
                             refreshConversationHistory();
                             scrollConversationToBottom();
                         })));
 
         if (uiOptional.isEmpty()) {
-            setLoadingState(false);
+            state.responseInProgress().set(false);
         }
     }
 
     private UUID ensureConversation(String prompt) {
-        if (activeConversationId != null) {
-            return activeConversationId;
+        if (state.activeConversationId().peek() != null) {
+            return state.activeConversationId().peek();
         }
 
-        var conversation = conversationService.createConversation(clientId, prompt);
-        activeConversationId = conversation.id();
-        synchronizeAddressBar(activeConversationId);
+        var conversation = conversationService.createConversation(state.clientId().peek(), prompt);
+        state.activeConversationId().set(conversation.id());
+        synchronizeAddressBar(state.activeConversationId().peek());
         refreshConversationHistory();
-        return activeConversationId;
+        return state.activeConversationId().peek();
     }
 
-    private void renderConversation(List<StoredChatMessage> messages) {
-        var items = messages.stream()
-                .map(this::toMessageListItem)
-                .toList();
-        messageList.setItems(items);
-        emptyState.setVisible(items.isEmpty());
-        historyScroller.getElement().executeJs("this.scrollTop = 0;");
-    }
-
-    private CodeMessageListItem toMessageListItem(StoredChatMessage storedChatMessage) {
-        var isUserMessage = storedChatMessage.role() == MessageType.USER;
+    private CodeMessageListItem toMessageListItem(MessageVm message) {
+        var isUserMessage = message.role() == MessageType.USER;
         var item = new CodeMessageListItem(
-                storedChatMessage.content(),
-                storedChatMessage.createdAt(),
+                message.content(),
+                message.createdAt(),
                 isUserMessage ? "You" : "Socratic Tutor"
         );
         item.setUserColorIndex(isUserMessage ? 0 : 1);
         item.addClassNames(isUserMessage ? "user-message" : "tutor-message");
+        if (message.loading()) {
+            item.addClassNames("tutor-loading");
+        }
         return item;
     }
 
     private void refreshConversationHistory() {
-        if (clientId == null) {
+        if (state.clientId().peek() == null) {
             return;
         }
-        updateDrawer(conversationService.listConversations(clientId));
-    }
-
-    private void updateDrawer(List<ConversationSummary> conversations) {
-        withMainLayout(layout -> {
-            layout.setConversationActions(this::startNewChat, this::openConversation);
-            layout.updateConversationHistory(conversations, activeConversationId, responseInProgress);
-        });
+        state.replaceConversationHistory(conversationService.listConversations(state.clientId().peek()));
     }
 
     private void openConversation(UUID conversationId) {
-        if (responseInProgress || conversationId.equals(activeConversationId)) {
+        if (state.responseInProgress().peek() || conversationId.equals(state.activeConversationId().peek())) {
             return;
         }
         getUI().ifPresent(ui -> ui.navigate(ChatView.class, QueryParameters.of(CONVERSATION_QUERY_PARAMETER, conversationId.toString())));
     }
 
     private void startNewChat() {
-        if (responseInProgress) {
+        if (state.responseInProgress().peek()) {
             return;
         }
         getUI().ifPresent(ui -> ui.navigate(ChatView.class, QueryParameters.of(DRAFT_QUERY_PARAMETER, DRAFT_QUERY_VALUE)));
@@ -292,11 +283,25 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     }
 
     private void withMainLayout(java.util.function.Consumer<MainLayout> consumer) {
-        getUI().ifPresent(ui -> ui.getActiveRouterTargetsChain().stream()
+        getUI().flatMap(ui -> ui.getActiveRouterTargetsChain().stream()
                 .filter(MainLayout.class::isInstance)
                 .map(MainLayout.class::cast)
-                .findFirst()
-                .ifPresent(consumer));
+                .findFirst()).ifPresent(consumer);
+    }
+
+    private void ensureMainLayoutBindings() {
+        if (drawerStateBound) {
+            return;
+        }
+        withMainLayout(layout -> {
+            layout.setConversationActions(this::startNewChat, this::openConversation);
+            layout.bindConversationState(
+                    state.conversationHistory(),
+                    state.activeConversationId().asReadonly(),
+                    state.responseInProgress().asReadonly()
+            );
+            drawerStateBound = true;
+        });
     }
 
     private static Optional<UUID> parseUuid(String value) {
@@ -314,12 +319,5 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
     private void scrollConversationToBottom() {
         historyScroller.getElement().executeJs("this.scrollTo({ top: this.scrollHeight, behavior: 'smooth' });");
-    }
-
-    private void setLoadingState(boolean loading) {
-        responseInProgress = loading;
-        composerField.setEnabled(!loading);
-        sendButton.setEnabled(!loading);
-        refreshConversationHistory();
     }
 }

@@ -18,7 +18,7 @@ import java.util.Objects;
 public class GuardClassifierService {
 
     private static final String SAFETY_CLASSIFIER_SYSTEM_PROMPT = """
-            You are a guard classifier for a Socratic tutor for Introduccion a la Algoritmia.
+            You are a guard classifier for a Socratic tutor for `Introduccion a la Algoritmia`.
             Classify the last user message only.
             Return JSON only.
 

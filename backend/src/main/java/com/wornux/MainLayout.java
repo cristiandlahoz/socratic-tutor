@@ -1,5 +1,6 @@
 package com.wornux;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -13,11 +14,12 @@ import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.router.Layout;
+import com.vaadin.flow.signals.Signal;
+import com.vaadin.flow.signals.local.ListSignal;
 import com.wornux.chat.ConversationSummary;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -29,17 +31,16 @@ public class MainLayout extends AppLayout {
 
     private final Button newChatButton;
     private final Div conversationList;
-    private SerializableRunnable newChatAction = () -> {
-    };
-    private SerializableConsumer<UUID> openConversationAction = _ -> {
-    };
+    private final Paragraph emptyHistory;
+    private SerializableRunnable newChatAction;
+    private SerializableConsumer<UUID> openConversationAction;
 
     public MainLayout() {
         addClassName("app-shell");
         setPrimarySection(Section.DRAWER);
 
         var toggle = new DrawerToggle();
-        toggle.addThemeVariants(ButtonVariant.AURA_TERTIARY);
+        toggle.addThemeVariants(ButtonVariant.TERTIARY);
         toggle.addClassName("app-drawer-toggle");
 
         var drawerContent = new Div();
@@ -62,14 +63,17 @@ public class MainLayout extends AppLayout {
         copy.addClassName("chat-sidebar-copy");
 
         newChatButton = new Button("Nuevo chat");
-        newChatButton.addThemeVariants(ButtonVariant.AURA_TERTIARY);
+        newChatButton.addThemeVariants(ButtonVariant.TERTIARY);
         newChatButton.addClassName("chat-sidebar-new-chat");
         newChatButton.addClickListener(_ -> newChatAction.run());
+
+        emptyHistory = new Paragraph("Tus conversaciones apareceran aqui cuando empieces a chatear.");
+        emptyHistory.addClassName("chat-sidebar-history-empty");
 
         conversationList = new Div();
         conversationList.addClassName("chat-sidebar-history");
 
-        drawerContent.add(upperTitle, divider, copy, newChatButton, conversationList);
+        drawerContent.add(upperTitle, divider, copy, newChatButton, emptyHistory, conversationList);
 
         var drawerScroller = new Scroller(drawerContent);
         drawerScroller.setSizeFull();
@@ -83,40 +87,38 @@ public class MainLayout extends AppLayout {
         this.openConversationAction = openConversationAction;
     }
 
-    public void updateConversationHistory(List<ConversationSummary> conversations,
-                                          UUID activeConversationId,
-                                          boolean disabled) {
-        conversationList.removeAll();
-        newChatButton.setEnabled(!disabled);
+    public void bindConversationState(ListSignal<ConversationSummary> conversations,
+                                      Signal<UUID> activeConversationId,
+                                      Signal<Boolean> disabled) {
+        newChatButton.bindEnabled(Signal.not(disabled));
+        emptyHistory.bindVisible(() -> conversations.get().isEmpty());
+        conversationList.bindVisible(() -> !conversations.get().isEmpty());
+        conversationList.bindChildren(conversations,
+                conversationSignal -> createConversationItem(conversationSignal, activeConversationId, disabled));
+    }
 
-        if (conversations.isEmpty()) {
-            var emptyHistory = new Paragraph("Tus conversaciones apareceran aqui cuando empieces a chatear.");
-            emptyHistory.addClassName("chat-sidebar-history-empty");
-            conversationList.add(emptyHistory);
-            return;
-        }
+    private Component createConversationItem(Signal<ConversationSummary> conversationSignal,
+                                             Signal<UUID> activeConversationId,
+                                             Signal<Boolean> disabled) {
+        var title = new Span();
+        title.addClassName("chat-sidebar-history-title");
+        title.bindText(conversationSignal.map(ConversationSummary::title));
 
-        for (ConversationSummary conversation : conversations) {
-            var title = new Span(conversation.title());
-            title.addClassName("chat-sidebar-history-title");
+        var timestamp = new Span();
+        timestamp.addClassName("chat-sidebar-history-meta");
+        timestamp.bindText(conversationSignal.map(this::formatTimestamp));
 
-            var timestamp = new Span(formatTimestamp(conversation));
-            timestamp.addClassName("chat-sidebar-history-meta");
+        var content = new Div(title, timestamp);
+        content.addClassName("chat-sidebar-history-content");
 
-            var content = new Div(title, timestamp);
-            content.addClassName("chat-sidebar-history-content");
-
-            var button = new Button(content);
-            button.addThemeVariants(ButtonVariant.AURA_TERTIARY);
-            button.addClassName("chat-sidebar-history-item");
-            if (conversation.id().equals(activeConversationId)) {
-                button.addClassName("chat-sidebar-history-item-active");
-            }
-            button.setEnabled(!disabled && !conversation.id().equals(activeConversationId));
-            button.addClickListener(_ -> openConversationAction.accept(conversation.id()));
-
-            conversationList.add(button);
-        }
+        var button = new Button(content);
+        button.addThemeVariants(ButtonVariant.TERTIARY);
+        button.addClassName("chat-sidebar-history-item");
+        button.bindClassName("chat-sidebar-history-item-active",
+                () -> conversationSignal.get().id().equals(activeConversationId.get()));
+        button.bindEnabled(() -> !disabled.get() && !conversationSignal.get().id().equals(activeConversationId.get()));
+        button.addClickListener(_ -> openConversationAction.accept(conversationSignal.peek().id()));
+        return button;
     }
 
     private String formatTimestamp(ConversationSummary conversation) {

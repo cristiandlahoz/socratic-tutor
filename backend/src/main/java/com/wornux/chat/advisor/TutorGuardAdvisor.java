@@ -147,8 +147,8 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
         try {
             return guardClassifierService.classify(userQuery);
         }
-        catch (RuntimeException exception) {
-            log.warn("Guard classifier failed, defaulting to Reinforced Socratic Mode", exception);
+        catch (RuntimeException ex) {
+            log.warn("Guard classifier failed, defaulting to Reinforced Socratic Mode", ex);
             return GuardDecision.NOT_SAFE;
         }
     }
