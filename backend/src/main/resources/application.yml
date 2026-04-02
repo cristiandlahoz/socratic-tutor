@@ -6,6 +6,13 @@ server:
   port: ${PORT:8080}
 
 spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:${POSTGRES_PORT:4321}/socratic-tutor}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: none
   docker:
     compose:
       lifecycle-management: none
@@ -25,13 +32,19 @@ spring:
         options:
           dimensions: 1024
     vectorstore:
-      chroma:
+      pgvector:
         initialize-schema: false
-        collection-name: ${VECTOR_STORE_COLLECTION_NAME:socratic_tutor_collection}
-        tenant-name: default_tenant
-        database-name: default_database
+        schema-name: public
+        table-name: vector_store
+        dimensions: 1024
+        distance-type: COSINE_DISTANCE
+        index-type: HNSW
 
 app:
+  chat:
+    client-id-cookie-name: ${CHAT_CLIENT_ID_COOKIE_NAME:st_client_id}
+    memory:
+      max-messages: ${CHAT_MEMORY_MAX_MESSAGES:20}
   ai:
     guard:
       model: ${GUARD_MODEL:qwen2.5:3b-instruct}
@@ -39,3 +52,11 @@ app:
 vaadin:
   allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux
   launch-browser: true
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  docker:
+    compose:
+      lifecycle-management: start-only
