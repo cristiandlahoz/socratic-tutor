@@ -47,7 +47,7 @@ app:
       max-messages: ${CHAT_MEMORY_MAX_MESSAGES:20}
   ai:
     guard:
-      model: ${GUARD_MODEL:qwen2.5:3b-instruct}
+      model: ${GUARD_MODEL:qwen3:4b-instruct}
 
 vaadin:
   allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux

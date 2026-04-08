@@ -31,5 +31,6 @@ public class ChatProperties {
         public void setMaxMessages(int maxMessages) {
             this.maxMessages = maxMessages;
         }
+
     }
 }
