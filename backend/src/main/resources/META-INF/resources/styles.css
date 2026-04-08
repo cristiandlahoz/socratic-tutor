@@ -133,8 +133,8 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: var(--chat-space-xl);
-  padding: var(--chat-space-xl) var(--chat-space-lg) var(--chat-space-lg);
+  gap: var(--chat-space-lg);
+  padding: var(--chat-space-lg) var(--chat-space-lg) var(--chat-space-lg);
 }
 
 vaadin-drawer-toggle.app-drawer-toggle,
@@ -178,45 +178,84 @@ vaadin-drawer-toggle.chat-floating-toggle {
   display: inline-flex;
 }
 
-.chat-sidebar-divider {
-  height: 1px;
-  background: var(--chat-border);
+.chat-sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--chat-space-md);
 }
 
 .chat-sidebar-title {
   margin: 0;
   font-family: var(--chat-font-body);
-  font-size: clamp(2rem, 2.8vw, 3rem);
-  line-height: 0.95;
+  font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+  line-height: 0.92;
   font-weight: 500;
   letter-spacing: -0.03em;
   color: var(--chat-text-display);
 }
 
-.chat-sidebar-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.35rem 0.65rem;
+.chat-sidebar-title-row {
+  gap: var(--chat-space-sm);
+  min-width: 0;
+}
+
+.chat-sidebar-title-row h1 {
+  flex: 1 1 auto;
+}
+
+vaadin-button.chat-sidebar-info-button {
+  flex: 0 0 auto;
+  --vaadin-button-background: transparent;
+  --vaadin-button-border-color: var(--chat-border-visible);
+  --vaadin-button-border-radius: var(--chat-radius-pill);
+  --vaadin-button-border-width: 1px;
+  --vaadin-button-padding: 0;
+  --vaadin-button-text-color: var(--chat-text-secondary);
+  --vaadin-button-height: 2rem;
+  --vaadin-icon-size: 0.95rem;
+}
+
+vaadin-button.chat-sidebar-info-button::part(button) {
+  box-shadow: none;
+}
+
+vaadin-button.chat-sidebar-info-button:hover::part(button) {
+  border-color: var(--chat-interactive);
+  color: var(--chat-interactive-strong);
+}
+
+.chat-sidebar-info-popover::part(content) {
+  max-width: 18rem;
   border: 1px solid var(--chat-border-visible);
-  border-radius: var(--chat-radius-pill);
-  margin-bottom: var(--chat-space-sm);
-  background: transparent;
-  color: var(--chat-text-secondary);
+  background: var(--chat-surface-raised);
+  color: var(--chat-text-primary);
+  box-shadow: none;
+}
+
+.chat-sidebar-info-title {
+  display: block;
+  margin-bottom: var(--chat-space-xs);
+  color: var(--chat-text-display);
   font-family: var(--chat-font-mono);
   font-size: 0.6875rem;
-  font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.chat-sidebar-copy {
+.chat-sidebar-info-copy {
   margin: 0;
   color: var(--chat-text-secondary);
   font-family: var(--chat-font-body);
-  font-size: 1rem;
-  line-height: 1.55;
-  font-weight: 400;
-  max-width: 18rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.chat-sidebar-section-label {
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 vaadin-button.chat-sidebar-new-chat {
@@ -258,6 +297,7 @@ vaadin-button.chat-sidebar-new-chat:hover::part(button) {
   line-height: 1.5;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  max-width: 18rem;
 }
 
 vaadin-button.chat-sidebar-history-item {
@@ -295,8 +335,8 @@ vaadin-button.chat-sidebar-history-item-active .chat-sidebar-history-content {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--chat-space-xs);
-  padding: 0.9rem 0;
-  padding-left: 0.9rem;
+  padding: 0.8rem 0;
+  padding-left: 0.8rem;
   border-left: 2px solid transparent;
   box-sizing: border-box;
 }

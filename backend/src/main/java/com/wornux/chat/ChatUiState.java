@@ -3,14 +3,26 @@ package com.wornux.chat;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.local.ListSignal;
 import com.vaadin.flow.signals.local.ValueSignal;
+import com.vaadin.flow.spring.annotation.RouteScope;
+import com.vaadin.flow.spring.annotation.RouteScopeOwner;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.wornux.MainLayout;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
-public class ChatViewState {
+@SpringComponent
+@RouteScope
+@RouteScopeOwner(MainLayout.class)
+public class ChatUiState implements Serializable {
 
-    private final ValueSignal<UUID> clientId = new ValueSignal<>((UUID) null);
-    private final ValueSignal<UUID> activeConversationId = new ValueSignal<>((UUID) null);
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    private final ValueSignal<UUID> clientId = new ValueSignal<>(null);
+    private final ValueSignal<UUID> activeConversationId = new ValueSignal<>(null);
     private final ValueSignal<Boolean> responseInProgress = new ValueSignal<>(false);
     private final ValueSignal<String> composerText = new ValueSignal<>("");
     private final ListSignal<MessageVm> messages = new ListSignal<>();
