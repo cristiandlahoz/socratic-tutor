@@ -384,28 +384,42 @@ vaadin-button.chat-sidebar-history-item-active .chat-sidebar-history-content {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: var(--chat-space-md);
-  padding-top: clamp(3rem, 8vh, 5.5rem);
+  padding-top: clamp(8rem, 8vh, 8.5rem);
   animation: chat-fade-up 220ms cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
+.chat-empty-main-row {
+  width: min(100%, 56rem);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.chat-empty-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--chat-space-md);
+}
+
 .chat-empty-animation-frame {
-  width: clamp(11rem, 22vw, 15rem);
-  height: clamp(11rem, 22vw, 15rem);
-  margin-bottom: var(--chat-space-lg);
+  width: clamp(14.55rem, 28.75vw, 19.84rem);
+  height: clamp(14.55rem, 28.75vw, 19.84rem);
+  margin-bottom: 0;
   overflow: hidden;
-  border: 1px solid var(--chat-border-emphasis);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%, oklch(0.17 0.03 173 / 0.12), transparent 68%),
-    var(--chat-surface-raised);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  flex: 0 0 auto;
 }
 
 .chat-empty-animation {
   display: block;
   width: 100%;
   height: 100%;
-  opacity: 0.94;
+  opacity: 1;
 }
 
 .chat-empty-title {
@@ -643,9 +657,8 @@ vaadin-button.chat-send-button:hover::part(button) {
   }
 
   .chat-empty-animation-frame {
-    width: 9rem;
-    height: 9rem;
-    margin-bottom: 1rem;
+    width: 11.9rem;
+    height: 11.9rem;
   }
 
   .chat-empty-copy,
@@ -674,5 +687,11 @@ vaadin-button.chat-send-button:hover::part(button) {
 
   .chat-empty-title {
     font-size: clamp(2.5rem, 12vw, 3.5rem);
+  }
+
+  .chat-empty-main-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--chat-space-md);
   }
 }

@@ -9,8 +9,12 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -103,14 +107,13 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var state = new Div();
         state.addClassName("chat-empty-state");
 
-        var animation = new LottiePlayer("/animations/chat-welcome.json", true, true);
+        var animation = new AsciiFrameAnimation("crow3-frames", 240, 30);
         animation.addClassName("chat-empty-animation");
-        animation.setSpeed(0.6);
 
         var animationFrame = new Div(animation);
         animationFrame.addClassName("chat-empty-animation-frame");
 
-        var eyebrow = new Html("<div class='chat-sidebar-badge'>Asistente académico</div>");
+        var eyebrow = new Span("Asistente académico");
 
         var title = new H2("Haz tu primera pregunta");
         title.addClassName("chat-empty-title");
@@ -118,7 +121,20 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var description = new Paragraph("Escribe y te ayudare a razonar paso a paso, aclarar conceptos y practicar con ejemplos.");
         description.addClassName("chat-empty-copy");
 
-        state.add(animationFrame, eyebrow, title, description);
+        var textColumn = new VerticalLayout(eyebrow, title, description);
+        textColumn.addClassName("chat-empty-text");
+        textColumn.setPadding(false);
+        textColumn.setSpacing(false);
+        textColumn.setMargin(false);
+
+        var contentRow = new HorizontalLayout(textColumn, animationFrame);
+        contentRow.addClassName("chat-empty-main-row");
+        contentRow.setPadding(false);
+        contentRow.setSpacing(false);
+        contentRow.setMargin(false);
+        contentRow.setDefaultVerticalComponentAlignment(Alignment.CENTER);
+
+        state.add(contentRow);
         return state;
     }
 
