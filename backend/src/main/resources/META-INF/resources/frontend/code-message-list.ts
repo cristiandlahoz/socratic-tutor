@@ -1,7 +1,9 @@
 import './code-message-body.ts';
+import './braille-spinner.ts';
 import '@vaadin/message-list/src/vaadin-message.js';
 import { LitElement, html } from 'lit';
 import { ifDefined } from 'lit/directives/if-defined.js';
+import type { BrailleSpinnerName } from './braille-spinners';
 
 type MessageItem = {
   text?: string;
@@ -23,15 +25,18 @@ class CodeMessageList extends LitElement {
   static properties = {
     items: { type: Array },
     markdown: { type: Boolean, reflect: true },
+    thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
   };
 
   declare items: MessageItem[];
   declare markdown: boolean;
+  declare thinkingSpinner: BrailleSpinnerName;
 
   constructor() {
     super();
     this.items = [];
     this.markdown = false;
+    this.thinkingSpinner = 'braille';
   }
 
   protected createRenderRoot(): HTMLElement | DocumentFragment {
@@ -68,16 +73,23 @@ class CodeMessageList extends LitElement {
   }
 
   private renderMessage(item: MessageItem) {
+    const loading = this.isLoadingItem(item);
     return html`
       <vaadin-message
         role="listitem"
-        .time=${item.time ?? ''}
-        .userName=${item.userName ?? ''}
+        .time=${loading ? '' : item.time ?? ''}
+        .userName=${loading ? '' : item.userName ?? ''}
         .userColorIndex=${item.userColorIndex ?? 0}
         theme=${ifDefined(item.theme)}
         class=${ifDefined(item.className)}
-      ><code-message-body .text=${item.text ?? ''} .markdown=${this.markdown}></code-message-body></vaadin-message>
+      >${loading
+        ? html`<braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>`
+        : html`<code-message-body .text=${item.text ?? ''} .markdown=${this.markdown}></code-message-body>`}</vaadin-message>
     `;
+  }
+
+  private isLoadingItem(item: MessageItem): boolean {
+    return item.className?.split(/\s+/).includes('tutor-loading') ?? false;
   }
 }
 

@@ -69,6 +69,31 @@ public class ConversationService {
         return new ResolvedConversation(resolvedConversationId, conversations, messages);
     }
 
+    @Transactional
+    public void renameConversationIfTitleMatches(UUID clientId,
+                                                 UUID conversationId,
+                                                 String expectedCurrentTitle,
+                                                 String candidateTitle) {
+        if (expectedCurrentTitle == null || expectedCurrentTitle.isBlank()) {
+            return;
+        }
+
+        var normalizedCandidateTitle = toConversationTitle(candidateTitle);
+        var conversation = chatConversationRepository.findByIdAndClientId(conversationId, clientId).orElse(null);
+        if (conversation == null) {
+            return;
+        }
+        if (!expectedCurrentTitle.equals(conversation.getTitle())) {
+            return;
+        }
+        if (normalizedCandidateTitle.equals(conversation.getTitle())) {
+            return;
+        }
+
+        conversation.rename(normalizedCandidateTitle);
+        chatConversationRepository.save(conversation);
+    }
+
     private ConversationSummary toConversationSummary(ChatConversationEntity conversation) {
         return new ConversationSummary(conversation.getId(), conversation.getTitle(), conversation.getUpdatedAt());
     }

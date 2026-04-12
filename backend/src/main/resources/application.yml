@@ -45,13 +45,19 @@ app:
     client-id-cookie-name: ${CHAT_CLIENT_ID_COOKIE_NAME:st_client_id}
     memory:
       max-messages: ${CHAT_MEMORY_MAX_MESSAGES:20}
+    ui:
+      thinking-spinner: ${CHAT_UI_THINKING_SPINNER:snake}
   ai:
     guard:
       model: ${GUARD_MODEL:qwen3:4b-instruct}
+    title:
+      model: ${TITLE_MODEL:${spring.ai.ollama.chat.model}}
 
 vaadin:
   allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux
   launch-browser: true
+  pnpm:
+    enable: true
 ---
 spring:
   config:

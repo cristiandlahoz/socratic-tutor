@@ -7,6 +7,7 @@ public class ChatProperties {
 
     private String clientIdCookieName = "st_client_id";
     private final Memory memory = new Memory();
+    private final Ui ui = new Ui();
 
     public String getClientIdCookieName() {
         return clientIdCookieName;
@@ -18,6 +19,10 @@ public class ChatProperties {
 
     public Memory getMemory() {
         return memory;
+    }
+
+    public Ui getUi() {
+        return ui;
     }
 
     public static class Memory {
@@ -32,5 +37,18 @@ public class ChatProperties {
             this.maxMessages = maxMessages;
         }
 
+    }
+
+    public static class Ui {
+
+        private String thinkingSpinner = "braille";
+
+        public String getThinkingSpinner() {
+            return thinkingSpinner;
+        }
+
+        public void setThinkingSpinner(String thinkingSpinner) {
+            this.thinkingSpinner = thinkingSpinner;
+        }
     }
 }

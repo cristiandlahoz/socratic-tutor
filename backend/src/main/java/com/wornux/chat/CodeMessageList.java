@@ -17,7 +17,7 @@ import java.util.Objects;
 @Tag("code-message-list")
 @JsModule("./code-message-list.ts")
 @NpmPackage(value = "@uiw/react-codemirror", version = "4.25.4")
-@NpmPackage(value = "@codemirror/theme-one-dark", version = "6.1.3")
+@NpmPackage(value = "@fsegurai/codemirror-theme-solarized-dark", version = "6.2.5")
 @NpmPackage(value = "@codemirror/lang-json", version = "6.0.2")
 @NpmPackage(value = "@codemirror/lang-xml", version = "6.1.0")
 @NpmPackage(value = "@codemirror/lang-javascript", version = "6.2.4")
@@ -55,6 +55,14 @@ public final class CodeMessageList extends Component implements HasStyle, HasSiz
 
     public void setMarkdown(boolean markdown) {
         getElement().setProperty("markdown", markdown);
+    }
+
+    public void setThinkingSpinner(String thinkingSpinner) {
+        if (thinkingSpinner == null || thinkingSpinner.isBlank()) {
+            getElement().setProperty("thinkingSpinner", "braille");
+            return;
+        }
+        getElement().setProperty("thinkingSpinner", thinkingSpinner.trim());
     }
 
     void scheduleItemsTextUpdate() {

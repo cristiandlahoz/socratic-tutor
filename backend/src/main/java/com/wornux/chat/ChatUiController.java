@@ -33,6 +33,7 @@ public class ChatUiController implements Serializable {
 
     private final ChatService chatService;
     private final ConversationService conversationService;
+    private final ConversationTitleService conversationTitleService;
     private final BrowserClientService browserClientService;
     private final ChatUiState state;
     private final AtomicLong streamGeneration = new AtomicLong();
@@ -40,10 +41,12 @@ public class ChatUiController implements Serializable {
 
     public ChatUiController(ChatService chatService,
                             ConversationService conversationService,
+                            ConversationTitleService conversationTitleService,
                             BrowserClientService browserClientService,
                             ChatUiState state) {
         this.chatService = chatService;
         this.conversationService = conversationService;
+        this.conversationTitleService = conversationTitleService;
         this.browserClientService = browserClientService;
         this.state = state;
     }
@@ -52,7 +55,7 @@ public class ChatUiController implements Serializable {
         return state;
     }
 
-    public RouteInitialization initializeFromRoute(String requestedConversationParam, boolean draftRequested) {
+    RouteInitialization initializeFromRoute(String requestedConversationParam, boolean draftRequested) {
         abortActiveStream();
         state.responseInProgress().set(false);
         ensureClientId();
@@ -109,10 +112,23 @@ public class ChatUiController implements Serializable {
         }
 
         ensureClientId();
-        var conversationId = ensureConversation(prompt);
+        var ensuredConversation = ensureConversation(prompt);
+        var conversationId = ensuredConversation.id();
+        var clientId = state.clientId().peek();
         var streamId = streamGeneration.incrementAndGet();
         var firstTokenReceived = new AtomicBoolean(false);
         var ui = UI.getCurrent();
+
+        if (ensuredConversation.newlyCreated()) {
+            conversationTitleService.generateTitle(prompt).subscribe(generatedTitle -> {
+                conversationService.renameConversationIfTitleMatches(
+                        clientId,
+                        conversationId,
+                        ensuredConversation.fallbackTitle(),
+                        generatedTitle);
+                runUiSideEffect(ui, this::refreshConversationHistory);
+            });
+        }
 
         state.responseInProgress().set(true);
         state.messages().insertLast(MessageVm.user(prompt, Instant.now()));
@@ -134,7 +150,7 @@ public class ChatUiController implements Serializable {
                     if (streamGeneration.get() != streamId) {
                         return;
                     }
-                    responseMessage.update(message -> message.fallback("Lo siento, ocurrio un problema al generar la respuesta. Intenta nuevamente."));
+                    responseMessage.update(message -> message.fallback("Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente."));
                     finishResponse(ui, onResponseFinished);
                 },
                 () -> {
@@ -165,7 +181,7 @@ public class ChatUiController implements Serializable {
 
     private void runUiSideEffect(UI ui, Runnable callback) {
         if (ui != null) {
-            ui.access(() -> callback.run());
+            ui.access(callback::run);
             return;
         }
         callback.run();
@@ -177,16 +193,16 @@ public class ChatUiController implements Serializable {
         }
     }
 
-    private UUID ensureConversation(String prompt) {
+    private EnsuredConversation ensureConversation(String prompt) {
         if (state.activeConversationId().peek() != null) {
-            return state.activeConversationId().peek();
+            return new EnsuredConversation(state.activeConversationId().peek(), false, null);
         }
 
         var conversation = conversationService.createConversation(state.clientId().peek(), prompt);
         state.activeConversationId().set(conversation.id());
         synchronizeAddressBar(state.activeConversationId().peek());
         refreshConversationHistory();
-        return state.activeConversationId().peek();
+        return new EnsuredConversation(state.activeConversationId().peek(), true, conversation.title());
     }
 
     private void synchronizeAddressBar(UUID conversationId) {
@@ -225,5 +241,8 @@ public class ChatUiController implements Serializable {
         public boolean rerouteToRoot() {
             return rerouteConversationId == null;
         }
+    }
+
+    private record EnsuredConversation(UUID id, boolean newlyCreated, String fallbackTitle) {
     }
 }

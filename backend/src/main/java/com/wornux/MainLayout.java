@@ -31,19 +31,14 @@ import java.util.UUID;
 public class MainLayout extends AppLayout {
 
     private static final DateTimeFormatter CONVERSATION_TIME_FORMATTER =
-            DateTimeFormatter.ofPattern("dd MMM · HH:mm", new Locale("es", "DO"));
+            DateTimeFormatter.ofPattern("dd MMM · HH:mm", Locale.of("es", "DO"));
 
     private final Button newChatButton;
     private final Div conversationList;
     private final Paragraph emptyHistory;
 
     public MainLayout(ChatUiState state, ChatUiController controller) {
-        addClassName("app-shell");
         setPrimarySection(Section.DRAWER);
-
-        var toggle = new DrawerToggle();
-        toggle.addThemeVariants(ButtonVariant.TERTIARY);
-        toggle.addClassName("app-drawer-toggle");
 
         var drawerContent = new Div();
         drawerContent.addClassName("app-drawer-content");
@@ -65,7 +60,7 @@ public class MainLayout extends AppLayout {
         infoTitle.addClassName("chat-sidebar-info-title");
 
         var infoCopy = new Paragraph(
-                "Tutor conversacional para explorar ideas, resolver dudas y facilitar el aprendizaje con preguntas guiadas en introduccion a la algoritmia.");
+                "Tutor conversacional para explorar ideas, resolver dudas y facilitar el aprendizaje con preguntas guiadas en introducción a la algoritmia.");
         infoCopy.addClassName("chat-sidebar-info-copy");
         infoPopover.add(new Div(infoTitle, infoCopy));
 
@@ -75,7 +70,7 @@ public class MainLayout extends AppLayout {
         titleRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         titleRow.addClassName("chat-sidebar-title-row");
 
-        var upperTitle = new HorizontalLayout(titleRow, toggle);
+        var upperTitle = new HorizontalLayout(titleRow);
         upperTitle.setPadding(false);
         upperTitle.setSpacing(false);
         upperTitle.setAlignItems(HorizontalLayout.Alignment.CENTER);

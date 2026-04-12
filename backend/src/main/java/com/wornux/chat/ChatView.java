@@ -12,7 +12,11 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.router.*;
+import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.QueryParameters;
+import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.MainLayout;
 import org.springframework.ai.chat.messages.MessageType;
@@ -22,15 +26,13 @@ import java.util.UUID;
 @Route(value = "", layout = MainLayout.class)
 public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
-    private final ChatUiState state;
     private final ChatUiController controller;
     private final CodeMessageList messageList;
     private final Div historyScroller;
     private final TextArea composerField;
     private final Button sendButton;
 
-    public ChatView(ChatUiState state, ChatUiController controller) {
-        this.state = state;
+    public ChatView(ChatUiState state, ChatUiController controller, ChatProperties chatProperties) {
         this.controller = controller;
 
         Div emptyState = createEmptyState();
@@ -38,8 +40,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
         messageList = new CodeMessageList();
         messageList.setMarkdown(true);
+        messageList.setThinkingSpinner(chatProperties.getUi().getThinkingSpinner());
         messageList.setWidthFull();
-        messageList.addClassName("chat-message-list");
         Signal.effect(messageList, () -> messageList.setItems(state.messages().get().stream()
                 .map(messageSignal -> toMessageListItem(messageSignal.get()))
                 .toList()));
@@ -57,17 +59,18 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
         composerField = new TextArea();
         composerField.setWidthFull();
-        composerField.setPlaceholder("Escribe tu mensaje aqui...");
-        composerField.setAriaLabel("Escribe tu mensaje aqui");
+        composerField.setPlaceholder("Escribe tu mensaje aquí...");
+        composerField.setAriaLabel("Escribe tu mensaje aquí");
         composerField.addClassName("chat-composer-field");
         composerField.bindValue(state.composerText(), state.composerText()::set);
         composerField.bindEnabled(state.composerEnabled());
-        composerField.addKeyDownListener(Key.ENTER, _ -> submitPrompt());
+        composerField.setValueChangeMode(ValueChangeMode.EAGER);
 
         sendButton = new Button(new Icon(VaadinIcon.ARROW_UP));
         sendButton.addClassName("chat-send-button");
         sendButton.setAriaLabel("Enviar mensaje");
         sendButton.bindEnabled(state.sendEnabled());
+        sendButton.addClickShortcut(Key.ENTER).listenOn(composerField);
         sendButton.addClickListener(_ -> submitPrompt());
 
         var root = getContent();
@@ -107,7 +110,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var animationFrame = new Div(animation);
         animationFrame.addClassName("chat-empty-animation-frame");
 
-        var eyebrow = new Html("<div class='chat-sidebar-badge'>Asistente academico</div>");
+        var eyebrow = new Html("<div class='chat-sidebar-badge'>Asistente académico</div>");
 
         var title = new H2("Haz tu primera pregunta");
         title.addClassName("chat-empty-title");
@@ -129,10 +132,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     }
 
     private void submitPrompt() {
-        var submitted = controller.submitPrompt(this::scrollConversationToBottom, this::scrollConversationToBottom);
-        if (submitted) {
-            scrollConversationToBottom();
-        }
+        controller.submitPrompt(this::scrollConversationToBottom, this::scrollConversationToBottom);
     }
 
     private CodeMessageListItem toMessageListItem(MessageVm message) {

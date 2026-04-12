@@ -95,16 +95,6 @@ body {
   font-family: var(--chat-font-body);
 }
 
-body {
-  letter-spacing: 0;
-}
-
-.app-shell {
-  height: 100%;
-  color: var(--chat-text-primary);
-  background: transparent;
-}
-
 .app-shell::part(drawer) {
   background: var(--vaadin-app-layout-drawer-background);
   border-right: 1px solid var(--chat-border-emphasis);
@@ -440,20 +430,6 @@ vaadin-button.chat-sidebar-history-item-active .chat-sidebar-history-content {
   text-wrap: pretty;
 }
 
-vaadin-message-list.chat-message-list::part(list),
-code-message-list.chat-message-list > .code-message-list__list {
-  gap: var(--chat-space-lg);
-}
-
-code-message-list.chat-message-list {
-  display: block;
-}
-
-code-message-list.chat-message-list > .code-message-list__list {
-  display: flex;
-  flex-direction: column;
-}
-
 vaadin-message > vaadin-avatar {
   display: none;
 }
@@ -467,12 +443,15 @@ vaadin-message.tutor-message::part(content) {
   max-width: min(46rem, 100%);
 }
 
-vaadin-message.user-message::part(content) {
-  margin-left: auto;
+vaadin-markdown {
+  p, ul, ol, li, blockquote, table, figure, hr{
+    margin-block: 0;
+    margin: 0;
+  }
 }
 
-vaadin-message.tutor-message::part(content) {
-  margin-right: auto;
+code-message-body code-block-viewer {
+  margin-bottom: 1em;
 }
 
 vaadin-message.user-message::part(message) {
@@ -506,32 +485,6 @@ vaadin-message samp {
   font-family: var(--chat-font-mono);
 }
 
-vaadin-message.tutor-loading::part(header) {
-  display: flex;
-  align-items: center;
-  gap: var(--chat-space-xs);
-  margin-bottom: var(--chat-space-sm);
-  opacity: 1;
-  animation: chat-soft-pulse 1.1s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
-}
-
-vaadin-message.tutor-loading::part(name) {
-  color: var(--chat-text-secondary);
-  font-family: var(--chat-font-mono);
-  font-size: 0.75rem;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-vaadin-message.tutor-loading::part(time) {
-  display: none;
-}
-
-vaadin-message.tutor-loading::part(name)::after {
-  content: " [THINKING]";
-}
-
 vaadin-message.tutor-loading::part(message) {
   min-height: auto;
   width: auto;
@@ -540,7 +493,21 @@ vaadin-message.tutor-loading::part(message) {
   color: var(--chat-text-disabled);
   font-family: var(--chat-font-mono);
   font-size: 0.8125rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
+}
+
+vaadin-message.tutor-loading code-message-body,
+vaadin-message.tutor-loading braille-spinner {
+  display: inline-block;
+  min-width: 2ch;
+  white-space: pre;
+}
+
+vaadin-message.tutor-loading braille-spinner {
+  --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
+  --thinking-spinner-weight: 400;
+  --thinking-spinner-color: #d4af37;
+  --thinking-spinner-accent-color: #b3261e;
 }
 
 vaadin-message a {
@@ -621,17 +588,6 @@ vaadin-button.chat-send-button:hover::part(button) {
 .chat-input-shell > * {
   width: min(100%, var(--chat-content-max-width));
   margin: 0 auto;
-}
-
-@keyframes chat-soft-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-
-  50% {
-    opacity: 1;
-  }
 }
 
 @keyframes chat-fade-up {

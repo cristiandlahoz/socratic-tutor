@@ -30,9 +30,9 @@ function ensureCodeMessageBodyStyles(): void {
       display: block;
       width: 100%;
       overflow: hidden;
-      border: 1px solid var(--chat-border-subtle);
+      border: 1px solid var(--chat-border-visible);
       border-radius: var(--chat-radius-m);
-      box-shadow: var(--chat-shadow-soft);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
       background: #0f172a;
     }
 

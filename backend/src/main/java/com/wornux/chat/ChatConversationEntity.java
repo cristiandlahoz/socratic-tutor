@@ -45,6 +45,11 @@ public class ChatConversationEntity {
         this.updatedAt = Instant.now();
     }
 
+    public void rename(String title) {
+        this.title = title;
+        this.updatedAt = Instant.now();
+    }
+
     public UUID getId() {
         return id;
     }

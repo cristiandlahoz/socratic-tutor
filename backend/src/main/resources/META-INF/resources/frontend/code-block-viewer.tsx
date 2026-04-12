@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import CodeMirror from '@uiw/react-codemirror';
-import { oneDark } from '@codemirror/theme-one-dark';
+import { solarizedDark } from '@fsegurai/codemirror-theme-solarized-dark';
 import { json } from '@codemirror/lang-json';
 import { xml } from '@codemirror/lang-xml';
 import { javascript } from '@codemirror/lang-javascript';
@@ -91,7 +91,7 @@ class CodeBlockViewerElement extends HTMLElement {
         value={this.internalValue}
         height="auto"
         width="100%"
-        theme={oneDark}
+        theme={solarizedDark}
         extensions={langExtension(this.internalLang)}
         root={this.shadowRoot}
         editable={false}
@@ -101,7 +101,7 @@ class CodeBlockViewerElement extends HTMLElement {
           highlightActiveLineGutter: false,
           foldGutter: false,
           dropCursor: false,
-          allowMultipleSelections: false,
+          allowMultipleSelections: true,
           indentOnInput: false,
         }}
       />,
