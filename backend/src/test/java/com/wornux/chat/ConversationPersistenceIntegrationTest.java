@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ConversationPersistenceIntegrationTest {
 
     @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18.1");
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("pgvector/pgvector:pg18");
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

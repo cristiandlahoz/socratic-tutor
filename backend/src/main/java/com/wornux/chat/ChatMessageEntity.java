@@ -15,10 +15,12 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Entity
@@ -55,6 +57,18 @@ public class ChatMessageEntity {
         entity.role = message.getMessageType().getValue();
         entity.content = message.getText() == null ? "" : message.getText();
         entity.metadata = new LinkedHashMap<>(message.getMetadata());
+        if (message instanceof ToolResponseMessage toolResponseMessage) {
+            entity.metadata.put("toolResponses", toolResponseMessage.getResponses().stream()
+                    .map(response -> Map.of(
+                            "id", response.id(),
+                            "name", response.name(),
+                            "responseData", response.responseData()))
+                    .toList());
+            entity.content = toolResponseMessage.getResponses().stream()
+                    .map(response -> response.name() + ": " + response.responseData())
+                    .reduce((left, right) -> left + "\n" + right)
+                    .orElse("");
+        }
         entity.createdAt = Instant.now();
         return entity;
     }
@@ -75,11 +89,33 @@ public class ChatMessageEntity {
                     .text(content)
                     .metadata(safeMetadata)
                     .build();
-            case TOOL -> throw new IllegalStateException("Tool messages are not supported yet");
+            case TOOL -> ToolResponseMessage.builder()
+                    .responses(toToolResponses(safeMetadata))
+                    .metadata(safeMetadata)
+                    .build();
         };
     }
 
     public StoredChatMessage toStoredChatMessage() {
         return new StoredChatMessage(MessageType.valueOf(role.toUpperCase()), content, createdAt);
+    }
+
+    public boolean isToolMessage() {
+        return MessageType.valueOf(role.toUpperCase()) == MessageType.TOOL;
+    }
+
+    private static List<ToolResponseMessage.ToolResponse> toToolResponses(Map<String, Object> metadata) {
+        Object rawResponses = metadata.get("toolResponses");
+        if (!(rawResponses instanceof List<?> responses)) {
+            return List.of();
+        }
+        return responses.stream()
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .map(response -> new ToolResponseMessage.ToolResponse(
+                        String.valueOf(response.get("id")),
+                        String.valueOf(response.get("name")),
+                        String.valueOf(response.get("responseData"))))
+                .toList();
     }
 }

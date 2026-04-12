@@ -50,6 +50,10 @@ app:
   ai:
     guard:
       model: ${GUARD_MODEL:qwen3:4b-instruct}
+    profile:
+      enabled: ${AI_PROFILE_ENABLED:true}
+      shadow-mode: ${AI_PROFILE_SHADOW_MODE:false}
+      misconception-ttl-days: ${AI_PROFILE_MISCONCEPTION_TTL_DAYS:21}
     title:
       model: ${TITLE_MODEL:${spring.ai.ollama.chat.model}}
 

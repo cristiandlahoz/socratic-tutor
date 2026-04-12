@@ -135,7 +135,7 @@ public class ChatUiController implements Serializable {
         state.composerText().set("");
         var responseMessage = state.messages().insertLast(MessageVm.assistantLoading(Instant.now()));
 
-        activeStream = chatService.chatStream(prompt, conversationId).subscribe(
+        activeStream = chatService.chatStream(prompt, clientId, conversationId).subscribe(
                 token -> {
                     if (streamGeneration.get() != streamId) {
                         return;

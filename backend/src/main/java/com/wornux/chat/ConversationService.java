@@ -31,6 +31,7 @@ public class ConversationService {
     public List<StoredChatMessage> loadConversation(UUID clientId, UUID conversationId) {
         return chatMessageRepository.findByConversation_IdAndConversation_ClientIdOrderByIdAsc(conversationId, clientId)
                 .stream()
+                .filter(message -> !message.isToolMessage())
                 .map(ChatMessageEntity::toStoredChatMessage)
                 .toList();
     }
