@@ -89,7 +89,7 @@ class CodeMessageList extends LitElement {
   }
 
   private isLoadingItem(item: MessageItem): boolean {
-    return item.className?.split(/\s+/).includes('tutor-loading') ?? false;
+    return item.className?.split(/\s+/).includes('is-loading') ?? false;
   }
 }
 

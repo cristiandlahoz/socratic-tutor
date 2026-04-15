@@ -1,0 +1,70 @@
+.chat-composer-wrap {
+  position: relative;
+}
+
+vaadin-text-area.chat-composer-input {
+  display: block;
+  --vaadin-input-field-background: var(--chat-surface);
+  --vaadin-input-field-border-color: var(--chat-border-emphasis);
+  --vaadin-input-field-border-radius: var(--chat-radius-s);
+  --vaadin-input-field-border-width: 1px;
+  --vaadin-input-field-padding: 0.95rem 4.4rem 0.95rem 1rem;
+  --vaadin-input-field-placeholder-color: var(--chat-text-disabled);
+  --vaadin-input-field-value-color: var(--chat-text-primary);
+  --vaadin-input-field-value-font-size: 1rem;
+  --vaadin-input-field-value-line-height: 1.55;
+  --vaadin-focus-ring-color: rgba(255, 255, 255, 0.08);
+  --vaadin-focus-ring-width: 1px;
+}
+
+vaadin-text-area.chat-composer-input::part(input-field) {
+  min-height: 4.5rem;
+  box-shadow: none;
+}
+
+vaadin-text-area.chat-composer-input > textarea {
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-mono);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+vaadin-text-area.chat-composer-input > textarea::placeholder {
+  color: var(--chat-text-disabled);
+}
+
+vaadin-button.chat-composer-send {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.8rem;
+  margin: 0;
+  --vaadin-button-padding: 0;
+}
+
+vaadin-button.chat-composer-send::part(button) {
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: var(--chat-radius-s);
+  background: var(--chat-surface-raised);
+  border: 1px solid var(--chat-border-emphasis);
+  box-shadow: none;
+  color: var(--chat-interactive);
+}
+
+vaadin-button.chat-composer-send:hover::part(button) {
+  border-color: var(--chat-interactive);
+  color: var(--chat-interactive-strong);
+}
+
+.chat-composer-shell {
+  position: relative;
+  padding: var(--chat-space-lg) clamp(1rem, 4vw, 3rem) var(--chat-space-xl);
+  border-top: 1px solid var(--chat-border-section);
+  background: var(--chat-black);
+}
+
+.chat-composer-shell > * {
+  width: min(100%, var(--chat-content-max-width));
+  margin: 0 auto;
+}

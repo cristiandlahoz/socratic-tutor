@@ -19,6 +19,7 @@ import com.vaadin.flow.signals.Signal;
 import com.wornux.chat.ChatUiController;
 import com.wornux.chat.ChatUiState;
 import com.wornux.chat.ConversationSummary;
+import org.jspecify.annotations.NonNull;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -40,68 +41,73 @@ public class MainLayout extends AppLayout {
         setPrimarySection(Section.DRAWER);
 
         var drawerContent = new Div();
-        drawerContent.addClassName("app-drawer-content");
+        drawerContent.addClassName("shell-drawer-content");
 
         var title = new H1("Socratic Tutor");
         title.addClassName("chat-sidebar-title");
 
-        var infoButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
-        infoButton.addThemeVariants(ButtonVariant.TERTIARY);
-        infoButton.addClassName("chat-sidebar-info-button");
-        infoButton.setAriaLabel("Acerca del tutor");
+        var infoButton = getInfoButton();
 
         var infoPopover = new Popover();
         infoPopover.setTarget(infoButton);
         infoPopover.setModal(false);
-        infoPopover.addClassName("chat-sidebar-info-popover");
+        infoPopover.addClassName("chat-sidebar-help-popover");
 
         var infoTitle = new Span("Como funciona");
-        infoTitle.addClassName("chat-sidebar-info-title");
+        infoTitle.addClassName("chat-sidebar-help-title");
 
         var infoCopy = new Paragraph(
                 "Tutor conversacional para explorar ideas, resolver dudas y facilitar el aprendizaje con preguntas guiadas en introducción a la algoritmia.");
-        infoCopy.addClassName("chat-sidebar-info-copy");
+        infoCopy.addClassName("chat-sidebar-help-description");
         infoPopover.add(new Div(infoTitle, infoCopy));
 
         var titleRow = new HorizontalLayout(title, infoButton);
         titleRow.setPadding(false);
         titleRow.setSpacing(false);
         titleRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
-        titleRow.addClassName("chat-sidebar-title-row");
+        titleRow.addClassName("chat-sidebar-header-row");
 
         var upperTitle = new HorizontalLayout(titleRow);
         upperTitle.setPadding(false);
         upperTitle.setSpacing(false);
         upperTitle.setAlignItems(HorizontalLayout.Alignment.CENTER);
         upperTitle.setWidthFull();
-        upperTitle.addClassName("app-drawer-header");
+        upperTitle.addClassName("shell-drawer-header");
 
         var topSection = new Div(upperTitle);
-        topSection.addClassName("chat-sidebar-top");
+        topSection.addClassName("chat-sidebar-header");
 
         newChatButton = new Button("Nuevo chat");
         newChatButton.addThemeVariants(ButtonVariant.TERTIARY);
-        newChatButton.addClassName("chat-sidebar-new-chat");
+        newChatButton.addClassName("chat-sidebar-new-button");
         newChatButton.addClickListener(_ -> controller.startNewChat());
         topSection.add(newChatButton);
 
         var sectionLabel = new Span("Conversaciones");
-        sectionLabel.addClassName("chat-sidebar-section-label");
+        sectionLabel.addClassName("chat-sidebar-section-title");
 
         emptyHistory = new Paragraph("Aun no tienes conversaciones.");
-        emptyHistory.addClassName("chat-sidebar-history-empty");
-
         conversationList = new Div();
-        conversationList.addClassName("chat-sidebar-history");
 
         drawerContent.add(topSection, sectionLabel, emptyHistory, conversationList);
 
         var drawerScroller = new Scroller(drawerContent);
         drawerScroller.setSizeFull();
-        drawerScroller.addClassName("app-drawer-scroller");
+        drawerScroller.addClassName("shell-drawer-scroller");
         addToDrawer(drawerScroller);
 
         bindConversationState(state, controller);
+    }
+
+    private static @NonNull Button getInfoButton() {
+        var icon = new Icon(VaadinIcon.INFO_CIRCLE_O);
+        icon.setSize("0.95rem");
+
+        var infoButton = new Button(icon);
+        infoButton.addThemeVariants(ButtonVariant.TERTIARY);
+        infoButton.getStyle().setColor("var(--chat-text-secondary)");
+        infoButton.setAriaLabel("Acerca del tutor");
+        return infoButton;
     }
 
     private void bindConversationState(ChatUiState state, ChatUiController controller) {
@@ -121,21 +127,19 @@ public class MainLayout extends AppLayout {
                                              Signal<Boolean> disabled,
                                              ChatUiController controller) {
         var title = new Span();
-        title.addClassName("chat-sidebar-history-title");
+        title.addClassName("chat-sidebar-item-title");
         title.bindText(conversationSignal.map(ConversationSummary::title));
 
         var timestamp = new Span();
-        timestamp.addClassName("chat-sidebar-history-meta");
+        timestamp.addClassName("chat-sidebar-item-meta");
         timestamp.bindText(conversationSignal.map(this::formatTimestamp));
 
         var content = new Div(title, timestamp);
-        content.addClassName("chat-sidebar-history-content");
+        content.addClassName("chat-sidebar-item");
 
         var button = new Button(content);
         button.addThemeVariants(ButtonVariant.TERTIARY);
-        button.addClassName("chat-sidebar-history-item");
-        button.bindClassName("chat-sidebar-history-item-active",
-                () -> conversationSignal.get().id().equals(activeConversationId.get()));
+        button.setWidthFull();
         button.bindEnabled(() -> !disabled.get() && !conversationSignal.get().id().equals(activeConversationId.get()));
         button.addClickListener(_ -> controller.openConversation(conversationSignal.peek().id()));
         return button;

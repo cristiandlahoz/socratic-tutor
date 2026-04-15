@@ -36,7 +36,7 @@ function ensureCodeMessageBodyStyles(): void {
       background: #0f172a;
     }
 
-    vaadin-message.user-message code-message-body code-block-viewer {
+    vaadin-message.chat-message-user code-message-body code-block-viewer {
       border-color: rgba(255, 255, 255, 0.16);
     }
 

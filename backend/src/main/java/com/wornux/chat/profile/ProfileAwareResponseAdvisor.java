@@ -83,7 +83,6 @@ public class ProfileAwareResponseAdvisor implements CallAdvisor, StreamAdvisor {
                 - If weak topics are present, use smaller steps and explicit state tracking there.
                 - If active misconceptions are present, correct them clearly before moving on.
                 - If concrete examples are needed, use one short example or trace before asking a follow-up.
-                - Keep the Socratic tutoring policy unchanged.
                 """.formatted(
                 profile.preferredLanguage(),
                 profile.overallLevel().name().toLowerCase(),

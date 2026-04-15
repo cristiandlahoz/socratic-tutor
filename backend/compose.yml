@@ -11,5 +11,9 @@ services:
       - db_postgres:/var/lib/postgresql
     ports:
       - '${POSTGRES_PORT:-4321}:5432'
+  docling:
+      image: ghcr.io/docling-project/docling-serve:latest
+      ports:
+        - "${DOCLING_PORT:-5001}:5001"
 volumes:
   db_postgres: { }

@@ -1,0 +1,101 @@
+.chat-thread {
+  position: relative;
+  min-height: 100%;
+  box-sizing: border-box;
+  width: min(100%, var(--chat-content-max-width));
+  margin: 0 auto;
+  padding: var(--chat-space-xl) clamp(1.4rem, 4vw, 3rem) var(--chat-space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--chat-space-xl);
+  background: transparent;
+}
+
+vaadin-message > vaadin-avatar {
+  display: none;
+}
+
+vaadin-message::part(header) {
+  display: none;
+}
+
+vaadin-message.chat-message-user::part(content),
+vaadin-message.chat-message-assistant::part(content) {
+  max-width: min(46rem, 100%);
+}
+
+vaadin-markdown {
+  p, ul, ol, li, blockquote, table, figure, hr{
+    margin-block: 0;
+    margin: 0;
+  }
+}
+
+code-message-body code-block-viewer {
+  margin-bottom: 1em;
+}
+
+vaadin-message.chat-message-user::part(message) {
+  background: var(--chat-surface);
+  color: var(--chat-text-primary);
+  border: 1px solid var(--chat-border-visible);
+  border-radius: var(--chat-radius-m);
+  box-shadow: none;
+  padding: 1rem 1.2rem;
+  font-family: var(--chat-font-body);
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+vaadin-message.chat-message-assistant::part(message) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-body);
+  font-size: clamp(1rem, 1.35vw, 1.125rem);
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+vaadin-message code,
+vaadin-message pre,
+vaadin-message kbd,
+vaadin-message samp {
+  font-family: var(--chat-font-mono);
+}
+
+vaadin-message.is-loading::part(message) {
+  min-height: auto;
+  width: auto;
+  border-radius: 0;
+  background: transparent;
+  color: var(--chat-text-disabled);
+  font-family: var(--chat-font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+}
+
+vaadin-message.is-loading code-message-body,
+vaadin-message.is-loading braille-spinner {
+  display: inline-block;
+  min-width: 2ch;
+  white-space: pre;
+}
+
+vaadin-message.is-loading braille-spinner {
+  --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
+  --thinking-spinner-weight: 400;
+  --thinking-spinner-color: #d4af37;
+  --thinking-spinner-accent-color: #b3261e;
+}
+
+vaadin-message a {
+  color: var(--chat-interactive);
+}
+
+vaadin-message code-message-body {
+  display: block;
+  width: 100%;
+}

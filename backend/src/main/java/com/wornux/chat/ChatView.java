@@ -51,27 +51,28 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
                 .toList()));
 
         var conversationStack = new Div(emptyState, messageList);
-        conversationStack.addClassName("chat-conversation-stack");
+        conversationStack.addClassName("chat-thread");
 
         historyScroller = new Div(conversationStack);
         historyScroller.setSizeFull();
-        historyScroller.addClassName("chat-history");
+        historyScroller.addClassName("chat-scroll-region");
+        historyScroller.addAttachListener(_ -> initializeAutoScrollTracking());
 
         var floatingDrawerToggle = new DrawerToggle();
         floatingDrawerToggle.addThemeVariants(ButtonVariant.TERTIARY);
-        floatingDrawerToggle.addClassName("chat-floating-toggle");
+        floatingDrawerToggle.addClassName("shell-drawer-toggle");
 
         composerField = new TextArea();
         composerField.setWidthFull();
         composerField.setPlaceholder("Escribe tu mensaje aquí...");
         composerField.setAriaLabel("Escribe tu mensaje aquí");
-        composerField.addClassName("chat-composer-field");
+        composerField.addClassName("chat-composer-input");
         composerField.bindValue(state.composerText(), state.composerText()::set);
         composerField.bindEnabled(state.composerEnabled());
         composerField.setValueChangeMode(ValueChangeMode.EAGER);
 
         sendButton = new Button(new Icon(VaadinIcon.ARROW_UP));
-        sendButton.addClassName("chat-send-button");
+        sendButton.addClassName("chat-composer-send");
         sendButton.setAriaLabel("Enviar mensaje");
         sendButton.bindEnabled(state.sendEnabled());
         sendButton.addClickShortcut(Key.ENTER).listenOn(composerField);
@@ -79,7 +80,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
         var root = getContent();
         root.setSizeFull();
-        root.addClassName("chat-content-view");
+        root.addClassName("chat-view");
         root.add(floatingDrawerToggle, historyScroller, createInputShell());
     }
 
@@ -105,13 +106,13 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
     private Div createEmptyState() {
         var state = new Div();
-        state.addClassName("chat-empty-state");
+        state.addClassName("chat-empty");
 
         var animation = new AsciiFrameAnimation("crow3-frames", 240, 30);
-        animation.addClassName("chat-empty-animation");
+        animation.addClassName("chat-empty-illustration");
 
         var animationFrame = new Div(animation);
-        animationFrame.addClassName("chat-empty-animation-frame");
+        animationFrame.addClassName("chat-empty-frame");
 
         var eyebrow = new Span("Asistente académico");
 
@@ -119,16 +120,16 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         title.addClassName("chat-empty-title");
 
         var description = new Paragraph("Escribe y te ayudare a razonar paso a paso, aclarar conceptos y practicar con ejemplos.");
-        description.addClassName("chat-empty-copy");
+        description.addClassName("chat-empty-description");
 
         var textColumn = new VerticalLayout(eyebrow, title, description);
-        textColumn.addClassName("chat-empty-text");
+        textColumn.addClassName("chat-empty-content");
         textColumn.setPadding(false);
         textColumn.setSpacing(false);
         textColumn.setMargin(false);
 
         var contentRow = new HorizontalLayout(textColumn, animationFrame);
-        contentRow.addClassName("chat-empty-main-row");
+        contentRow.addClassName("chat-empty-layout");
         contentRow.setPadding(false);
         contentRow.setSpacing(false);
         contentRow.setMargin(false);
@@ -140,15 +141,21 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
     private Div createInputShell() {
         var composer = new Div(composerField, sendButton);
-        composer.addClassName("chat-composer");
+        composer.addClassName("chat-composer-wrap");
 
         var inputShell = new Div(composer);
-        inputShell.addClassName("chat-input-shell");
+        inputShell.addClassName("chat-composer-shell");
         return inputShell;
     }
 
     private void submitPrompt() {
-        controller.submitPrompt(this::scrollConversationToBottom, this::scrollConversationToBottom);
+        var submitted = controller.submitPrompt(
+                this::scrollConversationToBottomSmoothIfEnabled,
+                this::scrollConversationToBottomSmoothIfEnabled
+        );
+        if (submitted) {
+            enableAutoScrollAndJumpToBottom();
+        }
     }
 
     private CodeMessageListItem toMessageListItem(MessageVm message) {
@@ -159,9 +166,9 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
                 isUserMessage ? "You" : "Socratic Tutor"
         );
         item.setUserColorIndex(isUserMessage ? 0 : 1);
-        item.addClassNames(isUserMessage ? "user-message" : "tutor-message");
+        item.addClassNames(isUserMessage ? "chat-message-user" : "chat-message-assistant");
         if (message.loading()) {
-            item.addClassNames("tutor-loading");
+            item.addClassNames("is-loading");
         }
         return item;
     }
@@ -174,7 +181,60 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         event.rerouteTo(ChatView.class, QueryParameters.of(ChatUiController.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
     }
 
-    private void scrollConversationToBottom() {
-        historyScroller.getElement().executeJs("this.scrollTo({ top: this.scrollHeight, behavior: 'smooth' });");
+    private void initializeAutoScrollTracking() {
+        historyScroller.getElement().executeJs("""
+                if (this.__autoScrollInitialized) {
+                  return;
+                }
+                this.__autoScrollInitialized = true;
+                this.__autoScrollEnabled = true;
+                this.__autoScrollThreshold = 64;
+                this.__programmaticScroll = false;
+
+                const updateAutoScrollState = () => {
+                  const distanceToBottom = this.scrollHeight - this.scrollTop - this.clientHeight;
+                  const nearBottom = distanceToBottom <= this.__autoScrollThreshold;
+                  if (nearBottom) {
+                    this.__autoScrollEnabled = true;
+                    return;
+                  }
+                  if (!this.__programmaticScroll) {
+                    this.__autoScrollEnabled = false;
+                  }
+                };
+
+                this.addEventListener('scroll', () => {
+                  updateAutoScrollState();
+                }, { passive: true });
+
+                this.__updateAutoScrollState = updateAutoScrollState;
+                updateAutoScrollState();
+                """);
+    }
+
+    private void enableAutoScrollAndJumpToBottom() {
+        historyScroller.getElement().executeJs("""
+                this.__autoScrollEnabled = true;
+                this.__programmaticScroll = true;
+                this.scrollTo({ top: this.scrollHeight, behavior: 'auto' });
+                requestAnimationFrame(() => {
+                  this.__programmaticScroll = false;
+                  this.__updateAutoScrollState?.();
+                });
+                """);
+    }
+
+    private void scrollConversationToBottomSmoothIfEnabled() {
+        historyScroller.getElement().executeJs("""
+                if (!this.__autoScrollEnabled) {
+                  return;
+                }
+                this.__programmaticScroll = true;
+                this.scrollTo({ top: this.scrollHeight, behavior: 'smooth' });
+                requestAnimationFrame(() => {
+                  this.__programmaticScroll = false;
+                  this.__updateAutoScrollState?.();
+                });
+                """);
     }
 }

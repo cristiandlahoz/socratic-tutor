@@ -1,0 +1,50 @@
+@media (max-width: 960px) {
+  .shell-drawer-content {
+    padding: 1.25rem 1rem 1rem;
+    gap: var(--chat-space-lg);
+  }
+
+  .chat-sidebar-title {
+    font-size: 2rem;
+  }
+
+  .chat-thread {
+    padding: 4.75rem 1rem 1.5rem;
+    gap: var(--chat-space-lg);
+  }
+
+  .chat-empty-frame {
+    width: 11.9rem;
+    height: 11.9rem;
+  }
+
+  .chat-empty-description,
+  vaadin-message.chat-message-assistant::part(message) {
+    font-size: 1rem;
+  }
+
+  vaadin-message.chat-message-user::part(content) {
+    max-width: 100%;
+  }
+
+  .chat-composer-shell {
+    padding: 1rem 1rem 1.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  vaadin-drawer-toggle.shell-drawer-toggle {
+    top: 1rem;
+    left: 1rem;
+  }
+
+  .chat-empty-title {
+    font-size: clamp(2.5rem, 12vw, 3.5rem);
+  }
+
+  .chat-empty-layout {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--chat-space-md);
+  }
+}

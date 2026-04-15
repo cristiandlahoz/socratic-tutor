@@ -8,6 +8,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,6 +17,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "student_misconception")
+@Getter
+@Setter
 public class StudentMisconceptionEntity {
 
     @Id
@@ -56,34 +60,6 @@ public class StudentMisconceptionEntity {
         entity.status = MisconceptionStatus.ACTIVE;
         entity.lastSeenAt = Instant.now();
         return entity;
-    }
-
-    public UUID getClientId() {
-        return clientId;
-    }
-
-    public TopicKey topicKey() {
-        return TopicKey.valueOf(topicKey);
-    }
-
-    public String getMisconceptionKey() {
-        return misconceptionKey;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public BigDecimal getConfidence() {
-        return confidence;
-    }
-
-    public MisconceptionStatus getStatus() {
-        return status;
-    }
-
-    public Instant getLastSeenAt() {
-        return lastSeenAt;
     }
 
     public void refresh(BigDecimal confidence) {
