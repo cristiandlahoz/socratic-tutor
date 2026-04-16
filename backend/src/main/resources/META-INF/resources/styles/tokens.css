@@ -17,6 +17,8 @@
   --color-accent-teal: oklch(0.17 0.03 173);
   --color-accent-indigo: oklch(0.12 0.04 253);
   --color-accent-red: oklch(0.12 0.05 359);
+  --color-accent-pink: #fc49a0;
+  --color-accent-gold: #d4af37;
   --color-accent-olive: oklch(0.17 0.03 92);
   --color-text-display: oklch(0.93 0.01 220);
   --color-text-primary: oklch(0.84 0.01 220);
@@ -44,6 +46,10 @@
   --chat-warning: var(--color-warning);
   --chat-interactive: var(--color-interactive-default);
   --chat-interactive-strong: var(--color-accent-teal);
+  --chat-history-accent: var(--color-accent-gold);
+  --chat-history-accent-soft: rgba(212, 175, 55, 0.42);
+  --chat-history-accent-label: rgba(233, 219, 167, 0.96);
+  --chat-history-line: rgba(154, 144, 137, 0.26);
   --chat-font-display: "Doto", "Space Mono", monospace;
   --chat-font-body: "Space Grotesk", "DM Sans", system-ui, sans-serif;
   --chat-font-mono: "Space Mono", "JetBrains Mono", "SF Mono", monospace;

@@ -1,11 +1,21 @@
 @media (max-width: 960px) {
   .shell-drawer-content {
-    padding: 1.25rem 1rem 1rem;
-    gap: var(--chat-space-lg);
+    gap: 0.75rem;
+    padding: 0.85rem;
   }
 
-  .chat-sidebar-title {
-    font-size: 2rem;
+  .chat-sidebar-app-header,
+  .chat-sidebar-header {
+    padding-inline: 1rem;
+  }
+
+  .chat-sidebar-app-title,
+  .chat-sidebar-panel-title {
+    font-size: 1.35rem;
+  }
+
+  .chat-sidebar-timeline {
+    padding: 0.55rem 0.65rem 0.9rem;
   }
 
   .chat-thread {
@@ -36,6 +46,44 @@
   vaadin-drawer-toggle.shell-drawer-toggle {
     top: 1rem;
     left: 1rem;
+  }
+
+  .shell-drawer-content {
+    gap: 0.65rem;
+    padding: 0.75rem;
+  }
+
+  .chat-sidebar-app-header,
+  .chat-sidebar-header {
+    padding: 1rem 1rem 0.9rem;
+  }
+
+  .chat-sidebar-actions {
+    padding: 0.6rem;
+  }
+
+  vaadin-button.chat-sidebar-action-button::part(button) {
+    min-height: 2.85rem;
+  }
+
+  .chat-sidebar-empty {
+    margin: 0.85rem 1rem 1rem;
+  }
+
+  .chat-sidebar-timeline {
+    padding: 0.45rem 0.5rem 0.9rem;
+  }
+
+  .chat-sidebar-entry-row {
+    grid-template-columns: 2.45rem minmax(0, 1fr);
+  }
+
+  .chat-sidebar-divider-row .chat-sidebar-node {
+    margin-left: 0.3rem;
+  }
+
+  .chat-sidebar-thread-row .chat-sidebar-node {
+    margin-left: 1.3rem;
   }
 
   .chat-empty-title {

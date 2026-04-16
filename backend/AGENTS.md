@@ -81,3 +81,7 @@ When creating a new feature:
 - H2 in-memory database for development
 - JPA entities use `@GeneratedValue(strategy = GenerationType.SEQUENCE)`
 - Entity equality based on ID (see Task.equals/hashCode pattern)
+
+## Session Learnings
+
+- After CSS/resource-heavy drawer changes, `./mvnw -q -DskipTests package` may leave the running app serving stale `styles.css`; use `./mvnw -q -DskipTests clean package` before restarting when browser output does not match edited resource files.

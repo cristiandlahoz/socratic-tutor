@@ -87,7 +87,7 @@ vaadin-message.is-loading braille-spinner {
 vaadin-message.is-loading braille-spinner {
   --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
   --thinking-spinner-weight: 400;
-  --thinking-spinner-color: #d4af37;
+  --thinking-spinner-color: var(--chat-history-accent);
   --thinking-spinner-accent-color: #b3261e;
 }
 

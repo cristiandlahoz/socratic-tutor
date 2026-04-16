@@ -13,7 +13,7 @@ html {
   --aura-app-layout-inset: 0px;
   --aura-app-layout-border-width: 0px;
   --aura-app-layout-border-radius: 0px;
-  --vaadin-app-layout-drawer-width: clamp(16rem, 22vw, 20rem);
+  --vaadin-app-layout-drawer-width: clamp(18.5rem, 22vw, 21rem);
   --vaadin-app-layout-drawer-background: var(--color-bg-panel);
   --vaadin-overlay-shadow: none;
   --vaadin-overlay-backdrop-background: rgba(0, 0, 0, 0.84);

@@ -19,8 +19,11 @@ vaadin-text-area.chat-composer-input {
 
 vaadin-text-area.chat-composer-input::part(input-field) {
   min-height: 4.5rem;
+  max-height: 30vh;
+  scrollbar-width: none;
   box-shadow: none;
 }
+
 
 vaadin-text-area.chat-composer-input > textarea {
   color: var(--chat-text-primary);

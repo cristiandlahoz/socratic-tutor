@@ -1,11 +1,6 @@
-.shell-drawer-header {
-  width: 100%;
-  justify-content: space-between;
-}
-
 .shell-drawer-scroller {
   height: 100%;
-  --vaadin-scroller-padding: 0;
+  padding: 0;
 }
 
 .shell-drawer-content {
@@ -13,8 +8,17 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: var(--chat-space-lg);
-  padding: var(--chat-space-lg) var(--chat-space-lg) var(--chat-space-lg);
+  align-items: stretch;
+  gap: 0.9rem;
+  padding: 0.8rem;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.03), transparent 28%),
+    linear-gradient(180deg, rgba(18, 18, 18, 0.98), rgba(8, 8, 8, 0.98));
+}
+
+vaadin-app-layout::part(drawer) {
+  background: var(--chat-black);
+  border-inline-end: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 vaadin-drawer-toggle.shell-drawer-toggle {
@@ -22,6 +26,26 @@ vaadin-drawer-toggle.shell-drawer-toggle {
   top: var(--chat-space-md);
   left: var(--chat-space-md);
   z-index: 5;
+}
+
+vaadin-drawer-toggle.shell-drawer-toggle::part(button) {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    rgba(10, 10, 10, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.2);
+  color: var(--chat-text-secondary);
+}
+
+vaadin-drawer-toggle.shell-drawer-toggle:hover::part(button),
+vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button) {
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--chat-text-primary);
 }
 
 .chat-view {
@@ -39,5 +63,11 @@ vaadin-drawer-toggle.shell-drawer-toggle {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background: var(--chat-black);
+}
+
+.chat-scroll-region::-webkit-scrollbar {
+  display: none;
 }
