@@ -121,7 +121,7 @@ public class MainLayout extends AppLayout {
         var historyHeader = new Div(historyTitleRow, historyDescription);
         historyHeader.addClassName("chat-sidebar-header");
 
-        var emptyTitle = new Span("Sin conversaciones todavia");
+        var emptyTitle = new Span("Sin conversaciones todavía");
         emptyTitle.addClassName("chat-sidebar-empty-title");
 
         var emptyDescription = new Paragraph("Inicia un nuevo chat para empezar a construir tu historial del tutor.");
@@ -144,7 +144,7 @@ public class MainLayout extends AppLayout {
 
         drawerContent.add(appHeader, actionsRow, historySection);
 
-        var drawerScroller = new Scroller(drawerContent);
+        var drawerScroller = new Scroller(drawerContent, Scroller.ScrollDirection.NONE);
         drawerScroller.setSizeFull();
         drawerScroller.addClassName("shell-drawer-scroller");
         addToDrawer(drawerScroller);
@@ -362,11 +362,17 @@ public class MainLayout extends AppLayout {
                   core.classList.add('chat-sidebar-traveler-core');
                   core.setAttribute('r', '5.2');
 
-                  fxSvg.append(glow, core);
-
                   const totalLength = routePath.getTotalLength();
                   const duration = 420;
                   const startedAt = performance.now();
+                  const startPoint = routePath.getPointAtLength(0);
+
+                  glow.setAttribute('cx', startPoint.x);
+                  glow.setAttribute('cy', startPoint.y);
+                  core.setAttribute('cx', startPoint.x);
+                  core.setAttribute('cy', startPoint.y);
+
+                  fxSvg.append(glow, core);
 
                   if (root.__timelineGraphAnimationFrame) {
                     cancelAnimationFrame(root.__timelineGraphAnimationFrame);
