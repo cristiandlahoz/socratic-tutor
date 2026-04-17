@@ -25,8 +25,8 @@ spring:
         max-retries: 1
       chat:
 #        model: ${CHAT_MODEL:socratic-tutor:latest}
-#        model: ${CHAT_MODEL:qwen3:4b-instruct}
-        model: ${CHAT_MODEL:qcwind/qwen3-8b-instruct-Q4-K-M:latest}
+        model: ${CHAT_MODEL:qwen3:4b-instruct}
+#        model: ${CHAT_MODEL:qcwind/qwen3-8b-instruct-Q4-K-M:latest}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
@@ -44,8 +44,6 @@ spring:
 app:
   chat:
     client-id-cookie-name: ${CHAT_CLIENT_ID_COOKIE_NAME:st_client_id}
-    memory:
-      max-messages: ${CHAT_MEMORY_MAX_MESSAGES:20}
     ui:
       thinking-spinner: ${CHAT_UI_THINKING_SPINNER:snake}
   ai:

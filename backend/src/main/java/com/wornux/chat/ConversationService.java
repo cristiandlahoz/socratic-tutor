@@ -11,25 +11,28 @@ public class ConversationService {
 
     private static final int TITLE_MAX_LENGTH = 72;
 
-    private final ChatConversationJpaRepository chatConversationRepository;
+    private final ChatJpaRepository chatRepository;
+    private final ChatTranscriptJpaRepository chatTranscriptRepository;
     private final ChatMessageJpaRepository chatMessageRepository;
 
-    public ConversationService(ChatConversationJpaRepository chatConversationRepository,
+    public ConversationService(ChatJpaRepository chatRepository,
+                               ChatTranscriptJpaRepository chatTranscriptRepository,
                                ChatMessageJpaRepository chatMessageRepository) {
-        this.chatConversationRepository = chatConversationRepository;
+        this.chatRepository = chatRepository;
+        this.chatTranscriptRepository = chatTranscriptRepository;
         this.chatMessageRepository = chatMessageRepository;
     }
 
     @Transactional(readOnly = true)
     public List<ConversationSummary> listConversations(UUID clientId) {
-        return chatConversationRepository.findByClientIdOrderByUpdatedAtDescCreatedAtDesc(clientId).stream()
+        return chatRepository.findByClientIdOrderByUpdatedAtDescCreatedAtDesc(clientId).stream()
                 .map(this::toConversationSummary)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<StoredChatMessage> loadConversation(UUID clientId, UUID conversationId) {
-        return chatMessageRepository.findByConversation_IdAndConversation_ClientIdOrderByIdAsc(conversationId, clientId)
+        return chatMessageRepository.findDisplayMessages(conversationId, clientId)
                 .stream()
                 .filter(message -> !message.isToolMessage())
                 .map(ChatMessageEntity::toStoredChatMessage)
@@ -38,14 +41,16 @@ public class ConversationService {
 
     @Transactional
     public ConversationSummary createConversation(UUID clientId, String firstUserPrompt) {
-        var conversation = chatConversationRepository.save(ChatConversationEntity.create(clientId, toConversationTitle(firstUserPrompt)));
-        return toConversationSummary(conversation);
+        var chat = chatRepository.save(ChatEntity.create(clientId, toConversationTitle(firstUserPrompt)));
+        var transcript = chatTranscriptRepository.save(ChatTranscriptEntity.create(chat));
+        chat.activateTranscript(transcript);
+        return toConversationSummary(chatRepository.save(chat));
     }
 
     @Transactional(readOnly = true)
     public ResolvedConversation resolveActiveConversation(UUID clientId, UUID requestedConversationId) {
-        var conversationEntities = chatConversationRepository.findByClientIdOrderByUpdatedAtDescCreatedAtDesc(clientId);
-        var conversations = conversationEntities.stream()
+        var chatEntities = chatRepository.findByClientIdOrderByUpdatedAtDescCreatedAtDesc(clientId);
+        var conversations = chatEntities.stream()
                 .map(this::toConversationSummary)
                 .toList();
         var resolvedConversationId = requestedConversationId;
@@ -80,23 +85,23 @@ public class ConversationService {
         }
 
         var normalizedCandidateTitle = toConversationTitle(candidateTitle);
-        var conversation = chatConversationRepository.findByIdAndClientId(conversationId, clientId).orElse(null);
-        if (conversation == null) {
+        var chat = chatRepository.findByIdAndClientId(conversationId, clientId).orElse(null);
+        if (chat == null) {
             return;
         }
-        if (!expectedCurrentTitle.equals(conversation.getTitle())) {
+        if (!expectedCurrentTitle.equals(chat.getTitle())) {
             return;
         }
-        if (normalizedCandidateTitle.equals(conversation.getTitle())) {
+        if (normalizedCandidateTitle.equals(chat.getTitle())) {
             return;
         }
 
-        conversation.rename(normalizedCandidateTitle);
-        chatConversationRepository.save(conversation);
+        chat.rename(normalizedCandidateTitle);
+        chatRepository.save(chat);
     }
 
-    private ConversationSummary toConversationSummary(ChatConversationEntity conversation) {
-        return new ConversationSummary(conversation.getId(), conversation.getTitle(), conversation.getUpdatedAt());
+    private ConversationSummary toConversationSummary(ChatEntity chat) {
+        return new ConversationSummary(chat.getId(), chat.getTitle(), chat.getUpdatedAt());
     }
 
     String toConversationTitle(String prompt) {

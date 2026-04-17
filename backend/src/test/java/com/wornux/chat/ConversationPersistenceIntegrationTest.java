@@ -47,20 +47,40 @@ class ConversationPersistenceIntegrationTest {
     @Autowired
     private ChatMemory chatMemory;
 
+    @Autowired
+    private ChatJpaRepository chatRepository;
+
+    @Autowired
+    private ChatTranscriptJpaRepository chatTranscriptRepository;
+
     @Test
     void flyway_creates_chat_tables() {
         Integer tableCount = jdbcTemplate.queryForObject("""
                 select count(*)
                 from information_schema.tables
                 where table_schema = 'public'
-                  and table_name in ('chat_conversation', 'chat_message')
+                  and table_name in ('chat', 'chat_transcript', 'chat_message')
                 """, Integer.class);
 
-        assertThat(tableCount).isEqualTo(2);
+        assertThat(tableCount).isEqualTo(3);
     }
 
     @Test
-    void chatMemory_appends_messages_and_reads_the_bounded_window_in_order() {
+    void createConversation_creates_initial_transcript_and_sets_it_as_current() {
+        var clientId = UUID.randomUUID();
+
+        var conversation = conversationService.createConversation(clientId, "Como funciona un ciclo for?");
+
+        var chat = chatRepository.findById(conversation.id()).orElseThrow();
+        var transcripts = chatTranscriptRepository.findByChat_IdOrderByCreatedAtAsc(chat.getId());
+
+        assertThat(transcripts).hasSize(1);
+        assertThat(chat.getCurrentTranscript()).isNotNull();
+        assertThat(chat.getCurrentTranscript().getId()).isEqualTo(transcripts.getFirst().getId());
+    }
+
+    @Test
+    void chatMemory_appends_messages_to_active_transcript_and_reads_them_in_order() {
         var clientId = UUID.randomUUID();
         var conversation = conversationService.createConversation(clientId, "Como funciona un ciclo for?");
 
@@ -79,7 +99,43 @@ class ConversationPersistenceIntegrationTest {
                 .containsExactly("primer mensaje", "primera respuesta", "segundo mensaje", "segunda respuesta");
         assertThat(memoryWindow)
                 .extracting(Message::getText)
-                .containsExactly("primera respuesta", "segundo mensaje", "segunda respuesta");
+                .containsExactly("primer mensaje", "primera respuesta", "segundo mensaje", "segunda respuesta");
+    }
+
+    @Test
+    void loadConversation_reads_full_history_but_memory_reads_only_active_transcript_and_memory_text() {
+        var clientId = UUID.randomUUID();
+        var conversation = conversationService.createConversation(clientId, "Necesito ayuda con ciclos");
+        chatMemory.add(conversation.id().toString(), List.of(
+                new UserMessage("mensaje anterior"),
+                AssistantMessage.builder().content("respuesta anterior").build()
+        ));
+
+        var chat = chatRepository.findById(conversation.id()).orElseThrow();
+        var compactedTranscript = ChatTranscriptEntity.create(chat);
+        compactedTranscript.setMemoryText("Resumen: el estudiante viene trabajando ciclos y necesita una transicion suave.");
+        compactedTranscript = chatTranscriptRepository.save(compactedTranscript);
+        chat.activateTranscript(compactedTranscript);
+        chatRepository.save(chat);
+
+        chatMemory.add(conversation.id().toString(), List.of(
+                new UserMessage("mensaje actual"),
+                AssistantMessage.builder().content("respuesta actual").build()
+        ));
+
+        var transcript = conversationService.loadConversation(clientId, conversation.id());
+        var memoryWindow = chatMemory.get(conversation.id().toString());
+
+        assertThat(transcript)
+                .extracting(StoredChatMessage::content)
+                .containsExactly("mensaje anterior", "respuesta anterior", "mensaje actual", "respuesta actual");
+        assertThat(memoryWindow)
+                .extracting(Message::getText)
+                .containsExactly(
+                        "Resumen: el estudiante viene trabajando ciclos y necesita una transicion suave.",
+                        "mensaje actual",
+                        "respuesta actual"
+                );
     }
 
     @Test
@@ -124,7 +180,8 @@ class ConversationPersistenceIntegrationTest {
             PostgresChatMemory.class
     })
     @EnableJpaRepositories(basePackageClasses = {
-            ChatConversationJpaRepository.class,
+            ChatJpaRepository.class,
+            ChatTranscriptJpaRepository.class,
             ChatMessageJpaRepository.class
     })
     @EnableTransactionManagement
@@ -157,7 +214,7 @@ class ConversationPersistenceIntegrationTest {
         LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource, Flyway flyway) {
             var factoryBean = new LocalContainerEntityManagerFactoryBean();
             factoryBean.setDataSource(dataSource);
-            factoryBean.setPackagesToScan(ChatConversationEntity.class.getPackageName());
+            factoryBean.setPackagesToScan(ChatEntity.class.getPackageName());
             factoryBean.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
             factoryBean.setJpaPropertyMap(Map.of(
                     "hibernate.hbm2ddl.auto", "none",
@@ -171,12 +228,5 @@ class ConversationPersistenceIntegrationTest {
             return new JpaTransactionManager(entityManagerFactory);
         }
 
-        @Bean
-        ChatProperties chatProperties() {
-            var chatProperties = new ChatProperties();
-            chatProperties.setClientIdCookieName("st_client_id");
-            chatProperties.getMemory().setMaxMessages(3);
-            return chatProperties;
-        }
     }
 }

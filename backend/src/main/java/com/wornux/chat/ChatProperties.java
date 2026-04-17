@@ -6,7 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class ChatProperties {
 
     private String clientIdCookieName = "st_client_id";
-    private final Memory memory = new Memory();
     private final Ui ui = new Ui();
 
     public String getClientIdCookieName() {
@@ -17,26 +16,8 @@ public class ChatProperties {
         this.clientIdCookieName = clientIdCookieName;
     }
 
-    public Memory getMemory() {
-        return memory;
-    }
-
     public Ui getUi() {
         return ui;
-    }
-
-    public static class Memory {
-
-        private int maxMessages = 20;
-
-        public int getMaxMessages() {
-            return maxMessages;
-        }
-
-        public void setMaxMessages(int maxMessages) {
-            this.maxMessages = maxMessages;
-        }
-
     }
 
     public static class Ui {

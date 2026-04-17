@@ -1,6 +1,7 @@
 package com.wornux.chat.profile;
 
-import org.jspecify.annotations.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
@@ -12,11 +13,9 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
+@RequiredArgsConstructor
 public class ProfileAwareResponseAdvisor implements CallAdvisor, StreamAdvisor {
 
     public static final String CLIENT_ID_CONTEXT_KEY = "client_id";
@@ -26,19 +25,13 @@ public class ProfileAwareResponseAdvisor implements CallAdvisor, StreamAdvisor {
     private final StudentProfileService studentProfileService;
     private final ProfileProperties profileProperties;
 
-    public ProfileAwareResponseAdvisor(int order, StudentProfileService studentProfileService, ProfileProperties profileProperties) {
-        this.order = order;
-        this.studentProfileService = studentProfileService;
-        this.profileProperties = profileProperties;
-    }
-
     @Override
-    public ChatClientResponse adviseCall(ChatClientRequest request, @NonNull CallAdvisorChain chain) {
+    public @NullMarked ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
         return chain.nextCall(applyProfileContext(request));
     }
 
     @Override
-    public Flux<ChatClientResponse> adviseStream(ChatClientRequest request, @NonNull StreamAdvisorChain chain) {
+    public @NullMarked Flux<ChatClientResponse> adviseStream(ChatClientRequest request, StreamAdvisorChain chain) {
         return chain.nextStream(applyProfileContext(request));
     }
 
@@ -60,12 +53,15 @@ public class ProfileAwareResponseAdvisor implements CallAdvisor, StreamAdvisor {
 
         List<Message> messages = new ArrayList<>(request.prompt().getInstructions());
         messages.add(new SystemMessage(buildProfileInstruction(profile)));
-        Prompt prompt = Prompt.builder()
-                .messages(messages)
-                .chatOptions(request.prompt().getOptions())
-                .build();
 
-        return mutated.prompt(prompt).build();
+        var options = request.prompt().getOptions();
+        var promptBuilder = Prompt.builder()
+                .messages(messages);
+
+        if (!Objects.isNull(options))
+            promptBuilder.chatOptions(options);
+
+        return mutated.prompt(promptBuilder.build()).build();
     }
 
     private String buildProfileInstruction(StudentProfileSnapshot profile) {
@@ -77,7 +73,7 @@ public class ProfileAwareResponseAdvisor implements CallAdvisor, StreamAdvisor {
                 - Needs concrete examples: %s
                 - Weak topics: %s
                 - Active misconceptions: %s
-
+                
                 Response rules:
                 - Match the student's level without sounding condescending.
                 - If weak topics are present, use smaller steps and explicit state tracking there.
@@ -105,7 +101,7 @@ public class ProfileAwareResponseAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     @Override
-    public String getName() {
+    public @NullMarked String getName() {
         return "profile-aware-response-advisor";
     }
 

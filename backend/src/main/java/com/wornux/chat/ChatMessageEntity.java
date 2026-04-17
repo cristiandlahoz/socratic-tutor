@@ -9,12 +9,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
-import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 
@@ -23,6 +26,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "chat_message")
 public class ChatMessageEntity {
@@ -32,8 +38,8 @@ public class ChatMessageEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "conversation_id", nullable = false)
-    private ChatConversationEntity conversation;
+    @JoinColumn(name = "transcript_id", nullable = false)
+    private ChatTranscriptEntity transcript;
 
     @Column(nullable = false, length = 16)
     private String role;
@@ -48,12 +54,9 @@ public class ChatMessageEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    protected ChatMessageEntity() {
-    }
-
-    public static ChatMessageEntity from(ChatConversationEntity conversation, Message message) {
+    public static ChatMessageEntity from(ChatTranscriptEntity transcript, Message message) {
         var entity = new ChatMessageEntity();
-        entity.conversation = conversation;
+        entity.transcript = transcript;
         entity.role = message.getMessageType().getValue();
         entity.content = message.getText() == null ? "" : message.getText();
         entity.metadata = new LinkedHashMap<>(message.getMetadata());
@@ -85,14 +88,11 @@ public class ChatMessageEntity {
                     .content(content)
                     .properties(safeMetadata)
                     .build();
-            case SYSTEM -> SystemMessage.builder()
-                    .text(content)
-                    .metadata(safeMetadata)
-                    .build();
             case TOOL -> ToolResponseMessage.builder()
                     .responses(toToolResponses(safeMetadata))
                     .metadata(safeMetadata)
                     .build();
+            case SYSTEM -> throw new IllegalStateException("System messages must not be stored in chat_message");
         };
     }
 

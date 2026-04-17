@@ -2,15 +2,25 @@ package com.wornux.chat;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "chat_conversation")
-public class ChatConversationEntity {
+@Table(name = "chat")
+public class ChatEntity {
 
     @Id
     private UUID id;
@@ -21,18 +31,19 @@ public class ChatConversationEntity {
     @Column(nullable = false)
     private String title;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_transcript_id")
+    private ChatTranscriptEntity currentTranscript;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected ChatConversationEntity() {
-    }
-
-    public static ChatConversationEntity create(UUID clientId, String title) {
+    public static ChatEntity create(UUID clientId, String title) {
         var now = Instant.now();
-        var entity = new ChatConversationEntity();
+        var entity = new ChatEntity();
         entity.id = UUID.randomUUID();
         entity.clientId = clientId;
         entity.title = title;
@@ -41,32 +52,17 @@ public class ChatConversationEntity {
         return entity;
     }
 
+    public void activateTranscript(ChatTranscriptEntity transcript) {
+        this.currentTranscript = transcript;
+        touch();
+    }
+
     public void touch() {
         this.updatedAt = Instant.now();
     }
 
     public void rename(String title) {
         this.title = title;
-        this.updatedAt = Instant.now();
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public UUID getClientId() {
-        return clientId;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
+        touch();
     }
 }
