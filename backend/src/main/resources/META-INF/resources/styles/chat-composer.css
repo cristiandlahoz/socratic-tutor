@@ -2,6 +2,52 @@
   position: relative;
 }
 
+.chat-usage-badge {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.5rem;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.2rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.85rem;
+  border: 1px solid var(--chat-border-emphasis);
+  border-radius: var(--chat-radius-s);
+  background: var(--chat-surface);
+  color: var(--chat-text-secondary);
+  box-shadow: none;
+}
+
+.chat-usage-text {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--chat-font-mono);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+vaadin-button.chat-usage-help-button {
+  --vaadin-button-padding: 0;
+  flex-shrink: 0;
+}
+
+vaadin-button.chat-usage-help-button::part(button) {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: calc(var(--chat-radius-s) - 2px);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--chat-text-secondary);
+}
+
+vaadin-button.chat-usage-help-button:hover::part(button),
+vaadin-button.chat-usage-help-button:focus-within::part(button) {
+  border-color: var(--chat-interactive);
+  color: var(--chat-text-primary);
+}
+
 vaadin-text-area.chat-composer-input {
   display: block;
   --vaadin-input-field-background: var(--chat-surface);

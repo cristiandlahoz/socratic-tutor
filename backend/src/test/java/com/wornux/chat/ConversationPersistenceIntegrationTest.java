@@ -53,6 +53,9 @@ class ConversationPersistenceIntegrationTest {
     @Autowired
     private ChatTranscriptJpaRepository chatTranscriptRepository;
 
+    @Autowired
+    private ChatUsageService chatUsageService;
+
     @Test
     void flyway_creates_chat_tables() {
         Integer tableCount = jdbcTemplate.queryForObject("""
@@ -139,6 +142,19 @@ class ConversationPersistenceIntegrationTest {
     }
 
     @Test
+    void chatUsageService_returns_input_tokens_and_percent_for_active_transcript() {
+        var clientId = UUID.randomUUID();
+        var conversation = conversationService.createConversation(clientId, "Necesito ayuda con ciclos");
+
+        chatUsageService.updateActiveTranscriptInputTokens(conversation.id(), 18_432);
+
+        var usage = chatUsageService.getActiveTranscriptUsage(clientId, conversation.id());
+
+        assertThat(usage.inputTokens()).isEqualTo(18_432);
+        assertThat(usage.usagePercent()).isEqualTo(50);
+    }
+
+    @Test
     void resolveActiveConversation_returns_latest_conversation_when_query_is_missing() {
         var clientId = UUID.randomUUID();
         var olderConversation = conversationService.createConversation(clientId, "Pregunta anterior");
@@ -177,7 +193,8 @@ class ConversationPersistenceIntegrationTest {
     @TestConfiguration
     @Import({
             ConversationService.class,
-            PostgresChatMemory.class
+            PostgresChatMemory.class,
+            ChatUsageService.class
     })
     @EnableJpaRepositories(basePackageClasses = {
             ChatJpaRepository.class,
@@ -208,6 +225,15 @@ class ConversationPersistenceIntegrationTest {
         @Bean
         JdbcTemplate jdbcTemplate(DataSource dataSource, Flyway flyway) {
             return new JdbcTemplate(dataSource);
+        }
+
+        @Bean
+        ChatProperties chatProperties() {
+            var chatProperties = new ChatProperties();
+            chatProperties.setClientIdCookieName("st_client_id");
+            chatProperties.setContextWindowTokens(40_960);
+            chatProperties.setReservedOutputTokens(4_096);
+            return chatProperties;
         }
 
         @Bean

@@ -40,12 +40,23 @@
   .chat-composer-shell {
     padding: 1rem 1rem 1.25rem;
   }
+
+  .chat-usage-badge {
+    top: 1rem;
+    right: 1rem;
+  }
 }
 
 @media (max-width: 640px) {
   vaadin-drawer-toggle.shell-drawer-toggle {
     top: 1rem;
     left: 1rem;
+  }
+
+  .chat-usage-badge {
+    top: 4.2rem;
+    right: 0.75rem;
+    max-width: calc(100vw - 1.5rem);
   }
 
   .shell-drawer-content {

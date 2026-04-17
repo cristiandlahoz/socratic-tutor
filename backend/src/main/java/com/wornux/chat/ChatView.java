@@ -15,6 +15,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.popover.Popover;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -26,6 +27,7 @@ import com.wornux.MainLayout;
 import org.springframework.ai.chat.messages.MessageType;
 
 import java.util.UUID;
+import java.util.Locale;
 
 @Route(value = "", layout = MainLayout.class)
 public class ChatView extends Composite<Div> implements BeforeEnterObserver {
@@ -81,7 +83,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var root = getContent();
         root.setSizeFull();
         root.addClassName("chat-view");
-        root.add(floatingDrawerToggle, historyScroller, createInputShell());
+        root.add(floatingDrawerToggle, historyScroller, createUsageBadge(state), createInputShell());
     }
 
     @Override
@@ -146,6 +148,63 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var inputShell = new Div(composer);
         inputShell.addClassName("chat-composer-shell");
         return inputShell;
+    }
+
+    private Div createUsageBadge(ChatUiState state) {
+        var usageText = new Span();
+        usageText.addClassName("chat-usage-text");
+
+        var helpButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
+        helpButton.addThemeVariants(ButtonVariant.TERTIARY);
+        helpButton.addClassName("chat-usage-help-button");
+        helpButton.setAriaLabel("Explicar uso del contexto");
+
+        var helpPopover = new Popover();
+        helpPopover.setTarget(helpButton);
+        helpPopover.setModal(false);
+        helpPopover.addClassName("chat-sidebar-help-popover");
+
+        var helpTitle = new Span("Uso del contexto");
+        helpTitle.addClassName("chat-sidebar-help-title");
+
+        var helpCopy = new Paragraph(
+                "Muestra los prompt tokens del transcript activo y el porcentaje usado contra el techo configurado del contexto util del modelo.");
+        helpCopy.addClassName("chat-sidebar-help-description");
+        helpPopover.add(new Div(helpTitle, helpCopy));
+
+        var usageBadge = new Div(usageText, helpButton);
+        usageBadge.addClassName("chat-usage-badge");
+        usageBadge.setVisible(false);
+
+        Signal.effect(usageBadge, () -> {
+            var inputTokens = state.usageInputTokens().get();
+            var usagePercent = state.usagePercent().get();
+            var visible = inputTokens != null && usagePercent != null;
+            usageBadge.setVisible(visible);
+            if (visible) {
+                usageText.setText("%s (%d%%)".formatted(formatTokenCount(inputTokens), usagePercent));
+            }
+        });
+
+        return usageBadge;
+    }
+
+    private String formatTokenCount(int tokens) {
+        if (tokens >= 1_000_000) {
+            return compact(tokens / 1_000_000d) + "M";
+        }
+        if (tokens >= 1_000) {
+            return compact(tokens / 1_000d) + "K";
+        }
+        return Integer.toString(tokens);
+    }
+
+    private String compact(double value) {
+        var rounded = Math.round(value * 10.0) / 10.0;
+        if (rounded == Math.rint(rounded)) {
+            return Integer.toString((int) rounded);
+        }
+        return String.format(Locale.US, "%.1f", rounded);
     }
 
     private void submitPrompt() {

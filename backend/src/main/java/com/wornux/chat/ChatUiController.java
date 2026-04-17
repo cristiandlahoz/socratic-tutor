@@ -33,6 +33,7 @@ public class ChatUiController implements Serializable {
 
     private final ChatService chatService;
     private final ConversationService conversationService;
+    private final ChatUsageService chatUsageService;
     private final ConversationTitleService conversationTitleService;
     private final BrowserClientService browserClientService;
     private final ChatUiState state;
@@ -41,11 +42,13 @@ public class ChatUiController implements Serializable {
 
     public ChatUiController(ChatService chatService,
                             ConversationService conversationService,
+                            ChatUsageService chatUsageService,
                             ConversationTitleService conversationTitleService,
                             BrowserClientService browserClientService,
                             ChatUiState state) {
         this.chatService = chatService;
         this.conversationService = conversationService;
+        this.chatUsageService = chatUsageService;
         this.conversationTitleService = conversationTitleService;
         this.browserClientService = browserClientService;
         this.state = state;
@@ -63,6 +66,7 @@ public class ChatUiController implements Serializable {
         if (draftRequested) {
             state.activeConversationId().set(null);
             state.replaceMessages(List.of());
+            state.clearUsage();
             refreshConversationHistory();
             return RouteInitialization.noReroute();
         }
@@ -73,6 +77,7 @@ public class ChatUiController implements Serializable {
         state.activeConversationId().set(resolvedConversation.activeConversationId());
         state.replaceMessages(resolvedConversation.messages().stream().map(MessageVm::fromStored).toList());
         state.replaceConversationHistory(resolvedConversation.conversations());
+        refreshTranscriptUsage();
 
         if (requestedConversationParam != null
                 && (requestedConversationId == null
@@ -172,9 +177,22 @@ public class ChatUiController implements Serializable {
         state.replaceConversationHistory(conversationService.listConversations(state.clientId().peek()));
     }
 
+    public void refreshTranscriptUsage() {
+        var clientId = state.clientId().peek();
+        var conversationId = state.activeConversationId().peek();
+        if (clientId == null || conversationId == null) {
+            state.clearUsage();
+            return;
+        }
+        var usage = chatUsageService.getActiveTranscriptUsage(clientId, conversationId);
+        state.usageInputTokens().set(usage.inputTokens());
+        state.usagePercent().set(usage.usagePercent());
+    }
+
     private void finishResponse(UI ui, Runnable onResponseFinished) {
         state.responseInProgress().set(false);
         refreshConversationHistory();
+        refreshTranscriptUsage();
         activeStream = null;
         runUiSideEffect(ui, onResponseFinished);
     }
@@ -200,6 +218,7 @@ public class ChatUiController implements Serializable {
 
         var conversation = conversationService.createConversation(state.clientId().peek(), prompt);
         state.activeConversationId().set(conversation.id());
+        state.clearUsage();
         synchronizeAddressBar(state.activeConversationId().peek());
         refreshConversationHistory();
         return new EnsuredConversation(state.activeConversationId().peek(), true, conversation.title());

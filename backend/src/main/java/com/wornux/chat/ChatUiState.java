@@ -25,6 +25,8 @@ public class ChatUiState implements Serializable {
     private final ValueSignal<UUID> activeConversationId = new ValueSignal<>(null);
     private final ValueSignal<Boolean> responseInProgress = new ValueSignal<>(false);
     private final ValueSignal<String> composerText = new ValueSignal<>("");
+    private final ValueSignal<Integer> usageInputTokens = new ValueSignal<>(null);
+    private final ValueSignal<Integer> usagePercent = new ValueSignal<>(null);
     private final ListSignal<MessageVm> messages = new ListSignal<>();
     private final ListSignal<ConversationSummary> conversationHistory = new ListSignal<>();
     private final Signal<Boolean> emptyStateVisible = Signal.computed(() -> messages.get().isEmpty());
@@ -45,6 +47,14 @@ public class ChatUiState implements Serializable {
 
     public ValueSignal<String> composerText() {
         return composerText;
+    }
+
+    public ValueSignal<Integer> usageInputTokens() {
+        return usageInputTokens;
+    }
+
+    public ValueSignal<Integer> usagePercent() {
+        return usagePercent;
     }
 
     public ListSignal<MessageVm> messages() {
@@ -75,5 +85,10 @@ public class ChatUiState implements Serializable {
     public void replaceConversationHistory(List<ConversationSummary> conversations) {
         conversationHistory.clear();
         conversations.forEach(conversationHistory::insertLast);
+    }
+
+    public void clearUsage() {
+        usageInputTokens.set(null);
+        usagePercent.set(null);
     }
 }

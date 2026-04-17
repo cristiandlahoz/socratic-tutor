@@ -6,11 +6,15 @@ import com.wornux.chat.profile.TurnProfileInferenceService;
 import com.wornux.chat.tools.ToolUsageAuditService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author @github/cristiandlahoz
@@ -20,17 +24,20 @@ public class ChatService {
 
     private final ChatClient chatClient;
     private final ConversationService conversationService;
+    private final ChatUsageService chatUsageService;
     private final StudentProfileService studentProfileService;
     private final TurnProfileInferenceService turnProfileInferenceService;
     private final ToolUsageAuditService toolUsageAuditService;
 
     public ChatService(ChatClient chatClient,
                        ConversationService conversationService,
+                       ChatUsageService chatUsageService,
                        StudentProfileService studentProfileService,
                        TurnProfileInferenceService turnProfileInferenceService,
                        ToolUsageAuditService toolUsageAuditService) {
         this.chatClient = chatClient;
         this.conversationService = conversationService;
+        this.chatUsageService = chatUsageService;
         this.studentProfileService = studentProfileService;
         this.turnProfileInferenceService = turnProfileInferenceService;
         this.toolUsageAuditService = toolUsageAuditService;
@@ -40,6 +47,7 @@ public class ChatService {
         var turnId = UUID.randomUUID();
         var profileSnapshot = studentProfileService.load(clientId);
         var responseBuilder = new StringBuilder();
+        var promptTokens = new AtomicReference<Integer>();
         return chatClient.prompt()
                 .advisors(advisorSpec -> advisorSpec
                         .param(ChatMemory.CONVERSATION_ID, conversationId.toString())
@@ -52,10 +60,34 @@ public class ChatService {
                 ))
                 .user(userInput)
                 .stream()
-                .content()
+                .chatResponse()
+                .doOnNext(response -> capturePromptTokens(response, promptTokens))
+                .map(this::extractContentChunk)
+                .filter(token -> !token.isEmpty())
                 .doOnNext(responseBuilder::append)
-                .doOnComplete(() -> persistProfileSignals(clientId, conversationId, turnId, userInput, responseBuilder.toString()))
+                .doOnComplete(() -> {
+                    chatUsageService.updateActiveTranscriptInputTokens(conversationId, promptTokens.get());
+                    persistProfileSignals(clientId, conversationId, turnId, userInput, responseBuilder.toString());
+                })
                 .doOnError(_ -> toolUsageAuditService.drainTurnAudits(turnId));
+    }
+
+    private void capturePromptTokens(ChatResponse response, AtomicReference<Integer> promptTokens) {
+        if (response == null) {
+            return;
+        }
+        Usage usage = response.getMetadata().getUsage();
+        promptTokens.set(usage.getPromptTokens());
+    }
+
+    private String extractContentChunk(ChatResponse response) {
+        if (response == null || response.getResult() == null) {
+            return "";
+        } else {
+            response.getResult();
+        }
+        var text = response.getResult().getOutput().getText();
+        return text == null ? "" : text;
     }
 
     private void persistProfileSignals(UUID clientId, UUID conversationId, UUID turnId, String userInput, String assistantResponse) {

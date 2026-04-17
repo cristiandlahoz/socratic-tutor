@@ -1,35 +1,23 @@
 package com.wornux.chat;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+@Getter
+@Setter
 @ConfigurationProperties(prefix = "app.chat")
 public class ChatProperties {
 
-    private String clientIdCookieName = "st_client_id";
-    private final Ui ui = new Ui();
+    private String clientIdCookieName;
+    private int contextWindowTokens;
+    private int reservedOutputTokens;
+    private Ui ui;
 
-    public String getClientIdCookieName() {
-        return clientIdCookieName;
-    }
-
-    public void setClientIdCookieName(String clientIdCookieName) {
-        this.clientIdCookieName = clientIdCookieName;
-    }
-
-    public Ui getUi() {
-        return ui;
-    }
-
+    @Setter
+    @Getter
     public static class Ui {
+        private String thinkingSpinner;
 
-        private String thinkingSpinner = "braille";
-
-        public String getThinkingSpinner() {
-            return thinkingSpinner;
-        }
-
-        public void setThinkingSpinner(String thinkingSpinner) {
-            this.thinkingSpinner = thinkingSpinner;
-        }
     }
 }
