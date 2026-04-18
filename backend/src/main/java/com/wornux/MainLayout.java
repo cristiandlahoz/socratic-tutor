@@ -79,7 +79,7 @@ public class MainLayout extends AppLayout {
         var appTitle = new H1("Tutor Crow");
         appTitle.addClassName("chat-sidebar-app-title");
 
-        var appDescription = new Paragraph("Tutor socrático para explorar ideas, resolver dudas y aprender con preguntas guiadas.");
+        var appDescription = new Paragraph("Tutor para explorar ideas, resolver dudas y aprender con preguntas guiadas introducción a la algoritmia.");
         appDescription.addClassName("chat-sidebar-app-description");
 
         var appHeader = new Div(appTitle, appDescription);
