@@ -3,6 +3,7 @@ package com.wornux.chat.advisor;
 import com.wornux.chat.GuardClassifierService;
 import com.wornux.chat.GuardDecision;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullUnmarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -199,7 +200,7 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     @Override
-    public String getName() {
+    public @NullUnmarked String getName() {
         return "tutor-guard-advisor";
     }
 
