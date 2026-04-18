@@ -142,11 +142,11 @@ public class AIConfig {
         return builder.defaultSystem(DEFAULT_SYSTEM_PROMPT)
                 .defaultAdvisors(
                         chatMemoryAdvisor,
-                        profileAwareResponseAdvisor,
+//                        profileAwareResponseAdvisor,
                         tutorGuardAdvisor,
                         //                        retrievalAugmentationAdvisor,
                         new SimpleLoggerAdvisor(LOGGER_ADVISOR_ORDER))
-                .defaultTools(tutorTools)
+//                .defaultTools(tutorTools)
                 .build();
     }
 }
