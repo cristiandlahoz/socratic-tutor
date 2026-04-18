@@ -8,6 +8,8 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -22,9 +24,12 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class ChatService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ChatService.class);
+
     private final ChatClient chatClient;
     private final ConversationService conversationService;
     private final ChatUsageService chatUsageService;
+    private final ChatCompactionService chatCompactionService;
     private final StudentProfileService studentProfileService;
     private final TurnProfileInferenceService turnProfileInferenceService;
     private final ToolUsageAuditService toolUsageAuditService;
@@ -32,12 +37,14 @@ public class ChatService {
     public ChatService(ChatClient chatClient,
                        ConversationService conversationService,
                        ChatUsageService chatUsageService,
+                       ChatCompactionService chatCompactionService,
                        StudentProfileService studentProfileService,
                        TurnProfileInferenceService turnProfileInferenceService,
                        ToolUsageAuditService toolUsageAuditService) {
         this.chatClient = chatClient;
         this.conversationService = conversationService;
         this.chatUsageService = chatUsageService;
+        this.chatCompactionService = chatCompactionService;
         this.studentProfileService = studentProfileService;
         this.turnProfileInferenceService = turnProfileInferenceService;
         this.toolUsageAuditService = toolUsageAuditService;
@@ -68,8 +75,17 @@ public class ChatService {
                 .doOnComplete(() -> {
                     chatUsageService.updateActiveTranscriptInputTokens(conversationId, promptTokens.get());
                     persistProfileSignals(clientId, conversationId, turnId, userInput, responseBuilder.toString());
+                    compactConversationIfNeeded(conversationId);
                 })
                 .doOnError(_ -> toolUsageAuditService.drainTurnAudits(turnId));
+    }
+
+    private void compactConversationIfNeeded(UUID conversationId) {
+        try {
+            chatCompactionService.compactIfNeeded(conversationId);
+        } catch (RuntimeException exception) {
+            logger.warn("Failed to compact conversation {}", conversationId, exception);
+        }
     }
 
     private void capturePromptTokens(ChatResponse response, AtomicReference<Integer> promptTokens) {

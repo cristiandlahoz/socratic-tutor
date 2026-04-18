@@ -168,7 +168,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         helpTitle.addClassName("chat-sidebar-help-title");
 
         var helpCopy = new Paragraph(
-                "Muestra los prompt tokens del transcript activo y el porcentaje usado contra el techo configurado del contexto util del modelo.");
+                "Muestra los prompt tokens del transcript activo y el porcentaje usado contra el umbral de compactacion configurado para resumir la conversacion antes de perder calidad.");
         helpCopy.addClassName("chat-sidebar-help-description");
         helpPopover.add(new Div(helpTitle, helpCopy));
 

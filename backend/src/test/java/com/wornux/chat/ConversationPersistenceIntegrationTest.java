@@ -4,6 +4,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.ChatOptions;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -55,6 +60,9 @@ class ConversationPersistenceIntegrationTest {
 
     @Autowired
     private ChatUsageService chatUsageService;
+
+    @Autowired
+    private ChatCompactionService chatCompactionService;
 
     @Test
     void flyway_creates_chat_tables() {
@@ -151,7 +159,43 @@ class ConversationPersistenceIntegrationTest {
         var usage = chatUsageService.getActiveTranscriptUsage(clientId, conversation.id());
 
         assertThat(usage.inputTokens()).isEqualTo(18_432);
-        assertThat(usage.usagePercent()).isEqualTo(50);
+        assertThat(usage.usagePercent()).isEqualTo(150);
+    }
+
+    @Test
+    void chatCompactionService_rotates_to_new_transcript_when_threshold_is_exceeded() {
+        var clientId = UUID.randomUUID();
+        var conversation = conversationService.createConversation(clientId, "Necesito ayuda con ciclos");
+        chatMemory.add(conversation.id().toString(), List.of(
+                new UserMessage("No entiendo bien como cambia la condicion del while"),
+                AssistantMessage.builder().content("Pensemos primero que variable cambia en cada vuelta.").build()
+        ));
+
+        var originalChat = chatRepository.findById(conversation.id()).orElseThrow();
+        var originalTranscriptId = originalChat.getCurrentTranscript().getId();
+        chatUsageService.updateActiveTranscriptInputTokens(conversation.id(), 13_000);
+
+        var compacted = chatCompactionService.compactIfNeeded(conversation.id());
+
+        var compactedChat = chatRepository.findById(conversation.id()).orElseThrow();
+        var activeTranscript = chatTranscriptRepository.findById(compactedChat.getCurrentTranscript().getId()).orElseThrow();
+        var memoryWindow = chatMemory.get(conversation.id().toString());
+        var fullHistory = conversationService.loadConversation(clientId, conversation.id());
+
+        assertThat(compacted).isTrue();
+        assertThat(activeTranscript).isNotNull();
+        assertThat(activeTranscript.getId()).isNotEqualTo(originalTranscriptId);
+        assertThat(activeTranscript.memoryText()).contains("Resumen compacto");
+        assertThat(activeTranscript.getInputTokens()).isNull();
+        assertThat(memoryWindow)
+                .extracting(Message::getText)
+                .containsExactly(activeTranscript.memoryText());
+        assertThat(fullHistory)
+                .extracting(StoredChatMessage::content)
+                .containsExactly(
+                        "No entiendo bien como cambia la condicion del while",
+                        "Pensemos primero que variable cambia en cada vuelta."
+                );
     }
 
     @Test
@@ -194,7 +238,8 @@ class ConversationPersistenceIntegrationTest {
     @Import({
             ConversationService.class,
             PostgresChatMemory.class,
-            ChatUsageService.class
+            ChatUsageService.class,
+            ChatCompactionService.class
     })
     @EnableJpaRepositories(basePackageClasses = {
             ChatJpaRepository.class,
@@ -232,8 +277,27 @@ class ConversationPersistenceIntegrationTest {
             var chatProperties = new ChatProperties();
             chatProperties.setClientIdCookieName("st_client_id");
             chatProperties.setContextWindowTokens(40_960);
-            chatProperties.setReservedOutputTokens(4_096);
+            chatProperties.setCompactionThresholdRatio(0.30);
             return chatProperties;
+        }
+
+        @Bean
+        ChatModel chatModel() {
+            return new ChatModel() {
+                @Override
+                public ChatResponse call(Prompt prompt) {
+                    return new ChatResponse(List.of(
+                            new Generation(AssistantMessage.builder()
+                                    .content("{\"text\":\"Resumen compacto: el estudiante necesita retomar el razonamiento sobre la condicion del ciclo y el siguiente paso es rastrear como cambia la variable de control.\"}")
+                                    .build())
+                    ));
+                }
+
+                @Override
+                public ChatOptions getDefaultOptions() {
+                    return ChatOptions.builder().build();
+                }
+            };
         }
 
         @Bean

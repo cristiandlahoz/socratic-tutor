@@ -11,7 +11,7 @@ public class ChatProperties {
 
     private String clientIdCookieName;
     private int contextWindowTokens;
-    private int reservedOutputTokens;
+    private double compactionThresholdRatio;
     private Ui ui;
 
     @Setter

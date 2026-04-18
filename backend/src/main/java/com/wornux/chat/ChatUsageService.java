@@ -42,11 +42,28 @@ public class ChatUsageService {
         return new ChatTranscriptUsage(inputTokens, usagePercent(inputTokens));
     }
 
-    int usagePercent(int inputTokens) {
-        int ceiling = chatProperties.getContextWindowTokens() - chatProperties.getReservedOutputTokens();
-        if (ceiling <= 0) {
-            throw new IllegalStateException("Chat context ceiling must be greater than zero");
+    @Transactional(readOnly = true)
+    public boolean exceedsCompactionThreshold(UUID chatId) {
+        var chat = chatRepository.findById(chatId).orElse(null);
+        if (chat == null || chat.getCurrentTranscript() == null || chat.getCurrentTranscript().getInputTokens() == null) {
+            return false;
         }
-        return (int) Math.round(inputTokens * 100.0 / ceiling);
+        return exceedsCompactionThreshold(chat.getCurrentTranscript().getInputTokens());
+    }
+
+    boolean exceedsCompactionThreshold(int inputTokens) {
+        return inputTokens > thresholdTokens();
+    }
+
+    int thresholdTokens() {
+        int threshold = (int) Math.floor(chatProperties.getContextWindowTokens() * chatProperties.getCompactionThresholdRatio());
+        if (threshold <= 0) {
+            throw new IllegalStateException("Chat compaction threshold must be greater than zero");
+        }
+        return threshold;
+    }
+
+    int usagePercent(int inputTokens) {
+        return (int) Math.round(inputTokens * 100.0 / thresholdTokens());
     }
 }

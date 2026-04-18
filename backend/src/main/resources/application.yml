@@ -27,8 +27,6 @@ spring:
 #        model: ${CHAT_MODEL:socratic-tutor:latest}
 #        model: ${CHAT_MODEL:qwen3:4b-instruct}
         model: ${CHAT_MODEL:qcwind/qwen3-8b-instruct-Q4-K-M:latest}
-        options:
-          num-ctx: ${CHAT_CONTEXT_WINDOW_TOKENS:40960}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
@@ -47,7 +45,7 @@ app:
   chat:
     client-id-cookie-name: ${CHAT_CLIENT_ID_COOKIE_NAME:st_client_id}
     context-window-tokens: ${CHAT_CONTEXT_WINDOW_TOKENS:40960}
-    reserved-output-tokens: ${CHAT_RESERVED_OUTPUT_TOKENS:4096}
+    compaction-threshold-ratio: ${CHAT_COMPACTION_THRESHOLD_RATIO:0.30}
     ui:
       thinking-spinner: ${CHAT_UI_THINKING_SPINNER:snake}
   ai:
