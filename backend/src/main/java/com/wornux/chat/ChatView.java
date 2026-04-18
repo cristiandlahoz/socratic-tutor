@@ -83,7 +83,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var root = getContent();
         root.setSizeFull();
         root.addClassName("chat-view");
-        root.add(floatingDrawerToggle, historyScroller, createUsageBadge(state), createInputShell());
+        root.add(floatingDrawerToggle, historyScroller, createUsageBadge(state), createInputShell(state));
     }
 
     @Override
@@ -141,11 +141,13 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         return state;
     }
 
-    private Div createInputShell() {
+    private Div createInputShell(ChatUiState state) {
+        var compactionStatus = createCompactionStatus(state);
+
         var composer = new Div(composerField, sendButton);
         composer.addClassName("chat-composer-wrap");
 
-        var inputShell = new Div(composer);
+        var inputShell = new Div(compactionStatus, composer);
         inputShell.addClassName("chat-composer-shell");
         return inputShell;
     }
@@ -153,6 +155,12 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     private Div createUsageBadge(ChatUiState state) {
         var usageText = new Span();
         usageText.addClassName("chat-usage-text");
+
+        var lineageText = new Span();
+        lineageText.addClassName("chat-usage-lineage");
+
+        var usageCopy = new Div(usageText, lineageText);
+        usageCopy.addClassName("chat-usage-copy");
 
         var helpButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
         helpButton.addThemeVariants(ButtonVariant.TERTIARY);
@@ -172,21 +180,56 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         helpCopy.addClassName("chat-sidebar-help-description");
         helpPopover.add(new Div(helpTitle, helpCopy));
 
-        var usageBadge = new Div(usageText, helpButton);
+        var usageBadge = new Div(usageCopy, helpButton);
         usageBadge.addClassName("chat-usage-badge");
         usageBadge.setVisible(false);
 
         Signal.effect(usageBadge, () -> {
             var inputTokens = state.usageInputTokens().get();
             var usagePercent = state.usagePercent().get();
-            var visible = inputTokens != null && usagePercent != null;
+            var compacted = Boolean.TRUE.equals(state.conversationCompacted().get());
+            var level = state.compactionLevel().get();
+            var sourceTranscriptId = state.compactedFromTranscriptId().get();
+            var visible = (inputTokens != null && usagePercent != null) || compacted;
             usageBadge.setVisible(visible);
-            if (visible) {
+            if (inputTokens != null && usagePercent != null) {
                 usageText.setText("%s (%d%%)".formatted(formatTokenCount(inputTokens), usagePercent));
+            } else {
+                usageText.setText("Contexto compactado");
+            }
+
+            if (compacted && level != null) {
+                var sourceLabel = sourceTranscriptId == null ? "" : " · desde %s".formatted(shortId(sourceTranscriptId));
+                lineageText.setText("Compactado · nivel %d%s".formatted(level, sourceLabel));
+                lineageText.setVisible(true);
+            } else {
+                lineageText.setText("");
+                lineageText.setVisible(false);
             }
         });
 
         return usageBadge;
+    }
+
+    private Div createCompactionStatus(ChatUiState state) {
+        var spinner = new BrailleSpinner();
+        spinner.addClassName("chat-compaction-spinner");
+        spinner.setSpinner("fillsweep");
+
+        var label = new Span();
+        label.addClassName("chat-compaction-label");
+
+        var status = new Div(spinner, label);
+        status.addClassName("chat-compaction-status");
+        status.setVisible(false);
+
+        Signal.effect(status, () -> {
+            var compacting = Boolean.TRUE.equals(state.compactionInProgress().get());
+            status.setVisible(compacting);
+            label.setText(state.compactionLabel().get());
+        });
+
+        return status;
     }
 
     private String formatTokenCount(int tokens) {
@@ -205,6 +248,10 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
             return Integer.toString((int) rounded);
         }
         return String.format(Locale.US, "%.1f", rounded);
+    }
+
+    private String shortId(UUID id) {
+        return id.toString().substring(0, 8);
     }
 
     private void submitPrompt() {

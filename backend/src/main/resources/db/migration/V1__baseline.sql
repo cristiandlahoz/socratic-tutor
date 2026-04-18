@@ -18,6 +18,8 @@ create table if not exists chat_transcript (
     chat_id uuid not null references chat(id) on delete cascade,
     memory jsonb not null default '{"text": ""}'::jsonb,
     input_tokens integer null,
+    compacted_from_transcript_id uuid null references chat_transcript(id) on delete set null,
+    compaction_level integer not null default 0,
     created_at timestamptz not null default current_timestamp
 );
 

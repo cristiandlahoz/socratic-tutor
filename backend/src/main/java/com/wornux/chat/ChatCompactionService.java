@@ -54,35 +54,34 @@ public class ChatCompactionService {
     }
 
     @Transactional
-    public boolean compactIfNeeded(UUID chatId) {
+    public ChatCompactionStatus compactIfNeeded(UUID chatId) {
         if (!chatUsageService.exceedsCompactionThreshold(chatId)) {
-            return false;
+            return ChatCompactionStatus.none();
         }
 
         var chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new IllegalStateException("Chat not found: " + chatId));
         var activeTranscript = chat.getCurrentTranscript();
         if (activeTranscript == null) {
-            return false;
+            return ChatCompactionStatus.none();
         }
 
         var transcriptMessages = chatMessageRepository.findByTranscript_IdOrderByIdAsc(activeTranscript.getId());
         if (transcriptMessages.isEmpty() && activeTranscript.memoryText().isBlank()) {
-            return false;
+            return ChatCompactionStatus.none();
         }
 
         var compactedMemory = summarize(activeTranscript, transcriptMessages);
         if (compactedMemory == null || compactedMemory.isBlank()) {
-            return false;
+            return ChatCompactionStatus.none();
         }
 
-        var compactedTranscript = ChatTranscriptEntity.create(chat);
-        compactedTranscript.setMemoryText(compactedMemory);
+        var compactedTranscript = ChatTranscriptEntity.createFromCompaction(chat, activeTranscript, compactedMemory);
         compactedTranscript.setInputTokens(null);
         compactedTranscript = chatTranscriptRepository.save(compactedTranscript);
         chat.activateTranscript(compactedTranscript);
         chatRepository.save(chat);
-        return true;
+        return new ChatCompactionStatus(true, compactedTranscript.getCompactionLevel(), compactedTranscript.getCompactedFromTranscriptId());
     }
 
     private String summarize(ChatTranscriptEntity transcript, List<ChatMessageEntity> transcriptMessages) {

@@ -12,10 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -33,6 +33,7 @@ public class ChatService {
     private final StudentProfileService studentProfileService;
     private final TurnProfileInferenceService turnProfileInferenceService;
     private final ToolUsageAuditService toolUsageAuditService;
+    private final Map<UUID, Integer> turnPromptTokens = new ConcurrentHashMap<>();
 
     public ChatService(ChatClient chatClient,
                        ConversationService conversationService,
@@ -51,9 +52,11 @@ public class ChatService {
     }
 
     public Flux<String> chatStream(String userInput, UUID clientId, UUID conversationId) {
-        var turnId = UUID.randomUUID();
+        return chatStream(UUID.randomUUID(), userInput, clientId, conversationId);
+    }
+
+    public Flux<String> chatStream(UUID turnId, String userInput, UUID clientId, UUID conversationId) {
         var profileSnapshot = studentProfileService.load(clientId);
-        var responseBuilder = new StringBuilder();
         var promptTokens = new AtomicReference<Integer>();
         return chatClient.prompt()
                 .advisors(advisorSpec -> advisorSpec
@@ -71,21 +74,42 @@ public class ChatService {
                 .doOnNext(response -> capturePromptTokens(response, promptTokens))
                 .map(this::extractContentChunk)
                 .filter(token -> !token.isEmpty())
-                .doOnNext(responseBuilder::append)
-                .doOnComplete(() -> {
-                    chatUsageService.updateActiveTranscriptInputTokens(conversationId, promptTokens.get());
-                    persistProfileSignals(clientId, conversationId, turnId, userInput, responseBuilder.toString());
-                    compactConversationIfNeeded(conversationId);
-                })
-                .doOnError(_ -> toolUsageAuditService.drainTurnAudits(turnId));
+                .doOnComplete(() -> storePromptTokens(turnId, promptTokens.get()))
+                .doOnError(_ -> clearTurnState(turnId));
     }
 
-    private void compactConversationIfNeeded(UUID conversationId) {
+    public TurnFinalizationResult finalizeTurn(UUID turnId,
+                                               UUID clientId,
+                                               UUID conversationId,
+                                               String userInput,
+                                               String assistantResponse) {
         try {
-            chatCompactionService.compactIfNeeded(conversationId);
+            chatUsageService.updateActiveTranscriptInputTokens(conversationId, turnPromptTokens.remove(turnId));
+            persistProfileSignals(clientId, conversationId, turnId, userInput, assistantResponse);
+            return new TurnFinalizationResult(compactConversationIfNeeded(conversationId));
+        } finally {
+            clearTurnState(turnId);
+        }
+    }
+
+    private ChatCompactionStatus compactConversationIfNeeded(UUID conversationId) {
+        try {
+            return chatCompactionService.compactIfNeeded(conversationId);
         } catch (RuntimeException exception) {
             logger.warn("Failed to compact conversation {}", conversationId, exception);
+            return ChatCompactionStatus.none();
         }
+    }
+
+    private void storePromptTokens(UUID turnId, Integer promptTokens) {
+        if (promptTokens != null) {
+            turnPromptTokens.put(turnId, promptTokens);
+        }
+    }
+
+    private void clearTurnState(UUID turnId) {
+        turnPromptTokens.remove(turnId);
+        toolUsageAuditService.drainTurnAudits(turnId);
     }
 
     private void capturePromptTokens(ChatResponse response, AtomicReference<Integer> promptTokens) {
@@ -93,7 +117,9 @@ public class ChatService {
             return;
         }
         Usage usage = response.getMetadata().getUsage();
-        promptTokens.set(usage.getPromptTokens());
+        if (usage != null && usage.getPromptTokens() != null) {
+            promptTokens.set(usage.getPromptTokens());
+        }
     }
 
     private String extractContentChunk(ChatResponse response) {

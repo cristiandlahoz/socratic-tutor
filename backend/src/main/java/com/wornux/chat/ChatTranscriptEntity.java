@@ -40,6 +40,12 @@ public class ChatTranscriptEntity {
     @Column(name = "input_tokens")
     private Integer inputTokens;
 
+    @Column(name = "compacted_from_transcript_id")
+    private UUID compactedFromTranscriptId;
+
+    @Column(name = "compaction_level", nullable = false)
+    private int compactionLevel;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -48,7 +54,18 @@ public class ChatTranscriptEntity {
         entity.id = UUID.randomUUID();
         entity.chat = chat;
         entity.memory = defaultMemory();
+        entity.compactionLevel = 0;
         entity.createdAt = Instant.now();
+        return entity;
+    }
+
+    public static ChatTranscriptEntity createFromCompaction(ChatEntity chat,
+                                                            ChatTranscriptEntity sourceTranscript,
+                                                            String memoryText) {
+        var entity = create(chat);
+        entity.compactedFromTranscriptId = sourceTranscript.getId();
+        entity.compactionLevel = sourceTranscript.getCompactionLevel() + 1;
+        entity.setMemoryText(memoryText);
         return entity;
     }
 
@@ -60,6 +77,10 @@ public class ChatTranscriptEntity {
     public void setMemoryText(String text) {
         this.memory = new LinkedHashMap<>(memory == null ? defaultMemory() : memory);
         this.memory.put("text", text == null ? "" : text);
+    }
+
+    public boolean isCompacted() {
+        return compactedFromTranscriptId != null;
     }
 
     private static Map<String, Object> defaultMemory() {

@@ -100,6 +100,16 @@ public class ConversationService {
         chatRepository.save(chat);
     }
 
+    @Transactional(readOnly = true)
+    public ChatCompactionStatus getCompactionStatus(UUID clientId, UUID conversationId) {
+        var chat = chatRepository.findByIdAndClientId(conversationId, clientId).orElse(null);
+        if (chat == null || chat.getCurrentTranscript() == null || !chat.getCurrentTranscript().isCompacted()) {
+            return ChatCompactionStatus.none();
+        }
+        var transcript = chat.getCurrentTranscript();
+        return new ChatCompactionStatus(true, transcript.getCompactionLevel(), transcript.getCompactedFromTranscriptId());
+    }
+
     private ConversationSummary toConversationSummary(ChatEntity chat) {
         return new ConversationSummary(chat.getId(), chat.getTitle(), chat.getUpdatedAt());
     }

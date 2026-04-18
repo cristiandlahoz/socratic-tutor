@@ -7,7 +7,9 @@ import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.MainLayout;
+import reactor.core.publisher.Mono;
 import reactor.core.Disposable;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -61,12 +63,14 @@ public class ChatUiController implements Serializable {
     RouteInitialization initializeFromRoute(String requestedConversationParam, boolean draftRequested) {
         abortActiveStream();
         state.responseInProgress().set(false);
+        state.compactionInProgress().set(false);
         ensureClientId();
 
         if (draftRequested) {
             state.activeConversationId().set(null);
             state.replaceMessages(List.of());
             state.clearUsage();
+            state.clearCompactionStatus();
             refreshConversationHistory();
             return RouteInitialization.noReroute();
         }
@@ -78,6 +82,7 @@ public class ChatUiController implements Serializable {
         state.replaceMessages(resolvedConversation.messages().stream().map(MessageVm::fromStored).toList());
         state.replaceConversationHistory(resolvedConversation.conversations());
         refreshTranscriptUsage();
+        refreshCompactionStatus();
 
         if (requestedConversationParam != null
                 && (requestedConversationId == null
@@ -93,7 +98,7 @@ public class ChatUiController implements Serializable {
     }
 
     public boolean openConversation(UUID conversationId) {
-        if (state.responseInProgress().peek() || conversationId.equals(state.activeConversationId().peek())) {
+        if (state.responseInProgress().peek() || state.compactionInProgress().peek() || conversationId.equals(state.activeConversationId().peek())) {
             return false;
         }
         UI.getCurrent().navigate(ChatView.class,
@@ -102,7 +107,7 @@ public class ChatUiController implements Serializable {
     }
 
     public boolean startNewChat() {
-        if (state.responseInProgress().peek()) {
+        if (state.responseInProgress().peek() || state.compactionInProgress().peek()) {
             return false;
         }
         UI.getCurrent().navigate(ChatView.class,
@@ -120,6 +125,7 @@ public class ChatUiController implements Serializable {
         var ensuredConversation = ensureConversation(prompt);
         var conversationId = ensuredConversation.id();
         var clientId = state.clientId().peek();
+        var turnId = UUID.randomUUID();
         var streamId = streamGeneration.incrementAndGet();
         var firstTokenReceived = new AtomicBoolean(false);
         var ui = UI.getCurrent();
@@ -140,7 +146,7 @@ public class ChatUiController implements Serializable {
         state.composerText().set("");
         var responseMessage = state.messages().insertLast(MessageVm.assistantLoading(Instant.now()));
 
-        activeStream = chatService.chatStream(prompt, clientId, conversationId).subscribe(
+        activeStream = chatService.chatStream(turnId, prompt, clientId, conversationId).subscribe(
                 token -> {
                     if (streamGeneration.get() != streamId) {
                         return;
@@ -163,7 +169,8 @@ public class ChatUiController implements Serializable {
                         return;
                     }
                     responseMessage.update(MessageVm::stopLoading);
-                    finishResponse(ui, onResponseFinished);
+                    startCompactionPhase();
+                    finalizeTurn(turnId, clientId, conversationId, prompt, responseMessage.peek().content(), ui, onResponseFinished);
                 }
         );
 
@@ -189,12 +196,51 @@ public class ChatUiController implements Serializable {
         state.usagePercent().set(usage.usagePercent());
     }
 
+    public void refreshCompactionStatus() {
+        var clientId = state.clientId().peek();
+        var conversationId = state.activeConversationId().peek();
+        if (clientId == null || conversationId == null) {
+            state.conversationCompacted().set(false);
+            state.compactionLevel().set(null);
+            state.compactedFromTranscriptId().set(null);
+            return;
+        }
+        var status = conversationService.getCompactionStatus(clientId, conversationId);
+        state.conversationCompacted().set(status.compacted());
+        state.compactionLevel().set(status.level());
+        state.compactedFromTranscriptId().set(status.compactedFromTranscriptId());
+    }
+
     private void finishResponse(UI ui, Runnable onResponseFinished) {
         state.responseInProgress().set(false);
+        state.compactionInProgress().set(false);
+        state.compactionLabel().set("");
         refreshConversationHistory();
         refreshTranscriptUsage();
+        refreshCompactionStatus();
         activeStream = null;
         runUiSideEffect(ui, onResponseFinished);
+    }
+
+    private void startCompactionPhase() {
+        state.responseInProgress().set(false);
+        state.compactionInProgress().set(true);
+        state.compactionLabel().set("Compactando, no deberia tardar...");
+    }
+
+    private void finalizeTurn(UUID turnId,
+                              UUID clientId,
+                              UUID conversationId,
+                              String userInput,
+                              String assistantResponse,
+                              UI ui,
+                              Runnable onResponseFinished) {
+        activeStream = Mono.fromCallable(() -> chatService.finalizeTurn(turnId, clientId, conversationId, userInput, assistantResponse))
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                        _ -> finishResponse(ui, onResponseFinished),
+                        _ -> finishResponse(ui, onResponseFinished)
+                );
     }
 
     private void runUiSideEffect(UI ui, Runnable callback) {
@@ -219,6 +265,7 @@ public class ChatUiController implements Serializable {
         var conversation = conversationService.createConversation(state.clientId().peek(), prompt);
         state.activeConversationId().set(conversation.id());
         state.clearUsage();
+        state.clearCompactionStatus();
         synchronizeAddressBar(state.activeConversationId().peek());
         refreshConversationHistory();
         return new EnsuredConversation(state.activeConversationId().peek(), true, conversation.title());

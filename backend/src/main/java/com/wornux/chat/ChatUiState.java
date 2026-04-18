@@ -24,14 +24,19 @@ public class ChatUiState implements Serializable {
     private final ValueSignal<UUID> clientId = new ValueSignal<>(null);
     private final ValueSignal<UUID> activeConversationId = new ValueSignal<>(null);
     private final ValueSignal<Boolean> responseInProgress = new ValueSignal<>(false);
+    private final ValueSignal<Boolean> compactionInProgress = new ValueSignal<>(false);
+    private final ValueSignal<String> compactionLabel = new ValueSignal<>("");
     private final ValueSignal<String> composerText = new ValueSignal<>("");
     private final ValueSignal<Integer> usageInputTokens = new ValueSignal<>(null);
     private final ValueSignal<Integer> usagePercent = new ValueSignal<>(null);
+    private final ValueSignal<Boolean> conversationCompacted = new ValueSignal<>(false);
+    private final ValueSignal<Integer> compactionLevel = new ValueSignal<>(null);
+    private final ValueSignal<UUID> compactedFromTranscriptId = new ValueSignal<>(null);
     private final ListSignal<MessageVm> messages = new ListSignal<>();
     private final ListSignal<ConversationSummary> conversationHistory = new ListSignal<>();
     private final Signal<Boolean> emptyStateVisible = Signal.computed(() -> messages.get().isEmpty());
-    private final Signal<Boolean> composerEnabled = Signal.not(responseInProgress);
-    private final Signal<Boolean> sendEnabled = Signal.computed(() -> !responseInProgress.get() && !composerText.get().isBlank());
+    private final Signal<Boolean> composerEnabled = Signal.computed(() -> !responseInProgress.get() && !compactionInProgress.get());
+    private final Signal<Boolean> sendEnabled = Signal.computed(() -> !responseInProgress.get() && !compactionInProgress.get() && !composerText.get().isBlank());
 
     public ValueSignal<UUID> clientId() {
         return clientId;
@@ -45,6 +50,14 @@ public class ChatUiState implements Serializable {
         return responseInProgress;
     }
 
+    public ValueSignal<Boolean> compactionInProgress() {
+        return compactionInProgress;
+    }
+
+    public ValueSignal<String> compactionLabel() {
+        return compactionLabel;
+    }
+
     public ValueSignal<String> composerText() {
         return composerText;
     }
@@ -55,6 +68,18 @@ public class ChatUiState implements Serializable {
 
     public ValueSignal<Integer> usagePercent() {
         return usagePercent;
+    }
+
+    public ValueSignal<Boolean> conversationCompacted() {
+        return conversationCompacted;
+    }
+
+    public ValueSignal<Integer> compactionLevel() {
+        return compactionLevel;
+    }
+
+    public ValueSignal<UUID> compactedFromTranscriptId() {
+        return compactedFromTranscriptId;
     }
 
     public ListSignal<MessageVm> messages() {
@@ -90,5 +115,13 @@ public class ChatUiState implements Serializable {
     public void clearUsage() {
         usageInputTokens.set(null);
         usagePercent.set(null);
+    }
+
+    public void clearCompactionStatus() {
+        compactionInProgress.set(false);
+        compactionLabel.set("");
+        conversationCompacted.set(false);
+        compactionLevel.set(null);
+        compactedFromTranscriptId.set(null);
     }
 }

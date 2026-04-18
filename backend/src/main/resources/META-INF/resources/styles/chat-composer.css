@@ -19,12 +19,25 @@
   box-shadow: none;
 }
 
+.chat-usage-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
 .chat-usage-text {
   display: inline-flex;
   align-items: center;
   font-family: var(--chat-font-mono);
   font-size: 0.95rem;
   line-height: 1;
+}
+
+.chat-usage-lineage {
+  color: var(--chat-text-disabled);
+  font-family: var(--chat-font-mono);
+  font-size: 0.74rem;
+  line-height: 1.1;
 }
 
 vaadin-button.chat-usage-help-button {
@@ -111,6 +124,30 @@ vaadin-button.chat-composer-send:hover::part(button) {
   padding: var(--chat-space-lg) clamp(1rem, 4vw, 3rem) var(--chat-space-xl);
   border-top: 1px solid var(--chat-border-section);
   background: var(--chat-black);
+}
+
+.chat-compaction-status {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: min(100%, var(--chat-content-max-width));
+  margin: 0 auto 0.85rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid var(--chat-border-emphasis);
+  border-radius: var(--chat-radius-s);
+  background: var(--chat-surface);
+}
+
+.chat-compaction-spinner {
+  flex-shrink: 0;
+  --thinking-spinner-size: 1.1rem;
+}
+
+.chat-compaction-label {
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-mono);
+  font-size: 0.95rem;
+  line-height: 1.3;
 }
 
 .chat-composer-shell > * {

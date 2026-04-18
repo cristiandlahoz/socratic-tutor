@@ -175,18 +175,21 @@ class ConversationPersistenceIntegrationTest {
         var originalTranscriptId = originalChat.getCurrentTranscript().getId();
         chatUsageService.updateActiveTranscriptInputTokens(conversation.id(), 13_000);
 
-        var compacted = chatCompactionService.compactIfNeeded(conversation.id());
+        var compactionStatus = chatCompactionService.compactIfNeeded(conversation.id());
 
         var compactedChat = chatRepository.findById(conversation.id()).orElseThrow();
         var activeTranscript = chatTranscriptRepository.findById(compactedChat.getCurrentTranscript().getId()).orElseThrow();
         var memoryWindow = chatMemory.get(conversation.id().toString());
         var fullHistory = conversationService.loadConversation(clientId, conversation.id());
+        var resolvedStatus = conversationService.getCompactionStatus(clientId, conversation.id());
 
-        assertThat(compacted).isTrue();
+        assertThat(compactionStatus.compacted()).isTrue();
         assertThat(activeTranscript).isNotNull();
         assertThat(activeTranscript.getId()).isNotEqualTo(originalTranscriptId);
         assertThat(activeTranscript.memoryText()).contains("Resumen compacto");
         assertThat(activeTranscript.getInputTokens()).isNull();
+        assertThat(activeTranscript.getCompactedFromTranscriptId()).isEqualTo(originalTranscriptId);
+        assertThat(activeTranscript.getCompactionLevel()).isEqualTo(1);
         assertThat(memoryWindow)
                 .extracting(Message::getText)
                 .containsExactly(activeTranscript.memoryText());
@@ -196,6 +199,9 @@ class ConversationPersistenceIntegrationTest {
                         "No entiendo bien como cambia la condicion del while",
                         "Pensemos primero que variable cambia en cada vuelta."
                 );
+        assertThat(resolvedStatus.compacted()).isTrue();
+        assertThat(resolvedStatus.level()).isEqualTo(1);
+        assertThat(resolvedStatus.compactedFromTranscriptId()).isEqualTo(originalTranscriptId);
     }
 
     @Test
@@ -278,6 +284,7 @@ class ConversationPersistenceIntegrationTest {
             chatProperties.setClientIdCookieName("st_client_id");
             chatProperties.setContextWindowTokens(40_960);
             chatProperties.setCompactionThresholdRatio(0.30);
+            chatProperties.setUi(new ChatProperties.Ui());
             return chatProperties;
         }
 
