@@ -7,6 +7,8 @@ import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.MainLayout;
+import com.wornux.chat.questions.StudentQuestionResponse;
+import com.wornux.chat.tools.QuestionInteractionService;
 import reactor.core.publisher.Mono;
 import reactor.core.Disposable;
 import reactor.core.scheduler.Schedulers;
@@ -38,6 +40,7 @@ public class ChatUiController implements Serializable {
     private final ChatUsageService chatUsageService;
     private final ConversationTitleService conversationTitleService;
     private final BrowserClientService browserClientService;
+    private final QuestionInteractionService questionInteractionService;
     private final ChatUiState state;
     private final AtomicLong streamGeneration = new AtomicLong();
     private transient Disposable activeStream;
@@ -47,12 +50,14 @@ public class ChatUiController implements Serializable {
                             ChatUsageService chatUsageService,
                             ConversationTitleService conversationTitleService,
                             BrowserClientService browserClientService,
+                            QuestionInteractionService questionInteractionService,
                             ChatUiState state) {
         this.chatService = chatService;
         this.conversationService = conversationService;
         this.chatUsageService = chatUsageService;
         this.conversationTitleService = conversationTitleService;
         this.browserClientService = browserClientService;
+        this.questionInteractionService = questionInteractionService;
         this.state = state;
     }
 
@@ -71,6 +76,7 @@ public class ChatUiController implements Serializable {
             state.replaceMessages(List.of());
             state.clearUsage();
             state.clearCompactionStatus();
+            state.clearPendingQuestionState();
             refreshConversationHistory();
             return RouteInitialization.noReroute();
         }
@@ -83,6 +89,7 @@ public class ChatUiController implements Serializable {
         state.replaceConversationHistory(resolvedConversation.conversations());
         refreshTranscriptUsage();
         refreshCompactionStatus();
+        syncPendingQuestionState();
 
         if (requestedConversationParam != null
                 && (requestedConversationId == null
@@ -98,7 +105,10 @@ public class ChatUiController implements Serializable {
     }
 
     public boolean openConversation(UUID conversationId) {
-        if (state.responseInProgress().peek() || state.compactionInProgress().peek() || conversationId.equals(state.activeConversationId().peek())) {
+        if (state.responseInProgress().peek()
+                || state.compactionInProgress().peek()
+                || state.questionSubmissionInProgress().peek()
+                || conversationId.equals(state.activeConversationId().peek())) {
             return false;
         }
         UI.getCurrent().navigate(ChatView.class,
@@ -107,7 +117,7 @@ public class ChatUiController implements Serializable {
     }
 
     public boolean startNewChat() {
-        if (state.responseInProgress().peek() || state.compactionInProgress().peek()) {
+        if (state.responseInProgress().peek() || state.compactionInProgress().peek() || state.questionSubmissionInProgress().peek()) {
             return false;
         }
         UI.getCurrent().navigate(ChatView.class,
@@ -117,7 +127,7 @@ public class ChatUiController implements Serializable {
 
     public boolean submitPrompt(Runnable onResponseUpdated, Runnable onResponseFinished) {
         var prompt = state.composerText().peek();
-        if (state.responseInProgress().peek() || prompt.isBlank()) {
+        if (state.responseInProgress().peek() || state.pendingQuestionSet().peek() != null || prompt.isBlank()) {
             return false;
         }
 
@@ -209,6 +219,41 @@ public class ChatUiController implements Serializable {
         state.conversationCompacted().set(status.compacted());
         state.compactionLevel().set(status.level());
         state.compactedFromTranscriptId().set(status.compactedFromTranscriptId());
+    }
+
+    public void syncPendingQuestionState() {
+        var clientId = state.clientId().peek();
+        var conversationId = state.activeConversationId().peek();
+        if (clientId == null || conversationId == null) {
+            state.clearPendingQuestionState();
+            return;
+        }
+        var pendingQuestionSet = questionInteractionService.findPending(clientId, conversationId)
+                .map(QuestionInteractionService.PendingQuestionView::questionSet)
+                .orElse(null);
+        if (!Objects.equals(state.pendingQuestionSet().peek(), pendingQuestionSet)) {
+            state.pendingQuestionSet().set(pendingQuestionSet);
+        }
+        if (pendingQuestionSet == null) {
+            state.questionSubmissionInProgress().set(false);
+        }
+    }
+
+    public boolean submitInteractiveQuestionResponse(StudentQuestionResponse response) {
+        var clientId = state.clientId().peek();
+        var conversationId = state.activeConversationId().peek();
+        if (clientId == null || conversationId == null || state.pendingQuestionSet().peek() == null) {
+            return false;
+        }
+        state.questionSubmissionInProgress().set(true);
+        try {
+            questionInteractionService.submitResponse(clientId, conversationId, response);
+            state.clearPendingQuestionState();
+            return true;
+        } catch (RuntimeException exception) {
+            state.questionSubmissionInProgress().set(false);
+            throw exception;
+        }
     }
 
     private void finishResponse(UI ui, Runnable onResponseFinished) {

@@ -2,6 +2,7 @@ package com.wornux.chat.profile;
 
 import com.wornux.chat.StoredChatMessage;
 import com.wornux.chat.tools.ToolExecutionAudit;
+import com.wornux.chat.tools.QuestionInteractionService;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.stereotype.Service;
 
@@ -22,12 +23,19 @@ public class TurnProfileInferenceService {
     private static final Pattern EXAMPLE_PATTERN = Pattern.compile("\\b(ejemplo|example|paso a paso|step by step|traza|trace)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern CONFUSION_PATTERN = Pattern.compile("\\b(no entiendo|me perdi|me perdí|confundo|confund[io]|why|lost|stuck|ayuda)\\b", Pattern.CASE_INSENSITIVE);
 
+    private final QuestionAnswerProfileSignalService questionAnswerProfileSignalService;
+
+    public TurnProfileInferenceService(QuestionAnswerProfileSignalService questionAnswerProfileSignalService) {
+        this.questionAnswerProfileSignalService = questionAnswerProfileSignalService;
+    }
+
     public TurnProfileUpdate infer(UUID conversationId,
                                    UUID turnId,
                                    String userInput,
                                    String assistantResponse,
                                    List<StoredChatMessage> memoryWindow,
-                                   List<ToolExecutionAudit> toolAudits) {
+                                   List<ToolExecutionAudit> toolAudits,
+                                   List<QuestionInteractionService.CompletedQuestionInteraction> questionInteractions) {
         var combinedText = "%s %s".formatted(userInput == null ? "" : userInput, assistantResponse == null ? "" : assistantResponse);
         var topics = new ArrayList<>(TopicKey.detectTopics(combinedText));
         if (topics.isEmpty()) {
@@ -46,12 +54,21 @@ public class TurnProfileInferenceService {
             topics.forEach(topic -> levelSignals.add(new TurnProfileUpdate.LevelSignal(topic, TurnProfileUpdate.SignalDirection.DOWN, "evaluation_tool_signal")));
         }
 
+        var interactiveSignals = questionAnswerProfileSignalService.interpret(questionInteractions);
+        topics.addAll(interactiveSignals.topics());
+        levelSignals.addAll(interactiveSignals.levelSignals());
+
         var misconceptions = detectMisconceptions(userInput, toolAudits, topics);
         var preferredLanguage = SPANISH_PATTERN.matcher(userInput == null ? "" : userInput).find() ? "es" : "en";
         boolean needsConcreteExamples = EXAMPLE_PATTERN.matcher(userInput == null ? "" : userInput).find()
-                || toolAudits.stream().anyMatch(audit -> "traceCProgram".equals(audit.toolName()) && audit.usefulForProfile());
-        var confidenceDelta = BigDecimal.valueOf(levelSignals.isEmpty() ? 0.040 : -0.060).setScale(3, RoundingMode.HALF_UP);
-        var recommendedHelpMode = toolAudits.stream().anyMatch(audit -> audit.usefulForProfile())
+                || toolAudits.stream().anyMatch(audit -> "traceCProgram".equals(audit.toolName()) && audit.usefulForProfile())
+                || interactiveSignals.needsConcreteExamples();
+        var confidenceDelta = BigDecimal.valueOf(levelSignals.isEmpty() ? 0.040 : -0.060)
+                .add(interactiveSignals.confidenceDelta())
+                .setScale(3, RoundingMode.HALF_UP);
+        var recommendedHelpMode = interactiveSignals.recommendedHelpMode() != null
+                ? interactiveSignals.recommendedHelpMode()
+                : toolAudits.stream().anyMatch(audit -> audit.usefulForProfile())
                 ? HelpMode.GUIDED
                 : null;
         var toolEvidence = toolAudits.stream()
@@ -64,6 +81,7 @@ public class TurnProfileInferenceService {
         signalPayload.put("misconceptionsObserved", misconceptions.stream().map(TurnProfileUpdate.MisconceptionObservation::misconceptionKey).toList());
         signalPayload.put("needsConcreteExamples", needsConcreteExamples);
         signalPayload.put("toolEvidence", toolAudits.stream().map(ToolExecutionAudit::toMap).toList());
+        signalPayload.putAll(interactiveSignals.payload());
 
         return new TurnProfileUpdate(
                 conversationId,

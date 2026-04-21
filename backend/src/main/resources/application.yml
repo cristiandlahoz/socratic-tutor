@@ -23,10 +23,13 @@ spring:
         pull-model-strategy: when_missing
         timeout: 5m
         max-retries: 1
+        chat:
+          additional-models:
+            - "qwen3:4b-instruct"
       chat:
 #        model: ${CHAT_MODEL:socratic-tutor:latest}
-#        model: ${CHAT_MODEL:qwen3:4b-instruct}
-        model: ${CHAT_MODEL:qcwind/qwen3-8b-instruct-Q4-K-M:latest}
+        model: ${CHAT_MODEL:qwen3:4b-instruct}
+#        model: ${CHAT_MODEL:qcwind/qwen3-8b-instruct-Q4-K-M:latest}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}

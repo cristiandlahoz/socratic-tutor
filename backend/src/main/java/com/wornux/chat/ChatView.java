@@ -23,7 +23,9 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
+import com.vaadin.flow.shared.Registration;
 import com.wornux.MainLayout;
+import com.wornux.chat.ui.StudentQuestionPanel;
 import org.springframework.ai.chat.messages.MessageType;
 
 import java.util.UUID;
@@ -37,6 +39,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     private final Div historyScroller;
     private final TextArea composerField;
     private final Button sendButton;
+    private final StudentQuestionPanel questionPanel;
+    private transient Registration pollRegistration;
 
     public ChatView(ChatUiState state, ChatUiController controller, ChatProperties chatProperties) {
         this.controller = controller;
@@ -80,10 +84,29 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         sendButton.addClickShortcut(Key.ENTER).listenOn(composerField);
         sendButton.addClickListener(_ -> submitPrompt());
 
+        questionPanel = new StudentQuestionPanel();
+        questionPanel.setSubmitHandler(controller::submitInteractiveQuestionResponse);
+        Signal.effect(questionPanel, () -> questionPanel.setQuestionSet(state.pendingQuestionSet().get()));
+        Signal.effect(questionPanel, () -> questionPanel.setSubmitting(state.questionSubmissionInProgress().get()));
+
         var root = getContent();
         root.setSizeFull();
         root.addClassName("chat-view");
         root.add(floatingDrawerToggle, historyScroller, createUsageBadge(state), createInputShell(state));
+        root.addAttachListener(event -> {
+            event.getUI().setPollInterval(500);
+            if (pollRegistration == null) {
+                pollRegistration = event.getUI().addPollListener(_ -> controller.syncPendingQuestionState());
+            }
+            controller.syncPendingQuestionState();
+        });
+        root.addDetachListener(event -> {
+            if (pollRegistration != null) {
+                pollRegistration.remove();
+                pollRegistration = null;
+            }
+            event.getUI().setPollInterval(-1);
+        });
     }
 
     @Override
@@ -146,8 +169,9 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
         var composer = new Div(composerField, sendButton);
         composer.addClassName("chat-composer-wrap");
+        Signal.effect(composer, () -> composer.getElement().getClassList().set("is-question-active", state.questionPanelVisible().get()));
 
-        var inputShell = new Div(compactionStatus, composer);
+        var inputShell = new Div(compactionStatus, questionPanel, composer);
         inputShell.addClassName("chat-composer-shell");
         return inputShell;
     }

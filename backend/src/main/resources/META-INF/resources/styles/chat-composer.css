@@ -121,6 +121,9 @@ vaadin-button.chat-composer-send:hover::part(button) {
 
 .chat-composer-shell {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
   padding: var(--chat-space-lg) clamp(1rem, 4vw, 3rem) var(--chat-space-xl);
   border-top: 1px solid var(--chat-border-section);
   background: var(--chat-black);
@@ -153,4 +156,152 @@ vaadin-button.chat-composer-send:hover::part(button) {
 .chat-composer-shell > * {
   width: min(100%, var(--chat-content-max-width));
   margin: 0 auto;
+}
+
+.chat-question-panel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--chat-radius-s);
+  background: var(--chat-surface);
+  transform: translateY(1rem);
+  transition: max-height 0.24s ease, opacity 0.18s ease, transform 0.24s ease,
+    padding 0.24s ease, border-color 0.18s ease;
+}
+
+.chat-question-panel.is-open {
+  max-height: min(70vh, 44rem);
+  opacity: 1;
+  padding: 1rem;
+  border-color: var(--chat-border-emphasis);
+  transform: translateY(0);
+}
+
+.chat-question-panel-title {
+  display: block;
+  margin-bottom: 0.95rem;
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-mono);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.chat-question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.chat-question-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.95rem;
+  border: 1px solid var(--chat-border-section);
+  border-radius: var(--chat-radius-s);
+  background: color-mix(in srgb, var(--chat-surface) 82%, black 18%);
+}
+
+.chat-question-header {
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-mono);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.chat-question-prompt {
+  margin: 0;
+  color: var(--chat-text-primary);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.chat-question-options {
+  gap: 0.55rem;
+}
+
+vaadin-button.chat-question-option {
+  width: 100%;
+  --vaadin-button-padding: 0;
+}
+
+vaadin-button.chat-question-option::part(button) {
+  justify-content: flex-start;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--chat-border-section);
+  border-radius: calc(var(--chat-radius-s) - 2px);
+  background: transparent;
+  color: var(--chat-text-primary);
+  text-align: left;
+  transition: border-color 0.18s ease, transform 0.18s ease,
+    background 0.18s ease;
+}
+
+vaadin-button.chat-question-option:hover::part(button) {
+  border-color: var(--chat-interactive);
+  transform: translateY(-1px);
+}
+
+vaadin-button.chat-question-option.is-selected::part(button) {
+  border-color: var(--chat-interactive);
+  background: color-mix(in srgb, var(--chat-interactive) 10%, transparent);
+}
+
+.chat-question-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: flex-start;
+}
+
+.chat-question-option-label {
+  font-size: 0.96rem;
+  line-height: 1.2;
+}
+
+.chat-question-option-description {
+  color: var(--chat-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+vaadin-text-area.chat-question-custom-text {
+  --vaadin-input-field-background: color-mix(in srgb, var(--chat-surface) 85%, black 15%);
+  --vaadin-input-field-border-color: var(--chat-border-section);
+  --vaadin-input-field-border-radius: calc(var(--chat-radius-s) - 2px);
+  --vaadin-input-field-border-width: 1px;
+  --vaadin-input-field-value-color: var(--chat-text-primary);
+  --vaadin-input-field-placeholder-color: var(--chat-text-disabled);
+}
+
+vaadin-text-area.chat-question-custom-text::part(input-field) {
+  min-height: 5.2rem;
+}
+
+.chat-question-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.95rem;
+}
+
+vaadin-button.chat-question-submit::part(button) {
+  min-width: 8.5rem;
+  border: 1px solid var(--chat-border-emphasis);
+  border-radius: var(--chat-radius-s);
+  background: var(--chat-surface-raised);
+  color: var(--chat-text-primary);
+}
+
+.chat-composer-wrap.is-question-active {
+  opacity: 0.65;
+}
+
+.chat-composer-wrap.is-question-active,
+.chat-question-panel.is-submitting {
+  pointer-events: none;
 }

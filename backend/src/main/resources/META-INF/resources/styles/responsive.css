@@ -41,6 +41,15 @@
     padding: 1rem 1rem 1.25rem;
   }
 
+  .chat-question-panel.is-open {
+    max-height: 60vh;
+    padding: 0.85rem;
+  }
+
+  .chat-question-card {
+    padding: 0.8rem;
+  }
+
   .chat-usage-badge {
     top: 1rem;
     right: 1rem;

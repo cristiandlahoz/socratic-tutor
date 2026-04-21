@@ -3,6 +3,7 @@ package com.wornux.chat;
 import com.wornux.chat.profile.ProfileAwareResponseAdvisor;
 import com.wornux.chat.profile.StudentProfileService;
 import com.wornux.chat.profile.TurnProfileInferenceService;
+import com.wornux.chat.tools.QuestionInteractionService;
 import com.wornux.chat.tools.ToolUsageAuditService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -33,6 +34,7 @@ public class ChatService {
     private final StudentProfileService studentProfileService;
     private final TurnProfileInferenceService turnProfileInferenceService;
     private final ToolUsageAuditService toolUsageAuditService;
+    private final QuestionInteractionService questionInteractionService;
     private final Map<UUID, Integer> turnPromptTokens = new ConcurrentHashMap<>();
 
     public ChatService(ChatClient chatClient,
@@ -41,7 +43,8 @@ public class ChatService {
                        ChatCompactionService chatCompactionService,
                        StudentProfileService studentProfileService,
                        TurnProfileInferenceService turnProfileInferenceService,
-                       ToolUsageAuditService toolUsageAuditService) {
+                       ToolUsageAuditService toolUsageAuditService,
+                       QuestionInteractionService questionInteractionService) {
         this.chatClient = chatClient;
         this.conversationService = conversationService;
         this.chatUsageService = chatUsageService;
@@ -49,6 +52,7 @@ public class ChatService {
         this.studentProfileService = studentProfileService;
         this.turnProfileInferenceService = turnProfileInferenceService;
         this.toolUsageAuditService = toolUsageAuditService;
+        this.questionInteractionService = questionInteractionService;
     }
 
     public Flux<String> chatStream(String userInput, UUID clientId, UUID conversationId) {
@@ -110,6 +114,7 @@ public class ChatService {
     private void clearTurnState(UUID turnId) {
         turnPromptTokens.remove(turnId);
         toolUsageAuditService.drainTurnAudits(turnId);
+        questionInteractionService.drainCompletedResponses(turnId);
     }
 
     private void capturePromptTokens(ChatResponse response, AtomicReference<Integer> promptTokens) {
@@ -134,8 +139,9 @@ public class ChatService {
 
     private void persistProfileSignals(UUID clientId, UUID conversationId, UUID turnId, String userInput, String assistantResponse) {
         var audits = toolUsageAuditService.drainTurnAudits(turnId);
+        var questionInteractions = questionInteractionService.drainCompletedResponses(turnId);
         var memoryWindow = conversationService.loadConversation(clientId, conversationId);
-        var update = turnProfileInferenceService.infer(conversationId, turnId, userInput, assistantResponse, memoryWindow, audits);
+        var update = turnProfileInferenceService.infer(conversationId, turnId, userInput, assistantResponse, memoryWindow, audits, questionInteractions);
         studentProfileService.applyTurnSignals(clientId, update);
     }
 }
