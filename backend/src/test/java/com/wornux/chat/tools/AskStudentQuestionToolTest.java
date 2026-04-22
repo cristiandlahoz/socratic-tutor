@@ -34,8 +34,7 @@ class AskStudentQuestionToolTest {
                 new StudentQuestion("q1", "Nivel", "Como te sientes con arrays?", List.of(
                         new StudentQuestionOption("Muy perdido", "Necesito empezar de cero"),
                         new StudentQuestionOption("Voy bien", "Solo quiero validar detalles")),
-                        false,
-                        true)));
+                        false)));
 
         var executor = Executors.newSingleThreadExecutor();
         try {

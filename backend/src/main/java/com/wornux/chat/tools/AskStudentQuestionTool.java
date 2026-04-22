@@ -3,6 +3,7 @@ package com.wornux.chat.tools;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.wornux.chat.questions.StudentQuestionResponse;
 import com.wornux.chat.questions.StudentQuestionSet;
+import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class AskStudentQuestionTool {
 
     private static final Duration STUDENT_RESPONSE_TIMEOUT = Duration.ofMinutes(5);
@@ -20,14 +22,8 @@ public class AskStudentQuestionTool {
     private final QuestionInteractionService questionInteractionService;
     private final ToolUsageAuditService toolUsageAuditService;
 
-    public AskStudentQuestionTool(QuestionInteractionService questionInteractionService,
-                                  ToolUsageAuditService toolUsageAuditService) {
-        this.questionInteractionService = questionInteractionService;
-        this.toolUsageAuditService = toolUsageAuditService;
-    }
-
     @Tool(name = "askStudentQuestion",
-            description = "Shows 1 to 3 short structured questions to the student when you need their preference, choice, clarification, confidence signal, feedback, next-step decision, or pedagogical diagnosis. Use concise options, allow custom text when useful, and prefer this tool over plain-text questions when structured input would be faster or clearer. Avoid using this tool for the final lightweight question right before you conclude a response.")
+            description = "Shows 1 to 3 short structured questions to the student when you need their preference, choice, clarification, confidence signal, feedback, next-step decision, or pedagogical diagnosis. Use concise options and remember that each question also supports complementary custom text. Prefer this tool over plain-text questions when structured input would be faster or clearer. Avoid using this tool for the final lightweight question right before you conclude a response.")
     public AskStudentQuestionResult askStudentQuestion(
             @ToolParam(description = "The interactive question panel to show to the student.")
             StudentQuestionSet questionSet,

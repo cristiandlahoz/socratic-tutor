@@ -45,10 +45,6 @@ public class WidthAwareLabel extends Composite<Span> {
         refreshDisplay();
     }
 
-    public int getSafetyPixels() {
-        return safetyPixels;
-    }
-
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);

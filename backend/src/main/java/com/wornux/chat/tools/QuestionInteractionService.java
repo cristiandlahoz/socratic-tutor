@@ -108,9 +108,6 @@ public class QuestionInteractionService {
             if (!question.multiSelect() && answer.selectedOptionLabels().size() > 1) {
                 throw new IllegalArgumentException("Single-select questions cannot have more than one selected option");
             }
-            if (!question.allowCustomText() && !answer.customText().isBlank()) {
-                throw new IllegalArgumentException("This question does not allow custom text");
-            }
 
             Set<String> validLabels = question.options().stream().map(option -> option.label()).collect(java.util.stream.Collectors.toSet());
             for (String selectedLabel : answer.selectedOptionLabels()) {

@@ -1,5 +1,7 @@
 package com.wornux.chat.questions;
 
+import org.springframework.util.StringUtils;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -10,7 +12,7 @@ public record StudentQuestionAnswer(
 ) implements Serializable {
 
     public StudentQuestionAnswer {
-        if (questionId == null || questionId.isBlank()) {
+        if (!StringUtils.hasText(questionId)) {
             throw new IllegalArgumentException("Answer questionId is required");
         }
         selectedOptionLabels = selectedOptionLabels == null ? List.of() : List.copyOf(selectedOptionLabels);

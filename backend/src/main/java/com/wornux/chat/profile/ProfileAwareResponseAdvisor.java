@@ -66,19 +66,20 @@ public class ProfileAwareResponseAdvisor implements CallAdvisor, StreamAdvisor {
 
     private String buildProfileInstruction(StudentProfileSnapshot profile) {
         return """
-                Pedagogical Student Profile:
+                Student adaptation snapshot:
                 - Preferred language: %s
-                - Estimated level: %s
+                - Level: %s
                 - Help mode: %s
-                - Needs concrete examples: %s
-                - Weak topics: %s
+                - Concrete examples needed: %s
+                - Priority weak topics: %s
                 - Active misconceptions: %s
-                
-                Response rules:
-                - Match the student's level without sounding condescending.
-                - If weak topics are present, use smaller steps and explicit state tracking there.
-                - If active misconceptions are present, correct them clearly before moving on.
-                - If concrete examples are needed, use one short example or trace before asking a follow-up.
+
+                Adaptation rules:
+                - Match the student's level and keep the response concise.
+                - If the level is beginner or help mode is guided, explain in smaller steps.
+                - If weak topics are present, slow down there and track state explicitly.
+                - If active misconceptions are present, correct them before adding new detail.
+                - If concrete examples are needed, include one short example or trace.
                 """.formatted(
                 profile.preferredLanguage(),
                 profile.overallLevel().name().toLowerCase(),

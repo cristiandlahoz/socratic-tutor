@@ -17,9 +17,7 @@ public record StudentQuestion(
         @JsonPropertyDescription("Selectable options. Provide 2 to 4 concrete options.")
         List<StudentQuestionOption> options,
         @JsonPropertyDescription("Whether the student can select more than one option.")
-        boolean multiSelect,
-        @JsonPropertyDescription("Whether the student can also type complementary custom text.")
-        boolean allowCustomText
+        boolean multiSelect
 ) implements Serializable {
 
     public StudentQuestion {

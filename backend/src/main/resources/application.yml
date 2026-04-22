@@ -51,6 +51,7 @@ app:
     compaction-threshold-ratio: ${CHAT_COMPACTION_THRESHOLD_RATIO:0.30}
     ui:
       thinking-spinner: ${CHAT_UI_THINKING_SPINNER:snake}
+      preview-student-question-panel: ${CHAT_UI_PREVIEW_STUDENT_QUESTION_PANEL:false}
   ai:
     guard:
       model: ${GUARD_MODEL:qwen3:4b-instruct}
@@ -58,6 +59,9 @@ app:
       enabled: ${AI_PROFILE_ENABLED:true}
       shadow-mode: ${AI_PROFILE_SHADOW_MODE:false}
       misconception-ttl-days: ${AI_PROFILE_MISCONCEPTION_TTL_DAYS:21}
+    tutor:
+      prompt-logging-enabled: ${AI_TUTOR_PROMPT_LOGGING_ENABLED:false}
+      routing-model: ${ROUTING_MODEL:${spring.ai.ollama.chat.model}}
     title:
       model: ${TITLE_MODEL:${spring.ai.ollama.chat.model}}
 
@@ -74,3 +78,7 @@ spring:
   docker:
     compose:
       lifecycle-management: start-only
+app:
+  chat:
+    ui:
+      preview-student-question-panel: ${CHAT_UI_PREVIEW_STUDENT_QUESTION_PANEL:true}

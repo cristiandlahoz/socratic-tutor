@@ -79,8 +79,7 @@ class TurnProfileInferenceServiceTest {
                         new StudentQuestion("q1", "Nivel", "Como te sientes con los loops?", List.of(
                                 new StudentQuestionOption("Muy perdido", "Necesito empezar desde cero"),
                                 new StudentQuestionOption("Con algo de base", "Entiendo lo basico pero me pierdo")),
-                                false,
-                                true))),
+                                false))),
                 new StudentQuestionResponse(List.of(
                         new StudentQuestionAnswer("q1", List.of("Muy perdido"), "Necesito un ejemplo paso a paso de for"))),
                 Instant.now());

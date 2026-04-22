@@ -7,7 +7,10 @@ import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.MainLayout;
+import com.wornux.chat.questions.StudentQuestion;
+import com.wornux.chat.questions.StudentQuestionOption;
 import com.wornux.chat.questions.StudentQuestionResponse;
+import com.wornux.chat.questions.StudentQuestionSet;
 import com.wornux.chat.tools.QuestionInteractionService;
 import reactor.core.publisher.Mono;
 import reactor.core.Disposable;
@@ -41,6 +44,7 @@ public class ChatUiController implements Serializable {
     private final ConversationTitleService conversationTitleService;
     private final BrowserClientService browserClientService;
     private final QuestionInteractionService questionInteractionService;
+    private final ChatProperties chatProperties;
     private final ChatUiState state;
     private final AtomicLong streamGeneration = new AtomicLong();
     private transient Disposable activeStream;
@@ -51,6 +55,7 @@ public class ChatUiController implements Serializable {
                             ConversationTitleService conversationTitleService,
                             BrowserClientService browserClientService,
                             QuestionInteractionService questionInteractionService,
+                            ChatProperties chatProperties,
                             ChatUiState state) {
         this.chatService = chatService;
         this.conversationService = conversationService;
@@ -58,6 +63,7 @@ public class ChatUiController implements Serializable {
         this.conversationTitleService = conversationTitleService;
         this.browserClientService = browserClientService;
         this.questionInteractionService = questionInteractionService;
+        this.chatProperties = chatProperties;
         this.state = state;
     }
 
@@ -76,7 +82,7 @@ public class ChatUiController implements Serializable {
             state.replaceMessages(List.of());
             state.clearUsage();
             state.clearCompactionStatus();
-            state.clearPendingQuestionState();
+            showPreviewQuestionSetIfEnabled();
             refreshConversationHistory();
             return RouteInitialization.noReroute();
         }
@@ -224,8 +230,12 @@ public class ChatUiController implements Serializable {
     public void syncPendingQuestionState() {
         var clientId = state.clientId().peek();
         var conversationId = state.activeConversationId().peek();
-        if (clientId == null || conversationId == null) {
+        if (clientId == null) {
             state.clearPendingQuestionState();
+            return;
+        }
+        if (conversationId == null) {
+            showPreviewQuestionSetIfEnabled();
             return;
         }
         var pendingQuestionSet = questionInteractionService.findPending(clientId, conversationId)
@@ -242,7 +252,15 @@ public class ChatUiController implements Serializable {
     public boolean submitInteractiveQuestionResponse(StudentQuestionResponse response) {
         var clientId = state.clientId().peek();
         var conversationId = state.activeConversationId().peek();
-        if (clientId == null || conversationId == null || state.pendingQuestionSet().peek() == null) {
+        var pendingQuestionSet = state.pendingQuestionSet().peek();
+        if (clientId == null || pendingQuestionSet == null) {
+            return false;
+        }
+        if (conversationId == null && isPreviewStudentQuestionPanelEnabled() && Objects.equals(pendingQuestionSet, previewQuestionSetOrNull())) {
+            state.clearPendingQuestionState();
+            return true;
+        }
+        if (conversationId == null) {
             return false;
         }
         state.questionSubmissionInProgress().set(true);
@@ -355,5 +373,64 @@ public class ChatUiController implements Serializable {
     }
 
     private record EnsuredConversation(UUID id, boolean newlyCreated, String fallbackTitle) {
+    }
+
+    private void showPreviewQuestionSetIfEnabled() {
+        var previewQuestionSet = previewQuestionSetOrNull();
+        state.pendingQuestionSet().set(previewQuestionSet);
+        state.questionSubmissionInProgress().set(false);
+    }
+
+    private StudentQuestionSet previewQuestionSetOrNull() {
+        return isPreviewStudentQuestionPanelEnabled() ? buildPreviewQuestionSet() : null;
+    }
+
+    private boolean isPreviewStudentQuestionPanelEnabled() {
+        var ui = chatProperties.getUi();
+        return ui != null && ui.isPreviewStudentQuestionPanel();
+    }
+
+    private StudentQuestionSet buildPreviewQuestionSet() {
+        return new StudentQuestionSet(
+                "antes de seguir",
+                "diagnosis",
+                StudentQuestionSet.ProfileImpact.PEDAGOGICAL,
+                List.of(
+                        new StudentQuestion(
+                                "current_block",
+                                "bloqueo",
+                                "¿qué te está frenando más ahora mismo?",
+                                List.of(
+                                        new StudentQuestionOption("Entender la idea", "Todavía no me queda claro el concepto base."),
+                                        new StudentQuestionOption("Aplicarlo", "Entiendo la teoría, pero no sé usarla en un ejercicio."),
+                                        new StudentQuestionOption("Empezar", "No sé cuál debería ser el primer paso."),
+                                        new StudentQuestionOption("Verificar", "Ya lo intenté, pero no sé si va bien.")
+                                ),
+                                false
+                        ),
+                        new StudentQuestion(
+                                "help_style",
+                                "ayuda",
+                                "¿cómo prefieres que te ayude?",
+                                List.of(
+                                        new StudentQuestionOption("Paso a paso", "Quiero avanzar en partes cortas y comprobables."),
+                                        new StudentQuestionOption("Pista breve", "Prefiero una pista y luego intentar yo."),
+                                        new StudentQuestionOption("Ejemplo", "Me ayuda más ver un caso resuelto parecido.")
+                                ),
+                                false
+                        ),
+                        new StudentQuestion(
+                                "confidence_level",
+                                "confianza",
+                                "¿qué tan seguro te sientes con este tema?",
+                                List.of(
+                                        new StudentQuestionOption("Muy perdido", "Necesito volver a la base."),
+                                        new StudentQuestionOption("Más o menos", "Tengo parte clara y parte confusa."),
+                                        new StudentQuestionOption("Casi listo", "Solo necesito confirmar un detalle.")
+                                ),
+                                false
+                        )
+                )
+        );
     }
 }

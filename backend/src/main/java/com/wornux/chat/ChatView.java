@@ -169,7 +169,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
         var composer = new Div(composerField, sendButton);
         composer.addClassName("chat-composer-wrap");
-        Signal.effect(composer, () -> composer.getElement().getClassList().set("is-question-active", state.questionPanelVisible().get()));
+        Signal.effect(composer, () -> composer.setVisible(!state.questionPanelVisible().get()));
+        Signal.effect(questionPanel, () -> questionPanel.setVisible(state.questionPanelVisible().get()));
 
         var inputShell = new Div(compactionStatus, questionPanel, composer);
         inputShell.addClassName("chat-composer-shell");

@@ -18,6 +18,7 @@ public class ChatProperties {
     @Getter
     public static class Ui {
         private String thinkingSpinner;
+        private boolean previewStudentQuestionPanel;
 
     }
 }

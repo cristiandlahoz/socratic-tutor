@@ -38,7 +38,7 @@ class ProfileAwareResponseAdvisorTest {
         var patched = invoke(clientId);
 
         assertThat(patched.prompt().getInstructions()).hasSize(2);
-        assertThat(patched.prompt().getInstructions().getLast().getText()).contains("Weak topics: [loops]");
+        assertThat(patched.prompt().getInstructions().getLast().getText()).contains("Priority weak topics: [loops]");
         assertThat(patched.context()).containsEntry(ProfileAwareResponseAdvisor.PROFILE_VERSION_CONTEXT_KEY, 3L);
     }
 

@@ -79,8 +79,7 @@ class QuestionInteractionServiceTest {
                 new StudentQuestion("q1", "Tema", "Que tema te cuesta mas ahora?", List.of(
                         new StudentQuestionOption("Loops", "Bucles y trazas"),
                         new StudentQuestionOption("Arrays", "Indices y recorridos")),
-                        false,
-                        true)));
+                        false)));
     }
 
     private void awaitPending(QuestionInteractionService.QuestionRouting routing) throws InterruptedException {

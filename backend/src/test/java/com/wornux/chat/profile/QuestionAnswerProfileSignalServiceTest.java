@@ -27,7 +27,6 @@ class QuestionAnswerProfileSignalServiceTest {
                         new StudentQuestion("q1", "Ayuda", "Que necesitas ahora?", List.of(
                                 new StudentQuestionOption("Pistas guiadas", "Prefiero hints antes que respuesta"),
                                 new StudentQuestionOption("Loops", "Me pierdo con for y while")),
-                                true,
                                 true))),
                 new StudentQuestionResponse(List.of(
                         new StudentQuestionAnswer("q1", List.of("Pistas guiadas", "Loops"), "Necesito un ejemplo paso a paso"))),
@@ -50,8 +49,7 @@ class QuestionAnswerProfileSignalServiceTest {
                         new StudentQuestion("q1", "Formato", "Como quieres seguir?", List.of(
                                 new StudentQuestionOption("Analogias", "Quiero una analogia"),
                                 new StudentQuestionOption("Codigo", "Quiero ver codigo")),
-                                false,
-                                true))),
+                                false))),
                 new StudentQuestionResponse(List.of(
                         new StudentQuestionAnswer("q1", List.of("Analogias"), ""))),
                 Instant.now());

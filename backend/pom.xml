@@ -1,18 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.wornux</groupId>
-    <artifactId>socratic-tutor</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
-
-    <properties>
-        <java.version>25</java.version>
-        <vaadin.version>25.1.0</vaadin.version>
-        <spring-ai.version>2.0.0-M4</spring-ai.version>
-        <testcontainers.version>1.21.3</testcontainers.version>
-    </properties>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -20,6 +10,25 @@
         <version>4.0.5</version>
         <relativePath/>
     </parent>
+
+    <groupId>com.wornux</groupId>
+    <artifactId>socratic-tutor</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+
+        <vaadin.version>25.1.0</vaadin.version>
+        <spring-ai.version>2.0.0-M4</spring-ai.version>
+        <testcontainers.version>1.21.3</testcontainers.version>
+
+        <spotless.version>2.46.1</spotless.version>
+        <google-java-format.version>1.29.0</google-java-format.version>
+        <cleanthat.version>2.25</cleanthat.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -53,6 +62,7 @@
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-spring-boot-starter</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -66,14 +76,10 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-ollama</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework.ai</groupId>
@@ -87,6 +93,13 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-rag</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -105,6 +118,7 @@
             <artifactId>spring-boot-docker-compose</artifactId>
             <scope>runtime</scope>
         </dependency>
+
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -117,6 +131,7 @@
             <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>ai.docling</groupId>
             <artifactId>docling-serve-client</artifactId>
@@ -127,6 +142,50 @@
     <build>
         <defaultGoal>spring-boot:run</defaultGoal>
         <plugins>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <configuration>
+                    <java>
+                        <toggleOffOn/>
+
+                        <cleanthat>
+                            <version>${cleanthat.version}</version>
+                            <sourceJdk>${java.version}</sourceJdk>
+                            <mutators>
+                                <mutator>SafeAndConsensual</mutator>
+                            </mutators>
+                            <includeDraft>false</includeDraft>
+                        </cleanthat>
+
+                        <googleJavaFormat>
+                            <version>${google-java-format.version}</version>
+                            <style>GOOGLE</style>
+                            <reflowLongStrings>true</reflowLongStrings>
+                            <formatJavadoc>false</formatJavadoc>
+                        </googleJavaFormat>
+
+                        <formatAnnotations/>
+                        <importOrder/>
+                        <removeUnusedImports/>
+                        <forbidWildcardImports/>
+                        <forbidModuleImports/>
+                    </java>
+
+                    <pom>
+                        <sortPom/>
+                    </pom>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -140,10 +199,12 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+
             <plugin>
                 <groupId>com.vaadin</groupId>
                 <artifactId>vaadin-maven-plugin</artifactId>
