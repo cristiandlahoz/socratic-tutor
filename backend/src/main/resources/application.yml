@@ -31,8 +31,8 @@ spring:
             - "qwen3:4b-instruct"
       chat:
 #        model: ${CHAT_MODEL:socratic-tutor:latest}
-        model: ${CHAT_MODEL:qwen3:4b-instruct}
-#        model: ${CHAT_MODEL:qcwind/qwen3-8b-instruct-Q4-K-M:latest}
+#        model: ${CHAT_MODEL:qwen3:4b-instruct}
+        model: ${CHAT_MODEL:qcwind/qwen3-8b-instruct-Q4-K-M:latest}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
@@ -54,7 +54,6 @@ app:
     compaction-threshold-ratio: ${CHAT_COMPACTION_THRESHOLD_RATIO:0.30}
     ui:
       thinking-spinner: ${CHAT_UI_THINKING_SPINNER:snake}
-      preview-student-question-panel: ${CHAT_UI_PREVIEW_STUDENT_QUESTION_PANEL:false}
   ai:
     guard:
       model: ${GUARD_MODEL:qwen3:4b-instruct}
@@ -63,19 +62,31 @@ app:
       shadow-mode: ${AI_PROFILE_SHADOW_MODE:false}
       misconception-ttl-days: ${AI_PROFILE_MISCONCEPTION_TTL_DAYS:21}
     tutor:
-      prompt-logging-enabled: ${AI_TUTOR_PROMPT_LOGGING_ENABLED:false}
       routing-model: ${ROUTING_MODEL:${spring.ai.ollama.chat.model}}
     title:
       model: ${TITLE_MODEL:${spring.ai.ollama.chat.model}}
+    document-catalog:
+      model: ${DOCUMENT_CATALOG_MODEL:${spring.ai.ollama.chat.model}}
   document-ingest:
     docling-base-url: ${DOCLING_BASE_URL:http://localhost:5001}
     docling-connect-timeout: ${DOCLING_CONNECT_TIMEOUT:5s}
-    docling-read-timeout: ${DOCLING_READ_TIMEOUT:2m}
+    docling-read-timeout: ${DOCLING_READ_TIMEOUT:5m}
     max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:20971520}
-    segment-max-chars: ${DOCUMENT_SEGMENT_MAX_CHARS:1400}
-    segment-overlap-chars: ${DOCUMENT_SEGMENT_OVERLAP_CHARS:160}
     retrieval-top-k: ${DOCUMENT_RETRIEVAL_TOP_K:4}
     retrieval-similarity-threshold: ${DOCUMENT_RETRIEVAL_SIMILARITY_THRESHOLD:0.55}
+    chunking:
+      hybrid:
+        max-tokens: ${DOCUMENT_CHUNK_MAX_TOKENS:512}
+        tokenizer: ${DOCUMENT_CHUNK_TOKENIZER:/opt/tokenizers/qwen3-0.6b-tokenizer}
+        merge-peers: ${DOCUMENT_CHUNK_MERGE_PEERS:true}
+        use-markdown-tables: ${DOCUMENT_CHUNK_USE_MARKDOWN_TABLES:true}
+        include-raw-text: ${DOCUMENT_CHUNK_INCLUDE_RAW_TEXT:true}
+    catalog:
+      max-tags: ${DOCUMENT_CATALOG_MAX_TAGS:8}
+      max-question-examples: ${DOCUMENT_CATALOG_MAX_QUESTION_EXAMPLES:6}
+    inventory:
+      max-documents: ${DOCUMENT_INVENTORY_MAX_DOCUMENTS:8}
+      max-chars: ${DOCUMENT_INVENTORY_MAX_CHARS:2400}
 
 vaadin:
   allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux
@@ -83,14 +94,29 @@ vaadin:
   pnpm:
     enable: true
 ---
+logging:
+  level:
+    org:
+      springframework:
+        ai:
+          chat:
+            client:
+              advisor:
+                SimpleLoggerAdvisor: DEBUG
 spring:
+  ai:
+    chat:
+      client:
+        observations:
+          log-prompt: true
+          log-completion: true
+    tools:
+      throw-exception-on-error: true
+      observations:
+        include-content: true
   config:
     activate:
       on-profile: dev
   docker:
     compose:
       lifecycle-management: start-only
-app:
-  chat:
-    ui:
-      preview-student-question-panel: ${CHAT_UI_PREVIEW_STUDENT_QUESTION_PANEL:true}

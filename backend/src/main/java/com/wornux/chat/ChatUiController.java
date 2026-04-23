@@ -8,7 +8,6 @@ import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.MainLayout;
 import com.wornux.chat.questions.StudentQuestionResponse;
-import com.wornux.chat.tools.QuestionInteractionService;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
@@ -18,6 +17,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -26,6 +27,8 @@ import reactor.core.scheduler.Schedulers;
 @RouteScope
 @RouteScopeOwner(MainLayout.class)
 public class ChatUiController implements Serializable {
+
+  private static final Logger log = LoggerFactory.getLogger(ChatUiController.class);
 
   @Serial private static final long serialVersionUID = 1L;
 
@@ -38,8 +41,8 @@ public class ChatUiController implements Serializable {
   private final ChatUsageService chatUsageService;
   private final ConversationTitleService conversationTitleService;
   private final BrowserClientService browserClientService;
-  private final QuestionInteractionService questionInteractionService;
   private final ChatUiState state;
+  private final StudentQuestionExchange questionExchange;
   private final AtomicLong streamGeneration = new AtomicLong();
   private transient Disposable activeStream;
 
@@ -49,15 +52,14 @@ public class ChatUiController implements Serializable {
       ChatUsageService chatUsageService,
       ConversationTitleService conversationTitleService,
       BrowserClientService browserClientService,
-      QuestionInteractionService questionInteractionService,
       ChatUiState state) {
     this.chatService = chatService;
     this.conversationService = conversationService;
     this.chatUsageService = chatUsageService;
     this.conversationTitleService = conversationTitleService;
     this.browserClientService = browserClientService;
-    this.questionInteractionService = questionInteractionService;
     this.state = state;
+    this.questionExchange = new StudentQuestionExchange(state);
   }
 
   public ChatUiState state() {
@@ -92,7 +94,6 @@ public class ChatUiController implements Serializable {
     state.replaceConversationHistory(resolvedConversation.conversations());
     refreshTranscriptUsage();
     refreshCompactionStatus();
-    syncPendingQuestionState();
 
     if (requestedConversationParam != null
         && (requestedConversationId == null
@@ -168,7 +169,7 @@ public class ChatUiController implements Serializable {
 
     activeStream =
         chatService
-            .chatStream(turnId, prompt, clientId, conversationId)
+            .chatStream(turnId, prompt, clientId, conversationId, questionExchange::ask)
             .subscribe(
                 token -> {
                   if (streamGeneration.get() != streamId) {
@@ -180,10 +181,19 @@ public class ChatUiController implements Serializable {
                   responseMessage.update(message -> message.append(token));
                   runUiSideEffect(ui, onResponseUpdated);
                 },
-                _ -> {
+                exception -> {
                   if (streamGeneration.get() != streamId) {
                     return;
                   }
+                  log.warn(
+                      "chat_ui_stream_failed turn_id={} client_id={} conversation_id={} failure_kind={} error_type={} error_message={}",
+                      turnId,
+                      clientId,
+                      conversationId,
+                      chatFailureKind(exception),
+                      exception.getClass().getSimpleName(),
+                      exception.getMessage(),
+                      exception);
                   responseMessage.update(
                       message ->
                           message.fallback(
@@ -245,49 +255,12 @@ public class ChatUiController implements Serializable {
     state.compactedFromTranscriptId().set(status.compactedFromTranscriptId());
   }
 
-  public void syncPendingQuestionState() {
-    var clientId = state.clientId().peek();
-    var conversationId = state.activeConversationId().peek();
-    if (clientId == null) {
-      state.clearPendingQuestionState();
-      return;
-    }
-    if (conversationId == null) {
-      state.clearPendingQuestionState();
-      return;
-    }
-    var pendingQuestionSet =
-        questionInteractionService
-            .findPending(clientId, conversationId)
-            .map(QuestionInteractionService.PendingQuestionView::questionSet)
-            .orElse(null);
-    if (!Objects.equals(state.pendingQuestionSet().peek(), pendingQuestionSet)) {
-      state.pendingQuestionSet().set(pendingQuestionSet);
-    }
-    if (pendingQuestionSet == null) {
-      state.questionSubmissionInProgress().set(false);
-    }
-  }
-
   public boolean submitInteractiveQuestionResponse(StudentQuestionResponse response) {
-    var clientId = state.clientId().peek();
-    var conversationId = state.activeConversationId().peek();
     var pendingQuestionSet = state.pendingQuestionSet().peek();
-    if (clientId == null || pendingQuestionSet == null) {
+    if (pendingQuestionSet == null) {
       return false;
     }
-    if (conversationId == null) {
-      return false;
-    }
-    state.questionSubmissionInProgress().set(true);
-    try {
-      questionInteractionService.submitResponse(clientId, conversationId, response);
-      state.clearPendingQuestionState();
-      return true;
-    } catch (RuntimeException exception) {
-      state.questionSubmissionInProgress().set(false);
-      throw exception;
-    }
+    return questionExchange.submit(response);
   }
 
   private void finishResponse(UI ui, Runnable onResponseFinished) {
@@ -304,7 +277,7 @@ public class ChatUiController implements Serializable {
   private void startCompactionPhase() {
     state.responseInProgress().set(false);
     state.compactionInProgress().set(true);
-    state.compactionLabel().set("Compactando, no deberia tardar...");
+    state.compactionLabel().set("Compactando, no debería tardar...");
   }
 
   private void finalizeTurn(
@@ -332,6 +305,16 @@ public class ChatUiController implements Serializable {
       return;
     }
     callback.run();
+  }
+
+  private String chatFailureKind(Throwable exception) {
+    for (Throwable cursor = exception; cursor != null; cursor = cursor.getCause()) {
+      if (cursor.getMessage() != null
+          && cursor.getMessage().contains("Timed out waiting for student response")) {
+        return "interactive_question_timeout";
+      }
+    }
+    return "chat_stream_error";
   }
 
   private void ensureClientId() {
@@ -370,6 +353,7 @@ public class ChatUiController implements Serializable {
       activeStream.dispose();
       activeStream = null;
     }
+    questionExchange.cancelPending();
   }
 
   private static Optional<UUID> parseUuid(String value) {

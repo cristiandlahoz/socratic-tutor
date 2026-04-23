@@ -1,5 +1,6 @@
 package com.wornux.documentingest;
 
+import java.util.List;
 import java.util.UUID;
 
 public record EditableSegmentVm(
@@ -11,7 +12,12 @@ public record EditableSegmentVm(
     boolean edited,
     Integer charCount,
     Integer tokenCount,
-    Integer pageNumber) {
+    Integer pageNumber,
+    List<Integer> pageNumbers,
+    List<String> captions,
+    List<String> docItems,
+    String rawText,
+    String chunker) {
 
   public EditableSegmentVm withContent(String nextContent) {
     String safeContent = nextContent == null ? "" : nextContent;
@@ -25,7 +31,12 @@ public record EditableSegmentVm(
         edited || changed,
         safeContent.length(),
         approximateTokens(safeContent),
-        pageNumber);
+        pageNumber,
+        pageNumbers,
+        captions,
+        docItems,
+        rawText,
+        chunker);
   }
 
   public static int approximateTokens(String text) {

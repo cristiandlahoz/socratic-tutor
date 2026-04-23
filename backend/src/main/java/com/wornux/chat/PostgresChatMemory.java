@@ -3,6 +3,8 @@ package com.wornux.chat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import org.jspecify.annotations.NullMarked;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 @Component
+@NullMarked
 public class PostgresChatMemory implements ChatMemory {
 
   private final ChatJpaRepository chatRepository;

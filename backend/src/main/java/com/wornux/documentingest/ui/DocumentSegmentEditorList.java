@@ -53,11 +53,22 @@ public class DocumentSegmentEditorList extends Composite<Div> {
 
     var meta =
         new Paragraph(
-            "%d caracteres · %d tokens"
+            "%d caracteres · %d tokens%s"
                 .formatted(
                     segment.charCount() == null ? 0 : segment.charCount(),
-                    segment.tokenCount() == null ? 0 : segment.tokenCount()));
+                    segment.tokenCount() == null ? 0 : segment.tokenCount(),
+                    pageSummary(segment)));
     meta.addClassName("document-ingest-segment-meta");
+
+    var provenance = new Div();
+    provenance.addClassName("document-ingest-segment-provenance");
+    if (segment.captions() != null && !segment.captions().isEmpty()) {
+      provenance.add(new Span("captions: " + String.join(" · ", segment.captions())));
+    }
+    if (segment.docItems() != null && !segment.docItems().isEmpty()) {
+      provenance.add(new Span("refs: " + String.join(" · ", segment.docItems())));
+    }
+    provenance.setVisible(provenance.getComponentCount() > 0);
 
     var area = new TextArea();
     area.setWidthFull();
@@ -69,8 +80,18 @@ public class DocumentSegmentEditorList extends Composite<Div> {
     area.addValueChangeListener(
         event -> segmentChangeListener.accept(segment.id(), event.getValue()));
 
-    var card = new Div(ordinal, heading, meta, area);
+    var card = new Div(ordinal, heading, meta, provenance, area);
     card.addClassName("document-ingest-segment-card");
     return card;
+  }
+
+  private String pageSummary(EditableSegmentVm segment) {
+    if (segment.pageNumbers() != null && !segment.pageNumbers().isEmpty()) {
+      return " · paginas " + segment.pageNumbers();
+    }
+    if (segment.pageNumber() != null) {
+      return " · pagina " + segment.pageNumber();
+    }
+    return "";
   }
 }

@@ -1,97 +1,71 @@
 package com.wornux.chat.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import com.wornux.chat.questions.StudentQuestion;
 import com.wornux.chat.questions.StudentQuestionAnswer;
 import com.wornux.chat.questions.StudentQuestionOption;
 import com.wornux.chat.questions.StudentQuestionResponse;
 import com.wornux.chat.questions.StudentQuestionSet;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import org.springframework.ai.chat.model.ToolContext;
 
 class AskStudentQuestionToolTest {
 
-  private final QuestionInteractionService questionInteractionService =
-      new QuestionInteractionService();
-  private final ToolUsageAuditService toolUsageAuditService =
-      new ToolUsageAuditService(new SimpleMeterRegistry(), ObservationRegistry.NOOP);
-  private final AskStudentQuestionTool tool =
-      new AskStudentQuestionTool(questionInteractionService, toolUsageAuditService);
+  @Test
+  void delegatesQuestionSetToHandlerAndReturnsRawAnswerPayload() {
+    var questionSet = sampleQuestionSet();
+    var response =
+        new StudentQuestionResponse(
+            List.of(new StudentQuestionAnswer("q1", List.of("Muy perdido"), "Dame ejemplo")));
+    var tool =
+        new AskStudentQuestionTool(
+            receivedQuestionSet -> {
+              assertThat(receivedQuestionSet).isSameAs(questionSet);
+              return response;
+            });
+
+    var result = tool.askStudentQuestion(questionSet);
+
+    assertThat(result.response()).isEqualTo(response);
+  }
 
   @Test
-  void tool_returns_structured_answers_after_student_response() throws Exception {
-    UUID clientId = UUID.randomUUID();
-    UUID conversationId = UUID.randomUUID();
-    UUID turnId = UUID.randomUUID();
-    var questionSet =
-        new StudentQuestionSet(
-            "Diagnostico",
-            "preference",
-            StudentQuestionSet.ProfileImpact.NONE,
-            List.of(
-                new StudentQuestion(
-                    "q1",
-                    "Nivel",
-                    "Como te sientes con arrays?",
-                    List.of(
-                        new StudentQuestionOption("Muy perdido", "Necesito empezar de cero"),
-                        new StudentQuestionOption("Voy bien", "Solo quiero validar detalles")),
-                    false)));
+  void rejectsMissingQuestionSetBeforeCallingHandler() {
+    var tool =
+        new AskStudentQuestionTool(
+            _ -> {
+              throw new AssertionError("handler should not be called");
+            });
 
-    var executor = Executors.newSingleThreadExecutor();
-    try {
-      var future =
-          CompletableFuture.supplyAsync(
-              () -> tool.askStudentQuestion(questionSet, context(clientId, conversationId, turnId)),
-              executor);
-      awaitPending(clientId, conversationId);
-
-      questionInteractionService.submitResponse(
-          clientId,
-          conversationId,
-          new StudentQuestionResponse(
-              List.of(
-                  new StudentQuestionAnswer("q1", List.of("Muy perdido"), "Necesito un ejemplo"))));
-
-      var result = future.get(2, TimeUnit.SECONDS);
-      assertThat(result.answers())
-          .singleElement()
-          .satisfies(
-              answer -> {
-                assertThat(answer.questionId()).isEqualTo("q1");
-                assertThat(answer.selectedOptionLabels()).containsExactly("Muy perdido");
-                assertThat(answer.customText()).isEqualTo("Necesito un ejemplo");
-              });
-    } finally {
-      executor.shutdownNow();
-    }
+    assertThatNullPointerException()
+        .isThrownBy(() -> tool.askStudentQuestion(null))
+        .withMessage("questionSet must not be null");
   }
 
-  private ToolContext context(UUID clientId, UUID conversationId, UUID turnId) {
-    return new ToolContext(
-        Map.of(
-            ToolUsageAuditService.CLIENT_ID, clientId,
-            ToolUsageAuditService.CONVERSATION_ID, conversationId,
-            ToolUsageAuditService.TURN_ID, turnId,
-            ToolUsageAuditService.PROFILE_VERSION, 3L));
+  @Test
+  void rejectsMissingHandlerResponse() {
+    var tool = new AskStudentQuestionTool(_ -> null);
+
+    assertThatNullPointerException()
+        .isThrownBy(() -> tool.askStudentQuestion(sampleQuestionSet()))
+        .withMessage("question response must not be null");
   }
 
-  private void awaitPending(UUID clientId, UUID conversationId) throws InterruptedException {
-    for (int attempt = 0; attempt < 20; attempt++) {
-      if (questionInteractionService.findPending(clientId, conversationId).isPresent()) {
-        return;
-      }
-      TimeUnit.MILLISECONDS.sleep(25);
-    }
-    throw new AssertionError("Pending question interaction was not published in time");
+  private StudentQuestionSet sampleQuestionSet() {
+    return new StudentQuestionSet(
+        "Antes de seguir",
+        "diagnosis",
+        StudentQuestionSet.ProfileImpact.NONE,
+        List.of(
+            new StudentQuestion(
+                "q1",
+                "Confianza",
+                "Como te sientes con este tema?",
+                List.of(
+                    new StudentQuestionOption("Muy perdido", "Necesito empezar de cero"),
+                    new StudentQuestionOption("Voy bien", "Solo quiero validar detalles")),
+                false)));
   }
 }

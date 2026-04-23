@@ -1,5 +1,6 @@
 package com.wornux.chat.tools;
 
+import com.wornux.chat.TutorAiProperties;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.Observation;
@@ -13,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class ToolUsageAuditService {
@@ -25,13 +28,20 @@ public class ToolUsageAuditService {
 
   private final MeterRegistry meterRegistry;
   private final ObservationRegistry observationRegistry;
+  private final ObjectMapper objectMapper;
+  private final TutorAiProperties tutorAiProperties;
   private final ConcurrentHashMap<UUID, List<ToolExecutionAudit>> auditsByTurnId =
       new ConcurrentHashMap<>();
 
   public ToolUsageAuditService(
-      MeterRegistry meterRegistry, ObservationRegistry observationRegistry) {
+      MeterRegistry meterRegistry,
+      ObservationRegistry observationRegistry,
+      ObjectMapper objectMapper,
+      TutorAiProperties tutorAiProperties) {
     this.meterRegistry = meterRegistry;
     this.observationRegistry = observationRegistry;
+    this.objectMapper = objectMapper;
+    this.tutorAiProperties = tutorAiProperties;
   }
 
   public <T> T audit(
@@ -44,6 +54,7 @@ public class ToolUsageAuditService {
     Observation observation = Observation.start("tool." + toolName, observationRegistry);
     try (Observation.Scope ignored = observation.openScope()) {
       ToolResult<T> result = execution.get();
+      var returnPayload = captureReturnPayload(result.value());
       var audit =
           new ToolExecutionAudit(
               ids.conversationId(),
@@ -54,6 +65,9 @@ public class ToolUsageAuditService {
               nanosToMillis(startedAt),
               inputSummary,
               result.outputSummary(),
+              returnPayload.json(),
+              returnPayload.preview(),
+              returnPayload.captured(),
               true,
               result.learningSignal().usefulForProfile(),
               ids.profileSnapshotVersion(),
@@ -72,9 +86,11 @@ public class ToolUsageAuditService {
           .register(meterRegistry)
           .record(audit.latencyMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
       log.info(
-          "tool_execution tool.name={} tool.status={} tool.latency_ms={} client_id={}"
-              + " conversation_id={} turn_id={} model_requested_tool={} profile_snapshot_version={}"
-              + " input_summary={} output_summary={} useful_for_profile={} failure_code={}",
+          """
+                  tool_execution tool.name={} tool.status={} tool.latency_ms={} client_id={}\
+                   conversation_id={} turn_id={} model_requested_tool={} profile_snapshot_version={}\
+                   input_summary={} output_summary={} payload_captured={} tool_return_preview={}\
+                   useful_for_profile={} failure_code={}""",
           audit.toolName(),
           audit.status(),
           audit.latencyMs(),
@@ -85,6 +101,8 @@ public class ToolUsageAuditService {
           audit.profileSnapshotVersion(),
           audit.inputSummary(),
           audit.outputSummary(),
+          audit.payloadCaptured(),
+          audit.toolReturnPreview(),
           audit.usefulForProfile(),
           audit.failureCode());
       return result.value();
@@ -99,6 +117,9 @@ public class ToolUsageAuditService {
               nanosToMillis(startedAt),
               inputSummary,
               "error",
+              null,
+              null,
+              false,
               true,
               false,
               ids.profileSnapshotVersion(),
@@ -115,7 +136,8 @@ public class ToolUsageAuditService {
       log.warn(
           "tool_execution tool.name={} tool.status={} tool.latency_ms={} client_id={}"
               + " conversation_id={} turn_id={} model_requested_tool={} profile_snapshot_version={}"
-              + " input_summary={} output_summary={} useful_for_profile={} failure_code={}",
+              + " input_summary={} output_summary={} payload_captured={} tool_return_preview={}"
+              + " useful_for_profile={} failure_code={}",
           audit.toolName(),
           audit.status(),
           audit.latencyMs(),
@@ -126,6 +148,8 @@ public class ToolUsageAuditService {
           audit.profileSnapshotVersion(),
           audit.inputSummary(),
           audit.outputSummary(),
+          audit.payloadCaptured(),
+          audit.toolReturnPreview(),
           audit.usefulForProfile(),
           audit.failureCode());
       throw exception;
@@ -154,6 +178,26 @@ public class ToolUsageAuditService {
     return (System.nanoTime() - startedAt) / 1_000_000;
   }
 
+  private ToolReturnPayload captureReturnPayload(Object value) {
+    var observability = tutorAiProperties.getToolObservability();
+    if (observability == null || !observability.isCapturePayloads()) {
+      return ToolReturnPayload.disabled();
+    }
+    try {
+      var json = objectMapper.writeValueAsString(value);
+      return new ToolReturnPayload(true, json, preview(json, observability.getMaxPayloadChars()));
+    } catch (JacksonException ex) {
+      return new ToolReturnPayload(
+          true, null, "serialization_error=" + ex.getClass().getSimpleName());
+    }
+  }
+
+  private String preview(String json, int maxPayloadChars) {
+    var maxLength = Math.max(0, maxPayloadChars);
+    var oneLine = json.replaceAll("\\s+", " ");
+    return oneLine.length() <= maxLength ? oneLine : oneLine.substring(0, maxLength);
+  }
+
   private ToolInvocationIds ids(ToolContext toolContext) {
     var context = toolContext.getContext();
     return new ToolInvocationIds(
@@ -164,6 +208,13 @@ public class ToolUsageAuditService {
   }
 
   public record ToolResult<T>(T value, String outputSummary, ToolLearningSignal learningSignal) {}
+
+  private record ToolReturnPayload(boolean captured, String json, String preview) {
+
+    static ToolReturnPayload disabled() {
+      return new ToolReturnPayload(false, null, null);
+    }
+  }
 
   private record ToolInvocationIds(
       UUID clientId, UUID conversationId, UUID turnId, long profileSnapshotVersion) {}

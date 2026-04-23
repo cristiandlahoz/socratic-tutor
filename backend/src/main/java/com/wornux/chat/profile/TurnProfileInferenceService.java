@@ -1,7 +1,6 @@
 package com.wornux.chat.profile;
 
 import com.wornux.chat.StoredChatMessage;
-import com.wornux.chat.tools.QuestionInteractionService;
 import com.wornux.chat.tools.ToolExecutionAudit;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,21 +30,13 @@ public class TurnProfileInferenceService {
           "\\b(no entiendo|me perdi|me perdí|confundo|confund[io]|why|lost|stuck|ayuda)\\b",
           Pattern.CASE_INSENSITIVE);
 
-  private final QuestionAnswerProfileSignalService questionAnswerProfileSignalService;
-
-  public TurnProfileInferenceService(
-      QuestionAnswerProfileSignalService questionAnswerProfileSignalService) {
-    this.questionAnswerProfileSignalService = questionAnswerProfileSignalService;
-  }
-
   public TurnProfileUpdate infer(
       UUID conversationId,
       UUID turnId,
       String userInput,
       String assistantResponse,
       List<StoredChatMessage> memoryWindow,
-      List<ToolExecutionAudit> toolAudits,
-      List<QuestionInteractionService.CompletedQuestionInteraction> questionInteractions) {
+      List<ToolExecutionAudit> toolAudits) {
     var combinedText =
         "%s %s"
             .formatted(
@@ -80,10 +71,6 @@ public class TurnProfileInferenceService {
                       topic, TurnProfileUpdate.SignalDirection.DOWN, "evaluation_tool_signal")));
     }
 
-    var interactiveSignals = questionAnswerProfileSignalService.interpret(questionInteractions);
-    topics.addAll(interactiveSignals.topics());
-    levelSignals.addAll(interactiveSignals.levelSignals());
-
     var misconceptions = detectMisconceptions(userInput, toolAudits, topics);
     var preferredLanguage =
         SPANISH_PATTERN.matcher(userInput == null ? "" : userInput).find() ? "es" : "en";
@@ -91,18 +78,12 @@ public class TurnProfileInferenceService {
         EXAMPLE_PATTERN.matcher(userInput == null ? "" : userInput).find()
             || toolAudits.stream()
                 .anyMatch(
-                    audit -> "traceCProgram".equals(audit.toolName()) && audit.usefulForProfile())
-            || interactiveSignals.needsConcreteExamples();
+                    audit -> "traceCProgram".equals(audit.toolName()) && audit.usefulForProfile());
     var confidenceDelta =
         BigDecimal.valueOf(levelSignals.isEmpty() ? 0.040 : -0.060)
-            .add(interactiveSignals.confidenceDelta())
             .setScale(3, RoundingMode.HALF_UP);
     var recommendedHelpMode =
-        interactiveSignals.recommendedHelpMode() != null
-            ? interactiveSignals.recommendedHelpMode()
-            : toolAudits.stream().anyMatch(audit -> audit.usefulForProfile())
-                ? HelpMode.GUIDED
-                : null;
+        toolAudits.stream().anyMatch(audit -> audit.usefulForProfile()) ? HelpMode.GUIDED : null;
     var toolEvidence =
         toolAudits.stream()
             .map(
@@ -121,7 +102,6 @@ public class TurnProfileInferenceService {
             .toList());
     signalPayload.put("needsConcreteExamples", needsConcreteExamples);
     signalPayload.put("toolEvidence", toolAudits.stream().map(ToolExecutionAudit::toMap).toList());
-    signalPayload.putAll(interactiveSignals.payload());
 
     return new TurnProfileUpdate(
         conversationId,

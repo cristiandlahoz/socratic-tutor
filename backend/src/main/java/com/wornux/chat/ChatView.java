@@ -21,7 +21,6 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.MainLayout;
 import com.wornux.chat.ui.StudentQuestionPanel;
@@ -40,7 +39,6 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
   private final TextArea composerField;
   private final Button sendButton;
   private final StudentQuestionPanel questionPanel;
-  private transient Registration pollRegistration;
 
   public ChatView(ChatUiState state, ChatUiController controller, ChatProperties chatProperties) {
     this.controller = controller;
@@ -101,23 +99,6 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     root.addClassName("chat-view");
     root.add(
         floatingDrawerToggle, historyScroller, createUsageBadge(state), createInputShell(state));
-    root.addAttachListener(
-        event -> {
-          event.getUI().setPollInterval(500);
-          if (pollRegistration == null) {
-            pollRegistration =
-                event.getUI().addPollListener(_ -> controller.syncPendingQuestionState());
-          }
-          controller.syncPendingQuestionState();
-        });
-    root.addDetachListener(
-        event -> {
-          if (pollRegistration != null) {
-            pollRegistration.remove();
-            pollRegistration = null;
-          }
-          event.getUI().setPollInterval(-1);
-        });
   }
 
   @Override

@@ -58,7 +58,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
     var description =
         new Paragraph(
-            "Arrastra un PDF, deja que Docling lo transforme a markdown, valida los segmentos y"
+            "Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y"
                 + " luego indexalo para preguntas posteriores.");
     description.addClassName("document-ingest-description");
 
@@ -112,7 +112,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         new Div(
             sectionHeader(
                 "Segmentos aprobables",
-                "Edita o limpia segmentos antes de enviarlos al vector store."),
+                "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y captions."),
             segmentEditorList);
     segmentsShell.addClassName("document-ingest-segments-shell");
 

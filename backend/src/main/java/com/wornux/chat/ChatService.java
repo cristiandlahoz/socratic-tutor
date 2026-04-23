@@ -3,7 +3,7 @@ package com.wornux.chat;
 import com.wornux.chat.profile.ProfileAwareResponseAdvisor;
 import com.wornux.chat.profile.StudentProfileService;
 import com.wornux.chat.profile.TurnProfileInferenceService;
-import com.wornux.chat.tools.QuestionInteractionService;
+import com.wornux.chat.tools.AskStudentQuestionTool;
 import com.wornux.chat.tools.ToolUsageAuditService;
 import java.util.Map;
 import java.util.UUID;
@@ -33,7 +33,6 @@ public class ChatService {
   private final StudentProfileService studentProfileService;
   private final TurnProfileInferenceService turnProfileInferenceService;
   private final ToolUsageAuditService toolUsageAuditService;
-  private final QuestionInteractionService questionInteractionService;
   private final Map<UUID, Integer> turnPromptTokens = new ConcurrentHashMap<>();
 
   public ChatService(
@@ -43,8 +42,7 @@ public class ChatService {
       ChatCompactionService chatCompactionService,
       StudentProfileService studentProfileService,
       TurnProfileInferenceService turnProfileInferenceService,
-      ToolUsageAuditService toolUsageAuditService,
-      QuestionInteractionService questionInteractionService) {
+      ToolUsageAuditService toolUsageAuditService) {
     this.chatClient = chatClient;
     this.conversationService = conversationService;
     this.chatUsageService = chatUsageService;
@@ -52,23 +50,24 @@ public class ChatService {
     this.studentProfileService = studentProfileService;
     this.turnProfileInferenceService = turnProfileInferenceService;
     this.toolUsageAuditService = toolUsageAuditService;
-    this.questionInteractionService = questionInteractionService;
-  }
-
-  public Flux<String> chatStream(String userInput, UUID clientId, UUID conversationId) {
-    return chatStream(UUID.randomUUID(), userInput, clientId, conversationId);
   }
 
   public Flux<String> chatStream(
-      UUID turnId, String userInput, UUID clientId, UUID conversationId) {
+      UUID turnId,
+      String userInput,
+      UUID clientId,
+      UUID conversationId,
+      AskStudentQuestionTool.QuestionHandler questionHandler) {
     var profileSnapshot = studentProfileService.load(clientId);
     var promptTokens = new AtomicReference<Integer>();
-    return chatClient
+    var promptSpec =
+        chatClient
         .prompt()
         .advisors(
             advisorSpec ->
                 advisorSpec
                     .param(ChatMemory.CONVERSATION_ID, conversationId.toString())
+                    .param(ToolUsageAuditService.CLIENT_ID, clientId)
                     .param(ProfileAwareResponseAdvisor.CLIENT_ID_CONTEXT_KEY, clientId))
         .toolContext(
             Map.of(
@@ -76,7 +75,11 @@ public class ChatService {
                 ToolUsageAuditService.CONVERSATION_ID, conversationId,
                 ToolUsageAuditService.TURN_ID, turnId,
                 ToolUsageAuditService.PROFILE_VERSION, profileSnapshot.profileVersion()))
-        .user(userInput)
+        .user(userInput);
+    if (questionHandler != null) {
+      promptSpec = promptSpec.tools(new AskStudentQuestionTool(questionHandler));
+    }
+    return promptSpec
         .stream()
         .chatResponse()
         .doOnNext(response -> capturePromptTokens(response, promptTokens))
@@ -116,7 +119,6 @@ public class ChatService {
   private void clearTurnState(UUID turnId) {
     turnPromptTokens.remove(turnId);
     toolUsageAuditService.drainTurnAudits(turnId);
-    questionInteractionService.drainCompletedResponses(turnId);
   }
 
   private void capturePromptTokens(ChatResponse response, AtomicReference<Integer> promptTokens) {
@@ -124,9 +126,7 @@ public class ChatService {
       return;
     }
     Usage usage = response.getMetadata().getUsage();
-    if (usage != null && usage.getPromptTokens() != null) {
-      promptTokens.set(usage.getPromptTokens());
-    }
+    promptTokens.set(usage.getPromptTokens());
   }
 
   private String extractContentChunk(ChatResponse response) {
@@ -142,17 +142,10 @@ public class ChatService {
   private void persistProfileSignals(
       UUID clientId, UUID conversationId, UUID turnId, String userInput, String assistantResponse) {
     var audits = toolUsageAuditService.drainTurnAudits(turnId);
-    var questionInteractions = questionInteractionService.drainCompletedResponses(turnId);
     var memoryWindow = conversationService.loadConversation(clientId, conversationId);
     var update =
         turnProfileInferenceService.infer(
-            conversationId,
-            turnId,
-            userInput,
-            assistantResponse,
-            memoryWindow,
-            audits,
-            questionInteractions);
+            conversationId, turnId, userInput, assistantResponse, memoryWindow, audits);
     studentProfileService.applyTurnSignals(clientId, update);
   }
 }

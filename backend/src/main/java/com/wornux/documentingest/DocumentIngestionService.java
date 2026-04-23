@@ -19,7 +19,7 @@ public class DocumentIngestionService {
   private final DocumentSegmentJpaRepository segmentRepository;
   private final DocumentIngestionJobJpaRepository jobRepository;
   private final DoclingClientService doclingClientService;
-  private final DocumentSegmentationService segmentationService;
+  private final DocumentCatalogService catalogService;
   private final DocumentEmbeddingService embeddingService;
   private final DocumentIngestionProperties properties;
 
@@ -28,14 +28,14 @@ public class DocumentIngestionService {
       DocumentSegmentJpaRepository segmentRepository,
       DocumentIngestionJobJpaRepository jobRepository,
       DoclingClientService doclingClientService,
-      DocumentSegmentationService segmentationService,
+      DocumentCatalogService catalogService,
       DocumentEmbeddingService embeddingService,
       DocumentIngestionProperties properties) {
     this.documentRepository = documentRepository;
     this.segmentRepository = segmentRepository;
     this.jobRepository = jobRepository;
     this.doclingClientService = doclingClientService;
-    this.segmentationService = segmentationService;
+    this.catalogService = catalogService;
     this.embeddingService = embeddingService;
     this.properties = properties;
   }
@@ -54,35 +54,47 @@ public class DocumentIngestionService {
       tempFile = Files.createTempFile("ingested-document-", ".pdf");
       Files.write(tempFile, command.content());
 
-      job.advance(DocumentIngestionStage.DOCLING_CONVERT, "Transformando PDF con Docling.");
+      job.advance(
+          DocumentIngestionStage.DOCLING_CONVERT,
+          "Transformando y segmentando PDF con Docling.");
       jobRepository.save(job);
 
       var conversion =
-          doclingClientService.convertPdfToMarkdown(command.originalFilename(), command.content());
+          doclingClientService.convertPdfToMarkdownAndChunks(
+              command.originalFilename(), command.content());
       if (conversion.markdown() == null || conversion.markdown().isBlank()) {
         throw new DocumentIngestionException("Docling devolvio un documento vacio.");
       }
+      if (conversion.segments() == null || conversion.segments().isEmpty()) {
+        throw new DocumentIngestionException(
+            "Docling no pudo crear segmentos utiles para este PDF.");
+      }
 
       document.markReviewReady(conversion.markdown(), conversion.pageCount());
+      var initialCatalog =
+          catalogService.analyzeOrFallback(command.originalFilename(), conversion.markdown());
+      document.applyCatalog(initialCatalog.entry(), initialCatalog.stale());
       documentRepository.save(document);
 
-      job.advance(DocumentIngestionStage.SEGMENT_BUILD, "Construyendo segmentos revisables.");
+      job.advance(DocumentIngestionStage.SEGMENT_BUILD, "Preparando segmentos de Docling.");
       jobRepository.save(job);
-
-      List<DocumentSegmentationService.SegmentDraft> segments =
-          segmentationService.segmentMarkdown(conversion.markdown());
-      if (segments.isEmpty()) {
-        throw new DocumentIngestionException(
-            "No se pudieron crear segmentos utiles a partir del markdown.");
-      }
 
       segmentRepository.deleteByDocument_Id(document.getId());
       segmentRepository.saveAll(
-          segments.stream()
+          conversion.segments().stream()
               .map(
                   segment ->
                       DocumentSegmentEntity.createDraft(
-                          document, segment.ordinal(), segment.headingPath(), segment.content()))
+                          document,
+                          segment.ordinal(),
+                          segment.headingPath(),
+                          segment.content(),
+                          segment.tokenCount(),
+                          segment.pageNumber(),
+                          segment.pageNumbers(),
+                          segment.captions(),
+                          segment.docItems(),
+                          segment.rawText()))
               .toList());
 
       job.advance(
@@ -129,6 +141,10 @@ public class DocumentIngestionService {
       jobRepository.save(job);
 
       document.markApproved(command.reviewedMarkdown());
+      var refreshedCatalog =
+          catalogService.analyzeOrFallback(
+              document.getOriginalFilename(), command.reviewedMarkdown());
+      document.applyCatalog(refreshedCatalog.entry(), refreshedCatalog.stale());
       documentRepository.save(document);
 
       var persistedSegments =

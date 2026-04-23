@@ -4,7 +4,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -46,6 +49,33 @@ public class DocumentEntity {
 
   @Column(name = "page_count")
   private Integer pageCount;
+
+  @Column(name = "catalog_title")
+  private String catalogTitle;
+
+  @Column(name = "catalog_topic")
+  private String catalogTopic;
+
+  @Column(name = "catalog_summary")
+  private String catalogSummary;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "catalog_tags", nullable = false, columnDefinition = "jsonb")
+  private List<String> catalogTags = List.of();
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "catalog_entities", nullable = false, columnDefinition = "jsonb")
+  private List<String> catalogEntities = List.of();
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "catalog_question_examples", nullable = false, columnDefinition = "jsonb")
+  private List<String> catalogQuestionExamples = List.of();
+
+  @Column(name = "catalog_stale", nullable = false)
+  private boolean catalogStale;
+
+  @Column(name = "catalog_updated_at")
+  private Instant catalogUpdatedAt;
 
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
@@ -94,6 +124,19 @@ public class DocumentEntity {
 
   public void markFailed() {
     this.status = DocumentStatus.FAILED.name();
+    touch();
+  }
+
+  public void applyCatalog(DocumentCatalogEntry catalog, boolean stale) {
+    this.catalogTitle = catalog.title();
+    this.catalogTopic = catalog.topic();
+    this.catalogSummary = catalog.summary();
+    this.catalogTags = catalog.tags() == null ? List.of() : List.copyOf(catalog.tags());
+    this.catalogEntities = catalog.entities() == null ? List.of() : List.copyOf(catalog.entities());
+    this.catalogQuestionExamples =
+        catalog.questionExamples() == null ? List.of() : List.copyOf(catalog.questionExamples());
+    this.catalogStale = stale;
+    this.catalogUpdatedAt = Instant.now();
     touch();
   }
 

@@ -2,6 +2,7 @@ package com.wornux.chat.questions;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+
 import java.io.Serializable;
 
 public record StudentQuestionOption(

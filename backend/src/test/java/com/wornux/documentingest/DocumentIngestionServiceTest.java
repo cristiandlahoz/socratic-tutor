@@ -1,6 +1,7 @@
 package com.wornux.documentingest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,6 +29,7 @@ class DocumentIngestionServiceTest {
   private final DocumentIngestionJobJpaRepository jobRepository =
       mock(DocumentIngestionJobJpaRepository.class);
   private final DoclingClientService doclingClientService = mock(DoclingClientService.class);
+  private final DocumentCatalogService catalogService = mock(DocumentCatalogService.class);
   private final DocumentEmbeddingService embeddingService = mock(DocumentEmbeddingService.class);
 
   private final Map<UUID, DocumentEntity> documents = new LinkedHashMap<>();
@@ -45,9 +47,22 @@ class DocumentIngestionServiceTest {
             segmentRepository,
             jobRepository,
             doclingClientService,
-            new DocumentSegmentationService(properties),
+            catalogService,
             embeddingService,
             properties);
+
+    when(catalogService.analyzeOrFallback(anyString(), anyString()))
+        .thenAnswer(
+            invocation ->
+                new DocumentCatalogService.CatalogAnalysis(
+                    new DocumentCatalogEntry(
+                        "Catalogo",
+                        "Tema catalogado",
+                        "Resumen catalogado",
+                        List.of("algoritmos"),
+                        List.of("busqueda"),
+                        List.of("Que explica el documento?")),
+                    false));
 
     doAnswer(
             invocation -> {
@@ -113,7 +128,7 @@ class DocumentIngestionServiceTest {
   @Test
   void startIngestion_creates_reviewable_markdown_and_segments() {
     var clientId = UUID.randomUUID();
-    when(doclingClientService.convertPdfToMarkdown(anyString(), any()))
+    when(doclingClientService.convertPdfToMarkdownAndChunks(anyString(), any()))
         .thenReturn(
             new DoclingConversionResult(
                 """
@@ -121,7 +136,18 @@ class DocumentIngestionServiceTest {
 
                 Este PDF habla sobre estructuras repetitivas.
                 """,
-                null));
+                2,
+                List.of(
+                    new DoclingSegmentDraft(
+                        1,
+                        "Tema",
+                        "Este PDF habla sobre estructuras repetitivas.",
+                        9,
+                        2,
+                        List.of(2),
+                        List.of("Figura 1"),
+                        List.of("#/texts/1"),
+                        "Este PDF habla sobre estructuras repetitivas."))));
 
     var review =
         service.startIngestion(
@@ -134,14 +160,17 @@ class DocumentIngestionServiceTest {
     assertThat(review.filename()).isEqualTo("notes.pdf");
     assertThat(review.markdown()).contains("estructuras repetitivas");
     assertThat(review.segments()).isNotEmpty();
+    assertThat(review.segments().getFirst().pageNumbers()).containsExactly(2);
+    assertThat(review.segments().getFirst().captions()).containsExactly("Figura 1");
     assertThat(review.stageLabel()).contains("Revisa");
     assertThat(service.loadLatestReview(clientId)).isPresent();
+    assertThat(documents.get(review.documentId()).getCatalogTopic()).isEqualTo("Tema catalogado");
   }
 
   @Test
   void approve_marks_document_as_indexed_and_sends_unique_segments_to_embedding_service() {
     var clientId = UUID.randomUUID();
-    when(doclingClientService.convertPdfToMarkdown(anyString(), any()))
+    when(doclingClientService.convertPdfToMarkdownAndChunks(anyString(), any()))
         .thenReturn(
             new DoclingConversionResult(
                 """
@@ -151,7 +180,28 @@ class DocumentIngestionServiceTest {
 
                 Segmento duplicado.
                 """,
-                null));
+                1,
+                List.of(
+                    new DoclingSegmentDraft(
+                        1,
+                        "Tema",
+                        "Segmento duplicado.",
+                        2,
+                        1,
+                        List.of(1),
+                        List.of(),
+                        List.of("#/texts/1"),
+                        "Segmento duplicado."),
+                    new DoclingSegmentDraft(
+                        2,
+                        "Tema",
+                        "Segmento duplicado.",
+                        2,
+                        1,
+                        List.of(1),
+                        List.of(),
+                        List.of("#/texts/2"),
+                        "Segmento duplicado."))));
 
     var review =
         service.startIngestion(
@@ -173,9 +223,28 @@ class DocumentIngestionServiceTest {
 
     assertThat(indexed.indexed()).isTrue();
     assertThat(documents.get(review.documentId()).status()).isEqualTo(DocumentStatus.INDEXED);
+    assertThat(documents.get(review.documentId()).getCatalogTags()).contains("algoritmos");
 
     ArgumentCaptor<List<DocumentSegmentEntity>> captor = ArgumentCaptor.forClass(List.class);
     verify(embeddingService).reindex(any(DocumentEntity.class), captor.capture());
     assertThat(captor.getValue()).hasSize(1);
+  }
+
+  @Test
+  void startIngestion_fails_when_docling_returns_zero_chunks() {
+    var clientId = UUID.randomUUID();
+    when(doclingClientService.convertPdfToMarkdownAndChunks(anyString(), any()))
+        .thenReturn(new DoclingConversionResult("# Tema\n\nContenido.", 1, List.of()));
+
+    assertThatThrownBy(
+            () ->
+                service.startIngestion(
+                    new StartIngestionCommand(
+                        clientId,
+                        "empty.pdf",
+                        "application/pdf",
+                        "%PDF-1.4 ok".getBytes(StandardCharsets.UTF_8))))
+        .isInstanceOf(DocumentIngestionException.class)
+        .hasMessageContaining("Docling no pudo crear segmentos utiles");
   }
 }

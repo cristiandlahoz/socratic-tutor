@@ -106,6 +106,16 @@ public class DocumentIngestionUiState implements Serializable {
     this.retryAvailable.set(false);
   }
 
+  public void startUploadProcessing(String fileName, String stageLabel) {
+    activeDocumentId.set(null);
+    activeJobId.set(null);
+    reviewedMarkdown.set("");
+    segments.set(List.of());
+    indexed.set(false);
+    dirty.set(false);
+    startProcessing(fileName, stageLabel);
+  }
+
   public void apply(DocumentReviewVm reviewVm) {
     activeDocumentId.set(reviewVm.documentId());
     activeJobId.set(reviewVm.jobId());

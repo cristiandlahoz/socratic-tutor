@@ -9,6 +9,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.ai.tutor")
 public class TutorAiProperties {
 
-  private boolean promptLoggingEnabled;
   private String routingModel;
+  private ToolObservability toolObservability = new ToolObservability();
+
+  @Getter
+  @Setter
+  public static class ToolObservability {
+
+    private boolean capturePayloads;
+    private int maxPayloadChars = 4000;
+  }
 }

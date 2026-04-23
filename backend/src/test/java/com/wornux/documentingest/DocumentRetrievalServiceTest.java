@@ -32,8 +32,18 @@ class DocumentRetrievalServiceTest {
                         UUID.randomUUID().toString(),
                         "filename",
                         "report.pdf",
+                        "documentTitle",
+                        "Reporte de algoritmos",
+                        "documentTopic",
+                        "Busqueda binaria",
+                        "documentTags",
+                        "algoritmos,busqueda",
                         "headingPath",
                         "Reporte",
+                        "pageNumbers",
+                        "3,4",
+                        "captions",
+                        "Tabla 1 | Figura 2",
                         "segmentOrdinal",
                         1)),
                 new Document(
@@ -46,6 +56,12 @@ class DocumentRetrievalServiceTest {
                         UUID.randomUUID().toString(),
                         "filename",
                         "secret.pdf",
+                        "documentTitle",
+                        "Privado",
+                        "documentTopic",
+                        "Otro cliente",
+                        "documentTags",
+                        "privado",
                         "headingPath",
                         "Privado",
                         "segmentOrdinal",
@@ -54,11 +70,15 @@ class DocumentRetrievalServiceTest {
     properties.setRetrievalSimilarityThreshold(0.0);
     var service = new DocumentRetrievalService(store, properties);
 
-    var result = service.search(owner, "busqueda binaria", null);
+    var result = service.search(owner, "busqueda binaria", null, null, null, null);
 
     assertThat(result.contextFound()).isTrue();
     assertThat(result.hits()).hasSize(1);
     assertThat(result.hits().getFirst().filename()).isEqualTo("report.pdf");
+    assertThat(result.hits().getFirst().documentTitle()).isEqualTo("Reporte de algoritmos");
+    assertThat(result.hits().getFirst().documentTags()).contains("algoritmos", "busqueda");
+    assertThat(result.hits().getFirst().pageNumbers()).containsExactly(3, 4);
+    assertThat(result.hits().getFirst().captions()).containsExactly("Tabla 1", "Figura 2");
   }
 
   private static final class InMemoryVectorStore implements VectorStore {

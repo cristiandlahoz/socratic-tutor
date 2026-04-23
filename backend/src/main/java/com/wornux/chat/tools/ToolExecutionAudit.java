@@ -13,6 +13,9 @@ public record ToolExecutionAudit(
     long latencyMs,
     String inputSummary,
     String outputSummary,
+    String toolReturnJson,
+    String toolReturnPreview,
+    boolean payloadCaptured,
     boolean modelRequested,
     boolean usefulForProfile,
     long profileSnapshotVersion,
@@ -25,6 +28,9 @@ public record ToolExecutionAudit(
     payload.put("latencyMs", latencyMs);
     payload.put("inputSummary", inputSummary);
     payload.put("outputSummary", outputSummary);
+    payload.put("toolReturnJson", toolReturnJson);
+    payload.put("toolReturnPreview", toolReturnPreview);
+    payload.put("payloadCaptured", payloadCaptured);
     payload.put("modelRequested", modelRequested);
     payload.put("usefulForProfile", usefulForProfile);
     payload.put("profileSnapshotVersion", profileSnapshotVersion);

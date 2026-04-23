@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.springframework.util.StringUtils;
 
 public record StudentQuestionSet(
     @JsonPropertyDescription("Short title shown at the top of the question panel.")
@@ -30,6 +31,18 @@ public record StudentQuestionSet(
     implements Serializable {
 
   public StudentQuestionSet {
+    if (!StringUtils.hasText(title)) {
+      throw new IllegalArgumentException("Question set title is required");
+    }
+    if (!StringUtils.hasText(purpose)) {
+      throw new IllegalArgumentException("Question set purpose is required");
+    }
+    if (profileImpact == null) {
+      throw new IllegalArgumentException("Question set profileImpact is required");
+    }
+    if (questions == null || questions.isEmpty()) {
+      throw new IllegalArgumentException("Question sets must contain between 1 and 3 questions");
+    }
     if (questions.size() > 3) {
       throw new IllegalArgumentException("Question sets must contain between 1 and 3 questions");
     }

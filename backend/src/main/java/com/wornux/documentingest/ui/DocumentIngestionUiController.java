@@ -75,7 +75,7 @@ public class DocumentIngestionUiController implements Serializable {
     abortActiveTask();
     ensureClientContext();
     lastUploadedFile = new UploadedFile(fileName, mimeType, content);
-    state.startProcessing(fileName, "Transformando PDF con Docling.");
+    state.startUploadProcessing(fileName, "Transformando y segmentando PDF con Docling.");
 
     activeTask =
         Mono.fromCallable(
