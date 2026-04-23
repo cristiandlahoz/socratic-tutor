@@ -1,10 +1,19 @@
 package com.wornux.documentingest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import ai.docling.serve.api.DoclingServeApi;
 import ai.docling.serve.api.chunk.response.Chunk;
 import ai.docling.serve.api.chunk.response.ChunkDocumentResponse;
+import ai.docling.serve.api.convert.response.DocumentResponse;
 import ai.docling.serve.api.chunk.response.ExportDocumentResponse;
+import ai.docling.serve.api.convert.response.InBodyConvertDocumentResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -77,5 +86,89 @@ class DoclingClientServiceTest {
     assertThat(result.segments().getFirst().captions()).containsExactly("Tabla 1");
     assertThat(result.segments().getFirst().docItems()).containsExactly("#/tables/0");
     assertThat(result.segments().getFirst().rawText()).isEqualTo("Hallazgo importante.");
+  }
+
+  @Test
+  void convertPdfToMarkdownAndChunks_uses_chunk_markdown_without_convert_fallback() {
+    var api = mock(DoclingServeApi.class);
+    when(api.chunkSourceWithHybridChunker(any()))
+        .thenReturn(chunkResponse("## Desde chunk", "Texto segmentado"));
+
+    var service = testServiceWith(api);
+    var result = service.convertPdfToMarkdownAndChunks("report.pdf", "%PDF".getBytes(StandardCharsets.UTF_8));
+
+    assertThat(result.markdown()).isEqualTo("## Desde chunk");
+    verify(api, never()).convertSource(any());
+  }
+
+  @Test
+  void convertPdfToMarkdownAndChunks_falls_back_to_convert_when_chunk_markdown_is_empty() {
+    var api = mock(DoclingServeApi.class);
+    when(api.chunkSourceWithHybridChunker(any())).thenReturn(chunkResponse("", "Texto segmentado"));
+    when(api.convertSource(any()))
+        .thenReturn(
+            InBodyConvertDocumentResponse.builder()
+                .document(DocumentResponse.builder().markdownContent("## Desde convert").build())
+                .status("success")
+                .build());
+
+    var service = testServiceWith(api);
+    var result = service.convertPdfToMarkdownAndChunks("report.pdf", "%PDF".getBytes(StandardCharsets.UTF_8));
+
+    assertThat(result.markdown()).isEqualTo("## Desde convert");
+    verify(api).convertSource(any());
+  }
+
+  @Test
+  void convertPdfToMarkdownAndChunks_fails_when_chunks_exist_but_markdown_is_empty_everywhere() {
+    var api = mock(DoclingServeApi.class);
+    when(api.chunkSourceWithHybridChunker(any())).thenReturn(chunkResponse("", "Texto segmentado"));
+    when(api.convertSource(any()))
+        .thenReturn(
+            InBodyConvertDocumentResponse.builder()
+                .document(DocumentResponse.builder().markdownContent("   ").build())
+                .status("success")
+                .build());
+
+    var service = testServiceWith(api);
+
+    assertThatThrownBy(
+            () -> service.convertPdfToMarkdownAndChunks("report.pdf", "%PDF".getBytes(StandardCharsets.UTF_8)))
+        .isInstanceOf(DocumentIngestionException.class)
+        .hasMessage("Docling devolvio segmentos pero no contenido markdown util.");
+  }
+
+  @Test
+  void convertPdfToMarkdownAndChunks_wraps_chunk_failures_with_retryable_message() {
+    var api = mock(DoclingServeApi.class);
+    when(api.chunkSourceWithHybridChunker(any())).thenThrow(new RuntimeException("boom"));
+
+    var service = testServiceWith(api);
+
+    assertThatThrownBy(
+            () -> service.convertPdfToMarkdownAndChunks("report.pdf", "%PDF".getBytes(StandardCharsets.UTF_8)))
+        .isInstanceOf(DocumentIngestionException.class)
+        .hasMessage(
+            "Docling no pudo crear segmentos para este PDF. Revisa que Docling Serve este disponible e intenta de nuevo.");
+  }
+
+  private static DoclingClientService testServiceWith(DoclingServeApi api) {
+    return new DoclingClientService(new DocumentIngestionProperties()) {
+      @Override
+      DoclingServeApi createApi() {
+        return api;
+      }
+    };
+  }
+
+  private static ChunkDocumentResponse chunkResponse(String markdown, String chunkText) {
+    return ChunkDocumentResponse.builder()
+        .document(
+            ai.docling.serve.api.chunk.response.Document.builder()
+                .content(ExportDocumentResponse.builder().markdownContent(markdown).build())
+                .status("success")
+                .build())
+        .chunk(Chunk.builder().chunkIndex(0).text(chunkText).numTokens(8).build())
+        .build();
   }
 }
