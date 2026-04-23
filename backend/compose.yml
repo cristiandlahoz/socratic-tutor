@@ -12,8 +12,13 @@ services:
     ports:
       - '${POSTGRES_PORT:-4321}:5432'
   docling:
-      image: ghcr.io/docling-project/docling-serve:latest
-      ports:
-        - "${DOCLING_PORT:-5001}:5001"
+    build:
+      context: ./docker/docling
+    environment:
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+      - HF_HOME=/opt/hf-cache
+    ports:
+      - "${DOCLING_PORT:-5001}:5001"
 volumes:
   db_postgres: { }
