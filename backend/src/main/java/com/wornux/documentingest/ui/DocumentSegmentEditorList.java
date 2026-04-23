@@ -41,7 +41,7 @@ public class DocumentSegmentEditorList extends Composite<Div> {
   }
 
   private Div createSegmentCard(EditableSegmentVm segment) {
-    var ordinal = new Span("Segmento " + segment.ordinal());
+    var ordinal = new Span("segmento %d".formatted(segment.ordinal()));
     ordinal.addClassName("document-ingest-segment-ordinal");
 
     var heading =
@@ -82,6 +82,7 @@ public class DocumentSegmentEditorList extends Composite<Div> {
 
     var card = new Div(ordinal, heading, meta, provenance, area);
     card.addClassName("document-ingest-segment-card");
+    card.setWidthFull();
     return card;
   }
 

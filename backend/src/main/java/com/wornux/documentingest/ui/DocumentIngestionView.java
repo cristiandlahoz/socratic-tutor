@@ -38,9 +38,8 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
   private final TextArea markdownEditor;
   private final Button approveButton;
   private final Button retryButton;
-  private final Button backToChatButton;
 
-  public DocumentIngestionView(
+    public DocumentIngestionView(
       DocumentIngestionUiController controller,
       DocumentIngestionUiState state,
       DocumentIngestionProperties properties) {
@@ -53,7 +52,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     var eyebrow = new Span("Document ETL");
     eyebrow.addClassName("document-ingest-eyebrow");
 
-    var title = new H2("Ingesta un PDF y conviertelo en contexto para el chat");
+    var title = new H2("Ingesta un PDF y conviértelo en contexto para el chat");
     title.addClassName("document-ingest-title");
 
     var description =
@@ -62,7 +61,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
                 + " luego indexalo para preguntas posteriores.");
     description.addClassName("document-ingest-description");
 
-    backToChatButton = new Button("Volver al chat");
+        Button backToChatButton = new Button("Volver al chat");
     backToChatButton.addThemeVariants(ButtonVariant.TERTIARY);
     backToChatButton.addClassName("document-ingest-back-button");
     backToChatButton.setIcon(new Icon(VaadinIcon.ARROW_LEFT));
@@ -101,7 +100,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         new Div(
             sectionHeader(
                 "Fuente canonical",
-                "Este markdown es el artefacto editable que despues se segmenta e indexa."),
+                "Este markdown es el artefacto editable que después se segmenta e indexa."),
             markdownEditor);
     markdownShell.addClassName("document-ingest-markdown-shell");
 
@@ -111,7 +110,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     var segmentsShell =
         new Div(
             sectionHeader(
-                "Segmentos aprobables",
+                "segmentos",
                 "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y captions."),
             segmentEditorList);
     segmentsShell.addClassName("document-ingest-segments-shell");
@@ -179,7 +178,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     upload.setWidthFull();
     upload.setI18n(createUploadI18n());
     upload.setUploadButton(createPrimaryUploadButton());
-    upload.setDropLabel(new Span("Suelta aqui el PDF o usa el selector."));
+    upload.setDropLabel(new Span("suelta aquí el PDF o usa el selector."));
     upload.setDropLabelIcon(VaadinIcon.CLOUD_UPLOAD_O.create());
     upload.addFileRejectedListener(
         event -> {
@@ -199,7 +198,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
   private UploadI18N createUploadI18n() {
     UploadI18N i18n = new UploadI18N();
     i18n.setDropFiles(
-        new UploadI18N.DropFiles().setOne("Suelta el PDF aqui").setMany("Suelta los PDFs aqui"));
+        new UploadI18N.DropFiles().setOne("suelta el PDF aquí").setMany("suelta los PDFs aquí"));
     i18n.setAddFiles(new UploadI18N.AddFiles().setOne("Subir PDF").setMany("Subir PDFs"));
     i18n.setError(
         new UploadI18N.Error()
@@ -233,7 +232,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
     var hint =
         new Paragraph(
-            "Solo PDF por ahora. Validamos tipo, tamano y firma basica del archivo antes de llamar"
+            "Solo PDF por ahora. Validamos tipo, tamaño y firma básica del archivo antes de llamar"
                 + " a Docling.");
     hint.addClassName("document-ingest-upload-hint");
 
