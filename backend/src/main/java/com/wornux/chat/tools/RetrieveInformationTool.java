@@ -1,74 +1,54 @@
 package com.wornux.chat.tools;
 
-//import org.springframework.ai.chat.model.ToolContext;
-//import org.springframework.ai.document.Document;
-//import org.springframework.ai.tool.annotation.Tool;
-//import org.springframework.ai.tool.annotation.ToolParam;
-//import org.springframework.ai.vectorstore.SearchRequest;
-//import org.springframework.ai.vectorstore.VectorStore;
+import com.wornux.documentingest.DocumentContextResult;
+import com.wornux.documentingest.DocumentRetrievalService;
+import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
-
-//import java.util.List;
-//import java.util.regex.Pattern;
 
 @Component
 public class RetrieveInformationTool {
 
-//    private static final int SEARCH_TOP_K = 3;
-//
-//    private final VectorStore vectorStore;
-//    private final ToolUsageAuditService toolUsageAuditService;
-//
-//    public TutorTools(VectorStore vectorStore, ToolUsageAuditService toolUsageAuditService) {
-//        this.vectorStore = vectorStore;
-//        this.toolUsageAuditService = toolUsageAuditService;
-//    }
-//
-//    @Tool(name = "searchCourseMaterial", description = "Searches indexed course material for the most relevant passages about introductory algorithms and C programming.")
-//    public SearchCourseMaterialResult searchCourseMaterial(
-//            @ToolParam(description = "The student's question or the concept to search for.")
-//            String query,
-//            @ToolParam(required = false, description = "Optional topic hint like loops, arrays, or functions.")
-//            String topicHint,
-//            ToolContext toolContext) {
-//        String composedQuery = topicHint == null || topicHint.isBlank() ? query : "%s topic:%s".formatted(query, topicHint);
-//        return toolUsageAuditService.audit(
-//                "searchCourseMaterial",
-//                toolContext,
-//                "query_len=%d topic_hint=%s".formatted(query == null ? 0 : query.length(), topicHint == null ? "none" : topicHint),
-//                () -> {
-//                    List<Document> documents = vectorStore.similaritySearch(SearchRequest.builder()
-//                            .query(composedQuery)
-//                            .topK(SEARCH_TOP_K)
-//                            .similarityThreshold(0.60)
-//                            .build());
-//                    List<SearchHit> hits = documents == null ? List.of() : documents.stream()
-//                                                                           .map(document -> new SearchHit(
-//                                                                                   summarize(document.getText()),
-//                                                                                   document.getMetadata().getOrDefault("source", "vector_store").toString(),
-//                                                                                   document.getScore()))
-//                                                                           .toList();
-//                    var result = new SearchCourseMaterialResult(hits, !hits.isEmpty());
-//                    return new ToolUsageAuditService.ToolResult<>(
-//                            result,
-//                            "hits=%d context_found=%s".formatted(hits.size(), result.contextFound()),
-//                            new ToolLearningSignal("topic=" + (topicHint == null ? "unknown" : topicHint), !hits.isEmpty(), "retrieval_context"));
-//                });
-//    }
-//
-//    private static String summarize(String text) {
-//        if (text == null || text.isBlank()) {
-//            return "";
-//        }
-//        String normalized = text.replaceAll("\\s+", " ").trim();
-//        return normalized.length() <= 220 ? normalized : normalized.substring(0, 217) + "...";
-//    }
-//
-//
-//    public record SearchCourseMaterialResult(List<SearchHit> hits, boolean contextFound) {
-//    }
-//
-//    public record SearchHit(String excerpt, String source, Double score) {
-//    }
+  private final DocumentRetrievalService documentRetrievalService;
+  private final ToolUsageAuditService toolUsageAuditService;
 
+  public RetrieveInformationTool(
+      DocumentRetrievalService documentRetrievalService,
+      ToolUsageAuditService toolUsageAuditService) {
+    this.documentRetrievalService = documentRetrievalService;
+    this.toolUsageAuditService = toolUsageAuditService;
+  }
+
+  @Tool(
+      name = "searchUploadedDocuments",
+      description =
+          "Searches approved text segments extracted from PDFs uploaded by the current user. Use"
+              + " this when the question refers to an uploaded document, report, PDF, or"
+              + " document-specific facts.")
+  public DocumentContextResult searchUploadedDocuments(
+      @ToolParam(description = "The user question or the fact to look up inside uploaded PDFs.")
+          String query,
+      @ToolParam(
+              required = false,
+              description = "Optional exact uploaded filename to narrow the search.")
+          String filenameHint,
+      ToolContext toolContext) {
+    return toolUsageAuditService.audit(
+        "searchUploadedDocuments",
+        toolContext,
+        "query_len=%d filename_hint=%s"
+            .formatted(
+                query == null ? 0 : query.length(), filenameHint == null ? "none" : filenameHint),
+        () -> {
+          var clientId =
+              java.util.UUID.fromString(
+                  String.valueOf(toolContext.getContext().get(ToolUsageAuditService.CLIENT_ID)));
+          var result = documentRetrievalService.search(clientId, query, filenameHint);
+          return new ToolUsageAuditService.ToolResult<>(
+              result,
+              "hits=%d context_found=%s".formatted(result.hits().size(), result.contextFound()),
+              new ToolLearningSignal("uploaded_documents", false, "retrieval_context"));
+        });
+  }
 }

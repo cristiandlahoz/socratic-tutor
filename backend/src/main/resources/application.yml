@@ -6,6 +6,9 @@ server:
   port: ${PORT:8080}
 
 spring:
+  servlet:
+    multipart:
+      enabled: false
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:${POSTGRES_PORT:4321}/socratic-tutor}
     username: ${DATABASE_USERNAME:postgres}
@@ -64,6 +67,15 @@ app:
       routing-model: ${ROUTING_MODEL:${spring.ai.ollama.chat.model}}
     title:
       model: ${TITLE_MODEL:${spring.ai.ollama.chat.model}}
+  document-ingest:
+    docling-base-url: ${DOCLING_BASE_URL:http://localhost:5001}
+    docling-connect-timeout: ${DOCLING_CONNECT_TIMEOUT:5s}
+    docling-read-timeout: ${DOCLING_READ_TIMEOUT:2m}
+    max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:20971520}
+    segment-max-chars: ${DOCUMENT_SEGMENT_MAX_CHARS:1400}
+    segment-overlap-chars: ${DOCUMENT_SEGMENT_OVERLAP_CHARS:160}
+    retrieval-top-k: ${DOCUMENT_RETRIEVAL_TOP_K:4}
+    retrieval-similarity-threshold: ${DOCUMENT_RETRIEVAL_SIMILARITY_THRESHOLD:0.55}
 
 vaadin:
   allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux

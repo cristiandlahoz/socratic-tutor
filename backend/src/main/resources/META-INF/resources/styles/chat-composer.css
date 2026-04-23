@@ -305,7 +305,7 @@ vaadin-button.chat-question-option:hover::part(button) {
   background: color-mix(in srgb, var(--chat-surface-raised) 62%, transparent);
 }
 
-.chat-question-option-row.is-selected vaadin-button.chat-question-option::part(button) {
+.chat-question-option.is-selected::part(button) {
   border-color: color-mix(in srgb, var(--chat-interactive-strong) 52%, var(--chat-border-emphasis));
   background: color-mix(in srgb, var(--chat-interactive-strong) 8%, transparent);
 }

@@ -9,7 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.ai.tutor")
 public class TutorAiProperties {
 
-    private boolean promptLoggingEnabled;
-    private String routingModel;
-
+  private boolean promptLoggingEnabled;
+  private String routingModel;
 }

@@ -17,22 +17,23 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 @SpringBootApplication
 public class Application implements AppShellConfigurator {
 
-    static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
+  static void main(String[] args) {
+    SpringApplication.run(Application.class, args);
+  }
 
-//    @Bean
-//    ApplicationRunner runner(VectorStore store) {
-//        return (_) ->
-//                store.similaritySearch(
-//                        SearchRequest.builder()
-//                                .query("""
-//                                        Instruct: Given a student question about C programming,
-//                                        retrieve the most relevant educational passages that answer the question.
-//                                        Query: que es un bucle""")
-//                                .topK(4)
-//                                .similarityThreshold(0.50)
-//                                .build());
-//    }
+  //    @Bean
+  //    ApplicationRunner runner(VectorStore store) {
+  //        return (_) ->
+  //                store.similaritySearch(
+  //                        SearchRequest.builder()
+  //                                .query("""
+  //                                        Instruct: Given a student question about C programming,
+  //                                        retrieve the most relevant educational passages that
+  // answer the question.
+  //                                        Query: que es un bucle""")
+  //                                .topK(4)
+  //                                .similarityThreshold(0.50)
+  //                                .build());
+  //    }
 
 }

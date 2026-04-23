@@ -7,13 +7,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -22,47 +21,46 @@ import java.util.UUID;
 @Table(name = "chat")
 public class ChatEntity {
 
-    @Id
-    private UUID id;
+  @Id private UUID id;
 
-    @Column(name = "client_id", nullable = false)
-    private UUID clientId;
+  @Column(name = "client_id", nullable = false)
+  private UUID clientId;
 
-    @Column(nullable = false)
-    private String title;
+  @Column(nullable = false)
+  private String title;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "current_transcript_id")
-    private ChatTranscriptEntity currentTranscript;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "current_transcript_id")
+  private ChatTranscriptEntity currentTranscript;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+  @Column(name = "created_at", nullable = false)
+  private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
-    public static ChatEntity create(UUID clientId, String title) {
-        var now = Instant.now();
-        var entity = new ChatEntity();
-        entity.id = UUID.randomUUID();
-        entity.clientId = clientId;
-        entity.title = title;
-        entity.createdAt = now;
-        entity.updatedAt = now;
-        return entity;
-    }
+  public static ChatEntity create(UUID clientId, String title) {
+    var now = Instant.now();
+    var entity = new ChatEntity();
+    entity.id = UUID.randomUUID();
+    entity.clientId = clientId;
+    entity.title = title;
+    entity.createdAt = now;
+    entity.updatedAt = now;
+    return entity;
+  }
 
-    public void activateTranscript(ChatTranscriptEntity transcript) {
-        this.currentTranscript = transcript;
-        touch();
-    }
+  public void activateTranscript(ChatTranscriptEntity transcript) {
+    this.currentTranscript = transcript;
+    touch();
+  }
 
-    public void touch() {
-        this.updatedAt = Instant.now();
-    }
+  public void touch() {
+    this.updatedAt = Instant.now();
+  }
 
-    public void rename(String title) {
-        this.title = title;
-        touch();
-    }
+  public void rename(String title) {
+    this.title = title;
+    touch();
+  }
 }

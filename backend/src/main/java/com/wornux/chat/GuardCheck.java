@@ -1,4 +1,3 @@
 package com.wornux.chat;
 
-public record GuardCheck(GuardDecision decision) {
-}
+public record GuardCheck(GuardDecision decision) {}

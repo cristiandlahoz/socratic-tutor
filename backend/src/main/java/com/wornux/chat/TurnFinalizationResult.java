@@ -1,4 +1,3 @@
 package com.wornux.chat;
 
-public record TurnFinalizationResult(ChatCompactionStatus compactionStatus) {
-}
+public record TurnFinalizationResult(ChatCompactionStatus compactionStatus) {}

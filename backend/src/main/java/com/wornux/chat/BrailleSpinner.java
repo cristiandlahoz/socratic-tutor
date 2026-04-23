@@ -8,7 +8,8 @@ import com.vaadin.flow.component.dependency.JsModule;
 @JsModule("./braille-spinner.ts")
 public class BrailleSpinner extends Component {
 
-    public void setSpinner(String spinner) {
-        getElement().setProperty("spinner", spinner == null || spinner.isBlank() ? "braille" : spinner.trim());
-    }
+  public void setSpinner(String spinner) {
+    getElement()
+        .setProperty("spinner", spinner == null || spinner.isBlank() ? "braille" : spinner.trim());
+  }
 }
