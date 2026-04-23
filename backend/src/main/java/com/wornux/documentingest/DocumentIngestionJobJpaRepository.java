@@ -1,0 +1,11 @@
+package com.wornux.documentingest;
+
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface DocumentIngestionJobJpaRepository
+    extends JpaRepository<DocumentIngestionJobEntity, UUID> {
+
+  Optional<DocumentIngestionJobEntity> findFirstByDocument_IdOrderByStartedAtDesc(UUID documentId);
+}
