@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.NullUnmarked;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
@@ -30,14 +30,14 @@ public class DocumentCatalogAdvisor implements CallAdvisor, StreamAdvisor {
   }
 
   @Override
-  public ChatClientResponse adviseCall(
-      ChatClientRequest request, @NonNull CallAdvisorChain chain) {
+  public @NullMarked ChatClientResponse adviseCall(
+      ChatClientRequest request, CallAdvisorChain chain) {
     return chain.nextCall(appendInventory(request));
   }
 
   @Override
-  public Flux<ChatClientResponse> adviseStream(
-      ChatClientRequest request, @NonNull StreamAdvisorChain chain) {
+  public @NullMarked Flux<ChatClientResponse> adviseStream(
+      ChatClientRequest request, StreamAdvisorChain chain) {
     return chain.nextStream(appendInventory(request));
   }
 
