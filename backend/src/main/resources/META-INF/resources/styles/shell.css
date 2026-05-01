@@ -10,13 +10,14 @@
   flex-direction: column;
   align-items: stretch;
   gap: 0.4rem;
-  padding: 0.6rem 0.55rem;
-  background: var(--chat-black);
+  padding: 0.75rem 0.65rem;
+  background: transparent;
 }
 
 vaadin-app-layout::part(drawer) {
-  background: var(--chat-black);
+  background: var(--theme-header-surface);
   border-inline-end: 1px solid var(--chat-border-section);
+  backdrop-filter: blur(18px);
 }
 
 vaadin-drawer-toggle.shell-drawer-toggle {
@@ -29,18 +30,24 @@ vaadin-drawer-toggle.shell-drawer-toggle {
 vaadin-drawer-toggle.shell-drawer-toggle::part(button) {
   width: 2.8rem;
   height: 2.8rem;
-  border-radius: var(--chat-radius-s);
+  border-radius: var(--chat-panel-radius);
   border: 1px solid var(--chat-border-emphasis);
-  background: var(--chat-surface);
-  box-shadow: none;
+  background: var(--chat-surface-strong);
+  box-shadow: var(--chat-shadow-dark-card);
   color: var(--chat-text-secondary);
+  transition:
+      background var(--chat-transition-fast),
+      border-color var(--chat-transition-fast),
+      color var(--chat-transition-fast),
+      transform var(--chat-transition-fast);
 }
 
 vaadin-drawer-toggle.shell-drawer-toggle:hover::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button) {
-  background: var(--chat-surface-raised);
-  border-color: var(--chat-interactive);
-  color: var(--chat-text-primary);
+  background: var(--chat-surface-hover);
+  border-color: var(--chat-interactive-strong);
+  color: var(--chat-text-display);
+  transform: translateY(-1px);
 }
 
 .chat-view {
@@ -60,7 +67,7 @@ vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button) {
   overflow: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  background: var(--chat-black);
+  background: transparent;
 }
 
 .chat-scroll-region::-webkit-scrollbar {
