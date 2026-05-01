@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.NullUnmarked;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
@@ -33,13 +33,13 @@ public class PedagogicalRoutingAdvisor implements CallAdvisor, StreamAdvisor {
   }
 
   @Override
-  public ChatClientResponse adviseCall(ChatClientRequest request, @NonNull CallAdvisorChain chain) {
+  public @NullMarked ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
     return chain.nextCall(applyRouting(request));
   }
 
   @Override
-  public Flux<ChatClientResponse> adviseStream(
-      ChatClientRequest request, @NonNull StreamAdvisorChain chain) {
+  public @NullMarked Flux<ChatClientResponse> adviseStream(
+      ChatClientRequest request, StreamAdvisorChain chain) {
     return chain.nextStream(applyRouting(request));
   }
 
