@@ -26,7 +26,6 @@ import com.wornux.MainLayout;
 import com.wornux.chat.ui.StudentQuestionPanel;
 import java.util.Locale;
 import java.util.UUID;
-
 import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.MessageType;
 
@@ -136,6 +135,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     animationFrame.addClassName("chat-empty-frame");
 
     var eyebrow = new Span("Asistente académico");
+    eyebrow.addClassName("chat-empty-eyebrow");
 
     var title = new H2("Haz tu primera pregunta");
     title.addClassName("chat-empty-title");
@@ -146,7 +146,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     return state;
   }
 
-  private static @NonNull HorizontalLayout getContentRow(Span eyebrow, H2 title, Div animationFrame) {
+  private static @NonNull HorizontalLayout getContentRow(
+      Span eyebrow, H2 title, Div animationFrame) {
     var description =
         new Paragraph(
             "Escribe y te ayudare a razonar paso a paso, aclarar conceptos y practicar con"

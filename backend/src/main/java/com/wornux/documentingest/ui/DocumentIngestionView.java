@@ -39,7 +39,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
   private final Button approveButton;
   private final Button retryButton;
 
-    public DocumentIngestionView(
+  public DocumentIngestionView(
       DocumentIngestionUiController controller,
       DocumentIngestionUiState state,
       DocumentIngestionProperties properties) {
@@ -61,7 +61,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
                 + " luego indexalo para preguntas posteriores.");
     description.addClassName("document-ingest-description");
 
-        Button backToChatButton = new Button("Volver al chat");
+    Button backToChatButton = new Button("Volver al chat");
     backToChatButton.addThemeVariants(ButtonVariant.TERTIARY);
     backToChatButton.addClassName("document-ingest-back-button");
     backToChatButton.setIcon(new Icon(VaadinIcon.ARROW_LEFT));
@@ -111,7 +111,8 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         new Div(
             sectionHeader(
                 "segmentos",
-                "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y captions."),
+                "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y"
+                    + " captions."),
             segmentEditorList);
     segmentsShell.addClassName("document-ingest-segments-shell");
 
@@ -192,6 +193,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
   private Button createPrimaryUploadButton() {
     var button = new Button("Subir PDF");
     button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+    button.addClassName("document-ingest-upload-button");
     return button;
   }
 
