@@ -80,6 +80,42 @@ public class StudentProfileService {
   }
 
   @Transactional
+  public ThemePreference getThemePreference(UUID clientId) {
+    if (clientId == null) {
+      return ThemePreference.SYSTEM;
+    }
+
+    var preference =
+        profileRepository
+            .findById(clientId)
+            .orElseGet(() -> profileRepository.save(StudentProfileEntity.create(clientId)))
+            .getThemePreference();
+    return preference == null ? ThemePreference.SYSTEM : preference;
+  }
+
+  @Transactional
+  public ThemePreference updateThemePreference(UUID clientId, ThemePreference preference) {
+    if (clientId == null) {
+      return ThemePreference.SYSTEM;
+    }
+
+    var nextPreference = preference == null ? ThemePreference.SYSTEM : preference;
+    var profile =
+        profileRepository
+            .findById(clientId)
+            .orElseGet(() -> profileRepository.save(StudentProfileEntity.create(clientId)));
+
+    if (profile.getThemePreference() == nextPreference) {
+      return nextPreference;
+    }
+
+    profile.setThemePreference(nextPreference);
+    profile.touchWithoutProfileVersion();
+    profileRepository.save(profile);
+    return nextPreference;
+  }
+
+  @Transactional
   public void applyTurnSignals(UUID clientId, TurnProfileUpdate update) {
     if (clientId == null || update == null) {
       return;

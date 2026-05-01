@@ -41,6 +41,10 @@ public class StudentProfileEntity {
   @Column(name = "profile_version", nullable = false)
   private long profileVersion;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "theme_preference", nullable = false, length = 16)
+  private ThemePreference themePreference;
+
   protected StudentProfileEntity() {}
 
   public static StudentProfileEntity create(UUID clientId) {
@@ -53,6 +57,7 @@ public class StudentProfileEntity {
     entity.confidenceScore = new BigDecimal("0.500");
     entity.lastUpdatedAt = Instant.now();
     entity.profileVersion = 1L;
+    entity.themePreference = ThemePreference.SYSTEM;
     return entity;
   }
 
@@ -108,8 +113,20 @@ public class StudentProfileEntity {
     return profileVersion;
   }
 
+  public ThemePreference getThemePreference() {
+    return themePreference;
+  }
+
+  public void setThemePreference(ThemePreference themePreference) {
+    this.themePreference = themePreference;
+  }
+
   public void touch() {
     this.lastUpdatedAt = Instant.now();
     this.profileVersion++;
+  }
+
+  public void touchWithoutProfileVersion() {
+    this.lastUpdatedAt = Instant.now();
   }
 }
