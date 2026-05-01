@@ -1,6 +1,6 @@
 .chat-sidebar-action-link {
   display: block;
-  border-radius: var(--chat-radius-s);
+  border-radius: var(--chat-panel-radius);
   color: inherit;
   text-decoration: none;
 }
@@ -17,23 +17,28 @@
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
-  border-radius: var(--chat-radius-s);
-  border: 1px solid transparent;
-  background: transparent;
+  border-radius: var(--chat-panel-radius);
+  border: 1px solid var(--chat-border-section);
+  background: var(--theme-button-fill);
   color: var(--chat-text-primary);
   font-family: var(--chat-font-mono);
   font-size: 0.76rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  transition:
+      background var(--chat-transition-fast),
+      border-color var(--chat-transition-fast),
+      color var(--chat-transition-fast),
+      transform var(--chat-transition-fast);
 }
 
 .chat-sidebar-action-link:hover .chat-sidebar-action-link-content,
 .chat-sidebar-action-link:focus-visible .chat-sidebar-action-link-content,
 .chat-sidebar-action-link[aria-current="page"] .chat-sidebar-action-link-content {
-  background: rgba(12, 41, 48, 0.88);
-  border-color: var(--chat-border-section);
+  background: var(--theme-button-fill-hover);
+  border-color: color-mix(in srgb, var(--chat-interactive-strong) 36%, var(--chat-border-section));
   color: var(--chat-text-display);
+  transform: translateY(-1px);
 }
 
 .document-ingest-view {
@@ -44,8 +49,11 @@
   flex-direction: column;
   gap: 1rem;
   background:
-    radial-gradient(circle at top right, rgba(252, 73, 160, 0.08), transparent 26rem),
-    linear-gradient(180deg, rgba(1, 20, 25, 0.98), rgba(2, 10, 13, 1));
+    var(--chat-ambient-glow),
+    linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--chat-black) 94%, transparent),
+        color-mix(in srgb, var(--theme-canvas) 96%, transparent));
 }
 
 .document-ingest-header {
@@ -54,8 +62,10 @@
   gap: 1rem;
   padding: 1.1rem 1.2rem;
   border: 1px solid var(--chat-border-section);
-  border-radius: var(--chat-radius-m);
-  background: rgba(0, 10, 14, 0.88);
+  border-radius: var(--chat-panel-radius);
+  background: var(--chat-surface);
+  box-shadow: var(--chat-shadow-dark-card);
+  backdrop-filter: blur(18px);
 }
 
 .document-ingest-header-copy {
@@ -79,10 +89,11 @@
 .document-ingest-title {
   margin: 0;
   color: var(--chat-text-display);
-  font-family: var(--chat-font-body);
-  font-size: clamp(1.6rem, 2.4vw, 2.25rem);
-  line-height: 1;
-  letter-spacing: -0.05em;
+  font-family: var(--chat-font-display);
+  font-size: clamp(2.5rem, 4vw, 3.4rem);
+  line-height: 0.98;
+  letter-spacing: var(--chat-tracking-heading);
+  font-weight: 300;
 }
 
 .document-ingest-description,
@@ -107,9 +118,11 @@
 .document-ingest-markdown-shell,
 .document-ingest-segments-shell {
   border: 1px solid var(--chat-border-section);
-  border-radius: var(--chat-radius-m);
-  background: rgba(0, 10, 14, 0.9);
+  border-radius: var(--chat-panel-radius);
+  background: var(--chat-surface);
   padding: 1rem;
+  box-shadow: var(--chat-shadow-dark-card);
+  backdrop-filter: blur(18px);
 }
 
 .document-ingest-upload-card {
@@ -150,9 +163,10 @@
 
 .document-ingest-markdown-editor::part(input-field),
 .document-ingest-segment-text::part(input-field) {
-  background: rgba(4, 19, 26, 0.92);
+  background: var(--chat-surface-strong);
   border: 1px solid var(--chat-border-section);
-  border-radius: var(--chat-radius-s);
+  border-radius: var(--chat-panel-radius);
+  box-shadow: var(--chat-shadow-dark-card);
 }
 
 .document-ingest-markdown-editor textarea,
@@ -174,9 +188,9 @@
   flex-direction: column;
   gap: 0.3rem;
   padding: 0.9rem;
-  border-radius: var(--chat-radius-s);
-  border: 1px solid rgba(109, 135, 138, 0.2);
-  background: rgba(4, 16, 22, 0.92);
+  border-radius: var(--chat-panel-radius);
+  border: 1px solid var(--theme-border-subtle);
+  background: color-mix(in srgb, var(--chat-surface-raised) 92%, transparent);
 }
 
 .document-ingest-segment-provenance {
@@ -190,10 +204,10 @@
 .document-ingest-segment-provenance span {
   max-width: 100%;
   overflow-wrap: anywhere;
-  border: 1px solid rgba(109, 135, 138, 0.18);
-  border-radius: 999px;
+  border: 1px solid var(--theme-border-subtle);
+  border-radius: var(--chat-panel-radius-tight);
   padding: 0.22rem 0.45rem;
-  background: rgba(11, 39, 48, 0.72);
+  background: var(--theme-button-ghost-soft);
   color: var(--chat-text-secondary);
 }
 
@@ -201,6 +215,32 @@
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
+}
+
+vaadin-button.document-ingest-back-button::part(button),
+vaadin-button.document-ingest-retry-button::part(button),
+vaadin-button.document-ingest-approve-button::part(button),
+vaadin-button.document-ingest-upload-button::part(button) {
+  min-height: 2.8rem;
+  border-radius: var(--chat-panel-radius);
+  border: 1px solid var(--chat-border-section);
+  background: var(--theme-button-fill);
+  color: var(--chat-text-primary);
+  box-shadow: var(--chat-shadow-dark-card);
+  transition:
+      background var(--chat-transition-fast),
+      border-color var(--chat-transition-fast),
+      color var(--chat-transition-fast),
+      transform var(--chat-transition-fast);
+}
+
+vaadin-button.document-ingest-back-button:hover::part(button),
+vaadin-button.document-ingest-retry-button:hover::part(button),
+vaadin-button.document-ingest-approve-button:hover::part(button),
+vaadin-button.document-ingest-upload-button:hover::part(button) {
+  background: var(--theme-button-fill-hover);
+  color: var(--chat-text-display);
+  transform: translateY(-1px);
 }
 
 @media (max-width: 780px) {
