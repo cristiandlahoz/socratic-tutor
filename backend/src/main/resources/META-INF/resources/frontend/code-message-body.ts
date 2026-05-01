@@ -31,13 +31,16 @@ function ensureCodeMessageBodyStyles(): void {
       width: 100%;
       overflow: hidden;
       border: 1px solid var(--chat-border-visible);
-      border-radius: var(--chat-radius-m);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
-      background: #0f172a;
+      border-radius: var(--chat-code-radius);
+      box-shadow: var(--chat-shadow-dark-card);
+      background: var(--chat-code-background);
+      backdrop-filter: blur(16px);
+      font-size: var(--chat-font-size);
+      line-height: var(--chat-leading-code);
     }
 
     vaadin-message.chat-message-user code-message-body code-block-viewer {
-      border-color: rgba(255, 255, 255, 0.16);
+      border-color: var(--chat-border-visible);
     }
 
     code-message-body vaadin-markdown {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import CodeMirror from '@uiw/react-codemirror';
+import { gruvboxDark } from '@fsegurai/codemirror-theme-gruvbox-dark';
 import { solarizedDark } from '@fsegurai/codemirror-theme-solarized-dark';
 import { json } from '@codemirror/lang-json';
 import { xml } from '@codemirror/lang-xml';
@@ -45,6 +46,9 @@ class CodeBlockViewerElement extends HTMLElement {
   private shadowReady = false;
   private internalValue = '';
   private internalLang = '';
+  private currentThemePreference = 'system';
+  private themePreferenceObserver: MutationObserver | null = null;
+  private systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
   connectedCallback(): void {
     if (!this.shadowRoot) {
@@ -54,10 +58,25 @@ class CodeBlockViewerElement extends HTMLElement {
       this.root = createRoot(this.shadowRoot);
     }
     this.shadowReady = true;
+    this.currentThemePreference =
+      document.documentElement.getAttribute('data-theme-preference') ?? 'system';
+    this.themePreferenceObserver = new MutationObserver(() => {
+      this.currentThemePreference =
+        document.documentElement.getAttribute('data-theme-preference') ?? 'system';
+      this.renderEditor();
+    });
+    this.themePreferenceObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme-preference'],
+    });
+    this.systemThemeQuery.addEventListener('change', this.handleSystemThemeChange);
     this.renderEditor();
   }
 
   disconnectedCallback(): void {
+    this.systemThemeQuery.removeEventListener('change', this.handleSystemThemeChange);
+    this.themePreferenceObserver?.disconnect();
+    this.themePreferenceObserver = null;
     this.root?.unmount();
     this.root = null;
     this.shadowReady = false;
@@ -81,30 +100,81 @@ class CodeBlockViewerElement extends HTMLElement {
     return this.internalLang;
   }
 
+  private readonly handleSystemThemeChange = (): void => {
+    if (this.currentThemePreference === 'system') {
+      this.renderEditor();
+    }
+  };
+
+  private resolveTheme(): Extension | undefined {
+    if (this.currentThemePreference === 'light') {
+      return gruvboxDark;
+    }
+    if (this.currentThemePreference === 'dark') {
+      return solarizedDark;
+    }
+    return this.systemThemeQuery.matches ? solarizedDark : gruvboxDark;
+  }
+
   private renderEditor(): void {
     if (!this.shadowReady || !this.root || !this.shadowRoot) {
       return;
     }
 
     this.root.render(
-      <CodeMirror
-        value={this.internalValue}
-        height="auto"
-        width="100%"
-        theme={solarizedDark}
-        extensions={langExtension(this.internalLang)}
-        root={this.shadowRoot}
-        editable={false}
-        readOnly={true}
-        basicSetup={{
-          highlightActiveLine: false,
-          highlightActiveLineGutter: false,
-          foldGutter: false,
-          dropCursor: false,
-          allowMultipleSelections: true,
-          indentOnInput: false,
-        }}
-      />,
+      <>
+        <style>{`
+         :host {
+            display: block;
+          }
+
+          .cm-editor {
+            border: 0;
+            background: transparent !important;
+            font-family: var(--chat-font-mono);
+            font-size: var(--chat-font-size);
+            line-height: var(--chat-leading-code);
+          }
+
+          .cm-scroller,
+          .cm-content,
+          .cm-gutters,
+          .cm-lineNumbers {
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+          }
+
+          .cm-scroller,
+          .cm-gutters,
+          .cm-activeLine,
+          .cm-activeLineGutter {
+            background: transparent !important;
+          }
+
+          .cm-gutters {
+            border: 0;
+          }
+        `}</style>
+        <CodeMirror
+          value={this.internalValue}
+          height="auto"
+          width="100%"
+          theme={this.resolveTheme()}
+          extensions={langExtension(this.internalLang)}
+          root={this.shadowRoot}
+          editable={false}
+          readOnly={true}
+          basicSetup={{
+            highlightActiveLine: false,
+            highlightActiveLineGutter: false,
+            foldGutter: false,
+            dropCursor: false,
+            allowMultipleSelections: true,
+            indentOnInput: false,
+          }}
+        />
+      </>,
     );
   }
 }
