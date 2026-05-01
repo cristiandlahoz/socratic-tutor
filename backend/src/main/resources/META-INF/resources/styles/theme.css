@@ -1,52 +1,188 @@
 html {
-  color-scheme: dark;
-  --aura-font-family: var(--chat-font-body);
-  --aura-base-font-size: 16;
-  --aura-base-radius: 8;
-  --aura-contrast-level: 8;
-  --aura-background-color-dark: var(--color-bg-panel);
-  --aura-background-color-light: #f5f5f5;
-  --aura-blue: var(--color-interactive-strong);
-  --aura-accent-color-dark: var(--color-interactive-default);
-  --aura-accent-color-light: var(--chat-accent);
-  --aura-app-background: var(--color-bg-app);
-  --aura-app-layout-inset: 0px;
-  --aura-app-layout-border-width: 0px;
-  --aura-app-layout-border-radius: 0px;
-  --vaadin-app-layout-drawer-width: clamp(21rem, 25vw, 24rem);
-  --vaadin-app-layout-drawer-background: var(--color-bg-panel);
-  --vaadin-overlay-shadow: none;
-  --vaadin-overlay-backdrop-background: rgba(0, 0, 0, 0.84);
-  background: var(--color-bg-app);
+    color-scheme: dark;
+    --aura-font-family: var(--chat-font-body);
+    --aura-base-font-size: 16;
+    --aura-base-line-height: 1.5;
+    --aura-base-radius: 10;
+    --aura-contrast-level: 8;
+    --aura-background-color-dark: var(--theme-canvas);
+    --aura-background-color-light: var(--color-canvas);
+    --aura-blue: var(--color-signal-blue);
+    --aura-red: var(--color-red-prism);
+    --aura-yellow: var(--color-marigold);
+    --aura-accent-color-dark: var(--chat-interactive);
+    --aura-accent-color-light: var(--chat-interactive);
+    --aura-app-background: var(--chat-black);
+    --aura-app-layout-inset: 0px;
+    --aura-app-layout-border-width: 0px;
+    --aura-app-layout-border-radius: 0px;
+    --vaadin-app-layout-drawer-width: clamp(21rem, 25vw, 24rem);
+    --vaadin-app-layout-drawer-background: var(--theme-header-surface);
+    --vaadin-overlay-shadow: var(--chat-shadow-soft);
+    --vaadin-overlay-backdrop-background: rgba(0, 0, 0, 0.36);
+
+    --vaadin-message-font-size: var(--chat-font-size);
+    --vaadin-message-font-weight: 500;
 }
 
 html,
 body {
-  height: 100%;
-  overflow: hidden;
-  margin: 0;
-  background: var(--chat-black);
-  color: var(--chat-text-primary);
-  font-family: var(--chat-font-body);
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    background: var(--chat-black);
+    color: var(--chat-text-primary);
+    font-family: var(--chat-font-body);
+}
+
+body {
+    position: relative;
+    accent-color: var(--chat-interactive-strong);
+    text-rendering: optimizeLegibility;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: var(--chat-ambient-glow);
+    opacity: 0.4;
+}
+
+body > * {
+    position: relative;
+    z-index: 1;
+}
+
+::selection {
+    background: var(--chat-selection);
+}
+
+:focus-visible {
+    outline: 2px solid var(--chat-focus-ring);
+    outline-offset: 2px;
 }
 
 @media (prefers-color-scheme: light) {
-  :root {
-    --chat-black: #f5f5f5;
-    --chat-surface: #ffffff;
-    --chat-surface-raised: #f0f0f0;
-    --chat-border: #e8e8e8;
-    --chat-border-visible: #cccccc;
-    --chat-text-disabled: #999999;
-    --chat-text-secondary: #666666;
-    --chat-text-primary: #1a1a1a;
-    --chat-text-display: #000000;
-    --chat-interactive: #007aff;
-    --chat-interactive-strong: #005ed1;
-  }
+    :root {
+        --theme-app-background: var(--theme-light-app-background);
+        --theme-canvas: var(--theme-light-canvas);
+        --theme-header-surface: var(--theme-light-header-surface);
+        --theme-card-surface: var(--theme-light-card-surface);
+        --theme-card-surface-strong: var(--theme-light-card-surface-strong);
+        --theme-card-surface-raised: var(--theme-light-card-surface-raised);
+        --theme-card-surface-hover: var(--theme-light-card-surface-hover);
+        --theme-card-surface-muted: var(--theme-light-card-surface-muted);
+        --theme-button-fill: var(--theme-light-button-fill);
+        --theme-button-fill-hover: var(--theme-light-button-fill-hover);
+        --theme-button-ghost-hover: var(--theme-light-button-ghost-hover);
+        --theme-button-ghost-soft: var(--theme-light-button-ghost-soft);
+        --theme-border-subtle: var(--theme-light-border-subtle);
+        --theme-border-default: var(--theme-light-border-default);
+        --theme-border-strong: var(--theme-light-border-strong);
+        --theme-text-display: var(--theme-light-text-display);
+        --theme-text-primary: var(--theme-light-text-primary);
+        --theme-text-secondary: var(--theme-light-text-secondary);
+        --theme-text-tertiary: var(--theme-light-text-tertiary);
+        --theme-link: var(--theme-light-link);
+        --theme-interactive: var(--theme-light-interactive);
+        --theme-interactive-strong: var(--theme-light-interactive-strong);
+        --theme-focus-ring: var(--theme-light-focus-ring);
+        --theme-selection: var(--theme-light-selection);
+        --theme-history-accent: var(--theme-light-history-accent);
+        --theme-history-accent-soft: var(--theme-light-history-accent-soft);
+        --theme-history-accent-label: var(--theme-light-history-accent-label);
+        --theme-history-line: var(--theme-light-history-line);
+        --theme-glow: var(--theme-light-glow);
+        --theme-code-background: var(--theme-light-code-background);
+    }
 
-  html {
+    html:not([data-theme-preference]),
+    html[data-theme-preference="system"] {
+        color-scheme: light;
+        --aura-app-background: var(--chat-black);
+        --aura-accent-color-light: var(--chat-interactive);
+    }
+}
+
+html[data-theme-preference="light"],
+body[data-theme-preference="light"] {
+    --theme-app-background: var(--theme-light-app-background);
+    --theme-canvas: var(--theme-light-canvas);
+    --theme-header-surface: var(--theme-light-header-surface);
+    --theme-card-surface: var(--theme-light-card-surface);
+    --theme-card-surface-strong: var(--theme-light-card-surface-strong);
+    --theme-card-surface-raised: var(--theme-light-card-surface-raised);
+    --theme-card-surface-hover: var(--theme-light-card-surface-hover);
+    --theme-card-surface-muted: var(--theme-light-card-surface-muted);
+    --theme-button-fill: var(--theme-light-button-fill);
+    --theme-button-fill-hover: var(--theme-light-button-fill-hover);
+    --theme-button-ghost-hover: var(--theme-light-button-ghost-hover);
+    --theme-button-ghost-soft: var(--theme-light-button-ghost-soft);
+    --theme-border-subtle: var(--theme-light-border-subtle);
+    --theme-border-default: var(--theme-light-border-default);
+    --theme-border-strong: var(--theme-light-border-strong);
+    --theme-text-display: var(--theme-light-text-display);
+    --theme-text-primary: var(--theme-light-text-primary);
+    --theme-text-secondary: var(--theme-light-text-secondary);
+    --theme-text-tertiary: var(--theme-light-text-tertiary);
+    --theme-link: var(--theme-light-link);
+    --theme-interactive: var(--theme-light-interactive);
+    --theme-interactive-strong: var(--theme-light-interactive-strong);
+    --theme-focus-ring: var(--theme-light-focus-ring);
+    --theme-selection: var(--theme-light-selection);
+    --theme-history-accent: var(--theme-light-history-accent);
+    --theme-history-accent-soft: var(--theme-light-history-accent-soft);
+    --theme-history-accent-label: var(--theme-light-history-accent-label);
+    --theme-history-line: var(--theme-light-history-line);
+    --theme-glow: var(--theme-light-glow);
+    --theme-code-background: var(--theme-light-code-background);
+}
+
+html[data-theme-preference="light"] {
     color-scheme: light;
     --aura-app-background: var(--chat-black);
-  }
+    --aura-accent-color-light: var(--chat-interactive);
+}
+
+html[data-theme-preference="dark"],
+body[data-theme-preference="dark"] {
+    --theme-app-background: var(--theme-dark-app-background);
+    --theme-canvas: var(--theme-dark-canvas);
+    --theme-header-surface: var(--theme-dark-header-surface);
+    --theme-card-surface: var(--theme-dark-card-surface);
+    --theme-card-surface-strong: var(--theme-dark-card-surface-strong);
+    --theme-card-surface-raised: var(--theme-dark-card-surface-raised);
+    --theme-card-surface-hover: var(--theme-dark-card-surface-hover);
+    --theme-card-surface-muted: var(--theme-dark-card-surface-muted);
+    --theme-button-fill: var(--theme-dark-button-fill);
+    --theme-button-fill-hover: var(--theme-dark-button-fill-hover);
+    --theme-button-ghost-hover: var(--theme-dark-button-ghost-hover);
+    --theme-button-ghost-soft: var(--theme-dark-button-ghost-soft);
+    --theme-border-subtle: var(--theme-dark-border-subtle);
+    --theme-border-default: var(--theme-dark-border-default);
+    --theme-border-strong: var(--theme-dark-border-strong);
+    --theme-text-display: var(--theme-dark-text-display);
+    --theme-text-primary: var(--theme-dark-text-primary);
+    --theme-text-secondary: var(--theme-dark-text-secondary);
+    --theme-text-tertiary: var(--theme-dark-text-tertiary);
+    --theme-link: var(--theme-dark-link);
+    --theme-interactive: var(--theme-dark-interactive);
+    --theme-interactive-strong: var(--theme-dark-interactive-strong);
+    --theme-focus-ring: var(--theme-dark-focus-ring);
+    --theme-selection: var(--theme-dark-selection);
+    --theme-history-accent: var(--theme-dark-history-accent);
+    --theme-history-accent-soft: var(--theme-dark-history-accent-soft);
+    --theme-history-accent-label: var(--theme-dark-history-accent-label);
+    --theme-history-line: var(--theme-dark-history-line);
+    --theme-glow: var(--theme-dark-glow);
+    --theme-code-background: var(--theme-dark-code-background);
+}
+
+html[data-theme-preference="dark"] {
+    color-scheme: dark;
+    --aura-app-background: var(--chat-black);
+    --aura-accent-color-dark: var(--chat-interactive);
 }
