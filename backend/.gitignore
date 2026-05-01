@@ -18,3 +18,10 @@ messagelist/
 
 # Local documentation checkout used as an agent reference, not app source.
 spring-ai-docs/
+
+# Frontend build config (Vaadin manages these)
+package.json
+pnpm-lock.yaml
+tsconfig.json
+types.d.ts
+vite.config.ts
