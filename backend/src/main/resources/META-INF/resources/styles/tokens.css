@@ -1,5 +1,18 @@
-@import url("https://fonts.googleapis.com/css2?family=Doto:wght@400..700&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap");
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+@font-face {
+    font-family: "Zodiak";
+    src: url("/fonts/zodiak/Zodiak-Variable.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Zodiak";
+    src: url("/fonts/zodiak/Zodiak-VariableItalic.woff2") format("woff2");
+    font-style: italic;
+    font-weight: 100 900;
+    font-display: swap;
+}
 
 :root {
     --color-ink-black: #000000;
@@ -25,10 +38,10 @@
             rgb(225, 225, 254) 75%,
             rgb(3, 88, 247) 100%);
 
-    --chat-font-display: "Space Grotesk", "DM Sans", system-ui, sans-serif;
-    --chat-font-body: "Space Grotesk", "DM Sans", system-ui, sans-serif;
-    --chat-font-mono: "Space Mono", "SF Mono", "JetBrains Mono", monospace;
-    --chat-font-ornament: "Doto", "Space Mono", monospace;
+    --chat-font-display: "Zodiak", Georgia, "Times New Roman", serif;
+    --chat-font-body: "Zodiak", Georgia, "Times New Roman", serif;
+    --chat-font-mono: "Zodiak", "SF Mono", "JetBrains Mono", monospace;
+    --chat-font-ornament: "Zodiak", "SF Mono", "JetBrains Mono", monospace;
 
     --chat-text-caption: 0.625rem;
     --chat-text-body-sm: 0.875rem;
