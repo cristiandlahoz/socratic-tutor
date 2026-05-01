@@ -7,6 +7,8 @@ import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.MainLayout;
+import com.wornux.chat.profile.StudentProfileService;
+import com.wornux.chat.profile.ThemePreference;
 import com.wornux.chat.questions.StudentQuestionResponse;
 import java.io.Serial;
 import java.io.Serializable;
@@ -41,6 +43,7 @@ public class ChatUiController implements Serializable {
   private final ChatUsageService chatUsageService;
   private final ConversationTitleService conversationTitleService;
   private final BrowserClientService browserClientService;
+  private final StudentProfileService studentProfileService;
   private final ChatUiState state;
   private final StudentQuestionExchange questionExchange;
   private final AtomicLong streamGeneration = new AtomicLong();
@@ -52,12 +55,14 @@ public class ChatUiController implements Serializable {
       ChatUsageService chatUsageService,
       ConversationTitleService conversationTitleService,
       BrowserClientService browserClientService,
+      StudentProfileService studentProfileService,
       ChatUiState state) {
     this.chatService = chatService;
     this.conversationService = conversationService;
     this.chatUsageService = chatUsageService;
     this.conversationTitleService = conversationTitleService;
     this.browserClientService = browserClientService;
+    this.studentProfileService = studentProfileService;
     this.state = state;
     this.questionExchange = new StudentQuestionExchange(state);
   }
@@ -66,12 +71,29 @@ public class ChatUiController implements Serializable {
     return state;
   }
 
+  public void initializeShellState() {
+    ensureClientId();
+    ensureThemePreferenceLoaded();
+    applyThemePreferenceToCurrentUi();
+  }
+
+  public void updateThemePreference(ThemePreference preference) {
+    ensureClientId();
+    var resolvedPreference =
+        studentProfileService.updateThemePreference(state.clientId().peek(), preference);
+    state.themePreference().set(resolvedPreference);
+    state.themePreferenceLoaded().set(true);
+    applyThemePreferenceToCurrentUi();
+  }
+
   RouteInitialization initializeFromRoute(
       String requestedConversationParam, boolean draftRequested) {
     abortActiveStream();
     state.responseInProgress().set(false);
     state.compactionInProgress().set(false);
     ensureClientId();
+    ensureThemePreferenceLoaded();
+    applyThemePreferenceToCurrentUi();
 
     if (draftRequested) {
       state.activeConversationId().set(null);
@@ -186,7 +208,8 @@ public class ChatUiController implements Serializable {
                     return;
                   }
                   log.warn(
-                      "chat_ui_stream_failed turn_id={} client_id={} conversation_id={} failure_kind={} error_type={} error_message={}",
+                      "chat_ui_stream_failed turn_id={} client_id={} conversation_id={}"
+                          + " failure_kind={} error_type={} error_message={}",
                       turnId,
                       clientId,
                       conversationId,
@@ -321,6 +344,33 @@ public class ChatUiController implements Serializable {
     if (state.clientId().peek() == null) {
       state.clientId().set(browserClientService.resolveClientId());
     }
+  }
+
+  private void ensureThemePreferenceLoaded() {
+    if (Boolean.TRUE.equals(state.themePreferenceLoaded().peek())) {
+      return;
+    }
+
+    state.themePreference().set(studentProfileService.getThemePreference(state.clientId().peek()));
+    state.themePreferenceLoaded().set(true);
+  }
+
+  private void applyThemePreferenceToCurrentUi() {
+    var ui = UI.getCurrent();
+    if (ui == null) {
+      return;
+    }
+
+    var preference = state.themePreference().peek();
+    var storageValue = (preference == null ? ThemePreference.SYSTEM : preference).storageValue();
+    ui.getElement().setAttribute("data-theme-preference", storageValue);
+    ui.getPage()
+        .executeJs(
+            """
+            document.documentElement.setAttribute('data-theme-preference', $0);
+            document.body?.setAttribute('data-theme-preference', $0);
+            """,
+            storageValue);
   }
 
   private EnsuredConversation ensureConversation(String prompt) {

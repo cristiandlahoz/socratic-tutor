@@ -7,6 +7,7 @@ import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.MainLayout;
+import com.wornux.chat.profile.ThemePreference;
 import com.wornux.chat.questions.StudentQuestionSet;
 import java.io.Serial;
 import java.io.Serializable;
@@ -33,6 +34,9 @@ public class ChatUiState implements Serializable {
   private final ValueSignal<Boolean> conversationCompacted = new ValueSignal<>(false);
   private final ValueSignal<Integer> compactionLevel = new ValueSignal<>(null);
   private final ValueSignal<UUID> compactedFromTranscriptId = new ValueSignal<>(null);
+  private final ValueSignal<ThemePreference> themePreference =
+      new ValueSignal<>(ThemePreference.SYSTEM);
+  private final ValueSignal<Boolean> themePreferenceLoaded = new ValueSignal<>(false);
   private final ListSignal<MessageVm> messages = new ListSignal<>();
   private final ListSignal<ConversationSummary> conversationHistory = new ListSignal<>();
   private final Signal<Boolean> emptyStateVisible = Signal.computed(() -> messages.get().isEmpty());
@@ -104,6 +108,14 @@ public class ChatUiState implements Serializable {
 
   public ValueSignal<UUID> compactedFromTranscriptId() {
     return compactedFromTranscriptId;
+  }
+
+  public ValueSignal<ThemePreference> themePreference() {
+    return themePreference;
+  }
+
+  public ValueSignal<Boolean> themePreferenceLoaded() {
+    return themePreferenceLoaded;
   }
 
   public ListSignal<MessageVm> messages() {

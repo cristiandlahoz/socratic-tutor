@@ -19,6 +19,7 @@ import com.vaadin.flow.signals.Signal;
 import com.wornux.chat.ChatUiController;
 import com.wornux.chat.ChatUiState;
 import com.wornux.chat.ConversationSummary;
+import com.wornux.chat.profile.ThemePreference;
 import com.wornux.chat.ui.WidthAwareLabel;
 import com.wornux.documentingest.ui.DocumentIngestionView;
 import java.time.LocalDate;
@@ -39,6 +40,7 @@ public class MainLayout extends AppLayout {
   private final Div timelineRows;
   private final Div emptyHistory;
   private final Span historyCount;
+  private final ChatUiController controller;
 
   private sealed interface TimelineEntry permits TimelineDividerEntry, TimelineThreadEntry {
 
@@ -72,6 +74,8 @@ public class MainLayout extends AppLayout {
 
   public MainLayout(ChatUiState state, ChatUiController controller) {
     setPrimarySection(Section.DRAWER);
+    this.controller = controller;
+    controller.initializeShellState();
 
     var drawerContent = new Div();
     drawerContent.addClassNames("shell-drawer-content", "chat-sidebar-shell");
@@ -86,15 +90,14 @@ public class MainLayout extends AppLayout {
                 + " introducción a la algoritmia.");
     appDescription.addClassName("chat-sidebar-app-description");
 
-    var appHeader = new Div(appTitle, appDescription);
+    var appHeader =
+        new Div(appTitle, appDescription, createThemePreferenceControl(state, controller));
     appHeader.addClassName("chat-sidebar-app-header");
 
     newChatButton = createActionButton();
     newChatButton.addClickListener(_ -> controller.startNewChat());
 
-    var ingestDocumentButton =
-        createNavigationButton();
-
+    var ingestDocumentButton = createNavigationButton();
 
     var actionsRow = new Div(newChatButton, ingestDocumentButton);
     actionsRow.addClassName("chat-sidebar-actions");
@@ -146,6 +149,52 @@ public class MainLayout extends AppLayout {
 
     bindConversationState(state, controller);
     installTimelineGraphRenderer();
+  }
+
+  private Div createThemePreferenceControl(ChatUiState state, ChatUiController controller) {
+    var label = new Span("Tema");
+    label.addClassName("chat-sidebar-theme-label");
+
+    var options = new Div();
+    options.addClassName("chat-sidebar-theme-options");
+
+    for (var preference : ThemePreference.values()) {
+      options.add(createThemePreferenceButton(preference, state, controller));
+    }
+
+    var control = new Div(label, options);
+    control.addClassName("chat-sidebar-theme-control");
+    return control;
+  }
+
+  private Button createThemePreferenceButton(
+      ThemePreference preference, ChatUiState state, ChatUiController controller) {
+    var button =
+        new Button(
+            switch (preference) {
+              case SYSTEM -> "Sistema";
+              case LIGHT -> "Claro";
+              case DARK -> "Oscuro";
+            });
+    button.addThemeVariants(ButtonVariant.TERTIARY);
+    button.addClassName("chat-sidebar-theme-button");
+    button.getThemeNames().remove("icon");
+    button.getElement().setAttribute("aria-label", "Cambiar tema a " + button.getText());
+    button.addClickListener(_ -> controller.updateThemePreference(preference));
+
+    Signal.effect(
+        button,
+        () -> {
+          var active = state.themePreference().get() == preference;
+          button.getElement().setAttribute("aria-pressed", Boolean.toString(active));
+          if (active) {
+            button.addClassName("is-active");
+          } else {
+            button.removeClassName("is-active");
+          }
+        });
+
+    return button;
   }
 
   private Button createActionButton() {
@@ -510,6 +559,7 @@ public class MainLayout extends AppLayout {
   @Override
   protected void onAttach(AttachEvent attachEvent) {
     super.onAttach(attachEvent);
+    controller.initializeShellState();
     timelineRoot
         .getElement()
         .executeJs(
