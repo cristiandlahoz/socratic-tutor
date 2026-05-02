@@ -176,6 +176,11 @@
               <includeDraft>false</includeDraft>
             </cleanthat>
 
+            <formatAnnotations/>
+            <importOrder/>
+            <removeUnusedImports>
+              <engine>google-java-format</engine>
+            </removeUnusedImports>
             <googleJavaFormat>
               <version>${google-java-format.version}</version>
               <style>GOOGLE</style>
@@ -183,11 +188,6 @@
               <formatJavadoc>false</formatJavadoc>
             </googleJavaFormat>
 
-            <formatAnnotations/>
-            <importOrder/>
-            <removeUnusedImports/>
-            <!--                        <forbidWildcardImports/>-->
-            <!--                        <forbidModuleImports/>-->
           </java>
 
           <pom>
