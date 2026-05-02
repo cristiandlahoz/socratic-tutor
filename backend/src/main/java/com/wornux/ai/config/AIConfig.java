@@ -1,0 +1,109 @@
+package com.wornux.ai.config;
+
+import com.wornux.ai.advisor.*;
+import com.wornux.ai.advisor.DocumentCatalogAdvisor;
+import com.wornux.ai.advisor.TutorGuardAdvisor;
+import com.wornux.ai.document.*;
+import com.wornux.ai.document.DocumentCatalogPromptService;
+import com.wornux.ai.guard.*;
+import com.wornux.ai.memory.*;
+import com.wornux.ai.profile.*;
+import com.wornux.ai.profile.ProfileAwareResponseAdvisor;
+import com.wornux.ai.prompt.*;
+import com.wornux.ai.prompt.TutorPromptResources;
+import com.wornux.ai.routing.*;
+import com.wornux.ai.routing.PedagogicalRoutingAdvisor;
+import com.wornux.ai.routing.PedagogicalRoutingService;
+import com.wornux.ai.tools.*;
+import com.wornux.ai.tools.RetrieveInformationTool;
+import com.wornux.application.chat.*;
+import com.wornux.application.document.*;
+import com.wornux.application.profile.*;
+import com.wornux.application.profile.StudentProfileService;
+import com.wornux.domain.chat.*;
+import com.wornux.domain.chat.questions.*;
+import com.wornux.domain.document.*;
+import com.wornux.domain.profile.*;
+import com.wornux.infrastructure.config.*;
+import com.wornux.infrastructure.external.docling.*;
+import com.wornux.infrastructure.persistence.chat.*;
+import com.wornux.infrastructure.persistence.document.*;
+import com.wornux.infrastructure.persistence.profile.*;
+import com.wornux.infrastructure.web.*;
+import com.wornux.presentation.chat.*;
+import com.wornux.presentation.chat.ui.*;
+import com.wornux.presentation.documentingest.*;
+import com.wornux.presentation.documentingest.ui.*;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
+import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class AIConfig {
+
+  private static final int CHAT_MEMORY_ADVISOR_ORDER = 100;
+  private static final int PROFILE_ADVISOR_ORDER = 150;
+  private static final int DOCUMENT_CATALOG_ADVISOR_ORDER = 160;
+  private static final int PEDAGOGICAL_ROUTING_ADVISOR_ORDER = 175;
+  private static final int TUTOR_GUARD_ADVISOR_ORDER = 200;
+  private static final int TOOL_CALL_ADVISOR_ORDER = 300;
+  private static final int LOGGER_ADVISOR_ORDER = 1000;
+
+  @Bean
+  public ChatClient chatClient(
+      ChatClient.Builder builder,
+      ChatMemory chatMemory,
+      GuardClassifierService guardClassifierService,
+      StudentProfileService studentProfileService,
+      ProfileProperties profileProperties,
+      RetrieveInformationTool retrieveInformationTool,
+      DocumentCatalogPromptService documentCatalogPromptService,
+      PedagogicalRoutingService pedagogicalRoutingService,
+      TutorPromptResources promptResources) {
+
+    var chatMemoryAdvisor =
+        MessageChatMemoryAdvisor.builder(chatMemory).order(CHAT_MEMORY_ADVISOR_ORDER).build();
+    var profileAwareResponseAdvisor =
+        new ProfileAwareResponseAdvisor(
+            PROFILE_ADVISOR_ORDER, studentProfileService, profileProperties);
+    var pedagogicalRoutingAdvisor =
+        new PedagogicalRoutingAdvisor(
+            PEDAGOGICAL_ROUTING_ADVISOR_ORDER, pedagogicalRoutingService, promptResources);
+    var documentCatalogAdvisor =
+        new DocumentCatalogAdvisor(DOCUMENT_CATALOG_ADVISOR_ORDER, documentCatalogPromptService);
+    var tutorGuardAdvisor =
+        new TutorGuardAdvisor(TUTOR_GUARD_ADVISOR_ORDER, guardClassifierService, promptResources);
+    var toolCallAdvisor =
+        ToolCallAdvisor.builder()
+            .advisorOrder(TOOL_CALL_ADVISOR_ORDER)
+            .disableInternalConversationHistory()
+            .build();
+    var simpleLoggerAdvisor = new SimpleLoggerAdvisor(LOGGER_ADVISOR_ORDER);
+
+    List<Advisor> advisors =
+        new ArrayList<>(
+            List.of(
+                chatMemoryAdvisor,
+                profileAwareResponseAdvisor,
+                documentCatalogAdvisor,
+                pedagogicalRoutingAdvisor,
+                tutorGuardAdvisor,
+                toolCallAdvisor,
+                simpleLoggerAdvisor));
+
+    return builder
+        .defaultSystem(promptResources.baseIdentitySystemResource())
+        .defaultOptions(OllamaChatOptions.builder().disableThinking().build())
+        .defaultAdvisors(advisors)
+        .defaultTools(retrieveInformationTool)
+        .build();
+  }
+}

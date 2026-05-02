@@ -1,0 +1,93 @@
+package com.wornux.ai.tools;
+
+import com.wornux.ai.advisor.*;
+import com.wornux.ai.config.*;
+import com.wornux.ai.document.*;
+import com.wornux.ai.guard.*;
+import com.wornux.ai.memory.*;
+import com.wornux.ai.profile.*;
+import com.wornux.ai.prompt.*;
+import com.wornux.ai.routing.*;
+import com.wornux.application.chat.*;
+import com.wornux.application.document.*;
+import com.wornux.application.document.DocumentRetrievalService;
+import com.wornux.application.profile.*;
+import com.wornux.domain.chat.*;
+import com.wornux.domain.chat.questions.*;
+import com.wornux.domain.document.*;
+import com.wornux.domain.document.DocumentContextResult;
+import com.wornux.domain.profile.*;
+import com.wornux.infrastructure.config.*;
+import com.wornux.infrastructure.external.docling.*;
+import com.wornux.infrastructure.persistence.chat.*;
+import com.wornux.infrastructure.persistence.document.*;
+import com.wornux.infrastructure.persistence.profile.*;
+import com.wornux.infrastructure.web.*;
+import com.wornux.presentation.chat.*;
+import com.wornux.presentation.chat.ui.*;
+import com.wornux.presentation.documentingest.*;
+import com.wornux.presentation.documentingest.ui.*;
+import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.stereotype.Component;
+
+@Component
+public class RetrieveInformationTool {
+
+  private final DocumentRetrievalService documentRetrievalService;
+  private final ToolUsageAuditService toolUsageAuditService;
+
+  public RetrieveInformationTool(
+      DocumentRetrievalService documentRetrievalService,
+      ToolUsageAuditService toolUsageAuditService) {
+    this.documentRetrievalService = documentRetrievalService;
+    this.toolUsageAuditService = toolUsageAuditService;
+  }
+
+  @Tool(
+      name = "searchUploadedDocuments",
+      description =
+          "Searches approved text segments extracted from PDFs uploaded by the current user. The"
+              + " chat prompt includes a live inventory of searchable document titles, topics,"
+              + " tags, entities, and example questions. Use this when the user question overlaps"
+              + " that inventory or refers to uploaded material, reports, PDFs, topics, entities,"
+              + " or document-specific facts.")
+  public DocumentContextResult searchUploadedDocuments(
+      @ToolParam(description = "The user question or the fact to look up inside uploaded PDFs.")
+          String query,
+      @ToolParam(required = false, description = "Optional document UUID from the inventory.")
+          String documentIdHint,
+      @ToolParam(
+              required = false,
+              description = "Optional exact uploaded filename to narrow the search.")
+          String filenameHint,
+      @ToolParam(required = false, description = "Optional topic from the document inventory.")
+          String topicHint,
+      @ToolParam(required = false, description = "Optional tag from the document inventory.")
+          String tagHint,
+      ToolContext toolContext) {
+    return toolUsageAuditService.audit(
+        "searchUploadedDocuments",
+        toolContext,
+        "query_len=%d document_id_hint=%s filename_hint=%s topic_hint=%s tag_hint=%s"
+            .formatted(
+                query == null ? 0 : query.length(),
+                documentIdHint == null ? "none" : documentIdHint,
+                filenameHint == null ? "none" : filenameHint,
+                topicHint == null ? "none" : topicHint,
+                tagHint == null ? "none" : tagHint),
+        () -> {
+          var clientId =
+              java.util.UUID.fromString(
+                  String.valueOf(toolContext.getContext().get(ToolUsageAuditService.CLIENT_ID)));
+          var result =
+              documentRetrievalService.search(
+                  clientId, query, documentIdHint, filenameHint, topicHint, tagHint);
+          return new ToolUsageAuditService.ToolResult<>(
+              result,
+              "hits=%d context_found=%s".formatted(result.hits().size(), result.contextFound()),
+              new ToolLearningSignal("uploaded_documents", false, "retrieval_context"));
+        });
+  }
+}
