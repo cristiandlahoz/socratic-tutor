@@ -1,64 +1,46 @@
 package com.wornux.application.document;
 
-import com.wornux.ai.advisor.*;
-import com.wornux.ai.config.*;
-import com.wornux.ai.document.*;
-import com.wornux.ai.guard.*;
-import com.wornux.ai.memory.*;
-import com.wornux.ai.profile.*;
-import com.wornux.ai.prompt.*;
-import com.wornux.ai.routing.*;
-import com.wornux.ai.tools.*;
-import com.wornux.application.chat.*;
-import com.wornux.application.profile.*;
-import com.wornux.domain.chat.*;
-import com.wornux.domain.chat.questions.*;
-import com.wornux.domain.document.*;
-import com.wornux.domain.profile.*;
-import com.wornux.infrastructure.config.*;
-import com.wornux.infrastructure.external.docling.*;
-import com.wornux.infrastructure.persistence.chat.*;
-import com.wornux.infrastructure.persistence.document.*;
-import com.wornux.infrastructure.persistence.profile.*;
-import com.wornux.infrastructure.web.*;
-import com.wornux.presentation.chat.*;
-import com.wornux.presentation.chat.ui.*;
-import com.wornux.presentation.documentingest.*;
-import com.wornux.presentation.documentingest.ui.*;
+import com.wornux.ai.document.DocumentIngestionProperties;
+import com.wornux.application.document.port.DocumentIngestionPersistencePort;
+import com.wornux.domain.document.DocumentEntity;
+import com.wornux.domain.document.DocumentIngestionException;
+import com.wornux.domain.document.DocumentIngestionJobEntity;
+import com.wornux.domain.document.DocumentIngestionStage;
+import com.wornux.domain.document.DocumentSegmentEntity;
+import com.wornux.domain.document.DocumentStatus;
+import com.wornux.infrastructure.external.docling.DoclingClientService;
+import com.wornux.presentation.documentingest.DocumentReviewVm;
+import com.wornux.presentation.documentingest.EditableSegmentVm;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
 public class DocumentIngestionService {
 
-  private final DocumentJpaRepository documentRepository;
-  private final DocumentSegmentJpaRepository segmentRepository;
-  private final DocumentIngestionJobJpaRepository jobRepository;
+  private final DocumentIngestionPersistencePort documentPersistencePort;
   private final DoclingClientService doclingClientService;
   private final DocumentCatalogService catalogService;
   private final DocumentEmbeddingService embeddingService;
   private final DocumentIngestionProperties properties;
 
   public DocumentIngestionService(
-      DocumentJpaRepository documentRepository,
-      DocumentSegmentJpaRepository segmentRepository,
-      DocumentIngestionJobJpaRepository jobRepository,
+      DocumentIngestionPersistencePort documentPersistencePort,
       DoclingClientService doclingClientService,
       DocumentCatalogService catalogService,
       DocumentEmbeddingService embeddingService,
       DocumentIngestionProperties properties) {
-    this.documentRepository = documentRepository;
-    this.segmentRepository = segmentRepository;
-    this.jobRepository = jobRepository;
+    this.documentPersistencePort = documentPersistencePort;
     this.doclingClientService = doclingClientService;
     this.catalogService = catalogService;
     this.embeddingService = embeddingService;
@@ -69,9 +51,9 @@ public class DocumentIngestionService {
     validateUpload(command);
 
     var document =
-        documentRepository.save(DocumentEntity.create(command, sha256(command.content())));
+        documentPersistencePort.saveDocument(DocumentEntity.create(command, sha256(command.content())));
     var job =
-        jobRepository.save(
+        documentPersistencePort.saveJob(
             DocumentIngestionJobEntity.start(document, "PDF recibido. Preparando transformacion."));
 
     Path tempFile = null;
@@ -79,32 +61,28 @@ public class DocumentIngestionService {
       tempFile = Files.createTempFile("ingested-document-", ".pdf");
       Files.write(tempFile, command.content());
 
-      job.advance(
-          DocumentIngestionStage.DOCLING_CONVERT, "Transformando y segmentando PDF con Docling.");
-      jobRepository.save(job);
+      job.advance(DocumentIngestionStage.DOCLING_CONVERT, "Transformando y segmentando PDF con Docling.");
+      documentPersistencePort.saveJob(job);
 
       var conversion =
-          doclingClientService.convertPdfToMarkdownAndChunks(
-              command.originalFilename(), command.content());
+          doclingClientService.convertPdfToMarkdownAndChunks(command.originalFilename(), command.content());
       if (conversion.markdown() == null || conversion.markdown().isBlank()) {
         throw new DocumentIngestionException("Docling devolvio un documento vacio.");
       }
       if (conversion.segments() == null || conversion.segments().isEmpty()) {
-        throw new DocumentIngestionException(
-            "Docling no pudo crear segmentos utiles para este PDF.");
+        throw new DocumentIngestionException("Docling no pudo crear segmentos utiles para este PDF.");
       }
 
       document.markReviewReady(conversion.markdown(), conversion.pageCount());
-      var initialCatalog =
-          catalogService.analyzeOrFallback(command.originalFilename(), conversion.markdown());
+      var initialCatalog = catalogService.analyzeOrFallback(command.originalFilename(), conversion.markdown());
       document.applyCatalog(initialCatalog.entry(), initialCatalog.stale());
-      documentRepository.save(document);
+      documentPersistencePort.saveDocument(document);
 
       job.advance(DocumentIngestionStage.SEGMENT_BUILD, "Preparando segmentos de Docling.");
-      jobRepository.save(job);
+      documentPersistencePort.saveJob(job);
 
-      segmentRepository.deleteByDocument_Id(document.getId());
-      segmentRepository.saveAll(
+      documentPersistencePort.deleteSegmentsByDocumentId(document.getId());
+      documentPersistencePort.saveAllSegments(
           conversion.segments().stream()
               .map(
                   segment ->
@@ -124,7 +102,7 @@ public class DocumentIngestionService {
       job.advance(
           DocumentIngestionStage.REVIEW,
           "Revisa el markdown y valida los segmentos antes de indexar.");
-      jobRepository.save(job);
+      documentPersistencePort.saveJob(job);
 
       return toReviewVm(document, job);
     } catch (IOException exception) {
@@ -140,18 +118,14 @@ public class DocumentIngestionService {
 
   public DocumentReviewVm approve(ApproveDocumentCommand command) {
     var document =
-        documentRepository
-            .findByIdAndClientId(command.documentId(), command.clientId())
-            .orElseThrow(
-                () ->
-                    new DocumentIngestionException("No encontre ese documento para este usuario."));
+        documentPersistencePort
+            .findDocumentByIdAndClientId(command.documentId(), command.clientId())
+            .orElseThrow(() -> new DocumentIngestionException("No encontre ese documento para este usuario."));
     var job =
-        jobRepository
-            .findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
+        documentPersistencePort
+            .findLatestJobByDocumentId(document.getId())
             .orElseThrow(
-                () ->
-                    new DocumentIngestionException(
-                        "No encontre el job de ingestion del documento."));
+                () -> new DocumentIngestionException("No encontre el job de ingestion del documento."));
 
     if (document.status() == DocumentStatus.INDEXED) {
       return toReviewVm(document, job);
@@ -160,21 +134,19 @@ public class DocumentIngestionService {
     validateReview(command);
 
     try {
-      job.advance(
-          DocumentIngestionStage.EMBED, "Indexando segmentos para que el chat pueda buscarlos.");
-      jobRepository.save(job);
+      job.advance(DocumentIngestionStage.EMBED, "Indexando segmentos para que el chat pueda buscarlos.");
+      documentPersistencePort.saveJob(job);
 
       document.markApproved(command.reviewedMarkdown());
       var refreshedCatalog =
-          catalogService.analyzeOrFallback(
-              document.getOriginalFilename(), command.reviewedMarkdown());
+          catalogService.analyzeOrFallback(document.getOriginalFilename(), command.reviewedMarkdown());
       document.applyCatalog(refreshedCatalog.entry(), refreshedCatalog.stale());
-      documentRepository.save(document);
+      documentPersistencePort.saveDocument(document);
 
       var persistedSegments =
-          segmentRepository.findByDocument_IdOrderByOrdinalAsc(document.getId()).stream()
+          documentPersistencePort.findSegmentsByDocumentIdOrderByOrdinalAsc(document.getId()).stream()
               .collect(
-                  java.util.stream.Collectors.toMap(
+                  Collectors.toMap(
                       DocumentSegmentEntity::getId,
                       segment -> segment,
                       (left, _) -> left,
@@ -187,44 +159,44 @@ public class DocumentIngestionService {
         }
         segment.applyReview(reviewedSegment);
       }
-      segmentRepository.saveAll(persistedSegments.values());
+      documentPersistencePort.saveAllSegments(persistedSegments.values());
 
       List<DocumentSegmentEntity> uniqueSegments =
-          deduplicateApprovedSegments(new java.util.ArrayList<>(persistedSegments.values()));
+          deduplicateApprovedSegments(new ArrayList<>(persistedSegments.values()));
       embeddingService.reindex(document, uniqueSegments);
 
       document.markIndexed(command.reviewedMarkdown());
-      documentRepository.save(document);
+      documentPersistencePort.saveDocument(document);
       job.complete("Documento indexado. Ya puedes preguntarle al chat.");
-      jobRepository.save(job);
+      documentPersistencePort.saveJob(job);
 
       return toReviewVm(document, job);
     } catch (RuntimeException exception) {
       document.markFailed();
-      documentRepository.save(document);
+      documentPersistencePort.saveDocument(document);
       job.fail("La indexacion fallo.", safeMessage(exception));
-      jobRepository.save(job);
+      documentPersistencePort.saveJob(job);
       throw exception;
     }
   }
 
   public Optional<DocumentReviewVm> loadLatestReview(UUID clientId) {
-    return documentRepository
-        .findFirstByClientIdOrderByUpdatedAtDesc(clientId)
+    return documentPersistencePort
+        .findLatestDocumentByClientId(clientId)
         .flatMap(
             document ->
-                jobRepository
-                    .findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
+                documentPersistencePort
+                    .findLatestJobByDocumentId(document.getId())
                     .map(job -> toReviewVm(document, job)));
   }
 
   public Optional<DocumentReviewVm> loadReview(UUID clientId, UUID documentId) {
-    return documentRepository
-        .findByIdAndClientId(documentId, clientId)
+    return documentPersistencePort
+        .findDocumentByIdAndClientId(documentId, clientId)
         .flatMap(
             document ->
-                jobRepository
-                    .findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
+                documentPersistencePort
+                    .findLatestJobByDocumentId(document.getId())
                     .map(job -> toReviewVm(document, job)));
   }
 
@@ -236,7 +208,7 @@ public class DocumentIngestionService {
         document.status(),
         job.getProgressLabel(),
         document.getReviewedMarkdown() == null ? "" : document.getReviewedMarkdown(),
-        segmentRepository.findByDocument_IdOrderByOrdinalAsc(document.getId()).stream()
+        documentPersistencePort.findSegmentsByDocumentIdOrderByOrdinalAsc(document.getId()).stream()
             .map(DocumentSegmentEntity::toViewModel)
             .toList(),
         document.status() == DocumentStatus.INDEXED);
@@ -271,16 +243,13 @@ public class DocumentIngestionService {
       throw new DocumentIngestionException("Necesito al menos un segmento para indexar.");
     }
     boolean hasBlankSegment =
-        command.segments().stream()
-            .anyMatch(segment -> segment.content() == null || segment.content().isBlank());
+        command.segments().stream().anyMatch(segment -> segment.content() == null || segment.content().isBlank());
     if (hasBlankSegment) {
-      throw new DocumentIngestionException(
-          "Todos los segmentos deben tener contenido antes de indexar.");
+      throw new DocumentIngestionException("Todos los segmentos deben tener contenido antes de indexar.");
     }
   }
 
-  private List<DocumentSegmentEntity> deduplicateApprovedSegments(
-      List<DocumentSegmentEntity> segments) {
+  private List<DocumentSegmentEntity> deduplicateApprovedSegments(List<DocumentSegmentEntity> segments) {
     Map<String, DocumentSegmentEntity> uniqueByContent = new LinkedHashMap<>();
     for (DocumentSegmentEntity segment : segments) {
       uniqueByContent.putIfAbsent(normalize(segment.getContent()), segment);
@@ -315,14 +284,11 @@ public class DocumentIngestionService {
   }
 
   private void failIngestion(
-      DocumentEntity document,
-      DocumentIngestionJobEntity job,
-      String message,
-      Exception exception) {
+      DocumentEntity document, DocumentIngestionJobEntity job, String message, Exception exception) {
     document.markFailed();
-    documentRepository.save(document);
+    documentPersistencePort.saveDocument(document);
     job.fail("La transformacion del PDF fallo.", message);
-    jobRepository.save(job);
+    documentPersistencePort.saveJob(job);
   }
 
   private void deleteQuietly(Path tempFile) {

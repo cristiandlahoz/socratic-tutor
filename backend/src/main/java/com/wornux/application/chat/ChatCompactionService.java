@@ -1,30 +1,11 @@
 package com.wornux.application.chat;
 
-import com.wornux.ai.advisor.*;
-import com.wornux.ai.config.*;
-import com.wornux.ai.document.*;
-import com.wornux.ai.guard.*;
-import com.wornux.ai.memory.*;
-import com.wornux.ai.profile.*;
-import com.wornux.ai.prompt.*;
-import com.wornux.ai.routing.*;
-import com.wornux.ai.tools.*;
-import com.wornux.application.document.*;
-import com.wornux.application.profile.*;
-import com.wornux.domain.chat.*;
-import com.wornux.domain.chat.questions.*;
-import com.wornux.domain.document.*;
-import com.wornux.domain.profile.*;
-import com.wornux.infrastructure.config.*;
-import com.wornux.infrastructure.external.docling.*;
-import com.wornux.infrastructure.persistence.chat.*;
-import com.wornux.infrastructure.persistence.document.*;
-import com.wornux.infrastructure.persistence.profile.*;
-import com.wornux.infrastructure.web.*;
-import com.wornux.presentation.chat.*;
-import com.wornux.presentation.chat.ui.*;
-import com.wornux.presentation.documentingest.*;
-import com.wornux.presentation.documentingest.ui.*;
+import com.wornux.application.chat.port.ChatMessagePersistencePort;
+import com.wornux.application.chat.port.ChatPersistencePort;
+import com.wornux.application.chat.port.ChatTranscriptPersistencePort;
+import com.wornux.domain.chat.ChatCompactionStatus;
+import com.wornux.domain.chat.ChatMessageEntity;
+import com.wornux.domain.chat.ChatTranscriptEntity;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -56,9 +37,9 @@ public class ChatCompactionService {
       - Do not use markdown.
       """;
 
-  private final ChatJpaRepository chatRepository;
-  private final ChatTranscriptJpaRepository chatTranscriptRepository;
-  private final ChatMessageJpaRepository chatMessageRepository;
+  private final ChatPersistencePort chatPort;
+  private final ChatTranscriptPersistencePort chatTranscriptPort;
+  private final ChatMessagePersistencePort chatMessagePort;
   private final ChatUsageService chatUsageService;
   private final ChatModel chatModel;
   private final BeanOutputConverter<CompactedMemory> outputConverter =
@@ -68,14 +49,14 @@ public class ChatCompactionService {
   private String compactionModel;
 
   public ChatCompactionService(
-      ChatJpaRepository chatRepository,
-      ChatTranscriptJpaRepository chatTranscriptRepository,
-      ChatMessageJpaRepository chatMessageRepository,
+      ChatPersistencePort chatPort,
+      ChatTranscriptPersistencePort chatTranscriptPort,
+      ChatMessagePersistencePort chatMessagePort,
       ChatUsageService chatUsageService,
       ChatModel chatModel) {
-    this.chatRepository = chatRepository;
-    this.chatTranscriptRepository = chatTranscriptRepository;
-    this.chatMessageRepository = chatMessageRepository;
+    this.chatPort = chatPort;
+    this.chatTranscriptPort = chatTranscriptPort;
+    this.chatMessagePort = chatMessagePort;
     this.chatUsageService = chatUsageService;
     this.chatModel = chatModel;
   }
@@ -87,7 +68,7 @@ public class ChatCompactionService {
     }
 
     var chat =
-        chatRepository
+        chatPort
             .findById(chatId)
             .orElseThrow(() -> new IllegalStateException("Chat not found: " + chatId));
     var activeTranscript = chat.getCurrentTranscript();
@@ -96,7 +77,7 @@ public class ChatCompactionService {
     }
 
     var transcriptMessages =
-        chatMessageRepository.findByTranscript_IdOrderByIdAsc(activeTranscript.getId());
+        chatMessagePort.findByTranscriptIdOrderByIdAsc(activeTranscript.getId());
     if (transcriptMessages.isEmpty() && activeTranscript.memoryText().isBlank()) {
       return ChatCompactionStatus.none();
     }
@@ -109,9 +90,9 @@ public class ChatCompactionService {
     var compactedTranscript =
         ChatTranscriptEntity.createFromCompaction(chat, activeTranscript, compactedMemory);
     compactedTranscript.setInputTokens(null);
-    compactedTranscript = chatTranscriptRepository.save(compactedTranscript);
+    compactedTranscript = chatTranscriptPort.save(compactedTranscript);
     chat.activateTranscript(compactedTranscript);
-    chatRepository.save(chat);
+    chatPort.save(chat);
     return new ChatCompactionStatus(
         true,
         compactedTranscript.getCompactionLevel(),

@@ -1,30 +1,18 @@
 package com.wornux.application.profile;
 
-import com.wornux.ai.advisor.*;
-import com.wornux.ai.config.*;
-import com.wornux.ai.document.*;
-import com.wornux.ai.guard.*;
-import com.wornux.ai.memory.*;
-import com.wornux.ai.profile.*;
-import com.wornux.ai.prompt.*;
-import com.wornux.ai.routing.*;
-import com.wornux.ai.tools.*;
-import com.wornux.application.chat.*;
-import com.wornux.application.document.*;
-import com.wornux.domain.chat.*;
-import com.wornux.domain.chat.questions.*;
-import com.wornux.domain.document.*;
-import com.wornux.domain.profile.*;
-import com.wornux.infrastructure.config.*;
-import com.wornux.infrastructure.external.docling.*;
-import com.wornux.infrastructure.persistence.chat.*;
-import com.wornux.infrastructure.persistence.document.*;
-import com.wornux.infrastructure.persistence.profile.*;
-import com.wornux.infrastructure.web.*;
-import com.wornux.presentation.chat.*;
-import com.wornux.presentation.chat.ui.*;
-import com.wornux.presentation.documentingest.*;
-import com.wornux.presentation.documentingest.ui.*;
+import com.wornux.ai.config.ProfileProperties;
+import com.wornux.ai.profile.TurnProfileUpdate;
+import com.wornux.application.profile.port.StudentProfilePersistencePort;
+import com.wornux.domain.profile.MasteryLevel;
+import com.wornux.domain.profile.MisconceptionStatus;
+import com.wornux.domain.profile.StudentMisconceptionEntity;
+import com.wornux.domain.profile.StudentOverallLevel;
+import com.wornux.domain.profile.StudentProfileEntity;
+import com.wornux.domain.profile.StudentProfileSignalEntity;
+import com.wornux.domain.profile.StudentProfileSnapshot;
+import com.wornux.domain.profile.StudentTopicMasteryEntity;
+import com.wornux.domain.profile.StudentTopicMasteryId;
+import com.wornux.domain.profile.ThemePreference;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -39,24 +27,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StudentProfileService {
 
-  private final StudentProfileJpaRepository profileRepository;
-  private final StudentTopicMasteryJpaRepository topicMasteryRepository;
-  private final StudentMisconceptionJpaRepository misconceptionRepository;
-  private final StudentProfileSignalJpaRepository signalRepository;
+  private final StudentProfilePersistencePort profilePort;
   private final ProfileProperties profileProperties;
   private final MeterRegistry meterRegistry;
 
   public StudentProfileService(
-      StudentProfileJpaRepository profileRepository,
-      StudentTopicMasteryJpaRepository topicMasteryRepository,
-      StudentMisconceptionJpaRepository misconceptionRepository,
-      StudentProfileSignalJpaRepository signalRepository,
+      StudentProfilePersistencePort profilePort,
       ProfileProperties profileProperties,
       MeterRegistry meterRegistry) {
-    this.profileRepository = profileRepository;
-    this.topicMasteryRepository = topicMasteryRepository;
-    this.misconceptionRepository = misconceptionRepository;
-    this.signalRepository = signalRepository;
+    this.profilePort = profilePort;
     this.profileProperties = profileProperties;
     this.meterRegistry = meterRegistry;
   }
@@ -68,13 +47,13 @@ public class StudentProfileService {
     }
 
     var profile =
-        profileRepository
-            .findById(clientId)
-            .orElseGet(() -> profileRepository.save(StudentProfileEntity.create(clientId)));
+        profilePort
+            .findProfileById(clientId)
+            .orElseGet(() -> profilePort.saveProfile(StudentProfileEntity.create(clientId)));
     resolveStaleMisconceptions(clientId);
 
     var weakTopics =
-        topicMasteryRepository.findById_ClientId(clientId).stream()
+        profilePort.findMasteriesByClientId(clientId).stream()
             .filter(
                 topic ->
                     topic.getMasteryLevel() == MasteryLevel.STRUGGLING
@@ -86,8 +65,9 @@ public class StudentProfileService {
             .map(StudentTopicMasteryEntity::topicKey)
             .limit(2)
             .toList();
+
     var activeMisconceptions =
-        misconceptionRepository.findByClientIdOrderByLastSeenAtDesc(clientId).stream()
+        profilePort.findMisconceptionsByClientIdOrderByLastSeenAtDesc(clientId).stream()
             .filter(misconception -> misconception.getStatus() == MisconceptionStatus.ACTIVE)
             .map(StudentMisconceptionEntity::getMisconceptionKey)
             .limit(4)
@@ -111,9 +91,9 @@ public class StudentProfileService {
     }
 
     var preference =
-        profileRepository
-            .findById(clientId)
-            .orElseGet(() -> profileRepository.save(StudentProfileEntity.create(clientId)))
+        profilePort
+            .findProfileById(clientId)
+            .orElseGet(() -> profilePort.saveProfile(StudentProfileEntity.create(clientId)))
             .getThemePreference();
     return preference == null ? ThemePreference.SYSTEM : preference;
   }
@@ -126,9 +106,9 @@ public class StudentProfileService {
 
     var nextPreference = preference == null ? ThemePreference.SYSTEM : preference;
     var profile =
-        profileRepository
-            .findById(clientId)
-            .orElseGet(() -> profileRepository.save(StudentProfileEntity.create(clientId)));
+        profilePort
+            .findProfileById(clientId)
+            .orElseGet(() -> profilePort.saveProfile(StudentProfileEntity.create(clientId)));
 
     if (profile.getThemePreference() == nextPreference) {
       return nextPreference;
@@ -136,7 +116,7 @@ public class StudentProfileService {
 
     profile.setThemePreference(nextPreference);
     profile.touchWithoutProfileVersion();
-    profileRepository.save(profile);
+    profilePort.saveProfile(profile);
     return nextPreference;
   }
 
@@ -147,9 +127,9 @@ public class StudentProfileService {
     }
 
     var profile =
-        profileRepository
-            .findById(clientId)
-            .orElseGet(() -> profileRepository.save(StudentProfileEntity.create(clientId)));
+        profilePort
+            .findProfileById(clientId)
+            .orElseGet(() -> profilePort.saveProfile(StudentProfileEntity.create(clientId)));
     boolean changed = false;
 
     if (update.preferredLanguage() != null
@@ -185,19 +165,18 @@ public class StudentProfileService {
 
     for (var topic : update.topicsDetected()) {
       var mastery =
-          topicMasteryRepository
-              .findById(new StudentTopicMasteryId(clientId, topic))
+          profilePort
+              .findMasteryById(new StudentTopicMasteryId(clientId, topic))
               .orElseGet(() -> StudentTopicMasteryEntity.create(clientId, topic));
       mastery.incrementEvidence();
       updateMastery(mastery, update.levelSignals());
-      topicMasteryRepository.save(mastery);
+      profilePort.saveMastery(mastery);
     }
 
     for (var misconceptionObservation : update.misconceptionsObserved()) {
       var misconception =
-          misconceptionRepository
-              .findByClientIdAndMisconceptionKey(
-                  clientId, misconceptionObservation.misconceptionKey())
+          profilePort
+              .findMisconceptionByClientIdAndKey(clientId, misconceptionObservation.misconceptionKey())
               .orElseGet(
                   () ->
                       StudentMisconceptionEntity.create(
@@ -207,12 +186,12 @@ public class StudentProfileService {
                           misconceptionObservation.description(),
                           misconceptionObservation.confidence()));
       misconception.refresh(misconceptionObservation.confidence());
-      misconceptionRepository.save(misconception);
+      profilePort.saveMisconception(misconception);
       meterRegistry.counter("profile.misconception.detected").increment();
       changed = true;
     }
 
-    signalRepository.save(
+    profilePort.saveSignal(
         StudentProfileSignalEntity.from(
             clientId,
             update.conversationId(),
@@ -223,22 +202,22 @@ public class StudentProfileService {
     if (changed || update.hasProfileMutation()) {
       recalculateOverallLevel(clientId, profile);
       profile.touch();
-      profileRepository.save(profile);
+      profilePort.saveProfile(profile);
       meterRegistry.counter("profile.updates.total").increment();
       return;
     }
 
     meterRegistry.counter("profile.update.noop").increment();
-    profileRepository.save(profile);
+    profilePort.saveProfile(profile);
   }
 
   private void resolveStaleMisconceptions(UUID clientId) {
     var cutoff = Instant.now().minus(profileProperties.getMisconceptionTtlDays(), ChronoUnit.DAYS);
     for (var misconception :
-        misconceptionRepository.findByClientIdAndStatusNotAndLastSeenAtBefore(
+        profilePort.findMisconceptionsByClientIdAndStatusNotAndLastSeenAtBefore(
             clientId, MisconceptionStatus.RESOLVED, cutoff)) {
       misconception.resolve();
-      misconceptionRepository.save(misconception);
+      profilePort.saveMisconception(misconception);
     }
   }
 
@@ -274,7 +253,7 @@ public class StudentProfileService {
 
   private void recalculateOverallLevel(UUID clientId, StudentProfileEntity profile) {
     var levels =
-        topicMasteryRepository.findById_ClientId(clientId).stream()
+        profilePort.findMasteriesByClientId(clientId).stream()
             .map(StudentTopicMasteryEntity::getMasteryLevel)
             .toList();
     if (levels.isEmpty()) {

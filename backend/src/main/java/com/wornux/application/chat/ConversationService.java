@@ -1,30 +1,15 @@
 package com.wornux.application.chat;
 
-import com.wornux.ai.advisor.*;
-import com.wornux.ai.config.*;
-import com.wornux.ai.document.*;
-import com.wornux.ai.guard.*;
-import com.wornux.ai.memory.*;
-import com.wornux.ai.profile.*;
-import com.wornux.ai.prompt.*;
-import com.wornux.ai.routing.*;
-import com.wornux.ai.tools.*;
-import com.wornux.application.document.*;
-import com.wornux.application.profile.*;
-import com.wornux.domain.chat.*;
-import com.wornux.domain.chat.questions.*;
-import com.wornux.domain.document.*;
-import com.wornux.domain.profile.*;
-import com.wornux.infrastructure.config.*;
-import com.wornux.infrastructure.external.docling.*;
-import com.wornux.infrastructure.persistence.chat.*;
-import com.wornux.infrastructure.persistence.document.*;
-import com.wornux.infrastructure.persistence.profile.*;
-import com.wornux.infrastructure.web.*;
-import com.wornux.presentation.chat.*;
-import com.wornux.presentation.chat.ui.*;
-import com.wornux.presentation.documentingest.*;
-import com.wornux.presentation.documentingest.ui.*;
+import com.wornux.application.chat.port.ChatMessagePersistencePort;
+import com.wornux.application.chat.port.ChatPersistencePort;
+import com.wornux.application.chat.port.ChatTranscriptPersistencePort;
+import com.wornux.domain.chat.ChatCompactionStatus;
+import com.wornux.domain.chat.ChatEntity;
+import com.wornux.domain.chat.ChatMessageEntity;
+import com.wornux.domain.chat.ChatTranscriptEntity;
+import com.wornux.domain.chat.ConversationSummary;
+import com.wornux.domain.chat.ResolvedConversation;
+import com.wornux.domain.chat.StoredChatMessage;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -35,29 +20,29 @@ public class ConversationService {
 
   private static final int TITLE_MAX_LENGTH = 72;
 
-  private final ChatJpaRepository chatRepository;
-  private final ChatTranscriptJpaRepository chatTranscriptRepository;
-  private final ChatMessageJpaRepository chatMessageRepository;
+  private final ChatPersistencePort chatPort;
+  private final ChatTranscriptPersistencePort chatTranscriptPort;
+  private final ChatMessagePersistencePort chatMessagePort;
 
   public ConversationService(
-      ChatJpaRepository chatRepository,
-      ChatTranscriptJpaRepository chatTranscriptRepository,
-      ChatMessageJpaRepository chatMessageRepository) {
-    this.chatRepository = chatRepository;
-    this.chatTranscriptRepository = chatTranscriptRepository;
-    this.chatMessageRepository = chatMessageRepository;
+      ChatPersistencePort chatPort,
+      ChatTranscriptPersistencePort chatTranscriptPort,
+      ChatMessagePersistencePort chatMessagePort) {
+    this.chatPort = chatPort;
+    this.chatTranscriptPort = chatTranscriptPort;
+    this.chatMessagePort = chatMessagePort;
   }
 
   @Transactional(readOnly = true)
   public List<ConversationSummary> listConversations(UUID clientId) {
-    return chatRepository.findByClientIdOrderByUpdatedAtDescCreatedAtDesc(clientId).stream()
+    return chatPort.findByClientIdOrderByUpdatedAtDescCreatedAtDesc(clientId).stream()
         .map(this::toConversationSummary)
         .toList();
   }
 
   @Transactional(readOnly = true)
   public List<StoredChatMessage> loadConversation(UUID clientId, UUID conversationId) {
-    return chatMessageRepository.findDisplayMessages(conversationId, clientId).stream()
+    return chatMessagePort.findDisplayMessages(conversationId, clientId).stream()
         .filter(message -> !message.isToolMessage())
         .map(ChatMessageEntity::toStoredChatMessage)
         .toList();
@@ -65,25 +50,23 @@ public class ConversationService {
 
   @Transactional
   public ConversationSummary createConversation(UUID clientId, String firstUserPrompt) {
-    var chat =
-        chatRepository.save(ChatEntity.create(clientId, toConversationTitle(firstUserPrompt)));
-    var transcript = chatTranscriptRepository.save(ChatTranscriptEntity.create(chat));
+    var chat = chatPort.save(ChatEntity.create(clientId, toConversationTitle(firstUserPrompt)));
+    var transcript = chatTranscriptPort.save(ChatTranscriptEntity.create(chat));
     chat.activateTranscript(transcript);
-    return toConversationSummary(chatRepository.save(chat));
+    return toConversationSummary(chatPort.save(chat));
   }
 
   @Transactional(readOnly = true)
-  public ResolvedConversation resolveActiveConversation(
-      UUID clientId, UUID requestedConversationId) {
-    var chatEntities = chatRepository.findByClientIdOrderByUpdatedAtDescCreatedAtDesc(clientId);
-    var conversations = chatEntities.stream().map(this::toConversationSummary).toList();
-    var resolvedConversationId = requestedConversationId;
+  public ResolvedConversation resolveActiveConversation(UUID clientId, UUID requestedConversationId) {
+    var conversations =
+        chatPort.findByClientIdOrderByUpdatedAtDescCreatedAtDesc(clientId).stream()
+            .map(this::toConversationSummary)
+            .toList();
 
+    var resolvedConversationId = requestedConversationId;
     if (resolvedConversationId != null) {
       var requestedConversationExists =
-          conversations.stream()
-              .map(ConversationSummary::id)
-              .anyMatch(resolvedConversationId::equals);
+          conversations.stream().map(ConversationSummary::id).anyMatch(resolvedConversationId::equals);
       if (!requestedConversationExists) {
         resolvedConversationId = null;
       }
@@ -109,27 +92,21 @@ public class ConversationService {
     }
 
     var normalizedCandidateTitle = toConversationTitle(candidateTitle);
-    var chat = chatRepository.findByIdAndClientId(conversationId, clientId).orElse(null);
-    if (chat == null) {
-      return;
-    }
-    if (!expectedCurrentTitle.equals(chat.getTitle())) {
-      return;
-    }
-    if (normalizedCandidateTitle.equals(chat.getTitle())) {
+    var chat = chatPort.findByIdAndClientId(conversationId, clientId).orElse(null);
+    if (chat == null
+        || !expectedCurrentTitle.equals(chat.getTitle())
+        || normalizedCandidateTitle.equals(chat.getTitle())) {
       return;
     }
 
     chat.rename(normalizedCandidateTitle);
-    chatRepository.save(chat);
+    chatPort.save(chat);
   }
 
   @Transactional(readOnly = true)
   public ChatCompactionStatus getCompactionStatus(UUID clientId, UUID conversationId) {
-    var chat = chatRepository.findByIdAndClientId(conversationId, clientId).orElse(null);
-    if (chat == null
-        || chat.getCurrentTranscript() == null
-        || !chat.getCurrentTranscript().isCompacted()) {
+    var chat = chatPort.findByIdAndClientId(conversationId, clientId).orElse(null);
+    if (chat == null || chat.getCurrentTranscript() == null || !chat.getCurrentTranscript().isCompacted()) {
       return ChatCompactionStatus.none();
     }
     var transcript = chat.getCurrentTranscript();
