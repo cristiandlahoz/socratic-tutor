@@ -131,7 +131,7 @@ class CodeBlockViewerElement extends HTMLElement {
           .cm-editor {
             border: 0;
             background: transparent !important;
-            font-family: var(--chat-font-mono);
+            font-family: var(--chat-font-body);
             font-size: var(--chat-font-size);
             line-height: var(--chat-leading-code);
           }

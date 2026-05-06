@@ -21,7 +21,7 @@
   border: 1px solid var(--chat-border-section);
   background: var(--theme-button-fill);
   color: var(--chat-text-primary);
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.76rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -80,7 +80,7 @@
 .document-ingest-segment-ordinal,
 .document-ingest-status-badge {
   color: var(--chat-history-accent-label);
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.74rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -171,7 +171,7 @@
 
 .document-ingest-markdown-editor textarea,
 .document-ingest-segment-text textarea {
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.88rem;
   line-height: 1.55;
 }
@@ -197,7 +197,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.72rem;
 }
 
