@@ -22,9 +22,8 @@
     <spring-ai.version>2.0.0-M4</spring-ai.version>
     <testcontainers.version>1.21.3</testcontainers.version>
 
-    <spotless.version>2.46.1</spotless.version>
-    <google-java-format.version>1.29.0</google-java-format.version>
-    <cleanthat.version>2.25</cleanthat.version>
+    <spotless.version>3.4.0</spotless.version>
+    <google-java-format.version>1.35.0</google-java-format.version>
   </properties>
 
   <dependencyManagement>
@@ -165,28 +164,7 @@
         <version>${spotless.version}</version>
         <configuration>
           <java>
-            <toggleOffOn/>
-
-            <cleanthat>
-              <version>${cleanthat.version}</version>
-              <sourceJdk>${java.version}</sourceJdk>
-              <mutators>
-                <mutator>SafeAndConsensual</mutator>
-              </mutators>
-              <includeDraft>false</includeDraft>
-            </cleanthat>
-
-            <formatAnnotations/>
-            <importOrder/>
-            <removeUnusedImports>
-              <engine>google-java-format</engine>
-            </removeUnusedImports>
-            <googleJavaFormat>
-              <version>${google-java-format.version}</version>
-              <style>GOOGLE</style>
-              <reflowLongStrings>true</reflowLongStrings>
-              <formatJavadoc>false</formatJavadoc>
-            </googleJavaFormat>
+            <removeUnusedImports/>
 
           </java>
 

@@ -176,7 +176,8 @@ public class StudentProfileService {
     for (var misconceptionObservation : update.misconceptionsObserved()) {
       var misconception =
           profilePort
-              .findMisconceptionByClientIdAndKey(clientId, misconceptionObservation.misconceptionKey())
+              .findMisconceptionByClientIdAndKey(
+                  clientId, misconceptionObservation.misconceptionKey())
               .orElseGet(
                   () ->
                       StudentMisconceptionEntity.create(

@@ -55,7 +55,8 @@ class StudentProfileServiceThemePreferenceTest {
     when(profilePort.saveProfile(any(StudentProfileEntity.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    var updatedPreference = service.updateThemePreference(profile.getClientId(), ThemePreference.LIGHT);
+    var updatedPreference =
+        service.updateThemePreference(profile.getClientId(), ThemePreference.LIGHT);
 
     var savedProfileCaptor = ArgumentCaptor.forClass(StudentProfileEntity.class);
     verify(profilePort).saveProfile(savedProfileCaptor.capture());

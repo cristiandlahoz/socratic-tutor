@@ -74,8 +74,9 @@ public class StudentProfileJpaAdapter implements StudentProfilePersistencePort {
   }
 
   @Override
-  public List<StudentMisconceptionEntity> findMisconceptionsByClientIdAndStatusNotAndLastSeenAtBefore(
-      UUID clientId, MisconceptionStatus status, Instant cutoff) {
+  public List<StudentMisconceptionEntity>
+      findMisconceptionsByClientIdAndStatusNotAndLastSeenAtBefore(
+          UUID clientId, MisconceptionStatus status, Instant cutoff) {
     return studentMisconceptionJpaRepository.findByClientIdAndStatusNotAndLastSeenAtBefore(
         clientId, status, cutoff);
   }

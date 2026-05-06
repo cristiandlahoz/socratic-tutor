@@ -51,7 +51,8 @@ public class DocumentIngestionService {
     validateUpload(command);
 
     var document =
-        documentPersistencePort.saveDocument(DocumentEntity.create(command, sha256(command.content())));
+        documentPersistencePort.saveDocument(
+            DocumentEntity.create(command, sha256(command.content())));
     var job =
         documentPersistencePort.saveJob(
             DocumentIngestionJobEntity.start(document, "PDF recibido. Preparando transformacion."));
@@ -61,20 +62,24 @@ public class DocumentIngestionService {
       tempFile = Files.createTempFile("ingested-document-", ".pdf");
       Files.write(tempFile, command.content());
 
-      job.advance(DocumentIngestionStage.DOCLING_CONVERT, "Transformando y segmentando PDF con Docling.");
+      job.advance(
+          DocumentIngestionStage.DOCLING_CONVERT, "Transformando y segmentando PDF con Docling.");
       documentPersistencePort.saveJob(job);
 
       var conversion =
-          doclingClientService.convertPdfToMarkdownAndChunks(command.originalFilename(), command.content());
+          doclingClientService.convertPdfToMarkdownAndChunks(
+              command.originalFilename(), command.content());
       if (conversion.markdown() == null || conversion.markdown().isBlank()) {
         throw new DocumentIngestionException("Docling devolvio un documento vacio.");
       }
       if (conversion.segments() == null || conversion.segments().isEmpty()) {
-        throw new DocumentIngestionException("Docling no pudo crear segmentos utiles para este PDF.");
+        throw new DocumentIngestionException(
+            "Docling no pudo crear segmentos utiles para este PDF.");
       }
 
       document.markReviewReady(conversion.markdown(), conversion.pageCount());
-      var initialCatalog = catalogService.analyzeOrFallback(command.originalFilename(), conversion.markdown());
+      var initialCatalog =
+          catalogService.analyzeOrFallback(command.originalFilename(), conversion.markdown());
       document.applyCatalog(initialCatalog.entry(), initialCatalog.stale());
       documentPersistencePort.saveDocument(document);
 
@@ -120,12 +125,16 @@ public class DocumentIngestionService {
     var document =
         documentPersistencePort
             .findDocumentByIdAndClientId(command.documentId(), command.clientId())
-            .orElseThrow(() -> new DocumentIngestionException("No encontre ese documento para este usuario."));
+            .orElseThrow(
+                () ->
+                    new DocumentIngestionException("No encontre ese documento para este usuario."));
     var job =
         documentPersistencePort
             .findLatestJobByDocumentId(document.getId())
             .orElseThrow(
-                () -> new DocumentIngestionException("No encontre el job de ingestion del documento."));
+                () ->
+                    new DocumentIngestionException(
+                        "No encontre el job de ingestion del documento."));
 
     if (document.status() == DocumentStatus.INDEXED) {
       return toReviewVm(document, job);
@@ -134,17 +143,21 @@ public class DocumentIngestionService {
     validateReview(command);
 
     try {
-      job.advance(DocumentIngestionStage.EMBED, "Indexando segmentos para que el chat pueda buscarlos.");
+      job.advance(
+          DocumentIngestionStage.EMBED, "Indexando segmentos para que el chat pueda buscarlos.");
       documentPersistencePort.saveJob(job);
 
       document.markApproved(command.reviewedMarkdown());
       var refreshedCatalog =
-          catalogService.analyzeOrFallback(document.getOriginalFilename(), command.reviewedMarkdown());
+          catalogService.analyzeOrFallback(
+              document.getOriginalFilename(), command.reviewedMarkdown());
       document.applyCatalog(refreshedCatalog.entry(), refreshedCatalog.stale());
       documentPersistencePort.saveDocument(document);
 
       var persistedSegments =
-          documentPersistencePort.findSegmentsByDocumentIdOrderByOrdinalAsc(document.getId()).stream()
+          documentPersistencePort
+              .findSegmentsByDocumentIdOrderByOrdinalAsc(document.getId())
+              .stream()
               .collect(
                   Collectors.toMap(
                       DocumentSegmentEntity::getId,
@@ -243,13 +256,16 @@ public class DocumentIngestionService {
       throw new DocumentIngestionException("Necesito al menos un segmento para indexar.");
     }
     boolean hasBlankSegment =
-        command.segments().stream().anyMatch(segment -> segment.content() == null || segment.content().isBlank());
+        command.segments().stream()
+            .anyMatch(segment -> segment.content() == null || segment.content().isBlank());
     if (hasBlankSegment) {
-      throw new DocumentIngestionException("Todos los segmentos deben tener contenido antes de indexar.");
+      throw new DocumentIngestionException(
+          "Todos los segmentos deben tener contenido antes de indexar.");
     }
   }
 
-  private List<DocumentSegmentEntity> deduplicateApprovedSegments(List<DocumentSegmentEntity> segments) {
+  private List<DocumentSegmentEntity> deduplicateApprovedSegments(
+      List<DocumentSegmentEntity> segments) {
     Map<String, DocumentSegmentEntity> uniqueByContent = new LinkedHashMap<>();
     for (DocumentSegmentEntity segment : segments) {
       uniqueByContent.putIfAbsent(normalize(segment.getContent()), segment);
@@ -284,7 +300,10 @@ public class DocumentIngestionService {
   }
 
   private void failIngestion(
-      DocumentEntity document, DocumentIngestionJobEntity job, String message, Exception exception) {
+      DocumentEntity document,
+      DocumentIngestionJobEntity job,
+      String message,
+      Exception exception) {
     document.markFailed();
     documentPersistencePort.saveDocument(document);
     job.fail("La transformacion del PDF fallo.", message);

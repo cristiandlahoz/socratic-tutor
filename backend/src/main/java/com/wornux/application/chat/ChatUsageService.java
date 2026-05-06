@@ -23,7 +23,10 @@ public class ChatUsageService {
     if (inputTokens == null) {
       return;
     }
-    var chat = chatPort.findById(chatId).orElseThrow(() -> new IllegalStateException("Chat not found: " + chatId));
+    var chat =
+        chatPort
+            .findById(chatId)
+            .orElseThrow(() -> new IllegalStateException("Chat not found: " + chatId));
     var transcript = chat.getCurrentTranscript();
     if (transcript == null) {
       throw new IllegalStateException("Active transcript not found for chat: " + chatId);
@@ -36,7 +39,9 @@ public class ChatUsageService {
   @Transactional(readOnly = true)
   public ChatTranscriptUsage getActiveTranscriptUsage(UUID clientId, UUID chatId) {
     var chat = chatPort.findByIdAndClientId(chatId, clientId).orElse(null);
-    if (chat == null || chat.getCurrentTranscript() == null || chat.getCurrentTranscript().getInputTokens() == null) {
+    if (chat == null
+        || chat.getCurrentTranscript() == null
+        || chat.getCurrentTranscript().getInputTokens() == null) {
       return ChatTranscriptUsage.empty();
     }
     var inputTokens = chat.getCurrentTranscript().getInputTokens();
@@ -46,7 +51,9 @@ public class ChatUsageService {
   @Transactional(readOnly = true)
   public boolean exceedsCompactionThreshold(UUID chatId) {
     var chat = chatPort.findById(chatId).orElse(null);
-    if (chat == null || chat.getCurrentTranscript() == null || chat.getCurrentTranscript().getInputTokens() == null) {
+    if (chat == null
+        || chat.getCurrentTranscript() == null
+        || chat.getCurrentTranscript().getInputTokens() == null) {
       return false;
     }
     return exceedsCompactionThreshold(chat.getCurrentTranscript().getInputTokens());
@@ -60,7 +67,8 @@ public class ChatUsageService {
     int threshold =
         (int)
             Math.floor(
-                chatProperties.getContextWindowTokens() * chatProperties.getCompactionThresholdRatio());
+                chatProperties.getContextWindowTokens()
+                    * chatProperties.getCompactionThresholdRatio());
     if (threshold <= 0) {
       throw new IllegalStateException("Chat compaction threshold must be greater than zero");
     }

@@ -32,14 +32,14 @@
 .chat-usage-text {
   display: inline-flex;
   align-items: center;
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.95rem;
   line-height: 1;
 }
 
 .chat-usage-lineage {
   color: var(--chat-text-disabled);
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.74rem;
   line-height: 1.1;
 }
@@ -109,7 +109,7 @@ vaadin-text-area.chat-composer-input::part(input-field) {
 
 vaadin-text-area.chat-composer-input > textarea {
   color: var(--chat-text-primary);
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: var(--chat-text-code);
   font-weight: 400;
   line-height: var(--chat-leading-code);
@@ -180,7 +180,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
 
 .chat-compaction-label {
   color: var(--chat-text-secondary);
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.95rem;
   line-height: 1.3;
 }
@@ -229,7 +229,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
 .chat-question-panel-title {
   display: block;
   color: var(--chat-text-primary);
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -237,7 +237,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
 
 .chat-question-progress {
   color: var(--chat-text-secondary);
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.78rem;
   letter-spacing: 0.1em;
 }
@@ -269,7 +269,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
 
 .chat-question-header {
   color: var(--chat-text-secondary);
-  font-family: var(--chat-font-mono);
+  font-family: var(--chat-font-body);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;

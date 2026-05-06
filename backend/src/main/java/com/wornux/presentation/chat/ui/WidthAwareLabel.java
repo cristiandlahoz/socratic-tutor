@@ -31,8 +31,8 @@ import com.wornux.presentation.documentingest.*;
 import com.wornux.presentation.documentingest.ui.*;
 
 /**
- * A reusable label that truncates its text according to the rendered width and
- * replaces the last three visible characters with an ellipsis when needed.
+ * A reusable label that truncates its text according to the rendered width and replaces the last
+ * three visible characters with an ellipsis when needed.
  */
 public class WidthAwareLabel extends Composite<Span> {
 

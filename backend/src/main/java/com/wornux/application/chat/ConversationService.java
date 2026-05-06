@@ -57,7 +57,8 @@ public class ConversationService {
   }
 
   @Transactional(readOnly = true)
-  public ResolvedConversation resolveActiveConversation(UUID clientId, UUID requestedConversationId) {
+  public ResolvedConversation resolveActiveConversation(
+      UUID clientId, UUID requestedConversationId) {
     var conversations =
         chatPort.findByClientIdOrderByUpdatedAtDescCreatedAtDesc(clientId).stream()
             .map(this::toConversationSummary)
@@ -66,7 +67,9 @@ public class ConversationService {
     var resolvedConversationId = requestedConversationId;
     if (resolvedConversationId != null) {
       var requestedConversationExists =
-          conversations.stream().map(ConversationSummary::id).anyMatch(resolvedConversationId::equals);
+          conversations.stream()
+              .map(ConversationSummary::id)
+              .anyMatch(resolvedConversationId::equals);
       if (!requestedConversationExists) {
         resolvedConversationId = null;
       }
@@ -106,7 +109,9 @@ public class ConversationService {
   @Transactional(readOnly = true)
   public ChatCompactionStatus getCompactionStatus(UUID clientId, UUID conversationId) {
     var chat = chatPort.findByIdAndClientId(conversationId, clientId).orElse(null);
-    if (chat == null || chat.getCurrentTranscript() == null || !chat.getCurrentTranscript().isCompacted()) {
+    if (chat == null
+        || chat.getCurrentTranscript() == null
+        || !chat.getCurrentTranscript().isCompacted()) {
       return ChatCompactionStatus.none();
     }
     var transcript = chat.getCurrentTranscript();

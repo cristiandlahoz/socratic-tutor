@@ -1,35 +1,11 @@
 package com.wornux.application.chat;
 
-import com.wornux.ai.advisor.*;
-import com.wornux.ai.config.*;
-import com.wornux.ai.document.*;
-import com.wornux.ai.guard.*;
-import com.wornux.ai.memory.*;
-import com.wornux.ai.profile.*;
 import com.wornux.ai.profile.ProfileAwareResponseAdvisor;
 import com.wornux.ai.profile.TurnProfileInferenceService;
-import com.wornux.ai.prompt.*;
-import com.wornux.ai.routing.*;
-import com.wornux.ai.tools.*;
 import com.wornux.ai.tools.AskStudentQuestionTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
-import com.wornux.application.document.*;
-import com.wornux.application.profile.*;
 import com.wornux.application.profile.StudentProfileService;
 import com.wornux.domain.chat.*;
-import com.wornux.domain.chat.questions.*;
-import com.wornux.domain.document.*;
-import com.wornux.domain.profile.*;
-import com.wornux.infrastructure.config.*;
-import com.wornux.infrastructure.external.docling.*;
-import com.wornux.infrastructure.persistence.chat.*;
-import com.wornux.infrastructure.persistence.document.*;
-import com.wornux.infrastructure.persistence.profile.*;
-import com.wornux.infrastructure.web.*;
-import com.wornux.presentation.chat.*;
-import com.wornux.presentation.chat.ui.*;
-import com.wornux.presentation.documentingest.*;
-import com.wornux.presentation.documentingest.ui.*;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -96,10 +72,14 @@ public class ChatService {
                         .param(ProfileAwareResponseAdvisor.CLIENT_ID_CONTEXT_KEY, clientId))
             .toolContext(
                 Map.of(
-                    ToolUsageAuditService.CLIENT_ID, clientId,
-                    ToolUsageAuditService.CONVERSATION_ID, conversationId,
-                    ToolUsageAuditService.TURN_ID, turnId,
-                    ToolUsageAuditService.PROFILE_VERSION, profileSnapshot.profileVersion()))
+                    ToolUsageAuditService.CLIENT_ID,
+                    clientId,
+                    ToolUsageAuditService.CONVERSATION_ID,
+                    conversationId,
+                    ToolUsageAuditService.TURN_ID,
+                    turnId,
+                    ToolUsageAuditService.PROFILE_VERSION,
+                    profileSnapshot.profileVersion()))
             .user(userInput);
     if (questionHandler != null) {
       promptSpec = promptSpec.tools(new AskStudentQuestionTool(questionHandler));

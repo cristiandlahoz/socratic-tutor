@@ -1,0 +1,15 @@
+@font-face {
+  font-family: "Zodiak";
+  src: url("/fonts/zodiak/Zodiak-Variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Zodiak";
+  src: url("/fonts/zodiak/Zodiak-VariableItalic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}

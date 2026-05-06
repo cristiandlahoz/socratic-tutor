@@ -78,7 +78,7 @@ vaadin-message code,
 vaadin-message pre,
 vaadin-message kbd,
 vaadin-message samp {
-    font-family: var(--chat-font-mono);
+    font-family: var(--chat-font-body);
 }
 
 vaadin-message.is-loading::part(message) {
@@ -87,7 +87,7 @@ vaadin-message.is-loading::part(message) {
     border-radius: 0;
     background: transparent;
     color: var(--chat-text-disabled);
-    font-family: var(--chat-font-mono);
+    font-family: var(--chat-font-body);
     letter-spacing: 0;
 }
 

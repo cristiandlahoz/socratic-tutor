@@ -6,6 +6,7 @@ class AsciiFrameAnimation extends LitElement {
     frameCount: { type: Number, attribute: 'frame-count' },
     fps: { type: Number },
     loop: { type: Boolean },
+    bouncing: { type: Boolean },
     loading: { state: true },
     error: { state: true },
     currentFrame: { state: true },
@@ -51,6 +52,7 @@ class AsciiFrameAnimation extends LitElement {
   declare frameCount: number;
   declare fps: number;
   declare loop: boolean;
+  declare bouncing: boolean;
   declare loading: boolean;
   declare error: string;
   declare currentFrame: number;
@@ -59,6 +61,8 @@ class AsciiFrameAnimation extends LitElement {
   private animationHandle: number | null = null;
   private lastFrameTime = -1;
   private hasLoadedOnce = false;
+  private frameDirection: 1 | -1 = 1;
+  private reachedLastFrameInBounce = false;
 
   constructor() {
     super();
@@ -66,6 +70,7 @@ class AsciiFrameAnimation extends LitElement {
     this.frameCount = 240;
     this.fps = 30;
     this.loop = true;
+    this.bouncing = false;
     this.loading = true;
     this.error = '';
     this.currentFrame = 0;
@@ -112,6 +117,8 @@ class AsciiFrameAnimation extends LitElement {
     this.loading = true;
     this.error = '';
     this.currentFrame = 0;
+    this.frameDirection = 1;
+    this.reachedLastFrameInBounce = false;
     this.frames = [];
 
     try {
@@ -146,6 +153,8 @@ class AsciiFrameAnimation extends LitElement {
       return;
     }
     this.lastFrameTime = -1;
+    this.frameDirection = 1;
+    this.reachedLastFrameInBounce = false;
     this.animationHandle = requestAnimationFrame(this.tick);
   }
 
@@ -156,6 +165,8 @@ class AsciiFrameAnimation extends LitElement {
     cancelAnimationFrame(this.animationHandle);
     this.animationHandle = null;
     this.lastFrameTime = -1;
+    this.frameDirection = 1;
+    this.reachedLastFrameInBounce = false;
   }
 
   private tick = (now: number): void => {
@@ -165,15 +176,41 @@ class AsciiFrameAnimation extends LitElement {
       const frameDuration = 1000 / Math.max(this.fps, 1);
       let delta = now - this.lastFrameTime;
       while (delta >= frameDuration) {
-        if (this.loop) {
-          this.currentFrame = (this.currentFrame + 1) % this.frames.length;
-        } else if (this.currentFrame < this.frames.length - 1) {
-          this.currentFrame += 1;
-        }
+        if (this.bouncing) {
+          if (this.frames.length <= 1) {
+            this.stopAnimation();
+            return;
+          }
 
-        if (!this.loop && this.currentFrame >= this.frames.length - 1) {
-          this.stopAnimation();
-          return;
+          const lastIndex = this.frames.length - 1;
+          const nextFrame = this.currentFrame + this.frameDirection;
+
+          if (nextFrame >= lastIndex) {
+            this.currentFrame = lastIndex;
+            this.frameDirection = -1;
+            this.reachedLastFrameInBounce = true;
+          } else if (nextFrame <= 0) {
+            this.currentFrame = 0;
+            this.frameDirection = 1;
+          } else {
+            this.currentFrame = nextFrame;
+          }
+
+          if (!this.loop && this.reachedLastFrameInBounce && this.currentFrame === 0) {
+            this.stopAnimation();
+            return;
+          }
+        } else {
+          if (this.loop) {
+            this.currentFrame = (this.currentFrame + 1) % this.frames.length;
+          } else if (this.currentFrame < this.frames.length - 1) {
+            this.currentFrame += 1;
+          }
+
+          if (!this.loop && this.currentFrame >= this.frames.length - 1) {
+            this.stopAnimation();
+            return;
+          }
         }
 
         delta -= frameDuration;

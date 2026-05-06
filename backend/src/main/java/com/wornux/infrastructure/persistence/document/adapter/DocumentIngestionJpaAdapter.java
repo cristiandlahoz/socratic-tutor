@@ -60,7 +60,8 @@ public class DocumentIngestionJpaAdapter implements DocumentIngestionPersistence
   }
 
   @Override
-  public List<DocumentSegmentEntity> saveAllSegments(Collection<DocumentSegmentEntity> segmentEntities) {
+  public List<DocumentSegmentEntity> saveAllSegments(
+      Collection<DocumentSegmentEntity> segmentEntities) {
     return documentSegmentJpaRepository.saveAll(segmentEntities);
   }
 
