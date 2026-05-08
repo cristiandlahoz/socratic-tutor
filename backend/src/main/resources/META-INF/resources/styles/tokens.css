@@ -39,7 +39,9 @@
   --chat-text-ui-sm: 1rem;
   --chat-text-ui: 1.08rem;
   --chat-text-ui-lg: 1.24rem;
-  --chat-font-size: clamp(1.04rem, .6vw, 1.58rem);
+  --chat-text-label: 0.875rem;
+  --chat-text-meta: 0.82rem;
+  --chat-font-size: clamp(1.02rem, .42vw, 1.28rem);
   --chat-text-code: clamp(1.04rem, .6vw, 1.12rem);
   --chat-leading-chat-user: 1.74;
   --chat-leading-chat-assistant: 1.84;
@@ -101,39 +103,47 @@
   --theme-dark-glow: radial-gradient(circle at 12% 10%, rgba(214, 176, 95, 0.035), transparent 22%),
     radial-gradient(circle at 88% 7%, rgba(255, 255, 255, 0.025), transparent 26%);
   --theme-dark-code-background: #0d1112;
+  --theme-dark-shadow-soft: rgba(0, 0, 0, 0.08) 0px 0px 8px 0px;
+  --theme-dark-shadow-card: rgba(0, 0, 0, 0.42) 0px 2px 4px 0px;
+  --theme-dark-ascii-animation-color: #d4af37;
+  --theme-dark-ascii-animation-shadow: 0 0 0.28rem color-mix(in srgb, #b71c1c 20%, transparent);
 
-  --theme-light-app-background: var(--color-canvas);
-  --theme-light-canvas: var(--color-canvas);
-  --theme-light-header-surface: rgba(239, 239, 239, 0.86);
-  --theme-light-card-surface: rgba(255, 255, 255, 0.9);
-  --theme-light-card-surface-strong: rgba(255, 255, 255, 0.94);
-  --theme-light-card-surface-raised: rgba(255, 255, 255, 0.98);
-  --theme-light-card-surface-hover: rgba(255, 255, 255, 0.98);
-  --theme-light-card-surface-muted: rgba(255, 255, 255, 0.72);
-  --theme-light-button-fill: var(--color-pebble);
-  --theme-light-button-fill-hover: var(--color-ink-black);
-  --theme-light-button-ghost-hover: rgba(0, 0, 0, 0.04);
-  --theme-light-button-ghost-soft: rgba(0, 0, 0, 0.04);
-  --theme-light-border-subtle: rgba(0, 0, 0, 0.06);
-  --theme-light-border-default: rgba(0, 0, 0, 0.1);
-  --theme-light-border-strong: rgba(0, 0, 0, 0.16);
+  --theme-light-app-background: #f3eee4;
+  --theme-light-canvas: #f3eee4;
+  --theme-light-header-surface: rgba(243, 235, 223, 0.9);
+  --theme-light-card-surface: rgba(252, 248, 241, 0.94);
+  --theme-light-card-surface-strong: rgba(253, 249, 244, 0.98);
+  --theme-light-card-surface-raised: rgba(255, 252, 247, 0.99);
+  --theme-light-card-surface-hover: rgba(255, 252, 247, 1);
+  --theme-light-card-surface-muted: rgba(247, 240, 229, 0.9);
+  --theme-light-button-fill: #e6dece;
+  --theme-light-button-fill-hover: #1f3654;
+  --theme-light-button-ghost-hover: rgba(31, 54, 84, 0.08);
+  --theme-light-button-ghost-soft: rgba(31, 54, 84, 0.05);
+  --theme-light-border-subtle: rgba(69, 57, 41, 0.1);
+  --theme-light-border-default: rgba(69, 57, 41, 0.16);
+  --theme-light-border-strong: rgba(69, 57, 41, 0.24);
   --theme-light-text-display: var(--color-ink-black);
   --theme-light-text-primary: rgba(0, 0, 0, 0.88);
   --theme-light-text-secondary: var(--color-graphite);
   --theme-light-text-tertiary: var(--color-slate);
-  --theme-light-link: var(--color-ink-black);
-  --theme-light-interactive: rgba(0, 0, 0, 0.78);
-  --theme-light-interactive-strong: var(--color-signal-blue);
-  --theme-light-focus-ring: rgba(3, 88, 247, 0.18);
-  --theme-light-selection: rgba(3, 88, 247, 0.1);
-  --theme-light-history-accent: var(--color-marigold);
-  --theme-light-history-accent-soft: rgba(255, 176, 5, 0.18);
+  --theme-light-link: #213a5b;
+  --theme-light-interactive: #2a4568;
+  --theme-light-interactive-strong: #315987;
+  --theme-light-focus-ring: rgba(49, 89, 135, 0.24);
+  --theme-light-selection: rgba(49, 89, 135, 0.14);
+  --theme-light-history-accent: #7c643f;
+  --theme-light-history-accent-soft: rgba(124, 100, 63, 0.16);
   --theme-light-history-accent-label: var(--color-ink-black);
-  --theme-light-history-line: rgba(0, 0, 0, 0.12);
-  --theme-light-glow: radial-gradient(circle at 16% 12%, rgba(198, 121, 196, 0.18), transparent 28%),
-    radial-gradient(circle at 82% 18%, rgba(255, 176, 5, 0.2), transparent 24%),
-    radial-gradient(circle at 68% 10%, rgba(3, 88, 247, 0.16), transparent 30%);
-  --theme-light-code-background: rgba(255, 255, 255, 0.96);
+  --theme-light-history-line: rgba(69, 57, 41, 0.15);
+  --theme-light-glow: radial-gradient(circle at 12% 10%, rgba(52, 83, 116, 0.09), transparent 28%),
+    radial-gradient(circle at 86% 14%, rgba(122, 98, 63, 0.08), transparent 24%),
+    radial-gradient(circle at 64% 8%, rgba(250, 248, 241, 0.16), transparent 32%);
+  --theme-light-code-background: rgba(255, 251, 245, 0.98);
+  --theme-light-shadow-soft: rgba(42, 33, 20, 0.08) 0px 2px 8px 0px;
+  --theme-light-shadow-card: rgba(42, 33, 20, 0.12) 0px 3px 10px 0px;
+  --theme-light-ascii-animation-color: #3a5678;
+  --theme-light-ascii-animation-shadow: 0 0 0.18rem color-mix(in srgb, #3a5678 12%, transparent);
 
   --chat-black: var(--theme-app-background);
   --chat-surface: var(--theme-card-surface);
@@ -167,6 +177,14 @@
   --chat-gradient-spectrum: var(--gradient-spectrum);
   --chat-ambient-glow: var(--theme-glow);
   --chat-code-background: var(--theme-code-background);
+  --theme-shadow-soft: var(--theme-dark-shadow-soft);
+  --theme-shadow-card: var(--theme-dark-shadow-card);
+  --theme-ascii-animation-color: var(--theme-dark-ascii-animation-color);
+  --theme-ascii-animation-shadow: var(--theme-dark-ascii-animation-shadow);
+  --chat-shadow-soft: var(--theme-shadow-soft);
+  --chat-shadow-dark-card: var(--theme-shadow-card);
+  --chat-ascii-animation-color: var(--theme-ascii-animation-color);
+  --chat-ascii-animation-shadow: var(--theme-ascii-animation-shadow);
   --chat-panel-radius: var(--chat-radius-compact-l);
   --chat-panel-radius-tight: var(--chat-radius-compact-s);
   --chat-message-radius: var(--chat-radius-compact-m);

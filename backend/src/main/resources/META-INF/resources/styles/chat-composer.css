@@ -40,7 +40,7 @@
 .chat-usage-lineage {
   color: var(--chat-text-disabled);
   font-family: var(--chat-font-body);
-  font-size: 0.74rem;
+  font-size: var(--chat-text-label);
   line-height: 1.1;
 }
 
@@ -238,7 +238,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
 .chat-question-progress {
   color: var(--chat-text-secondary);
   font-family: var(--chat-font-body);
-  font-size: 0.78rem;
+  font-size: var(--chat-text-meta);
   letter-spacing: 0.1em;
 }
 
@@ -270,7 +270,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
 .chat-question-header {
   color: var(--chat-text-secondary);
   font-family: var(--chat-font-body);
-  font-size: 0.8rem;
+  font-size: var(--chat-text-label);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }

@@ -52,7 +52,7 @@
 .chat-sidebar-theme-label {
   color: var(--chat-text-tertiary);
   font-family: var(--chat-font-body);
-  font-size: 0.76rem;
+  font-size: var(--chat-text-label);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -198,7 +198,7 @@ vaadin-button.chat-sidebar-action-button[disabled]::part(button) {
   background: color-mix(in srgb, var(--chat-surface-raised) 88%, transparent);
   color: var(--chat-text-secondary);
   font-family: var(--chat-font-body);
-  font-size: 0.78rem;
+  font-size: var(--chat-text-meta);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -446,7 +446,7 @@ vaadin-button.chat-sidebar-item-button:focus-within .chat-sidebar-item-title {
   margin-bottom: 0.45rem;
   color: var(--chat-text-display);
   font-family: var(--chat-font-body);
-  font-size: 0.69rem;
+  font-size: var(--chat-text-meta);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }

@@ -97,6 +97,10 @@ body > * {
         --theme-history-line: var(--theme-light-history-line);
         --theme-glow: var(--theme-light-glow);
         --theme-code-background: var(--theme-light-code-background);
+        --theme-shadow-soft: var(--theme-light-shadow-soft);
+        --theme-shadow-card: var(--theme-light-shadow-card);
+        --theme-ascii-animation-color: var(--theme-light-ascii-animation-color);
+        --theme-ascii-animation-shadow: var(--theme-light-ascii-animation-shadow);
     }
 
     html:not([data-theme-preference]),
@@ -139,6 +143,10 @@ body[data-theme-preference="light"] {
     --theme-history-line: var(--theme-light-history-line);
     --theme-glow: var(--theme-light-glow);
     --theme-code-background: var(--theme-light-code-background);
+    --theme-shadow-soft: var(--theme-light-shadow-soft);
+    --theme-shadow-card: var(--theme-light-shadow-card);
+    --theme-ascii-animation-color: var(--theme-light-ascii-animation-color);
+    --theme-ascii-animation-shadow: var(--theme-light-ascii-animation-shadow);
 }
 
 html[data-theme-preference="light"] {
@@ -179,6 +187,10 @@ body[data-theme-preference="dark"] {
     --theme-history-line: var(--theme-dark-history-line);
     --theme-glow: var(--theme-dark-glow);
     --theme-code-background: var(--theme-dark-code-background);
+    --theme-shadow-soft: var(--theme-dark-shadow-soft);
+    --theme-shadow-card: var(--theme-dark-shadow-card);
+    --theme-ascii-animation-color: var(--theme-dark-ascii-animation-color);
+    --theme-ascii-animation-shadow: var(--theme-dark-ascii-animation-shadow);
 }
 
 html[data-theme-preference="dark"] {

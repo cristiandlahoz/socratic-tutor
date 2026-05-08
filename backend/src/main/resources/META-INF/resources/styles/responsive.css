@@ -167,7 +167,7 @@
   }
 
   .chat-question-option-description {
-    font-size: 0.76rem;
+    font-size: var(--chat-text-label);
   }
 
   vaadin-button.chat-question-option-info {

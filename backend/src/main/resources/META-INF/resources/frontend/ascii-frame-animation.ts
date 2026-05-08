@@ -35,7 +35,11 @@ class AsciiFrameAnimation extends LitElement {
       font-family: var(--chat-font-mono, monospace);
       font-size: clamp(2.3px, 0.3vw, 3.34px);
       line-height: 1;
-      color: var(--thinking-spinner-color, #d4af37);
+      color: var(--chat-ascii-animation-color, #d4af37);
+      text-shadow: var(
+        --chat-ascii-animation-shadow,
+        0 0 0.28rem color-mix(in srgb, var(--chat-ascii-animation-color, #d4af37) 20%, transparent)
+      );
       text-rendering: optimizeSpeed;
       transform: translateY(1%);
       user-select: none;

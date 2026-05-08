@@ -22,7 +22,7 @@
   background: var(--theme-button-fill);
   color: var(--chat-text-primary);
   font-family: var(--chat-font-body);
-  font-size: 0.76rem;
+  font-size: var(--chat-text-label);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   transition:
@@ -81,7 +81,7 @@
 .document-ingest-status-badge {
   color: var(--chat-history-accent-label);
   font-family: var(--chat-font-body);
-  font-size: 0.74rem;
+  font-size: var(--chat-text-label);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -198,7 +198,7 @@
   flex-wrap: wrap;
   gap: 0.35rem;
   font-family: var(--chat-font-body);
-  font-size: 0.72rem;
+  font-size: var(--chat-text-meta);
 }
 
 .document-ingest-segment-provenance span {
