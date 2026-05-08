@@ -1,8 +1,7 @@
-import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import CodeMirror from '@uiw/react-codemirror';
-import { gruvboxDark } from '@fsegurai/codemirror-theme-gruvbox-dark';
 import { solarizedDark } from '@fsegurai/codemirror-theme-solarized-dark';
+import { solarizedLight } from '@fsegurai/codemirror-theme-solarized-light';
 import { json } from '@codemirror/lang-json';
 import { xml } from '@codemirror/lang-xml';
 import { javascript } from '@codemirror/lang-javascript';
@@ -48,7 +47,7 @@ class CodeBlockViewerElement extends HTMLElement {
   private internalLang = '';
   private currentThemePreference = 'system';
   private themePreferenceObserver: MutationObserver | null = null;
-  private systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  private readonly systemThemeQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
 
   connectedCallback(): void {
     if (!this.shadowRoot) {
@@ -108,12 +107,12 @@ class CodeBlockViewerElement extends HTMLElement {
 
   private resolveTheme(): Extension | undefined {
     if (this.currentThemePreference === 'light') {
-      return gruvboxDark;
+      return solarizedLight;
     }
     if (this.currentThemePreference === 'dark') {
       return solarizedDark;
     }
-    return this.systemThemeQuery.matches ? solarizedDark : gruvboxDark;
+    return this.systemThemeQuery.matches ? solarizedDark : solarizedLight;
   }
 
   private renderEditor(): void {

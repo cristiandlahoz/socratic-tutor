@@ -6,31 +6,6 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.internal.JacksonUtils;
-import com.wornux.ai.advisor.*;
-import com.wornux.ai.config.*;
-import com.wornux.ai.document.*;
-import com.wornux.ai.guard.*;
-import com.wornux.ai.memory.*;
-import com.wornux.ai.profile.*;
-import com.wornux.ai.prompt.*;
-import com.wornux.ai.routing.*;
-import com.wornux.ai.tools.*;
-import com.wornux.application.chat.*;
-import com.wornux.application.document.*;
-import com.wornux.application.profile.*;
-import com.wornux.domain.chat.*;
-import com.wornux.domain.chat.questions.*;
-import com.wornux.domain.document.*;
-import com.wornux.domain.profile.*;
-import com.wornux.infrastructure.config.*;
-import com.wornux.infrastructure.external.docling.*;
-import com.wornux.infrastructure.persistence.chat.*;
-import com.wornux.infrastructure.persistence.document.*;
-import com.wornux.infrastructure.persistence.profile.*;
-import com.wornux.infrastructure.web.*;
-import com.wornux.presentation.chat.ui.*;
-import com.wornux.presentation.documentingest.*;
-import com.wornux.presentation.documentingest.ui.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,8 +15,8 @@ import java.util.Objects;
 @Tag("code-message-list")
 @JsModule("./code-message-list.ts")
 @NpmPackage(value = "@uiw/react-codemirror", version = "4.25.4")
-@NpmPackage(value = "@fsegurai/codemirror-theme-gruvbox-dark", version = "6.2.5")
 @NpmPackage(value = "@fsegurai/codemirror-theme-solarized-dark", version = "6.2.5")
+@NpmPackage(value = "@fsegurai/codemirror-theme-solarized-light", version = "6.2.5")
 @NpmPackage(value = "@codemirror/lang-json", version = "6.0.2")
 @NpmPackage(value = "@codemirror/lang-xml", version = "6.1.0")
 @NpmPackage(value = "@codemirror/lang-javascript", version = "6.2.4")
@@ -50,7 +25,7 @@ import java.util.Objects;
 @NpmPackage(value = "@codemirror/lang-cpp", version = "6.0.2")
 public final class CodeMessageList extends Component implements HasSize {
 
-  private List<CodeMessageListItem> items = new ArrayList<>();
+  private transient List<CodeMessageListItem> items = new ArrayList<>();
   private boolean pendingUpdate;
   private boolean pendingTextUpdate;
   private Integer pendingAddItemsIndex;
