@@ -1,25 +1,21 @@
 package com.wornux.application.profile;
 
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.wornux.ai.config.ProfileProperties;
 import com.wornux.ai.profile.TurnProfileUpdate;
 import com.wornux.application.profile.port.StudentProfilePersistencePort;
-import com.wornux.domain.profile.MasteryLevel;
 import com.wornux.domain.profile.MisconceptionStatus;
+import com.wornux.domain.profile.StudentLearningProfile;
 import com.wornux.domain.profile.StudentMisconceptionEntity;
-import com.wornux.domain.profile.StudentOverallLevel;
 import com.wornux.domain.profile.StudentProfileEntity;
 import com.wornux.domain.profile.StudentProfileSignalEntity;
 import com.wornux.domain.profile.StudentProfileSnapshot;
-import com.wornux.domain.profile.StudentTopicMasteryEntity;
-import com.wornux.domain.profile.StudentTopicMasteryId;
 import com.wornux.domain.profile.ThemePreference;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,17 +23,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StudentProfileService {
 
+  private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
+
   private final StudentProfilePersistencePort profilePort;
   private final ProfileProperties profileProperties;
   private final MeterRegistry meterRegistry;
+  private final ObjectMapper objectMapper;
 
   public StudentProfileService(
       StudentProfilePersistencePort profilePort,
       ProfileProperties profileProperties,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      ObjectMapper objectMapper) {
     this.profilePort = profilePort;
     this.profileProperties = profileProperties;
     this.meterRegistry = meterRegistry;
+    this.objectMapper = objectMapper;
   }
 
   @Transactional
@@ -52,20 +53,6 @@ public class StudentProfileService {
             .orElseGet(() -> profilePort.saveProfile(StudentProfileEntity.create(clientId)));
     resolveStaleMisconceptions(clientId);
 
-    var weakTopics =
-        profilePort.findMasteriesByClientId(clientId).stream()
-            .filter(
-                topic ->
-                    topic.getMasteryLevel() == MasteryLevel.STRUGGLING
-                        || topic.getMasteryLevel() == MasteryLevel.DEVELOPING)
-            .sorted(
-                Comparator.comparing(StudentTopicMasteryEntity::getMasteryLevel)
-                    .thenComparing(StudentTopicMasteryEntity::getEvidenceCount)
-                    .reversed())
-            .map(StudentTopicMasteryEntity::topicKey)
-            .limit(2)
-            .toList();
-
     var activeMisconceptions =
         profilePort.findMisconceptionsByClientIdOrderByLastSeenAtDesc(clientId).stream()
             .filter(misconception -> misconception.getStatus() == MisconceptionStatus.ACTIVE)
@@ -75,13 +62,11 @@ public class StudentProfileService {
 
     return new StudentProfileSnapshot(
         profile.getPreferredLanguage(),
-        profile.getOverallLevel(),
         profile.getHelpMode(),
         profile.isNeedsConcreteExamples(),
-        weakTopics,
         activeMisconceptions,
-        profile.getConfidenceScore(),
-        profile.getProfileVersion());
+        profile.getProfileVersion(),
+        learningProfileFrom(profile));
   }
 
   @Transactional
@@ -153,26 +138,6 @@ public class StudentProfileService {
       changed = true;
     }
 
-    if (update.confidenceDelta().signum() != 0) {
-      var nextConfidence = profile.getConfidenceScore().add(update.confidenceDelta());
-      var clamped =
-          nextConfidence.max(BigDecimal.ZERO).min(BigDecimal.ONE).setScale(3, RoundingMode.HALF_UP);
-      if (clamped.compareTo(profile.getConfidenceScore()) != 0) {
-        profile.setConfidenceScore(clamped);
-        changed = true;
-      }
-    }
-
-    for (var topic : update.topicsDetected()) {
-      var mastery =
-          profilePort
-              .findMasteryById(new StudentTopicMasteryId(clientId, topic))
-              .orElseGet(() -> StudentTopicMasteryEntity.create(clientId, topic));
-      mastery.incrementEvidence();
-      updateMastery(mastery, update.levelSignals());
-      profilePort.saveMastery(mastery);
-    }
-
     for (var misconceptionObservation : update.misconceptionsObserved()) {
       var misconception =
           profilePort
@@ -182,7 +147,7 @@ public class StudentProfileService {
                   () ->
                       StudentMisconceptionEntity.create(
                           clientId,
-                          misconceptionObservation.topic(),
+                          misconceptionObservation.topicKey(),
                           misconceptionObservation.misconceptionKey(),
                           misconceptionObservation.description(),
                           misconceptionObservation.confidence()));
@@ -201,7 +166,6 @@ public class StudentProfileService {
             update.signalPayload()));
 
     if (changed || update.hasProfileMutation()) {
-      recalculateOverallLevel(clientId, profile);
       profile.touch();
       profilePort.saveProfile(profile);
       meterRegistry.counter("profile.updates.total").increment();
@@ -210,6 +174,39 @@ public class StudentProfileService {
 
     meterRegistry.counter("profile.update.noop").increment();
     profilePort.saveProfile(profile);
+  }
+
+  @Transactional
+  public void applyEvaluationProfile(
+      UUID clientId, UUID attemptId, StudentLearningProfile learningProfile) {
+    if (clientId == null || learningProfile == null) {
+      return;
+    }
+
+    var profile =
+        profilePort
+            .findProfileById(clientId)
+            .orElseGet(() -> profilePort.saveProfile(StudentProfileEntity.create(clientId)));
+    profile.setPreferredLanguage(learningProfile.preferredLanguage());
+    profile.setLearningProfile(objectMapper.convertValue(learningProfile, MAP_TYPE));
+    profilePort.saveSignal(
+        StudentProfileSignalEntity.from(
+            clientId,
+            null,
+            attemptId == null ? UUID.randomUUID() : attemptId,
+            "evaluation_profile",
+            Map.of(
+                "attemptId",
+                attemptId == null ? "" : attemptId.toString(),
+                "recentEvidenceIds",
+                learningProfile.recentEvidenceIds(),
+                "weakConceptCount",
+                learningProfile.weakConcepts().size(),
+                "misconceptionCount",
+                learningProfile.activeMisconceptions().size())));
+    profile.touch();
+    profilePort.saveProfile(profile);
+    meterRegistry.counter("profile.evaluation_updates.total").increment();
   }
 
   private void resolveStaleMisconceptions(UUID clientId) {
@@ -222,54 +219,14 @@ public class StudentProfileService {
     }
   }
 
-  private void updateMastery(
-      StudentTopicMasteryEntity mastery, List<TurnProfileUpdate.LevelSignal> levelSignals) {
-    var matchingSignals =
-        levelSignals.stream().filter(signal -> signal.topic() == mastery.topicKey()).toList();
-    if (matchingSignals.isEmpty()) {
-      return;
+  private StudentLearningProfile learningProfileFrom(StudentProfileEntity profile) {
+    if (profile.getLearningProfile() == null || profile.getLearningProfile().isEmpty()) {
+      return StudentLearningProfile.empty(profile.getPreferredLanguage());
     }
-
-    long downSignals =
-        matchingSignals.stream()
-            .filter(signal -> signal.direction() == TurnProfileUpdate.SignalDirection.DOWN)
-            .count();
-    long upSignals =
-        matchingSignals.stream()
-            .filter(signal -> signal.direction() == TurnProfileUpdate.SignalDirection.UP)
-            .count();
-
-    if (downSignals >= 1 && mastery.getEvidenceCount() >= 2) {
-      mastery.setMasteryLevel(MasteryLevel.STRUGGLING);
-      return;
-    }
-    if (upSignals >= 2) {
-      mastery.setMasteryLevel(MasteryLevel.SOLID);
-      return;
-    }
-    if (upSignals >= 1 || downSignals >= 1) {
-      mastery.setMasteryLevel(MasteryLevel.DEVELOPING);
-    }
-  }
-
-  private void recalculateOverallLevel(UUID clientId, StudentProfileEntity profile) {
-    var levels =
-        profilePort.findMasteriesByClientId(clientId).stream()
-            .map(StudentTopicMasteryEntity::getMasteryLevel)
-            .toList();
-    if (levels.isEmpty()) {
-      return;
-    }
-
-    long struggling = levels.stream().filter(level -> level == MasteryLevel.STRUGGLING).count();
-    long solid = levels.stream().filter(level -> level == MasteryLevel.SOLID).count();
-
-    if (solid >= 2 && struggling == 0) {
-      profile.setOverallLevel(StudentOverallLevel.INTERMEDIATE);
-    } else if (struggling >= 2) {
-      profile.setOverallLevel(StudentOverallLevel.BEGINNER);
-    } else {
-      profile.setOverallLevel(StudentOverallLevel.DEVELOPING);
+    try {
+      return objectMapper.convertValue(profile.getLearningProfile(), StudentLearningProfile.class);
+    } catch (IllegalArgumentException exception) {
+      return StudentLearningProfile.empty(profile.getPreferredLanguage());
     }
   }
 }

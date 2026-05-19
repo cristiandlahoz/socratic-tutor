@@ -2,6 +2,7 @@ package com.wornux.application.chat;
 
 import com.wornux.ai.profile.ProfileAwareResponseAdvisor;
 import com.wornux.ai.profile.TurnProfileInferenceService;
+import com.wornux.ai.config.ProfileProperties;
 import com.wornux.ai.tools.AskStudentQuestionTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.application.profile.StudentProfileService;
@@ -34,6 +35,7 @@ public class ChatService {
   private final StudentProfileService studentProfileService;
   private final TurnProfileInferenceService turnProfileInferenceService;
   private final ToolUsageAuditService toolUsageAuditService;
+  private final ProfileProperties profileProperties;
   private final Map<UUID, Integer> turnPromptTokens = new ConcurrentHashMap<>();
 
   public ChatService(
@@ -43,7 +45,8 @@ public class ChatService {
       ChatCompactionService chatCompactionService,
       StudentProfileService studentProfileService,
       TurnProfileInferenceService turnProfileInferenceService,
-      ToolUsageAuditService toolUsageAuditService) {
+      ToolUsageAuditService toolUsageAuditService,
+      ProfileProperties profileProperties) {
     this.chatClient = chatClient;
     this.conversationService = conversationService;
     this.chatUsageService = chatUsageService;
@@ -51,6 +54,7 @@ public class ChatService {
     this.studentProfileService = studentProfileService;
     this.turnProfileInferenceService = turnProfileInferenceService;
     this.toolUsageAuditService = toolUsageAuditService;
+    this.profileProperties = profileProperties;
   }
 
   public Flux<String> chatStream(
@@ -146,6 +150,9 @@ public class ChatService {
   private void persistProfileSignals(
       UUID clientId, UUID conversationId, UUID turnId, String userInput, String assistantResponse) {
     var audits = toolUsageAuditService.drainTurnAudits(turnId);
+    if (!profileProperties.isChatTurnSignalsEnabled()) {
+      return;
+    }
     var memoryWindow = conversationService.loadConversation(clientId, conversationId);
     var update =
         turnProfileInferenceService.infer(

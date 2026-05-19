@@ -4,8 +4,6 @@ import com.wornux.domain.profile.MisconceptionStatus;
 import com.wornux.domain.profile.StudentMisconceptionEntity;
 import com.wornux.domain.profile.StudentProfileEntity;
 import com.wornux.domain.profile.StudentProfileSignalEntity;
-import com.wornux.domain.profile.StudentTopicMasteryEntity;
-import com.wornux.domain.profile.StudentTopicMasteryId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -15,12 +13,6 @@ public interface StudentProfilePersistencePort {
   Optional<StudentProfileEntity> findProfileById(UUID clientId);
 
   StudentProfileEntity saveProfile(StudentProfileEntity profileEntity);
-
-  Optional<StudentTopicMasteryEntity> findMasteryById(StudentTopicMasteryId masteryId);
-
-  List<StudentTopicMasteryEntity> findMasteriesByClientId(UUID clientId);
-
-  StudentTopicMasteryEntity saveMastery(StudentTopicMasteryEntity masteryEntity);
 
   List<StudentMisconceptionEntity> findMisconceptionsByClientIdOrderByLastSeenAtDesc(UUID clientId);
 

@@ -1,10 +1,11 @@
 package com.wornux.domain.chat.questions;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.io.Serializable;
 import java.util.List;
 import org.springframework.util.StringUtils;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 public record StudentQuestionAnswer(
     @JsonProperty(required = true)

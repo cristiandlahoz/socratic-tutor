@@ -11,5 +11,6 @@ public class ProfileProperties {
 
   private boolean enabled = true;
   private boolean shadowMode;
+  private boolean chatTurnSignalsEnabled;
   private int misconceptionTtlDays = 21;
 }

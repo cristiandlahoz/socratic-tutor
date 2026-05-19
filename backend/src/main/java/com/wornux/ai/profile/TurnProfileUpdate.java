@@ -1,6 +1,6 @@
 package com.wornux.ai.profile;
 
-import com.wornux.domain.profile.*;
+import com.wornux.domain.profile.HelpMode;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +9,7 @@ import java.util.UUID;
 public record TurnProfileUpdate(
     UUID conversationId,
     UUID turnId,
-    List<TopicKey> topicsDetected,
+    List<String> topicsDetected,
     List<LevelSignal> levelSignals,
     List<MisconceptionObservation> misconceptionsObserved,
     String preferredLanguage,
@@ -28,10 +28,10 @@ public record TurnProfileUpdate(
         || recommendedHelpMode != null;
   }
 
-  public record LevelSignal(TopicKey topic, SignalDirection direction, String reason) {}
+  public record LevelSignal(String topicKey, SignalDirection direction, String reason) {}
 
   public record MisconceptionObservation(
-      TopicKey topic, String misconceptionKey, String description, BigDecimal confidence) {}
+      String topicKey, String misconceptionKey, String description, BigDecimal confidence) {}
 
   public record ToolEvidence(String tool, boolean useful, String reason) {}
 

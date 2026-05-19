@@ -17,7 +17,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 @SpringBootApplication
 public class Application implements AppShellConfigurator {
 
-  static void main(String[] args) {
-    SpringApplication.run(Application.class, args);
-  }
+    static void main(String... args) {
+        SpringApplication.run(Application.class, args);
+    }
 }

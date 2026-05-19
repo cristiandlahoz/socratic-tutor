@@ -24,32 +24,8 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.signals.Signal;
-import com.wornux.ai.advisor.*;
-import com.wornux.ai.config.*;
-import com.wornux.ai.document.*;
 import com.wornux.ai.document.DocumentIngestionProperties;
-import com.wornux.ai.guard.*;
-import com.wornux.ai.memory.*;
-import com.wornux.ai.profile.*;
-import com.wornux.ai.prompt.*;
-import com.wornux.ai.routing.*;
-import com.wornux.ai.tools.*;
-import com.wornux.application.chat.*;
-import com.wornux.application.document.*;
-import com.wornux.application.profile.*;
-import com.wornux.domain.chat.*;
-import com.wornux.domain.chat.questions.*;
-import com.wornux.domain.document.*;
-import com.wornux.domain.profile.*;
-import com.wornux.infrastructure.config.*;
-import com.wornux.infrastructure.external.docling.*;
-import com.wornux.infrastructure.persistence.chat.*;
-import com.wornux.infrastructure.persistence.document.*;
-import com.wornux.infrastructure.persistence.profile.*;
-import com.wornux.infrastructure.web.*;
 import com.wornux.presentation.MainLayout;
-import com.wornux.presentation.chat.*;
-import com.wornux.presentation.chat.ui.*;
 import com.wornux.presentation.documentingest.ui.*;
 import java.util.Arrays;
 import java.util.Objects;
@@ -57,233 +33,213 @@ import java.util.Objects;
 @Route(value = "documents", layout = MainLayout.class)
 public class DocumentIngestionView extends Composite<Div> implements BeforeEnterObserver {
 
-  private final DocumentIngestionUiController controller;
-  private final DocumentStatusPanel statusPanel;
-  private final DocumentSegmentEditorList segmentEditorList;
-  private final TextArea markdownEditor;
-  private final Button approveButton;
-  private final Button retryButton;
+    private final DocumentIngestionUiController controller;
+    private final DocumentStatusPanel statusPanel;
+    private final DocumentSegmentEditorList segmentEditorList;
+    private final TextArea markdownEditor;
+    private final Button approveButton;
+    private final Button retryButton;
 
-  public DocumentIngestionView(
-      DocumentIngestionUiController controller,
-      DocumentIngestionUiState state,
-      DocumentIngestionProperties properties) {
-    this.controller = controller;
+    public DocumentIngestionView(
+            DocumentIngestionUiController controller,
+            DocumentIngestionUiState state,
+            DocumentIngestionProperties properties) {
+        this.controller = controller;
 
-    var drawerToggle = new DrawerToggle();
-    drawerToggle.addThemeVariants(ButtonVariant.TERTIARY);
-    drawerToggle.addClassName("shell-drawer-toggle");
+        var drawerToggle = new DrawerToggle();
+        drawerToggle.addThemeVariants(ButtonVariant.TERTIARY);
+        drawerToggle.addClassName("shell-drawer-toggle");
 
-    var eyebrow = new Span("Document ETL");
-    eyebrow.addClassName("document-ingest-eyebrow");
+        var eyebrow = new Span("Document ETL");
+        eyebrow.addClassName("document-ingest-eyebrow");
 
-    var title = new H2("Ingesta un PDF y conviértelo en contexto para el chat");
-    title.addClassName("document-ingest-title");
+        var title = new H2("Ingesta un PDF y conviértelo en contexto para el chat");
+        title.addClassName("document-ingest-title");
 
-    var description =
-        new Paragraph(
-            "Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y"
-                + " luego indexalo para preguntas posteriores.");
-    description.addClassName("document-ingest-description");
+        var description =
+                new Paragraph("Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y"
+                        + " luego indexalo para preguntas posteriores.");
+        description.addClassName("document-ingest-description");
 
-    Button backToChatButton = new Button("Volver al chat");
-    backToChatButton.addThemeVariants(ButtonVariant.TERTIARY);
-    backToChatButton.addClassName("document-ingest-back-button");
-    backToChatButton.setIcon(new Icon(VaadinIcon.ARROW_LEFT));
-    backToChatButton.getThemeNames().remove("icon");
-    backToChatButton.addClickListener(_ -> controller.returnToChat());
+        Button backToChatButton = new Button("Volver al chat");
+        backToChatButton.addThemeVariants(ButtonVariant.TERTIARY);
+        backToChatButton.addClassName("document-ingest-back-button");
+        backToChatButton.setIcon(new Icon(VaadinIcon.ARROW_LEFT));
+        backToChatButton.getThemeNames().remove("icon");
+        backToChatButton.addClickListener(_ -> controller.returnToChat());
 
-    var headerCopy = new Div(eyebrow, title, description);
-    headerCopy.addClassName("document-ingest-header-copy");
+        var headerCopy = new Div(eyebrow, title, description);
+        headerCopy.addClassName("document-ingest-header-copy");
 
-    var header = new HorizontalLayout(headerCopy, backToChatButton);
-    header.addClassName("document-ingest-header");
-    header.setWidthFull();
-    header.setPadding(false);
-    header.setSpacing(true);
+        var header = new HorizontalLayout(headerCopy, backToChatButton);
+        header.addClassName("document-ingest-header");
+        header.setWidthFull();
+        header.setPadding(false);
+        header.setSpacing(true);
 
-    Upload upload = createUpload(properties);
-    var uploadCard = new Div(uploadCardIntro(), upload);
-    uploadCard.addClassName("document-ingest-upload-card");
+        Upload upload = createUpload(properties);
+        var uploadCard = new Div(uploadCardIntro(), upload);
+        uploadCard.addClassName("document-ingest-upload-card");
 
-    statusPanel = new DocumentStatusPanel();
+        statusPanel = new DocumentStatusPanel();
 
-    var topGrid = new FormLayout();
-    topGrid.setAutoResponsive(true);
-    topGrid.addClassName("document-ingest-top-grid");
-    topGrid.add(uploadCard, statusPanel);
+        var topGrid = new FormLayout();
+        topGrid.setAutoResponsive(true);
+        topGrid.addClassName("document-ingest-top-grid");
+        topGrid.add(uploadCard, statusPanel);
 
-    markdownEditor = new TextArea("Markdown revisado");
-    markdownEditor.setWidthFull();
-    markdownEditor.setMinHeight("22rem");
-    markdownEditor.setMaxLength(200_000);
-    markdownEditor.setValueChangeMode(ValueChangeMode.EAGER);
-    markdownEditor.addClassName("document-ingest-markdown-editor");
-    markdownEditor.addValueChangeListener(event -> controller.updateMarkdown(event.getValue()));
+        markdownEditor = new TextArea("Markdown revisado");
+        markdownEditor.setWidthFull();
+        markdownEditor.setMinHeight("22rem");
+        markdownEditor.setMaxLength(200_000);
+        markdownEditor.setValueChangeMode(ValueChangeMode.EAGER);
+        markdownEditor.addClassName("document-ingest-markdown-editor");
+        markdownEditor.addValueChangeListener(event -> controller.updateMarkdown(event.getValue()));
 
-    var markdownShell =
-        new Div(
-            sectionHeader(
-                "Fuente canonical",
-                "Este markdown es el artefacto editable que después se segmenta e indexa."),
-            markdownEditor);
-    markdownShell.addClassName("document-ingest-markdown-shell");
+        var markdownShell = new Div(sectionHeader(
+            "Fuente canonical",
+            "Este markdown es el artefacto editable que después se segmenta e indexa."), markdownEditor);
+        markdownShell.addClassName("document-ingest-markdown-shell");
 
-    segmentEditorList = new DocumentSegmentEditorList();
-    segmentEditorList.setSegmentChangeListener(controller::updateSegment);
+        segmentEditorList = new DocumentSegmentEditorList();
+        segmentEditorList.setSegmentChangeListener(controller::updateSegment);
 
-    var segmentsShell =
-        new Div(
-            sectionHeader(
-                "segmentos",
-                "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y"
-                    + " captions."),
-            segmentEditorList);
-    segmentsShell.addClassName("document-ingest-segments-shell");
+        var segmentsShell = new Div(
+                sectionHeader(
+                    "segmentos",
+                    "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y" + " captions."),
+                segmentEditorList);
+        segmentsShell.addClassName("document-ingest-segments-shell");
 
-    approveButton = new Button("Aprobar e indexar");
-    approveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-    approveButton.setIcon(new Icon(VaadinIcon.DATABASE));
-    approveButton.getThemeNames().remove("icon");
-    approveButton.addClassName("document-ingest-approve-button");
-    approveButton.addClickShortcut(Key.ENTER).listenOn(markdownEditor);
-    approveButton.addClickListener(_ -> controller.approve(getUI().orElse(null)));
+        approveButton = new Button("Aprobar e indexar");
+        approveButton.addThemeVariants(ButtonVariant.PRIMARY);
+        approveButton.setIcon(new Icon(VaadinIcon.DATABASE));
+        approveButton.getThemeNames().remove("icon");
+        approveButton.addClassName("document-ingest-approve-button");
+        approveButton.addClickShortcut(Key.ENTER).listenOn(markdownEditor);
+        approveButton.addClickListener(_ -> controller.approve(getUI().orElse(null)));
 
-    retryButton = new Button("Reintentar");
-    retryButton.addThemeVariants(ButtonVariant.TERTIARY);
-    retryButton.addClassName("document-ingest-retry-button");
-    retryButton.addClickListener(_ -> controller.retry(getUI().orElse(null)));
+        retryButton = new Button("Reintentar");
+        retryButton.addThemeVariants(ButtonVariant.TERTIARY);
+        retryButton.addClassName("document-ingest-retry-button");
+        retryButton.addClickListener(_ -> controller.retry(getUI().orElse(null)));
 
-    var actionBar = new Div(approveButton, retryButton);
-    actionBar.addClassName("document-ingest-action-bar");
+        var actionBar = new Div(approveButton, retryButton);
+        actionBar.addClassName("document-ingest-action-bar");
 
-    var reviewStack = new Div(markdownShell, segmentsShell, actionBar);
-    reviewStack.addClassName("document-ingest-review-stack");
+        var reviewStack = new Div(markdownShell, segmentsShell, actionBar);
+        reviewStack.addClassName("document-ingest-review-stack");
 
-    var root = getContent();
-    root.addClassName("document-ingest-view");
-    root.add(drawerToggle, header, topGrid, reviewStack);
+        var root = getContent();
+        root.addClassName("document-ingest-view");
+        root.add(drawerToggle, header, topGrid, reviewStack);
 
-    Signal.effect(
-        statusPanel,
-        () ->
-            statusPanel.setStatus(
+        Signal.effect(
+            statusPanel,
+            () -> statusPanel.setStatus(
                 state.fileName().get(),
                 state.stageLabel().get(),
                 state.busy().get(),
                 state.indexed().get(),
                 state.failureMessage().get()));
-    Signal.effect(markdownEditor, () -> syncMarkdownEditor(state.reviewedMarkdown().get()));
-    Signal.effect(segmentEditorList, () -> segmentEditorList.setSegments(state.segments().get()));
-    Signal.effect(reviewStack, () -> reviewStack.setVisible(state.reviewVisible().get()));
-    Signal.effect(approveButton, () -> approveButton.setEnabled(state.canApprove().get()));
-    Signal.effect(retryButton, () -> retryButton.setVisible(state.retryAvailable().get()));
-  }
-
-  @Override
-  public void beforeEnter(BeforeEnterEvent event) {
-    controller.initializeFromRoute(
-        event
-            .getLocation()
-            .getQueryParameters()
-            .getSingleParameter(DocumentIngestionUiController.DOCUMENT_QUERY_PARAMETER)
-            .orElse(null));
-  }
-
-  private Upload createUpload(DocumentIngestionProperties properties) {
-    Upload upload =
-        new Upload(
-            UploadHandler.inMemory(
-                (metadata, data) ->
-                    controller.uploadPdf(
-                        metadata.fileName(), metadata.contentType(), data, getUI().orElse(null))));
-    upload.setDropAllowed(true);
-    upload.setAcceptedFileTypes("application/pdf", ".pdf");
-    upload.setMaxFiles(1);
-    upload.setMaxFileSize(properties.getMaxFileSizeBytes());
-    upload.setWidthFull();
-    upload.setI18n(createUploadI18n());
-    upload.setUploadButton(createPrimaryUploadButton());
-    upload.setDropLabel(new Span("suelta aquí el PDF o usa el selector."));
-    upload.setDropLabelIcon(VaadinIcon.CLOUD_UPLOAD_O.create());
-    upload.addFileRejectedListener(
-        event -> {
-          var notification =
-              Notification.show(event.getErrorMessage(), 4_000, Notification.Position.MIDDLE);
-          notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-        });
-    return upload;
-  }
-
-  private Button createPrimaryUploadButton() {
-    var button = new Button("Subir PDF");
-    button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-    button.addClassName("document-ingest-upload-button");
-    return button;
-  }
-
-  private UploadI18N createUploadI18n() {
-    UploadI18N i18n = new UploadI18N();
-    i18n.setDropFiles(
-        new UploadI18N.DropFiles().setOne("suelta el PDF aquí").setMany("suelta los PDFs aquí"));
-    i18n.setAddFiles(new UploadI18N.AddFiles().setOne("Subir PDF").setMany("Subir PDFs"));
-    i18n.setError(
-        new UploadI18N.Error()
-            .setTooManyFiles("Solo se permite un PDF por vez.")
-            .setFileIsTooBig("El PDF supera el limite configurado.")
-            .setIncorrectFileType("El archivo debe ser un PDF."));
-    i18n.setUploading(
-        new UploadI18N.Uploading()
-            .setStatus(
-                new UploadI18N.Uploading.Status()
-                    .setConnecting("Conectando...")
-                    .setStalled("Pausado")
-                    .setProcessing("Procesando archivo...")
-                    .setHeld("En cola"))
-            .setRemainingTime(
-                new UploadI18N.Uploading.RemainingTime()
-                    .setPrefix("tiempo restante: ")
-                    .setUnknown("tiempo restante desconocido"))
-            .setError(
-                new UploadI18N.Uploading.Error()
-                    .setServerUnavailable("La subida fallo, intenta otra vez.")
-                    .setUnexpectedServerError("El servidor rechazo la subida.")
-                    .setForbidden("No tienes permiso para subir este archivo.")));
-    i18n.setUnits(new UploadI18N.Units().setSize(Arrays.asList("B", "kB", "MB", "GB", "TB")));
-    return i18n;
-  }
-
-  private Div uploadCardIntro() {
-    var title = new Span("PDF de entrada");
-    title.addClassName("document-ingest-upload-title");
-
-    var hint =
-        new Paragraph(
-            "Solo PDF por ahora. Validamos tipo, tamaño y firma básica del archivo antes de llamar"
-                + " a Docling.");
-    hint.addClassName("document-ingest-upload-hint");
-
-    var wrapper = new Div(title, hint);
-    wrapper.addClassName("document-ingest-upload-copy");
-    return wrapper;
-  }
-
-  private Div sectionHeader(String titleText, String descriptionText) {
-    var title = new Span(titleText);
-    title.addClassName("document-ingest-section-title");
-
-    var description = new Paragraph(descriptionText);
-    description.addClassName("document-ingest-section-description");
-
-    var wrapper = new Div(title, description);
-    wrapper.addClassName("document-ingest-section-header");
-    return wrapper;
-  }
-
-  private void syncMarkdownEditor(String nextValue) {
-    String safeValue = nextValue == null ? "" : nextValue;
-    if (!Objects.equals(markdownEditor.getValue(), safeValue)) {
-      markdownEditor.setValue(safeValue);
+        Signal.effect(markdownEditor, () -> syncMarkdownEditor(state.reviewedMarkdown().get()));
+        Signal.effect(segmentEditorList, () -> segmentEditorList.setSegments(state.segments().get()));
+        Signal.effect(reviewStack, () -> reviewStack.setVisible(state.reviewVisible().get()));
+        Signal.effect(approveButton, () -> approveButton.setEnabled(state.canApprove().get()));
+        Signal.effect(retryButton, () -> retryButton.setVisible(state.retryAvailable().get()));
     }
-  }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        controller.initializeFromRoute(
+            event.getLocation()
+                    .getQueryParameters()
+                    .getSingleParameter(DocumentIngestionUiController.DOCUMENT_QUERY_PARAMETER)
+                    .orElse(null));
+    }
+
+    private Upload createUpload(DocumentIngestionProperties properties) {
+        Upload upload = new Upload(UploadHandler.inMemory(
+            (metadata, data) -> controller
+                    .uploadPdf(metadata.fileName(), metadata.contentType(), data, getUI().orElse(null))));
+        upload.setDropAllowed(true);
+        upload.setAcceptedFileTypes("application/pdf", ".pdf");
+        upload.setMaxFiles(1);
+        upload.setMaxFileSize(properties.getMaxFileSizeBytes());
+        upload.setWidthFull();
+        upload.setI18n(createUploadI18n());
+        upload.setUploadButton(createPrimaryUploadButton());
+        upload.setDropLabel(new Span("suelta aquí el PDF o usa el selector."));
+        upload.setDropLabelIcon(VaadinIcon.CLOUD_UPLOAD_O.create());
+        upload.addFileRejectedListener(event -> {
+            var notification = Notification.show(event.getErrorMessage(), 4_000, Notification.Position.MIDDLE);
+            notification.addThemeVariants(NotificationVariant.ERROR);
+        });
+        return upload;
+    }
+
+    private Button createPrimaryUploadButton() {
+        var button = new Button("Subir PDF");
+        button.addThemeVariants(ButtonVariant.PRIMARY);
+        button.addClassName("document-ingest-upload-button");
+        return button;
+    }
+
+    private UploadI18N createUploadI18n() {
+        UploadI18N i18n = new UploadI18N();
+        i18n.setDropFiles(new UploadI18N.DropFiles().setOne("suelta el PDF aquí").setMany("suelta los PDFs aquí"));
+        i18n.setAddFiles(new UploadI18N.AddFiles().setOne("Subir PDF").setMany("Subir PDFs"));
+        i18n.setError(
+            new UploadI18N.Error().setTooManyFiles("Solo se permite un PDF por vez.")
+                    .setFileIsTooBig("El PDF supera el limite configurado.")
+                    .setIncorrectFileType("El archivo debe ser un PDF."));
+        i18n.setUploading(
+            new UploadI18N.Uploading()
+                    .setStatus(
+                        new UploadI18N.Uploading.Status().setConnecting("Conectando...")
+                                .setStalled("Pausado")
+                                .setProcessing("Procesando archivo...")
+                                .setHeld("En cola"))
+                    .setRemainingTime(
+                        new UploadI18N.Uploading.RemainingTime().setPrefix("tiempo restante: ")
+                                .setUnknown("tiempo restante desconocido"))
+                    .setError(
+                        new UploadI18N.Uploading.Error().setServerUnavailable("La subida fallo, intenta otra vez.")
+                                .setUnexpectedServerError("El servidor rechazo la subida.")
+                                .setForbidden("No tienes permiso para subir este archivo.")));
+        i18n.setUnits(new UploadI18N.Units().setSize(Arrays.asList("B", "kB", "MB", "GB", "TB")));
+        return i18n;
+    }
+
+    private Div uploadCardIntro() {
+        var title = new Span("PDF de entrada");
+        title.addClassName("document-ingest-upload-title");
+
+        var hint = new Paragraph("Solo PDF por ahora. Validamos tipo, tamaño y firma básica del archivo antes de llamar"
+                + " a Docling.");
+        hint.addClassName("document-ingest-upload-hint");
+
+        var wrapper = new Div(title, hint);
+        wrapper.addClassName("document-ingest-upload-copy");
+        return wrapper;
+    }
+
+    private Div sectionHeader(String titleText, String descriptionText) {
+        var title = new Span(titleText);
+        title.addClassName("document-ingest-section-title");
+
+        var description = new Paragraph(descriptionText);
+        description.addClassName("document-ingest-section-description");
+
+        var wrapper = new Div(title, description);
+        wrapper.addClassName("document-ingest-section-header");
+        return wrapper;
+    }
+
+    private void syncMarkdownEditor(String nextValue) {
+        String safeValue = nextValue == null ? "" : nextValue;
+        if (!Objects.equals(markdownEditor.getValue(), safeValue)) {
+            markdownEditor.setValue(safeValue);
+        }
+    }
 }
