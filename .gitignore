@@ -79,3 +79,6 @@ package-lock.json
 
 # Misc
 .wget-hsts
+
+# Embedded repositories
+backend/fechan.github.io/
