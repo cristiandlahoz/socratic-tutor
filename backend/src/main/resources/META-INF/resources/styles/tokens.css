@@ -1,44 +1,55 @@
 :root {
-  --color-ink-black: #000000;
-  --color-snow: #ffffff;
-  --color-canvas: #f8f8f8;
-  --color-fog: #efefef;
-  --color-pebble: #d9d9d9;
-  --color-graphite: #636363;
-  --color-slate: #959595;
-  --color-steel: #aeaeae;
-  --color-ash: #7c7c7c;
-  --color-rose-quartz: #c679c4;
-  --color-red-prism: #fa3d1d;
-  --color-marigold: #ffb005;
-  --color-cloud-lilac: #e1e1fe;
-  --color-signal-blue: #0358f7;
-  --color-hot-pink: #fd02f5;
-  --gradient-spectrum: linear-gradient(90deg,
-      rgb(198, 121, 196) 0%,
-      rgb(250, 61, 29) 25%,
-      rgb(255, 176, 5) 50%,
-      rgb(225, 225, 254) 75%,
-      rgb(3, 88, 247) 100%);
+  /* Light mode foundation, inspired by fechan.github.io */
+  --theme-light-background: oklch(92.5% 0.036 78);
+  --theme-light-surface: oklch(95.6% 0.025 79);
+  --theme-light-surface-muted: oklch(89.8% 0.039 80);
+  --theme-light-text: oklch(32.4% 0.007 107);
+  --theme-light-text-muted: oklch(45.4% 0.016 71);
+  --theme-light-border: oklch(73.8% 0.022 68);
+  --theme-light-accent: oklch(45.9% 0.168 17);
+  --theme-light-accent-hover: oklch(39.5% 0.144 17);
+  --theme-light-accent-muted: oklch(85.7% 0.053 7);
+  --theme-light-accent-subtle: oklch(92.3% 0.033 6);
+  --theme-light-accent-contrast: #fff8ef;
+
+  /* Dark mode foundation, intentionally close to the existing shell. */
+  --theme-dark-background: #091c1e;
+  --theme-dark-surface: rgba(12, 20, 21, 0.92);
+  --theme-dark-surface-strong: rgba(15, 24, 25, 0.96);
+  --theme-dark-surface-raised: rgba(18, 28, 29, 0.98);
+  --theme-dark-surface-hover: rgba(23, 34, 35, 0.98);
+  --theme-dark-surface-muted: rgba(11, 18, 19, 0.82);
+  --theme-dark-button-fill: #121b1c;
+  --theme-dark-button-fill-hover: #182223;
+  --theme-dark-border-subtle: rgba(50, 59, 57, 0.3);
+  --theme-dark-border: rgba(68, 80, 76, 0.58);
+  --theme-dark-border-strong: rgba(94, 108, 101, 0.78);
+  --theme-dark-text-display: #f7f8f8;
+  --theme-dark-text: #d0d6e0;
+  --theme-dark-text-muted: #8a8f98;
+  --theme-dark-text-soft: #62666d;
+  --theme-dark-accent: #c6a55b;
+  --theme-dark-accent-hover: #e2c271;
+  --theme-dark-accent-subtle: rgba(226, 194, 113, 0.1);
+  --theme-dark-accent-contrast: #091c1e;
+  --theme-dark-line: rgba(98, 102, 109, 0.46);
+  --theme-dark-glow: radial-gradient(circle at 12% 10%, rgba(214, 176, 95, 0.035), transparent 22%),
+    radial-gradient(circle at 88% 7%, rgba(255, 255, 255, 0.025), transparent 26%);
+  --theme-dark-code-background: #0d1112;
+  --theme-dark-shadow-soft: rgba(0, 0, 0, 0.08) 0px 0px 8px 0px;
+  --theme-dark-shadow-card: rgba(0, 0, 0, 0.42) 0px 2px 4px 0px;
+  --theme-dark-ascii-animation-color: #d4af37;
+  --theme-dark-ascii-animation-shadow: 0 0 0.28rem color-mix(in srgb, #b71c1c 20%, transparent);
 
   --chat-font-display: "Zodiak", Georgia, "Times New Roman", serif;
   --chat-font-body: "Zodiak", Georgia, "Times New Roman", serif;
   --chat-font-mono: "Space Mono", "SF Mono", "JetBrains Mono", monospace;
-  --chat-font-ornament: "Zodiak", "SF Mono", "JetBrains Mono", monospace;
 
-  --chat-text-caption: 0.625rem;
-  --chat-text-body-sm: 0.875rem;
-  --chat-text-body: 1rem;
   --chat-text-subheading: 1.125rem;
-  --chat-text-heading-sm: 1.375rem;
-  --chat-text-heading: clamp(2.8rem, 5vw, 3.6rem);
-  --chat-text-heading-lg: clamp(3.1rem, 6vw, 4.3rem);
-  --chat-tracking-heading-sm: -0.02em;
   --chat-tracking-heading: -0.04em;
   --chat-tracking-display: -0.04em;
   --chat-text-ui-sm: 1rem;
   --chat-text-ui: 1.08rem;
-  --chat-text-ui-lg: 1.24rem;
   --chat-text-label: 0.875rem;
   --chat-text-meta: 0.82rem;
   --chat-font-size: clamp(1.02rem, .42vw, 1.28rem);
@@ -48,102 +59,15 @@
   --chat-leading-code: 1.55;
 
   --chat-content-max-width: 56rem;
-  --chat-space-2xs: 2px;
-  --chat-space-xs: 4px;
-  --chat-space-sm: 8px;
   --chat-space-md: 16px;
   --chat-space-lg: 24px;
   --chat-space-xl: 32px;
-  --chat-space-2xl: 48px;
-  --chat-space-3xl: 64px;
-  --chat-space-4xl: 96px;
-  --chat-space-5xl: 120px;
   --chat-radius-technical: 10px;
   --chat-radius-s: 16px;
-  --chat-radius-m: 30px;
-  --chat-radius-l: 40px;
-  --chat-radius-pill: 999px;
-  --chat-radius-compact-xs: 4px;
   --chat-radius-compact-s: 6px;
   --chat-radius-compact-m: 8px;
   --chat-radius-compact-l: 10px;
-  --chat-shadow-soft: rgba(0, 0, 0, 0.08) 0px 0px 8px 0px;
-  --chat-shadow-dark-card: rgba(0, 0, 0, 0.42) 0px 2px 4px 0px;
   --chat-transition-fast: 0.2s ease;
-  --chat-transition-slow: 0.85s cubic-bezier(0.77, 0, 0.175, 1);
-
-  --theme-dark-app-background: #091c1e;
-  --theme-dark-canvas: #091c1e;
-  --theme-dark-header-surface: rgba(10, 24, 25, 0.94);
-  --theme-dark-card-surface: rgba(12, 20, 21, 0.92);
-  --theme-dark-card-surface-strong: rgba(15, 24, 25, 0.96);
-  --theme-dark-card-surface-raised: rgba(18, 28, 29, 0.98);
-  --theme-dark-card-surface-hover: rgba(23, 34, 35, 0.98);
-  --theme-dark-card-surface-muted: rgba(11, 18, 19, 0.82);
-  --theme-dark-button-fill: #121b1c;
-  --theme-dark-button-fill-hover: #182223;
-  --theme-dark-button-ghost-hover: rgba(255, 255, 255, 0.04);
-  --theme-dark-button-ghost-soft: rgba(255, 255, 255, 0.03);
-  --theme-dark-border-subtle: rgba(50, 59, 57, 0.3);
-  --theme-dark-border-default: rgba(68, 80, 76, 0.58);
-  --theme-dark-border-strong: rgba(94, 108, 101, 0.78);
-  --theme-dark-text-display: #f7f8f8;
-  --theme-dark-text-primary: #d0d6e0;
-  --theme-dark-text-secondary: #8a8f98;
-  --theme-dark-text-tertiary: #62666d;
-  --theme-dark-link: #d0d6e0;
-  --theme-dark-interactive: #c6a55b;
-  --theme-dark-interactive-strong: #e2c271;
-  --theme-dark-focus-ring: rgba(226, 194, 113, 0.22);
-  --theme-dark-selection: rgba(226, 194, 113, 0.1);
-  --theme-dark-history-accent: #d6b05f;
-  --theme-dark-history-accent-soft: rgba(214, 176, 95, 0.14);
-  --theme-dark-history-accent-label: #f7f8f8;
-  --theme-dark-history-line: rgba(98, 102, 109, 0.46);
-  --theme-dark-glow: radial-gradient(circle at 12% 10%, rgba(214, 176, 95, 0.035), transparent 22%),
-    radial-gradient(circle at 88% 7%, rgba(255, 255, 255, 0.025), transparent 26%);
-  --theme-dark-code-background: #0d1112;
-  --theme-dark-shadow-soft: rgba(0, 0, 0, 0.08) 0px 0px 8px 0px;
-  --theme-dark-shadow-card: rgba(0, 0, 0, 0.42) 0px 2px 4px 0px;
-  --theme-dark-ascii-animation-color: #d4af37;
-  --theme-dark-ascii-animation-shadow: 0 0 0.28rem color-mix(in srgb, #b71c1c 20%, transparent);
-
-  --theme-light-app-background: #f3eee4;
-  --theme-light-canvas: #f3eee4;
-  --theme-light-header-surface: rgba(243, 235, 223, 0.9);
-  --theme-light-card-surface: rgba(252, 248, 241, 0.94);
-  --theme-light-card-surface-strong: rgba(253, 249, 244, 0.98);
-  --theme-light-card-surface-raised: rgba(255, 252, 247, 0.99);
-  --theme-light-card-surface-hover: rgba(255, 252, 247, 1);
-  --theme-light-card-surface-muted: rgba(247, 240, 229, 0.9);
-  --theme-light-button-fill: #e6dece;
-  --theme-light-button-fill-hover: #1f3654;
-  --theme-light-button-ghost-hover: rgba(31, 54, 84, 0.08);
-  --theme-light-button-ghost-soft: rgba(31, 54, 84, 0.05);
-  --theme-light-border-subtle: rgba(69, 57, 41, 0.1);
-  --theme-light-border-default: rgba(69, 57, 41, 0.16);
-  --theme-light-border-strong: rgba(69, 57, 41, 0.24);
-  --theme-light-text-display: var(--color-ink-black);
-  --theme-light-text-primary: rgba(0, 0, 0, 0.88);
-  --theme-light-text-secondary: var(--color-graphite);
-  --theme-light-text-tertiary: var(--color-slate);
-  --theme-light-link: #213a5b;
-  --theme-light-interactive: #2a4568;
-  --theme-light-interactive-strong: #315987;
-  --theme-light-focus-ring: rgba(49, 89, 135, 0.24);
-  --theme-light-selection: rgba(49, 89, 135, 0.14);
-  --theme-light-history-accent: #7c643f;
-  --theme-light-history-accent-soft: rgba(124, 100, 63, 0.16);
-  --theme-light-history-accent-label: var(--color-ink-black);
-  --theme-light-history-line: rgba(69, 57, 41, 0.15);
-  --theme-light-glow: radial-gradient(circle at 12% 10%, rgba(52, 83, 116, 0.09), transparent 28%),
-    radial-gradient(circle at 86% 14%, rgba(122, 98, 63, 0.08), transparent 24%),
-    radial-gradient(circle at 64% 8%, rgba(250, 248, 241, 0.16), transparent 32%);
-  --theme-light-code-background: rgba(255, 251, 245, 0.98);
-  --theme-light-shadow-soft: rgba(42, 33, 20, 0.08) 0px 2px 8px 0px;
-  --theme-light-shadow-card: rgba(42, 33, 20, 0.12) 0px 3px 10px 0px;
-  --theme-light-ascii-animation-color: #3a5678;
-  --theme-light-ascii-animation-shadow: 0 0 0.18rem color-mix(in srgb, #3a5678 12%, transparent);
 
   --chat-black: var(--theme-app-background);
   --chat-surface: var(--theme-card-surface);
@@ -151,7 +75,6 @@
   --chat-surface-raised: var(--theme-card-surface-raised);
   --chat-surface-hover: var(--theme-card-surface-hover);
   --chat-surface-muted: var(--theme-card-surface-muted);
-  --chat-border: var(--theme-border-default);
   --chat-border-visible: var(--theme-border-default);
   --chat-border-section: var(--theme-border-default);
   --chat-border-emphasis: var(--theme-border-strong);
@@ -161,11 +84,6 @@
   --chat-text-primary: var(--theme-text-primary);
   --chat-text-display: var(--theme-text-display);
   --chat-link: var(--theme-link);
-  --chat-accent: var(--color-red-prism);
-  --chat-accent-subtle: rgba(250, 61, 29, 0.12);
-  --chat-success: oklch(0.17 0.03 173);
-  --chat-warning: oklch(0.17 0.03 92);
-  --chat-danger: oklch(0.12 0.05 359);
   --chat-interactive: var(--theme-interactive);
   --chat-interactive-strong: var(--theme-interactive-strong);
   --chat-focus-ring: var(--theme-focus-ring);
@@ -174,13 +92,8 @@
   --chat-history-accent-soft: var(--theme-history-accent-soft);
   --chat-history-accent-label: var(--theme-history-accent-label);
   --chat-history-line: var(--theme-history-line);
-  --chat-gradient-spectrum: var(--gradient-spectrum);
   --chat-ambient-glow: var(--theme-glow);
   --chat-code-background: var(--theme-code-background);
-  --theme-shadow-soft: var(--theme-dark-shadow-soft);
-  --theme-shadow-card: var(--theme-dark-shadow-card);
-  --theme-ascii-animation-color: var(--theme-dark-ascii-animation-color);
-  --theme-ascii-animation-shadow: var(--theme-dark-ascii-animation-shadow);
   --chat-shadow-soft: var(--theme-shadow-soft);
   --chat-shadow-dark-card: var(--theme-shadow-card);
   --chat-ascii-animation-color: var(--theme-ascii-animation-color);

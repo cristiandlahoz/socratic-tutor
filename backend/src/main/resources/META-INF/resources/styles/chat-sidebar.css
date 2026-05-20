@@ -88,7 +88,7 @@ vaadin-button.chat-sidebar-theme-button::part(button) {
 vaadin-button.chat-sidebar-theme-button:hover::part(button),
 vaadin-button.chat-sidebar-theme-button:focus-within::part(button) {
   background: var(--theme-button-ghost-hover);
-  color: var(--chat-text-primary);
+  color: var(--theme-interactive);
 }
 
 vaadin-button.chat-sidebar-theme-button.is-active::part(button) {
@@ -135,7 +135,7 @@ vaadin-button.chat-sidebar-action-button:hover::part(button),
 vaadin-button.chat-sidebar-action-button:focus-within::part(button) {
   background: var(--theme-button-fill-hover);
   border-color: color-mix(in srgb, var(--chat-interactive-strong) 36%, var(--chat-border-section));
-  color: var(--chat-text-display);
+  color: var(--theme-accent-contrast);
   transform: translateY(-1px);
 }
 

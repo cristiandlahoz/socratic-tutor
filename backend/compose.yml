@@ -5,8 +5,6 @@ services:
       - 'POSTGRES_DB=socratic-tutor'
       - 'POSTGRES_USER=postgres'
       - 'POSTGRES_PASSWORD=postgres'
-    labels:
-      - "org.springframework.boot.service-connection=postgres"
     volumes:
       - db_postgres:/var/lib/postgresql
     ports:

@@ -1,15 +1,18 @@
 package com.wornux.ai.config;
 
 import com.wornux.ai.advisor.DocumentCatalogAdvisor;
+import com.wornux.ai.advisor.SubjectContextAdvisor;
 import com.wornux.ai.advisor.TutorGuardAdvisor;
 import com.wornux.ai.document.DocumentCatalogPromptService;
 import com.wornux.ai.guard.*;
 import com.wornux.ai.profile.ProfileAwareResponseAdvisor;
+import com.wornux.ai.profile.StudentProfilePromptMapper;
 import com.wornux.ai.prompt.TutorPromptResources;
 import com.wornux.ai.routing.PedagogicalRoutingAdvisor;
 import com.wornux.ai.routing.PedagogicalRoutingService;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.application.profile.StudentProfileService;
+import com.wornux.application.subject.SubjectConfigService;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.ai.chat.client.ChatClient;
@@ -26,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
 public class AIConfig {
 
   private static final int CHAT_MEMORY_ADVISOR_ORDER = 100;
+  private static final int SUBJECT_CONTEXT_ADVISOR_ORDER = 140;
   private static final int PROFILE_ADVISOR_ORDER = 150;
   private static final int DOCUMENT_CATALOG_ADVISOR_ORDER = 160;
   private static final int PEDAGOGICAL_ROUTING_ADVISOR_ORDER = 175;
@@ -39,6 +43,8 @@ public class AIConfig {
       ChatMemory chatMemory,
       GuardClassifierService guardClassifierService,
       StudentProfileService studentProfileService,
+      StudentProfilePromptMapper studentProfilePromptMapper,
+      SubjectConfigService subjectConfigService,
       ProfileProperties profileProperties,
       RetrieveInformationTool retrieveInformationTool,
       DocumentCatalogPromptService documentCatalogPromptService,
@@ -49,7 +55,12 @@ public class AIConfig {
         MessageChatMemoryAdvisor.builder(chatMemory).order(CHAT_MEMORY_ADVISOR_ORDER).build();
     var profileAwareResponseAdvisor =
         new ProfileAwareResponseAdvisor(
-            PROFILE_ADVISOR_ORDER, studentProfileService, profileProperties);
+            PROFILE_ADVISOR_ORDER,
+            studentProfileService,
+            profileProperties,
+            studentProfilePromptMapper);
+    var subjectContextAdvisor =
+        new SubjectContextAdvisor(SUBJECT_CONTEXT_ADVISOR_ORDER, subjectConfigService);
     var pedagogicalRoutingAdvisor =
         new PedagogicalRoutingAdvisor(
             PEDAGOGICAL_ROUTING_ADVISOR_ORDER, pedagogicalRoutingService, promptResources);
@@ -68,6 +79,7 @@ public class AIConfig {
         new ArrayList<>(
             List.of(
                 chatMemoryAdvisor,
+                subjectContextAdvisor,
                 profileAwareResponseAdvisor,
                 documentCatalogAdvisor,
                 pedagogicalRoutingAdvisor,

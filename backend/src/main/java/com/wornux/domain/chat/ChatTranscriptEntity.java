@@ -1,30 +1,5 @@
 package com.wornux.domain.chat;
 
-import com.wornux.ai.advisor.*;
-import com.wornux.ai.config.*;
-import com.wornux.ai.document.*;
-import com.wornux.ai.guard.*;
-import com.wornux.ai.memory.*;
-import com.wornux.ai.profile.*;
-import com.wornux.ai.prompt.*;
-import com.wornux.ai.routing.*;
-import com.wornux.ai.tools.*;
-import com.wornux.application.chat.*;
-import com.wornux.application.document.*;
-import com.wornux.application.profile.*;
-import com.wornux.domain.chat.questions.*;
-import com.wornux.domain.document.*;
-import com.wornux.domain.profile.*;
-import com.wornux.infrastructure.config.*;
-import com.wornux.infrastructure.external.docling.*;
-import com.wornux.infrastructure.persistence.chat.*;
-import com.wornux.infrastructure.persistence.document.*;
-import com.wornux.infrastructure.persistence.profile.*;
-import com.wornux.infrastructure.web.*;
-import com.wornux.presentation.chat.*;
-import com.wornux.presentation.chat.ui.*;
-import com.wornux.presentation.documentingest.*;
-import com.wornux.presentation.documentingest.ui.*;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -50,62 +25,65 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "chat_transcript")
 public class ChatTranscriptEntity {
 
-  @Id private UUID id;
+    @Id
+    private UUID id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "chat_id", nullable = false)
-  private ChatEntity chat;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "chat_id", nullable = false)
+    private ChatEntity chat;
 
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "memory", nullable = false, columnDefinition = "jsonb")
-  private Map<String, Object> memory = new LinkedHashMap<>();
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "memory", nullable = false, columnDefinition = "jsonb")
+    private Map<String, Object> memory = new LinkedHashMap<>();
 
-  @Column(name = "input_tokens")
-  private Integer inputTokens;
+    @Column(name = "input_tokens")
+    private Integer inputTokens;
 
-  @Column(name = "compacted_from_transcript_id")
-  private UUID compactedFromTranscriptId;
+    @Column(name = "compacted_from_transcript_id")
+    private UUID compactedFromTranscriptId;
 
-  @Column(name = "compaction_level", nullable = false)
-  private int compactionLevel;
+    @Column(name = "compaction_level", nullable = false)
+    private int compactionLevel;
 
-  @Column(name = "created_at", nullable = false)
-  private Instant createdAt;
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
 
-  public static ChatTranscriptEntity create(ChatEntity chat) {
-    var entity = new ChatTranscriptEntity();
-    entity.id = UUID.randomUUID();
-    entity.chat = chat;
-    entity.memory = defaultMemory();
-    entity.compactionLevel = 0;
-    entity.createdAt = Instant.now();
-    return entity;
-  }
+    public static ChatTranscriptEntity create(ChatEntity chat) {
+        var entity = new ChatTranscriptEntity();
+        entity.id = UUID.randomUUID();
+        entity.chat = chat;
+        entity.memory = defaultMemory();
+        entity.compactionLevel = 0;
+        entity.createdAt = Instant.now();
+        return entity;
+    }
 
-  public static ChatTranscriptEntity createFromCompaction(
-      ChatEntity chat, ChatTranscriptEntity sourceTranscript, String memoryText) {
-    var entity = create(chat);
-    entity.compactedFromTranscriptId = sourceTranscript.getId();
-    entity.compactionLevel = sourceTranscript.getCompactionLevel() + 1;
-    entity.setMemoryText(memoryText);
-    return entity;
-  }
+    public static ChatTranscriptEntity createFromCompaction(
+            ChatEntity chat,
+            ChatTranscriptEntity sourceTranscript,
+            String memoryText) {
+        var entity = create(chat);
+        entity.compactedFromTranscriptId = sourceTranscript.getId();
+        entity.compactionLevel = sourceTranscript.getCompactionLevel() + 1;
+        entity.setMemoryText(memoryText);
+        return entity;
+    }
 
-  public String memoryText() {
-    Object rawText = memory == null ? null : memory.get("text");
-    return rawText == null ? "" : rawText.toString();
-  }
+    public String memoryText() {
+        Object rawText = memory == null ? null : memory.get("text");
+        return rawText == null ? "" : rawText.toString();
+    }
 
-  public void setMemoryText(String text) {
-    this.memory = new LinkedHashMap<>(memory == null ? defaultMemory() : memory);
-    this.memory.put("text", text == null ? "" : text);
-  }
+    public void setMemoryText(String text) {
+        this.memory = new LinkedHashMap<>(memory == null ? defaultMemory() : memory);
+        this.memory.put("text", text == null ? "" : text);
+    }
 
-  public boolean isCompacted() {
-    return compactedFromTranscriptId != null;
-  }
+    public boolean isCompacted() {
+        return compactedFromTranscriptId != null;
+    }
 
-  private static Map<String, Object> defaultMemory() {
-    return new LinkedHashMap<>(Map.of("text", ""));
-  }
+    private static Map<String, Object> defaultMemory() {
+        return new LinkedHashMap<>(Map.of("text", ""));
+    }
 }

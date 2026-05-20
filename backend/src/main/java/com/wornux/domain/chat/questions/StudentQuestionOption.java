@@ -1,8 +1,9 @@
 package com.wornux.domain.chat.questions;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import java.io.Serializable;
 
 public record StudentQuestionOption(
     @JsonPropertyDescription("Short label shown as the selectable answer text.")

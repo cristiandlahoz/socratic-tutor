@@ -1,46 +1,3 @@
-.chat-sidebar-action-link {
-  display: block;
-  border-radius: var(--chat-panel-radius);
-  color: inherit;
-  text-decoration: none;
-}
-
-.chat-sidebar-action-link:hover,
-.chat-sidebar-action-link:focus-visible {
-  outline: none;
-}
-
-.chat-sidebar-action-link-content {
-  min-height: 2.8rem;
-  display: inline-flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  border-radius: var(--chat-panel-radius);
-  border: 1px solid var(--chat-border-section);
-  background: var(--theme-button-fill);
-  color: var(--chat-text-primary);
-  font-family: var(--chat-font-body);
-  font-size: var(--chat-text-label);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transition:
-      background var(--chat-transition-fast),
-      border-color var(--chat-transition-fast),
-      color var(--chat-transition-fast),
-      transform var(--chat-transition-fast);
-}
-
-.chat-sidebar-action-link:hover .chat-sidebar-action-link-content,
-.chat-sidebar-action-link:focus-visible .chat-sidebar-action-link-content,
-.chat-sidebar-action-link[aria-current="page"] .chat-sidebar-action-link-content {
-  background: var(--theme-button-fill-hover);
-  border-color: color-mix(in srgb, var(--chat-interactive-strong) 36%, var(--chat-border-section));
-  color: var(--chat-text-display);
-  transform: translateY(-1px);
-}
-
 .document-ingest-view {
   position: relative;
   min-height: 100%;
@@ -239,7 +196,7 @@ vaadin-button.document-ingest-retry-button:hover::part(button),
 vaadin-button.document-ingest-approve-button:hover::part(button),
 vaadin-button.document-ingest-upload-button:hover::part(button) {
   background: var(--theme-button-fill-hover);
-  color: var(--chat-text-display);
+  color: var(--theme-accent-contrast);
   transform: translateY(-1px);
 }
 

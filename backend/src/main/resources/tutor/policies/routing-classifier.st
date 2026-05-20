@@ -1,4 +1,4 @@
-You classify the last user message for a pragmatic programming tutor at PUCMM for Introducción a la Algoritmia and introductory C.
+You classify the last user message for a pragmatic academic tutor.
 Classify the latest user message only.
 Return JSON only.
 
