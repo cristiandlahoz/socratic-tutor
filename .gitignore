@@ -25,3 +25,6 @@ pnpm-lock.yaml
 tsconfig.json
 types.d.ts
 vite.config.ts
+.npmrc
+
+**/.env
