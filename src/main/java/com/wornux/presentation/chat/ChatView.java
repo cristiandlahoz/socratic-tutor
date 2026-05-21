@@ -33,15 +33,15 @@ import org.springframework.ai.chat.messages.MessageType;
 @Route(value = "", layout = MainLayout.class)
 public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
-  private final ChatUiController controller;
+  private final ChatViewModel viewModel;
   private final CodeMessageList messageList;
   private final Div historyScroller;
   private final TextArea composerField;
   private final Button sendButton;
   private final StudentQuestionPanel questionPanel;
 
-  public ChatView(ChatUiState state, ChatUiController controller, ChatProperties chatProperties) {
-    this.controller = controller;
+  public ChatView(ChatUiState state, ChatViewModel viewModel, ChatProperties chatProperties) {
+    this.viewModel = viewModel;
 
     Div emptyState = createEmptyState();
     emptyState.bindVisible(state.emptyStateVisible());
@@ -87,7 +87,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     sendButton.addClickListener(_ -> submitPrompt());
 
     questionPanel = new StudentQuestionPanel();
-    questionPanel.setSubmitHandler(controller::submitInteractiveQuestionResponse);
+    questionPanel.setSubmitHandler(viewModel::onSubmitInteractiveQuestionResponse);
     Signal.effect(
         questionPanel, () -> questionPanel.setQuestionSet(state.pendingQuestionSet().get()));
     Signal.effect(
@@ -107,17 +107,17 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         event
             .getLocation()
             .getQueryParameters()
-            .getSingleParameter(ChatUiController.DRAFT_QUERY_PARAMETER)
-            .filter(ChatUiController.DRAFT_QUERY_VALUE::equals)
+            .getSingleParameter(ChatViewModel.DRAFT_QUERY_PARAMETER)
+            .filter(ChatViewModel.DRAFT_QUERY_VALUE::equals)
             .isPresent();
     var requestedConversationParam =
         event
             .getLocation()
             .getQueryParameters()
-            .getSingleParameter(ChatUiController.CONVERSATION_QUERY_PARAMETER)
+            .getSingleParameter(ChatViewModel.CONVERSATION_QUERY_PARAMETER)
             .orElse(null);
 
-    var initialization = controller.initializeFromRoute(requestedConversationParam, draftRequested);
+    var initialization = viewModel.initializeFromRoute(requestedConversationParam, draftRequested);
     if (initialization.rerouteRequired()) {
       rerouteToResolvedConversation(event, initialization.rerouteConversationId());
       return;
@@ -298,7 +298,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
   private void submitPrompt() {
     var submitted =
-        controller.submitPrompt(
+        viewModel.onSubmitPrompt(
             this::scrollConversationToBottomSmoothIfEnabled,
             this::scrollConversationToBottomSmoothIfEnabled);
     if (submitted) {
@@ -306,7 +306,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     }
   }
 
-  private CodeMessageListItem toMessageListItem(MessageVm message) {
+  private CodeMessageListItem toMessageListItem(MessageUiState message) {
     var isUserMessage = message.role() == MessageType.USER;
     var item =
         new CodeMessageListItem(
@@ -327,7 +327,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     event.rerouteTo(
         ChatView.class,
         QueryParameters.of(
-            ChatUiController.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
+            ChatViewModel.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
   }
 
   private void initializeAutoScrollTracking() {

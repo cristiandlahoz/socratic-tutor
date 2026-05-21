@@ -38,7 +38,7 @@ public class ChatUiState implements Serializable {
     private final ValueSignal<UUID> compactedFromTranscriptId = new ValueSignal<>(null);
     private final ValueSignal<ThemePreference> themePreference = new ValueSignal<>(ThemePreference.SYSTEM);
     private final ValueSignal<Boolean> themePreferenceLoaded = new ValueSignal<>(false);
-    private final ListSignal<MessageVm> messages = new ListSignal<>();
+    private final ListSignal<MessageUiState> messages = new ListSignal<>();
     private final ListSignal<ConversationSummary> conversationHistory = new ListSignal<>();
     private final Signal<Boolean> emptyStateVisible = Signal.computed(() -> messages.get().isEmpty());
     private final Signal<Boolean> questionPanelVisible = Signal.computed(() -> pendingQuestionSet.get() != null);
@@ -114,7 +114,7 @@ public class ChatUiState implements Serializable {
         return themePreferenceLoaded;
     }
 
-    public ListSignal<MessageVm> messages() {
+    public ListSignal<MessageUiState> messages() {
         return messages;
     }
 
@@ -138,7 +138,7 @@ public class ChatUiState implements Serializable {
         return sendEnabled;
     }
 
-    public void replaceMessages(List<MessageVm> nextMessages) {
+    public void replaceMessages(List<MessageUiState> nextMessages) {
         messages.clear();
         nextMessages.forEach(messages::insertLast);
     }

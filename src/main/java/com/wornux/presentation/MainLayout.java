@@ -18,7 +18,7 @@ import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.domain.chat.ConversationSummary;
 import com.wornux.domain.profile.ThemePreference;
-import com.wornux.presentation.chat.ChatUiController;
+import com.wornux.presentation.chat.ChatViewModel;
 import com.wornux.presentation.chat.ChatUiState;
 import com.wornux.presentation.chat.ui.WidthAwareLabel;
 import com.wornux.presentation.documentingest.DocumentIngestionView;
@@ -41,7 +41,7 @@ public class MainLayout extends AppLayout {
     private final Div timelineRows;
     private final Div emptyHistory;
     private final Span historyCount;
-    private final ChatUiController controller;
+    private final ChatViewModel viewModel;
 
     private sealed interface TimelineEntry permits TimelineDividerEntry, TimelineThreadEntry {
 
@@ -72,10 +72,10 @@ public class MainLayout extends AppLayout {
         }
     }
 
-    public MainLayout(ChatUiState state, ChatUiController controller) {
+    public MainLayout(ChatUiState state, ChatViewModel viewModel) {
         setPrimarySection(Section.DRAWER);
-        this.controller = controller;
-        controller.initializeShellState();
+        this.viewModel = viewModel;
+        viewModel.initializeShellState();
 
         var drawerContent = new Div();
         drawerContent.addClassNames("shell-drawer-content", "chat-sidebar-shell");
@@ -88,11 +88,11 @@ public class MainLayout extends AppLayout {
                 new Paragraph("Tutor para explorar ideas, resolver dudas y aprender con preguntas guiadas.");
         appDescription.addClassName("chat-sidebar-app-description");
 
-        var appHeader = new Div(appTitle, appDescription, createThemePreferenceControl(state, controller));
+        var appHeader = new Div(appTitle, appDescription, createThemePreferenceControl(state, viewModel));
         appHeader.addClassName("chat-sidebar-app-header");
 
         newChatButton = createActionButton();
-        newChatButton.addClickListener(_ -> controller.startNewChat());
+        newChatButton.addClickListener(_ -> viewModel.onStartNewChat());
 
         var ingestDocumentButton =
                 createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", VaadinIcon.UPLOAD_ALT);
@@ -144,11 +144,11 @@ public class MainLayout extends AppLayout {
         drawerScroller.addClassName("shell-drawer-scroller");
         addToDrawer(drawerScroller);
 
-        bindConversationState(state, controller);
+        bindConversationState(state, viewModel);
         installTimelineGraphRenderer();
     }
 
-    private Div createThemePreferenceControl(ChatUiState state, ChatUiController controller) {
+    private Div createThemePreferenceControl(ChatUiState state, ChatViewModel viewModel) {
         var label = new Span("Tema");
         label.addClassName("chat-sidebar-theme-label");
 
@@ -156,7 +156,7 @@ public class MainLayout extends AppLayout {
         options.addClassName("chat-sidebar-theme-options");
 
         for (var preference : ThemePreference.values()) {
-            options.add(createThemePreferenceButton(preference, state, controller));
+            options.add(createThemePreferenceButton(preference, state, viewModel));
         }
 
         var control = new Div(label, options);
@@ -167,7 +167,7 @@ public class MainLayout extends AppLayout {
     private Button createThemePreferenceButton(
             ThemePreference preference,
             ChatUiState state,
-            ChatUiController controller) {
+            ChatViewModel viewModel) {
         var button = new Button(switch (preference) {
             case SYSTEM -> "Sistema";
             case LIGHT -> "Claro";
@@ -177,7 +177,7 @@ public class MainLayout extends AppLayout {
         button.addClassName("chat-sidebar-theme-button");
         button.getThemeNames().remove("icon");
         button.getElement().setAttribute("aria-label", "Cambiar tema a " + button.getText());
-        button.addClickListener(_ -> controller.updateThemePreference(preference));
+        button.addClickListener(_ -> viewModel.onThemePreferenceChanged(preference));
 
         Signal.effect(button, () -> {
             var active = state.themePreference().get() == preference;
@@ -226,7 +226,7 @@ public class MainLayout extends AppLayout {
         return link;
     }
 
-    private void bindConversationState(ChatUiState state, ChatUiController controller) {
+    private void bindConversationState(ChatUiState state, ChatViewModel viewModel) {
         newChatButton.bindEnabled(Signal.not(state.responseInProgress().asReadonly()));
         Signal.effect(
             timelineRoot,
@@ -234,14 +234,14 @@ public class MainLayout extends AppLayout {
                 state.conversationHistory().get().stream().map(Signal::get).toList(),
                 state.activeConversationId().get(),
                 state.responseInProgress().get(),
-                controller));
+                viewModel));
     }
 
     private void renderConversationTimeline(
             List<ConversationSummary> conversations,
             UUID activeConversationId,
             boolean disabled,
-            ChatUiController controller) {
+            ChatViewModel viewModel) {
         historyCount.setText(formatConversationCount(conversations.size()));
         emptyHistory.setVisible(conversations.isEmpty());
         timelineRoot.setVisible(!conversations.isEmpty());
@@ -253,7 +253,7 @@ public class MainLayout extends AppLayout {
         }
 
         buildTimelineEntries(conversations).stream()
-                .map(entry -> createTimelineEntry(entry, activeConversationId, disabled, controller))
+                .map(entry -> createTimelineEntry(entry, activeConversationId, disabled, viewModel))
                 .forEach(timelineRows::add);
         redrawTimelineGraph();
     }
@@ -262,11 +262,11 @@ public class MainLayout extends AppLayout {
             TimelineEntry entry,
             UUID activeConversationId,
             boolean disabled,
-            ChatUiController controller) {
+            ChatViewModel viewModel) {
         return switch (entry) {
             case TimelineDividerEntry(String _, String _) -> createDividerEntry((TimelineDividerEntry) entry);
             case TimelineThreadEntry(_, _) ->
-                    createThreadEntry((TimelineThreadEntry) entry, activeConversationId, disabled, controller);
+                    createThreadEntry((TimelineThreadEntry) entry, activeConversationId, disabled, viewModel);
         };
     }
 
@@ -285,7 +285,7 @@ public class MainLayout extends AppLayout {
             TimelineThreadEntry entry,
             UUID activeConversationId,
             boolean disabled,
-            ChatUiController controller) {
+            ChatViewModel viewModel) {
         var conversation = entry.conversation();
         var active = conversation.id().equals(activeConversationId);
 
@@ -312,7 +312,7 @@ public class MainLayout extends AppLayout {
         if (active) {
             button.getElement().setAttribute("aria-current", "page");
         }
-        button.addClickListener(_ -> controller.openConversation(conversation.id()));
+        button.addClickListener(_ -> viewModel.onOpenConversation(conversation.id()));
         return button;
     }
 
@@ -551,7 +551,7 @@ public class MainLayout extends AppLayout {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-        controller.initializeShellState();
+        viewModel.initializeShellState();
         timelineRoot.getElement().executeJs("""
                                             if (!this.__timelineGraphDraw) {
                                               const event = new Event('timeline-graph-missing');
