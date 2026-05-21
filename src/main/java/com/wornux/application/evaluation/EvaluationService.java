@@ -3,7 +3,6 @@ package com.wornux.application.evaluation;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.wornux.application.profile.StudentProfileService;
 import com.wornux.application.subject.SubjectConfigService;
 import com.wornux.domain.evaluation.EvaluationAttemptEntity;
@@ -107,7 +106,8 @@ public class EvaluationService {
 
         var profileSnapshot = studentProfileService.load(clientId);
         var subject = subjectConfigService.current(revision.getSubjectConfigRevision().getSubject().getSlug());
-        var generatedQuestions = questionGenerationService.generate(subject, revision, examples, profileSnapshot.learningProfile());
+        var generatedQuestions =
+                questionGenerationService.generate(subject, revision, examples, profileSnapshot.learningProfile());
         var attempt = EvaluationAttemptEntity.launch(
             revision,
             clientId,
@@ -186,8 +186,7 @@ public class EvaluationService {
 
     @Transactional(readOnly = true)
     public UUID defaultEvaluationId() {
-        return evaluationRepository
-                .findFirstByStatusOrderByUpdatedAtDesc(EvaluationStatus.PUBLISHED)
+        return evaluationRepository.findFirstByStatusOrderByUpdatedAtDesc(EvaluationStatus.PUBLISHED)
                 .orElseThrow(() -> new IllegalStateException("Default evaluation is missing"))
                 .getId();
     }
@@ -207,7 +206,8 @@ public class EvaluationService {
                 .orElseThrow(() -> new IllegalStateException("Subject config revision is missing"));
         var latest = revisionRepository.findFirstByEvaluationOrderByVersionDesc(evaluation);
         long nextVersion = latest.map(revision -> revision.getVersion() + 1).orElse(1L);
-        var revision = revisionRepository.save(EvaluationRevisionEntity.create(
+        var revision = revisionRepository.save(
+            EvaluationRevisionEntity.create(
                 evaluation,
                 subjectConfigRevision,
                 nextVersion,
@@ -219,8 +219,9 @@ public class EvaluationService {
             if (guideline == null || guideline.isBlank()) {
                 continue;
             }
-            exampleRepository.save(EvaluationQuestionExampleEntity.create(
-                    revision, "teacher-example-" + ordinal, ordinal, guideline, Map.of()));
+            exampleRepository.save(
+                EvaluationQuestionExampleEntity
+                        .create(revision, "teacher-example-" + ordinal, ordinal, guideline, Map.of()));
             ordinal++;
         }
         evaluation.publish(revision);
@@ -233,23 +234,18 @@ public class EvaluationService {
         var evaluation = evaluationRepository.findFirstByStatusOrderByUpdatedAtDesc(EvaluationStatus.PUBLISHED)
                 .orElseThrow(() -> new IllegalStateException("Default evaluation is missing"));
         return publishEvaluationRevision(
-                evaluation.getSubject().getSlug(),
-                evaluation.getSlug(),
-                instructions,
-                Map.of("allowFreeText", true, "showReviewBeforeSubmit", true),
-                Map.of("profileEvidenceOnly", true),
-                exampleGuidelines);
+            evaluation.getSubject().getSlug(),
+            evaluation.getSlug(),
+            instructions,
+            Map.of("allowFreeText", true, "showReviewBeforeSubmit", true),
+            Map.of("profileEvidenceOnly", true),
+            exampleGuidelines);
     }
 
     private EvaluationGradeResult gradeOrFallback(EvaluationAttemptEntity attempt) {
         try {
-            var subject =
-                subjectConfigService.current(
-                    attempt
-                        .getEvaluationRevision()
-                        .getSubjectConfigRevision()
-                        .getSubject()
-                        .getSlug());
+            var subject = subjectConfigService
+                    .current(attempt.getEvaluationRevision().getSubjectConfigRevision().getSubject().getSlug());
             var prompt = Prompt.builder()
                     .messages(
                         new SystemMessage(GRADING_SYSTEM),
@@ -322,7 +318,9 @@ public class EvaluationService {
     }
 
     private Map<String, Object> questionSnapshot(
-            UUID subjectConfigRevisionId, UUID evaluationRevisionId, GeneratedEvaluationQuestion question) {
+            UUID subjectConfigRevisionId,
+            UUID evaluationRevisionId,
+            GeneratedEvaluationQuestion question) {
         var snapshot = new LinkedHashMap<String, Object>();
         snapshot.put("generationMode", "generated");
         snapshot.put("subjectConfigRevisionId", subjectConfigRevisionId);
@@ -342,7 +340,8 @@ public class EvaluationService {
     }
 
     private EvaluationQuestionExampleEntity sourceExample(
-            GeneratedEvaluationQuestion question, List<EvaluationQuestionExampleEntity> examples) {
+            GeneratedEvaluationQuestion question,
+            List<EvaluationQuestionExampleEntity> examples) {
         if (question.sourceExampleIds().isEmpty()) {
             return null;
         }
