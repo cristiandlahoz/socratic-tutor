@@ -1,84 +1,27 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-eggs/
-parts/
-var/
-sdist/
-develop-eggs/
-.installed.cfg
-lib/
-lib64/
-*.pyo
-
-# Virtual environments
-.venv/
-venv/
-env/
-ENV/
-
-# uv
-.python-version
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# ChromaDB / vector stores
-chroma_db/
-
-
-# Firecrawl cache/output (external/ is the canonical location now)
-firecrawl/
-
-# ML outputs
-outputs/
-*.gguf
-
-# Docker / Compose
-.docker/
-
-# Java / Maven
-backend/target/
-*.class
-*.jar
-*.war
-
-# Node (Vaadin frontend build)
-node_modules/
-node/
-package-lock.json
-.pnp/
-.yarn/
-
-# IDE / editor
+/target/
 .idea/
 .vscode/
-.vscode-server
-.cursor-server
-.windsurf-server
-.copilot/
-*.swp
-*.swo
+.settings
+.project
+.classpath
+
+*.iml
 .DS_Store
 
-# Secrets / environment
-.env
-.env.*
-!.env.example
+# The following files are generated/updated by vaadin-maven-plugin
+node_modules/
+src/main/frontend/generated/
+vite.generated.ts
+.factorypath
+messagelist/
+**/bundles
 
-# E-books / binary assets
-*.epub
-*.pdf
+# Local documentation checkout used as an agent reference, not app source.
+spring-ai-docs/
 
-# Misc
-.wget-hsts
-
-# Embedded repositories
-backend/fechan.github.io/
+# Frontend build config (Vaadin manages these)
+package.json
+pnpm-lock.yaml
+tsconfig.json
+types.d.ts
+vite.config.ts
