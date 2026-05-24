@@ -1,44 +1,6 @@
 import { createRoot, type Root } from 'react-dom/client';
 import CodeMirror from '@uiw/react-codemirror';
-import { solarizedDark } from '@fsegurai/codemirror-theme-solarized-dark';
-import { solarizedLight } from '@fsegurai/codemirror-theme-solarized-light';
-import { json } from '@codemirror/lang-json';
-import { xml } from '@codemirror/lang-xml';
-import { javascript } from '@codemirror/lang-javascript';
-import { python } from '@codemirror/lang-python';
-import { java } from '@codemirror/lang-java';
-import { cpp } from '@codemirror/lang-cpp';
-import type { Extension } from '@codemirror/state';
-
-function langExtension(lang: string | null | undefined): Extension[] {
-  switch ((lang ?? '').toLowerCase()) {
-    case 'java':
-      return [java()];
-    case 'c':
-    case 'h':
-    case 'hpp':
-    case 'cpp':
-    case 'c++':
-      return [cpp()];
-    case 'json':
-      return [json()];
-    case 'xml':
-    case 'html':
-      return [xml()];
-    case 'js':
-    case 'jsx':
-    case 'javascript':
-    case 'ts':
-    case 'tsx':
-    case 'typescript':
-      return [javascript({ jsx: true, typescript: true })];
-    case 'py':
-    case 'python':
-      return [python()];
-    default:
-      return [];
-  }
-}
+import { codeMirrorLanguageExtensions, resolveCodeMirrorTheme } from './code-mirror-extensions';
 
 class CodeBlockViewerElement extends HTMLElement {
   private root: Root | null = null;
@@ -105,16 +67,6 @@ class CodeBlockViewerElement extends HTMLElement {
     }
   };
 
-  private resolveTheme(): Extension | undefined {
-    if (this.currentThemePreference === 'light') {
-      return solarizedLight;
-    }
-    if (this.currentThemePreference === 'dark') {
-      return solarizedDark;
-    }
-    return this.systemThemeQuery.matches ? solarizedDark : solarizedLight;
-  }
-
   private renderEditor(): void {
     if (!this.shadowReady || !this.root || !this.shadowRoot) {
       return;
@@ -159,8 +111,11 @@ class CodeBlockViewerElement extends HTMLElement {
           value={this.internalValue}
           height="auto"
           width="100%"
-          theme={this.resolveTheme()}
-          extensions={langExtension(this.internalLang)}
+          theme={resolveCodeMirrorTheme(
+            this.currentThemePreference,
+            this.systemThemeQuery.matches,
+          )}
+          extensions={codeMirrorLanguageExtensions(this.internalLang)}
           root={this.shadowRoot}
           editable={false}
           readOnly={true}

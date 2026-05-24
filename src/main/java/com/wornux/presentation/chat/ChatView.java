@@ -15,6 +15,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.popover.Popover;
+import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -23,8 +24,10 @@ import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.ai.config.*;
+import com.wornux.application.crunner.CProgramAnalysisService;
 import com.wornux.presentation.MainLayout;
 import com.wornux.presentation.chat.ui.StudentQuestionPanel;
+import com.wornux.presentation.crunner.CRunnerTestPanel;
 import java.util.Locale;
 import java.util.UUID;
 import org.jspecify.annotations.NonNull;
@@ -40,7 +43,11 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
   private final Button sendButton;
   private final StudentQuestionPanel questionPanel;
 
-  public ChatView(ChatUiState state, ChatViewModel viewModel, ChatProperties chatProperties) {
+  public ChatView(
+      ChatUiState state,
+      ChatViewModel viewModel,
+      ChatProperties chatProperties,
+      CProgramAnalysisService cProgramAnalysisService) {
     this.viewModel = viewModel;
 
     Div emptyState = createEmptyState();
@@ -97,8 +104,22 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     var root = getContent();
     root.setSizeFull();
     root.addClassName("chat-view");
-    root.add(
-        floatingDrawerToggle, historyScroller, createUsageBadge(state), createInputShell(state));
+
+    var chatPane =
+        new Div(floatingDrawerToggle, historyScroller, createUsageBadge(state), createInputShell(state));
+    chatPane.setSizeFull();
+    chatPane.addClassName("chat-pane");
+
+    var cRunnerPanel = new CRunnerTestPanel(cProgramAnalysisService);
+    cRunnerPanel.setSizeFull();
+
+    var splitLayout = new SplitLayout(chatPane, cRunnerPanel);
+    splitLayout.setSizeFull();
+    splitLayout.setSplitterPosition(58);
+    splitLayout.addClassName("chat-debug-split");
+    splitLayout.addAttachListener(_ -> installResponsiveSplitBehavior(splitLayout));
+
+    root.add(splitLayout);
   }
 
   @Override
@@ -393,6 +414,27 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
               this.__programmaticScroll = false;
               this.__updateAutoScrollState?.();
             });
+            """);
+  }
+
+  private void installResponsiveSplitBehavior(SplitLayout splitLayout) {
+    splitLayout
+        .getElement()
+        .executeJs(
+            """
+            if (this.__responsiveSplitInstalled) {
+              return;
+            }
+            this.__responsiveSplitInstalled = true;
+            
+            const media = window.matchMedia('(max-width: 960px)');
+              const update = () => {
+                this.orientation = media.matches ? 'vertical' : 'horizontal';
+              this.splitterPosition = media.matches ? 62 : 58;
+              };
+            media.addEventListener?.('change', update);
+            media.addListener?.(update);
+            update();
             """);
   }
 }

@@ -1,0 +1,338 @@
+.chat-debug-split {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  --vaadin-split-layout-splitter-size: 1px;
+  --vaadin-split-layout-splitter-target-size: 0.75rem;
+  --vaadin-split-layout-splitter-background: var(--chat-border-section);
+  --vaadin-split-layout-handle-background: var(--chat-interactive);
+}
+
+.chat-debug-split::part(splitter) {
+  background: var(--chat-border-section);
+}
+
+.chat-debug-split > [slot="primary"],
+.chat-debug-split > [slot="secondary"] {
+  min-width: 0;
+  min-height: 0;
+}
+
+.chat-pane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+}
+
+.chat-pane .chat-usage-badge {
+  position: absolute;
+}
+
+.c-runner-panel,
+.c-runner-panel * {
+  box-sizing: border-box;
+}
+
+.c-runner-panel {
+  min-width: 390px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  padding: 18px 16px 16px;
+  background: color-mix(in srgb, var(--chat-black) 88%, var(--chat-surface-strong));
+  border-inline-start: 1px solid var(--chat-border-section);
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-body);
+  --c-runner-cyan: #23d5ee;
+  --c-runner-yellow: #f7c400;
+  --c-runner-red: #ff453f;
+  --c-runner-card: color-mix(in srgb, var(--chat-code-background) 82%, transparent);
+  --c-runner-card-border: color-mix(in srgb, var(--chat-border-section) 72%, transparent);
+  --c-runner-row-border: color-mix(in srgb, var(--chat-border-section) 48%, transparent);
+}
+
+.c-runner-header {
+  flex: 0 0 auto;
+  min-width: 0;
+  height: 34px;
+  align-items: flex-start;
+}
+
+.c-runner-title {
+  margin: 0;
+  color: var(--chat-text-display);
+  font-family: var(--chat-font-display);
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: none !important;
+}
+
+.c-runner-state-card {
+  flex: 0 0 auto;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--c-runner-card-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--chat-surface-raised) 22%, transparent), transparent),
+    var(--c-runner-card);
+  box-shadow: var(--chat-shadow-dark-card);
+}
+
+.c-runner-state-header {
+  min-height: 48px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px 8px;
+}
+
+.c-runner-state-title {
+  color: var(--chat-text-display);
+  font-family: var(--chat-font-display);
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.c-runner-state-pill {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border: 1px solid var(--c-runner-card-border);
+  border-radius: 8px;
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-mono);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.c-runner-state-body {
+  width: 100%;
+  padding: 0 12px 10px;
+}
+
+.c-runner-state-group,
+.c-runner-collapsed-group {
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-body);
+  line-height: 1.15;
+}
+
+.c-runner-state-group {
+  min-height: 34px;
+  padding: 4px 2px 8px;
+  font-size: 17px;
+}
+
+.c-runner-group-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c-runner-state-group vaadin-icon,
+.c-runner-collapsed-group vaadin-icon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.c-runner-vars-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid var(--c-runner-row-border);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--chat-code-background) 72%, transparent);
+}
+
+.c-runner-vars-table th,
+.c-runner-vars-table td {
+  height: 34px;
+  padding: 0 14px;
+  border-block-end: 1px solid var(--c-runner-row-border);
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.c-runner-vars-table th {
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-body);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.c-runner-vars-table td {
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-mono);
+  font-size: 14px;
+}
+
+.c-runner-vars-table tbody tr:last-child td {
+  border-block-end: 0;
+}
+
+.c-runner-col-type {
+  width: 88px;
+}
+
+.c-runner-type-chip {
+  display: inline-block;
+  min-width: 38px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--c-runner-cyan) 18%, transparent);
+  color: var(--c-runner-cyan);
+  line-height: 1.1;
+}
+
+.c-runner-var-name {
+  color: var(--chat-text-primary);
+}
+
+.c-runner-var-value {
+  color: var(--c-runner-red);
+}
+
+.c-runner-collapsed-group {
+  min-height: 34px;
+  padding: 0 2px;
+  border-block-end: 1px solid var(--c-runner-row-border);
+  font-size: 16px;
+}
+
+.c-runner-collapsed-group:last-child {
+  border-block-end: 0;
+}
+
+.c-runner-controls {
+  align-self: center;
+  flex: 0 0 auto;
+  height: 38px;
+  overflow: hidden;
+  border: 1px solid var(--c-runner-card-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--chat-code-background) 74%, transparent);
+}
+
+vaadin-button.c-runner-control-button {
+  width: 54px;
+  min-width: 54px;
+  height: 38px;
+  margin: 0;
+  padding: 0;
+  border-inline-end: 1px solid var(--c-runner-row-border);
+  border-radius: 0;
+  color: var(--chat-text-primary);
+  --vaadin-button-background: transparent;
+  --vaadin-button-hover-background: color-mix(in srgb, var(--chat-surface-hover) 68%, transparent);
+  --vaadin-button-text-color: currentColor;
+  --vaadin-button-padding: 0;
+}
+
+vaadin-button.c-runner-control-button::part(button) {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 0;
+}
+
+vaadin-button.c-runner-control-button:last-child {
+  border-inline-end: 0;
+}
+
+vaadin-button.c-runner-control-button vaadin-icon {
+  width: 18px;
+  height: 18px;
+}
+
+vaadin-button.c-runner-validate-button {
+  color: var(--c-runner-cyan);
+}
+
+.c-runner-status-text {
+  align-self: center;
+  max-width: 100%;
+  min-height: 22px;
+  overflow: hidden;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--c-runner-card-border) 58%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--chat-code-background) 52%, transparent);
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-mono);
+  font-size: 11px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c-runner-status-text:empty {
+  display: none;
+}
+
+.c-runner-code-frame {
+  flex: 0 0 318px;
+  width: 100%;
+  min-width: 0;
+  height: 318px;
+  overflow: hidden;
+  border: 1px solid var(--c-runner-card-border);
+  border-radius: 8px;
+  background: var(--c-runner-card);
+  box-shadow: var(--chat-shadow-dark-card);
+}
+
+.c-runner-viewer-shell {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+c-debug-source-viewer.c-runner-source-viewer {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  --c-runner-editor-font-size: 14px;
+  --c-runner-editor-line-height: 1.58;
+  --c-runner-editor-background: transparent;
+  --c-runner-editor-text: var(--chat-text-primary);
+  --c-runner-editor-gutter: #6f858b;
+  --c-runner-active-line-background: var(--c-runner-yellow);
+  --c-runner-active-line-foreground: #12120a;
+  --c-runner-active-line-marker: "->";
+  --c-runner-active-line-marker-color: var(--c-runner-yellow);
+}
+
+@media (max-width: 960px) {
+  .c-runner-panel {
+    min-width: 0;
+    min-height: 22rem;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--chat-border-section);
+  }
+
+  .c-runner-code-frame {
+    flex-basis: 280px;
+    height: 280px;
+  }
+}
