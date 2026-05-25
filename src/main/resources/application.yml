@@ -32,10 +32,7 @@ spring:
           additional-models:
             - "qwen3:4b-instruct"
       chat:
-        #        model: ${CHAT_MODEL:socratic-tutor:latest}
         model: ${CHAT_MODEL:qwen3:4b-instruct}
-        #        model: ${CHAT_MODEL:qcwind/qwen3-8b-instruct-Q4-K-M:latest}
-        #        model: ${CHAT_MODEL:gemma4:latest}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
@@ -92,9 +89,14 @@ app:
       max-chars: ${DOCUMENT_INVENTORY_MAX_CHARS:2400}
   c-runner:
     compiler-image: ${C_RUNNER_COMPILER_IMAGE:gcc:15.2.0-bookworm}
+    debugger-image: ${C_RUNNER_DEBUGGER_IMAGE:socratic-tutor/c-runner:local}
     timeout: ${C_RUNNER_TIMEOUT:8s}
+    debug-timeout: ${C_RUNNER_DEBUG_TIMEOUT:12s}
     max-source-bytes: ${C_RUNNER_MAX_SOURCE_BYTES:65536}
+    max-snapshots: ${C_RUNNER_MAX_SNAPSHOTS:300}
+    max-output-bytes: ${C_RUNNER_MAX_OUTPUT_BYTES:16384}
     memory: ${C_RUNNER_MEMORY:128m}
+    debugger-memory: ${C_RUNNER_DEBUGGER_MEMORY:512m}
     cpus: ${C_RUNNER_CPUS:0.5}
     pids-limit: ${C_RUNNER_PIDS_LIMIT:64}
     cache-maximum-size: ${C_RUNNER_CACHE_MAXIMUM_SIZE:256}

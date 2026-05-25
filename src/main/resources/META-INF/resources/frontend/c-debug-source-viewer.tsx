@@ -91,6 +91,7 @@ class CDebugSourceViewerElement extends HTMLElement {
   private internalLang = 'c';
   private internalDiagnostics: CompilerDiagnostic[] = [];
   private internalActiveLine = 0;
+  private internalEditable = false;
   private currentThemePreference = 'system';
   private themePreferenceObserver: MutationObserver | null = null;
   private readonly systemThemeQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
@@ -161,6 +162,15 @@ class CDebugSourceViewerElement extends HTMLElement {
 
   get activeLine(): number {
     return this.internalActiveLine;
+  }
+
+  set editable(value: boolean) {
+    this.internalEditable = Boolean(value);
+    this.renderEditor();
+  }
+
+  get editable(): boolean {
+    return this.internalEditable;
   }
 
   private readonly handleSystemThemeChange = (): void => {
@@ -289,8 +299,18 @@ class CDebugSourceViewerElement extends HTMLElement {
             ...activeLineExtension(this.internalActiveLine),
           ]}
           root={this.shadowRoot}
-          editable={false}
-          readOnly={true}
+          editable={this.internalEditable}
+          readOnly={!this.internalEditable}
+          onChange={(value) => {
+            this.internalValue = value;
+            this.dispatchEvent(
+              new CustomEvent('value-changed', {
+                detail: { value },
+                bubbles: true,
+                composed: true,
+              }),
+            );
+          }}
           basicSetup={{
             highlightActiveLine: false,
             highlightActiveLineGutter: false,

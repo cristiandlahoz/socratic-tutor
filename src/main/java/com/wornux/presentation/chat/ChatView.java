@@ -24,7 +24,7 @@ import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.ai.config.*;
-import com.wornux.application.crunner.CProgramAnalysisService;
+import com.wornux.application.crunner.CProgramDebugService;
 import com.wornux.presentation.MainLayout;
 import com.wornux.presentation.chat.ui.StudentQuestionPanel;
 import com.wornux.presentation.crunner.CRunnerTestPanel;
@@ -47,7 +47,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
       ChatUiState state,
       ChatViewModel viewModel,
       ChatProperties chatProperties,
-      CProgramAnalysisService cProgramAnalysisService) {
+      CProgramDebugService cProgramDebugService) {
     this.viewModel = viewModel;
 
     Div emptyState = createEmptyState();
@@ -110,7 +110,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     chatPane.setSizeFull();
     chatPane.addClassName("chat-pane");
 
-    var cRunnerPanel = new CRunnerTestPanel(cProgramAnalysisService);
+    var cRunnerPanel = new CRunnerTestPanel(cProgramDebugService);
     cRunnerPanel.setSizeFull();
 
     var splitLayout = new SplitLayout(chatPane, cRunnerPanel);

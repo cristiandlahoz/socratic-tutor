@@ -9,15 +9,11 @@ import com.wornux.application.crunner.CSourceRequest;
 import com.wornux.application.crunner.CValidationResult;
 import com.wornux.application.crunner.port.CCompilerPort;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +27,15 @@ public class DockerGccCCompilerAdapter implements CCompilerPort {
 
   private final CProgramAnalysisProperties properties;
   private final SarifDiagnosticParser sarifDiagnosticParser;
+  private final DockerCommandRunner commandRunner;
 
   public DockerGccCCompilerAdapter(
-      CProgramAnalysisProperties properties, SarifDiagnosticParser sarifDiagnosticParser) {
+      CProgramAnalysisProperties properties,
+      SarifDiagnosticParser sarifDiagnosticParser,
+      DockerCommandRunner commandRunner) {
     this.properties = properties;
     this.sarifDiagnosticParser = sarifDiagnosticParser;
+    this.commandRunner = commandRunner;
   }
 
   @Override
@@ -55,7 +55,7 @@ public class DockerGccCCompilerAdapter implements CCompilerPort {
     try {
       tempDir = Files.createTempDirectory("c-runner-");
       writeSourceFile(tempDir, request);
-      var processResult = runCompiler(tempDir, request);
+      var processResult = commandRunner.run(compilerCommand(tempDir, request), properties.getTimeout());
       var elapsedMs = elapsedMillis(startedAt);
       if (processResult.timedOut()) {
         return failure(
@@ -78,7 +78,7 @@ public class DockerGccCCompilerAdapter implements CCompilerPort {
           processResult.exitCode() == 0
               && diagnostics.stream().noneMatch(diagnostic -> diagnostic.severity() == CDiagnosticSeverity.ERROR);
       return new CValidationResult(valid, diagnostics, properties.getCompilerImage(), elapsedMs, sourceHash);
-    } catch (IOException exception) {
+    } catch (IOException | RuntimeException exception) {
       log.warn("Failed to run sandboxed GCC syntax validation", exception);
       return failure(
           "C compiler sandbox is unavailable: " + exception.getMessage(),
@@ -103,21 +103,6 @@ public class DockerGccCCompilerAdapter implements CCompilerPort {
       throw new IOException("Unsafe C source filename: " + request.filename());
     }
     Files.writeString(sourcePath, request.source(), UTF_8, StandardOpenOption.CREATE_NEW);
-  }
-
-  private CompilerProcessResult runCompiler(Path tempDir, CSourceRequest request)
-      throws IOException, InterruptedException {
-    var command = compilerCommand(tempDir, request);
-    var process = new ProcessBuilder(command).start();
-    var stdout = readAsync(process.getInputStream());
-    var stderr = readAsync(process.getErrorStream());
-    var finished = process.waitFor(timeoutMillis(properties.getTimeout()), TimeUnit.MILLISECONDS);
-    if (!finished) {
-      process.destroyForcibly();
-      process.waitFor(2, TimeUnit.SECONDS);
-      return new CompilerProcessResult(-1, awaitOutput(stdout), awaitOutput(stderr), true);
-    }
-    return new CompilerProcessResult(process.exitValue(), awaitOutput(stdout), awaitOutput(stderr), false);
   }
 
   List<String> compilerCommand(Path tempDir, CSourceRequest request) {
@@ -172,29 +157,6 @@ public class DockerGccCCompilerAdapter implements CCompilerPort {
         sourceHash);
   }
 
-  private static CompletableFuture<String> readAsync(InputStream stream) {
-    return CompletableFuture.supplyAsync(
-        () -> {
-          try (stream) {
-            return new String(stream.readAllBytes(), UTF_8);
-          } catch (IOException exception) {
-            throw new CompletionException(exception);
-          }
-        });
-  }
-
-  private static String awaitOutput(CompletableFuture<String> output) {
-    try {
-      return output.join();
-    } catch (CompletionException exception) {
-      return "";
-    }
-  }
-
-  private static long timeoutMillis(Duration timeout) {
-    return Math.max(1, timeout == null ? Duration.ofSeconds(8).toMillis() : timeout.toMillis());
-  }
-
   private static long elapsedMillis(long startedAt) {
     return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
   }
@@ -225,6 +187,4 @@ public class DockerGccCCompilerAdapter implements CCompilerPort {
       log.debug("Failed to clean temporary C runner directory {}", path, exception);
     }
   }
-
-  private record CompilerProcessResult(int exitCode, String stdout, String stderr, boolean timedOut) {}
 }
