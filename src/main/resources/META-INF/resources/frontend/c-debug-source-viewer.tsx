@@ -84,6 +84,16 @@ function activeLineExtension(activeLine: number): Extension[] {
   ];
 }
 
+const debuggerScrollTheme = EditorView.theme({
+  '&': {
+    height: '100%',
+    maxHeight: '100%',
+  },
+  '.cm-scroller': {
+    overflow: 'auto',
+  },
+});
+
 class CDebugSourceViewerElement extends HTMLElement {
   private root: Root | null = null;
   private shadowReady = false;
@@ -189,7 +199,13 @@ class CDebugSourceViewerElement extends HTMLElement {
         <style>{`
           :host {
             display: block;
-            min-height: inherit;
+            height: 100%;
+            min-height: 0;
+          }
+
+          .c-debug-source-viewer-editor {
+            height: 100%;
+            min-height: 0;
           }
 
           .cm-editor {
@@ -206,6 +222,10 @@ class CDebugSourceViewerElement extends HTMLElement {
           .cm-editor,
           .cm-scroller {
             height: 100%;
+          }
+
+          .cm-scroller {
+            min-height: 0;
           }
 
           .cm-scroller,
@@ -283,6 +303,7 @@ class CDebugSourceViewerElement extends HTMLElement {
           }
         `}</style>
         <CodeMirror
+          className="c-debug-source-viewer-editor"
           value={this.internalValue}
           height="100%"
           width="100%"
@@ -291,6 +312,7 @@ class CDebugSourceViewerElement extends HTMLElement {
             this.systemThemeQuery.matches,
           )}
           extensions={[
+            debuggerScrollTheme,
             ...codeMirrorLanguageExtensions(this.internalLang),
             lintGutter(),
             linter((view) => toCodeMirrorDiagnostics(this.internalDiagnostics, view.state.doc), {

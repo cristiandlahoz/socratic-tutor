@@ -2,10 +2,10 @@ package com.wornux.infrastructure.external.crunner;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.wornux.application.crunner.CDebugRequest;
 import com.wornux.application.crunner.CDebugSessionResult;
 import com.wornux.application.crunner.CDiagnostic;
 import com.wornux.application.crunner.CProgramAnalysisProperties;
-import com.wornux.application.crunner.CSourceRequest;
 import com.wornux.application.crunner.port.CDebuggerPort;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,12 +52,14 @@ public class DockerGdbCDebuggerAdapter implements CDebuggerPort {
   }
 
   @Override
-  public CDebugSessionResult debug(CSourceRequest request, String sourceHash) {
+  public CDebugSessionResult debug(CDebugRequest request, String sourceHash) {
     var startedAt = System.nanoTime();
     Path tempDir = null;
     try {
       tempDir = Files.createTempDirectory("c-debugger-");
       writeSourceFile(tempDir, request);
+      writeStdinFile(tempDir, request);
+      writeStdoutFile(tempDir);
       writeDebuggerScript(tempDir);
       var processResult = commandRunner.run(debuggerCommand(tempDir, request), properties.getDebugTimeout());
       var elapsedMs = elapsedMillis(startedAt);
@@ -116,12 +118,20 @@ public class DockerGdbCDebuggerAdapter implements CDebuggerPort {
     }
   }
 
-  private void writeSourceFile(Path tempDir, CSourceRequest request) throws IOException {
+  private void writeSourceFile(Path tempDir, CDebugRequest request) throws IOException {
     var sourcePath = tempDir.resolve(request.filename()).normalize();
     if (!sourcePath.getParent().equals(tempDir)) {
       throw new IOException("Unsafe C source filename: " + request.filename());
     }
     Files.writeString(sourcePath, request.source(), UTF_8, StandardOpenOption.CREATE_NEW);
+  }
+
+  private void writeStdinFile(Path tempDir, CDebugRequest request) throws IOException {
+    Files.writeString(tempDir.resolve("stdin.txt"), request.stdin(), UTF_8, StandardOpenOption.CREATE_NEW);
+  }
+
+  private void writeStdoutFile(Path tempDir) throws IOException {
+    Files.writeString(tempDir.resolve("stdout.txt"), "", UTF_8, StandardOpenOption.CREATE_NEW);
   }
 
   private void writeDebuggerScript(Path tempDir) throws IOException {
@@ -130,9 +140,19 @@ public class DockerGdbCDebuggerAdapter implements CDebuggerPort {
     commands.append("-gdb-set print elements 64\n");
     commands.append("-file-exec-and-symbols ").append(WORKSPACE).append("/main\n");
     commands.append("-interpreter-exec console \"break main\"\n");
-    commands.append("-interpreter-exec console \"run\"\n");
+    commands
+        .append("-interpreter-exec console \"run < ")
+        .append(WORKSPACE)
+        .append("/stdin.txt > ")
+        .append(WORKSPACE)
+        .append("/stdout.txt\"\n");
     for (int i = 0; i < properties.getMaxSnapshots(); i++) {
       commands.append("-stack-list-frames\n");
+      commands.append("-interpreter-exec console \"call (int) fflush(0)\"\n");
+      commands
+          .append("-interpreter-exec console \"shell printf '__C_STDOUT_BEGIN__\\\\n'; cat ")
+          .append(WORKSPACE)
+          .append("/stdout.txt 2>/dev/null; printf '__C_STDOUT_END__\\\\n'\"\n");
       commands.append("-stack-list-variables --all-values\n");
       commands.append("-interpreter-exec console \"next\"\n");
     }
@@ -140,7 +160,7 @@ public class DockerGdbCDebuggerAdapter implements CDebuggerPort {
     Files.writeString(tempDir.resolve("debug.mi"), commands.toString(), UTF_8, StandardOpenOption.CREATE_NEW);
   }
 
-  List<String> debuggerCommand(Path tempDir, CSourceRequest request) {
+  List<String> debuggerCommand(Path tempDir, CDebugRequest request) {
     return List.of(
         "docker",
         "run",

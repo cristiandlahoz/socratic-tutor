@@ -30,7 +30,11 @@ public class CProgramDebugService {
   }
 
   public CDebugSessionResult debug(CSourceRequest request) {
-    var normalizedRequest = request == null ? new CSourceRequest("", null, null) : request;
+    return debug(CDebugRequest.from(request, ""));
+  }
+
+  public CDebugSessionResult debug(CDebugRequest request) {
+    var normalizedRequest = request == null ? new CDebugRequest("", null, null, "") : request;
     var sourceHash = hash(normalizedRequest.source());
     if (!SUPPORTED_STANDARD.equals(normalizedRequest.standard())) {
       return rejected(
@@ -47,7 +51,11 @@ public class CProgramDebugService {
 
     var cacheKey =
         new CDebugCacheKey(
-            sourceHash, normalizedRequest.standard(), normalizedRequest.filename(), debuggerPort.cacheKey());
+            sourceHash,
+            hash(normalizedRequest.stdin()),
+            normalizedRequest.standard(),
+            normalizedRequest.filename(),
+            debuggerPort.cacheKey());
     return cache.get(cacheKey, ignored -> debuggerPort.debug(normalizedRequest, sourceHash));
   }
 
@@ -67,5 +75,5 @@ public class CProgramDebugService {
   }
 
   private record CDebugCacheKey(
-      String sourceHash, String standard, String filename, String debuggerCacheKey) {}
+      String sourceHash, String stdinHash, String standard, String filename, String debuggerCacheKey) {}
 }

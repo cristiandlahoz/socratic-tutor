@@ -7,17 +7,23 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Pre;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.Scroller.ScrollDirection;
+import com.vaadin.flow.component.popover.Popover;
+import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.wornux.application.crunner.CDiagnosticSeverity;
+import com.wornux.application.crunner.CDebugRequest;
 import com.wornux.application.crunner.CDebugSessionResult;
 import com.wornux.application.crunner.CDebugSnapshot;
 import com.wornux.application.crunner.CDebugVariable;
 import com.wornux.application.crunner.CProgramDebugService;
-import com.wornux.application.crunner.CSourceRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -28,11 +34,54 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
     private static final String DEFAULT_SOURCE = """
                                                  #include <stdio.h>
 
+                                                 typedef struct {
+                                                     int id;
+                                                     char grade;
+                                                     int scores[3];
+                                                 } Student;
+
+                                                 int sum_scores(Student student) {
+                                                     int total = 0;
+                                                     for (int i = 0; i < 3; i++) {
+                                                         total += student.scores[i];
+                                                     }
+                                                     return total;
+                                                 }
+
                                                  int main(void) {
-                                                     int variable = 41;
-                                                     char c = 'a';
-                                                     printf("variable = %d\\n", variable);
-                                                     printf("c = %c\\n", c);
+                                                     Student student = {7, 'A', {8, 9, 10}};
+                                                     int matrix[2][3] = {{1, 2, 3}, {4, 5, 6}};
+                                                     int row_total = 0;
+                                                     int bonus = 5;
+                                                     int attempts = 2;
+                                                     int limit = 100;
+                                                     int passed = 0;
+                                                     int min_score = student.scores[0];
+                                                     int max_score = student.scores[0];
+                                                     char section = 'B';
+                                                     double average = 0.0;
+                                                     int threshold = 25;
+                                                     int normalized = 0;
+
+                                                     for (int j = 0; j < 3; j++) {
+                                                         row_total += matrix[1][j];
+                                                         if (student.scores[j] < min_score) {
+                                                             min_score = student.scores[j];
+                                                         }
+                                                         if (student.scores[j] > max_score) {
+                                                             max_score = student.scores[j];
+                                                         }
+                                                     }
+
+                                                     int *selected = &matrix[1][1];
+                                                     int final_score = sum_scores(student) + row_total + *selected;
+                                                     average = final_score / 3.0;
+                                                     passed = final_score >= threshold;
+                                                     normalized = final_score + bonus - attempts;
+
+                                                     printf("student %d grade %c\\n", student.id, student.grade);
+                                                     printf("section %c final score = %d / %d\\n", section, normalized, limit);
+                                                     printf("average = %.2f passed = %d\\n", average, passed);
                                                      return 0;
                                                  }
                                                  """;
@@ -44,6 +93,8 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
     private final Button menuButton = createIconButton(VaadinIcon.ELLIPSIS_V, "Diagnosticos");
     private final Span statusText = new Span("");
     private final CDebugSourceViewer sourceViewer = new CDebugSourceViewer();
+    private final TextArea stdinField = new TextArea("stdin");
+    private final Pre stdoutText = new Pre("");
     private final Span localsLabel = new Span("Variables");
     private final Span variableCount = new Span();
     private final HtmlContainer localsBody = new HtmlContainer("tbody");
@@ -76,6 +127,10 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
         stepButton.addClickListener(_ -> stepActiveLine());
         resetButton.addClickListener(_ -> resetActiveLine());
         menuButton.addClickListener(_ -> showDiagnosticsSummary());
+        stdinField.addClassName("c-runner-stdin");
+        stdinField.setValueChangeMode(ValueChangeMode.EAGER);
+        stdinField.setPlaceholder("stdin antes de ejecutar, ej: 42");
+        stdoutText.addClassName("c-runner-stdout");
 
         var controls = new HorizontalLayout(validateButton, stepButton, resetButton, menuButton);
         controls.setPadding(false);
@@ -97,6 +152,7 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
             sourceViewer.setDiagnostics(List.of());
             sourceViewer.setActiveLine(0);
             renderLocals(List.of());
+            renderStdout("");
             statusText.setText("");
         });
 
@@ -108,9 +164,15 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
 
         var root = getContent();
         root.setSizeFull();
-        root.addClassName("c-runner-panel");
-        root.add(header, createStateCard(), controls, statusText, codeFrame);
+        var content = new Div();
+        content.addClassName("c-runner-panel");
+        content.add(header, createStateCard(), controls, statusText, codeFrame, createTerminalCard());
+        var scrollable = new Scroller(content, ScrollDirection.VERTICAL);
+        scrollable.setSizeFull();
+        scrollable.addClassName("c-runner-scroll-shell");
+        root.add(scrollable);
         renderLocals(List.of());
+        renderStdout("");
     }
 
     void setSourceForTesting(String source) {
@@ -125,6 +187,8 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
         activeLine = 0;
         renderLocals(List.of());
         sourceViewer.setActiveLine(0);
+        stdinField.clear();
+        renderStdout("");
         statusText.setText("");
     }
 
@@ -149,6 +213,7 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
         if (snapshots.isEmpty()) {
             sourceViewer.setActiveLine(0);
             renderLocals(List.of());
+            renderStdout("");
             statusText.setText("");
             return;
         }
@@ -160,7 +225,7 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
         validateButton.setEnabled(false);
         statusText.setText("Depurando...");
         try {
-            var result = debugService.debug(new CSourceRequest(currentSource, "c17", "main.c"));
+            var result = debugService.debug(new CDebugRequest(currentSource, "c17", "main.c", stdinField.getValue()));
             renderDebugResult(result);
         }
         finally {
@@ -183,6 +248,7 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
                     .filter(diagnostic -> diagnostic.severity() == CDiagnosticSeverity.ERROR)
                     .count();
             renderLocals(List.of());
+            renderStdout("");
             sourceViewer.setActiveLine(0);
             statusText.setText(
                 "Debugger | %d error(es) | %s | %d ms".formatted(errors, result.compiler(), result.elapsedMs()));
@@ -196,6 +262,7 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
         activeLine = snapshot.line() == null ? 0 : snapshot.line();
         sourceViewer.setActiveLine(activeLine);
         renderLocals(snapshot.locals());
+        renderStdout(snapshot.stdout());
         if (!snapshots.isEmpty()) {
             statusText.setText(
                 "Snapshot %d/%d | %s | %d ms"
@@ -208,7 +275,13 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
         var safeLocals = locals == null ? List.<CDebugVariable>of() : locals;
         variableCount.setText("%d vars".formatted(safeLocals.size()));
         safeLocals.forEach(
-            variable -> localsBody.add(createVariableRow(variable.type(), variable.name(), variable.value())));
+            variable -> localsBody.add(createVariableRow(variable.name(), variable.value())));
+    }
+
+    private void renderStdout(String stdout) {
+        var safeStdout = stdout == null || stdout.isBlank() ? "No hay salida" : stdout;
+        stdoutText.setText(safeStdout);
+        stdoutText.getElement().setAttribute("data-empty", Boolean.toString(stdout == null || stdout.isBlank()));
     }
 
     private void showDiagnosticsSummary() {
@@ -251,7 +324,7 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
         body.setWidthFull();
         body.add(
             localsGroup,
-            createVariablesTable());
+            createVariablesScroll());
         body.addClassName("c-runner-state-body");
 
         var card = new VerticalLayout(stateHeader, body);
@@ -260,6 +333,12 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
         card.setWidthFull();
         card.addClassName("c-runner-state-card");
         return card;
+    }
+
+    private Div createVariablesScroll() {
+        var scroll = new Div(createVariablesTable());
+        scroll.addClassName("c-runner-vars-scroll");
+        return scroll;
     }
 
     private HtmlContainer createVariablesTable() {
@@ -273,25 +352,60 @@ public final class CRunnerTestPanel extends Composite<Div> implements HasSize {
 
     private static HtmlContainer createHeaderRow() {
         return new HtmlContainer("tr",
-                createCell("th", "Type", "c-runner-col-type"),
-                createCell("th", "Name", ""),
-                createCell("th", "Value", ""));
+                createCell("th", "Name", "c-runner-col-name"),
+                createCell("th", "Value", "c-runner-col-value"));
     }
 
-    private static HtmlContainer createVariableRow(String type, String name, String value) {
-        var typeChip = new Span(type);
-        typeChip.addClassName("c-runner-type-chip");
-
+    private static HtmlContainer createVariableRow(String name, String value) {
         var nameText = new Span(name);
         nameText.addClassName("c-runner-var-name");
 
         var valueText = new Span(value);
         valueText.addClassName("c-runner-var-value");
+        valueText.getElement().setAttribute("title", value == null ? "" : value);
+        valueText.getElement().setAttribute("tabindex", "0");
+        valueText.getElement().setAttribute("role", "button");
+        valueText.getElement().setAttribute("aria-label", "Ver valor completo de " + name);
+        attachValuePopover(name, value, valueText);
 
         return new HtmlContainer("tr",
-                createCell("td", typeChip, "c-runner-col-type"),
-                createCell("td", nameText, ""),
-                createCell("td", valueText, ""));
+                createCell("td", nameText, "c-runner-col-name"),
+                createCell("td", valueText, "c-runner-col-value"));
+    }
+
+    private Div createTerminalCard() {
+        var title = new Span("Terminal");
+        title.addClassName("c-runner-terminal-title");
+
+        var body = new Div(stdinField, createStdoutBlock());
+        body.addClassName("c-runner-terminal-body");
+
+        var card = new Div(title, body);
+        card.addClassName("c-runner-terminal-card");
+        return card;
+    }
+
+    private Div createStdoutBlock() {
+        var label = new Span("stdout");
+        label.addClassName("c-runner-terminal-label");
+
+        var block = new Div(label, stdoutText);
+        block.addClassName("c-runner-stdout-block");
+        return block;
+    }
+
+    private static void attachValuePopover(String name, String value, Span target) {
+        var title = new Span(name == null || name.isBlank() ? "value" : name);
+        title.addClassName("c-runner-value-popover-title");
+
+        var fullValue = new Pre(value == null || value.isBlank() ? "(empty)" : value);
+        fullValue.addClassName("c-runner-value-popover-content");
+
+        var popover = new Popover();
+        popover.setTarget(target);
+        popover.setModal(false);
+        popover.addClassName("c-runner-value-popover");
+        popover.add(new Div(title, fullValue));
     }
 
     private static HtmlContainer createCell(String tag, String text, String className) {

@@ -81,11 +81,11 @@ public class MainLayout extends AppLayout {
         drawerContent.addClassNames("shell-drawer-content", "chat-sidebar-shell");
         drawerContent.setSizeFull();
 
-        var appTitle = new H1("Tutor Crow");
+        var appTitle = new H1("Tutor Socrático");
         appTitle.addClassName("chat-sidebar-app-title");
 
         var appDescription =
-                new Paragraph("Tutor para explorar ideas, resolver dudas y aprender con preguntas guiadas.");
+                new Paragraph("Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia con preguntas guiadas.");
         appDescription.addClassName("chat-sidebar-app-description");
 
         var appHeader = new Div(appTitle, appDescription, createThemePreferenceControl(state, viewModel));

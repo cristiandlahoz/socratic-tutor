@@ -13,22 +13,65 @@ import org.springframework.stereotype.Component;
 public class GdbMiSnapshotParser {
 
   private static final Pattern FRAME_PATTERN = Pattern.compile("frame=\\{([^}]*)}");
-  private static final Pattern VAR_PATTERN = Pattern.compile("\\{([^{}]*)}");
+  private static final String STDOUT_BEGIN = "__C_STDOUT_BEGIN__";
+  private static final String STDOUT_END = "__C_STDOUT_END__";
 
   public List<CDebugSnapshot> parse(String miOutput, int maxSnapshots, int maxOutputBytes) {
     var snapshots = new ArrayList<CDebugSnapshot>();
     var stdout = new StringBuilder();
+    var stdoutCapture = new StringBuilder();
     var currentLine = (Integer) null;
     var currentFunction = "";
     var currentReason = "";
     var terminated = false;
+    var capturingStdout = false;
 
     for (var rawLine : safeLines(miOutput)) {
       var line = rawLine.trim();
+      if (line.equals(STDOUT_BEGIN)) {
+        capturingStdout = true;
+        stdoutCapture.setLength(0);
+        continue;
+      }
+      if (line.equals(STDOUT_END)) {
+        stdout.setLength(0);
+        appendCapped(stdout, stdoutCapture.toString(), maxOutputBytes);
+        stdoutCapture.setLength(0);
+        capturingStdout = false;
+        continue;
+      }
+      if (capturingStdout && !line.startsWith("~")) {
+        appendCapped(stdoutCapture, rawLine + "\n", maxOutputBytes);
+        continue;
+      }
       if (line.isBlank()) {
         continue;
       }
-      if (line.startsWith("@") || line.startsWith("~")) {
+      if (line.startsWith("~")) {
+        var payload = unquotePayload(line);
+        if (payload.contains(STDOUT_BEGIN)) {
+          capturingStdout = true;
+          stdoutCapture.setLength(0);
+          payload = payload.substring(payload.indexOf(STDOUT_BEGIN) + STDOUT_BEGIN.length());
+          if (payload.startsWith("\n")) {
+            payload = payload.substring(1);
+          }
+        }
+        if (capturingStdout) {
+          var endIndex = payload.indexOf(STDOUT_END);
+          if (endIndex >= 0) {
+            appendCapped(stdoutCapture, payload.substring(0, endIndex), maxOutputBytes);
+            stdout.setLength(0);
+            appendCapped(stdout, stdoutCapture.toString(), maxOutputBytes);
+            stdoutCapture.setLength(0);
+            capturingStdout = false;
+          } else {
+            appendCapped(stdoutCapture, payload, maxOutputBytes);
+          }
+        }
+        continue;
+      }
+      if (line.startsWith("@")) {
         appendCapped(stdout, unquotePayload(line), maxOutputBytes);
         continue;
       }
@@ -101,18 +144,71 @@ public class GdbMiSnapshotParser {
 
   private static List<CDebugVariable> parseVariables(String line) {
     var variables = new ArrayList<CDebugVariable>();
-    var matcher = VAR_PATTERN.matcher(line);
-    while (matcher.find()) {
-      var values = attributeMap(matcher.group(1));
+    for (var variableObject : variableObjects(line)) {
+      var values = attributeMap(variableObject);
       var name = values.get("name");
       if (name == null || name.isBlank()) {
         continue;
       }
       var value = values.getOrDefault("value", "");
-      variables.add(
-          new CDebugVariable(values.getOrDefault("type", inferType(value)), name, value, "local"));
+      variables.add(new CDebugVariable(name, value, "local"));
     }
     return variables;
+  }
+
+  private static List<String> variableObjects(String line) {
+    var objects = new ArrayList<String>();
+    var variablesStart = line.indexOf("variables=[");
+    if (variablesStart < 0) {
+      return objects;
+    }
+    var index = variablesStart + "variables=[".length();
+    while (index < line.length()) {
+      if (line.charAt(index) != '{') {
+        index++;
+        continue;
+      }
+      var end = findBalancedBraceEnd(line, index);
+      if (end <= index) {
+        break;
+      }
+      objects.add(line.substring(index + 1, end));
+      index = end + 1;
+    }
+    return objects;
+  }
+
+  private static int findBalancedBraceEnd(String value, int start) {
+    var depth = 0;
+    var quoted = false;
+    var escaped = false;
+    for (int i = start; i < value.length(); i++) {
+      var ch = value.charAt(i);
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch == '\\') {
+        escaped = true;
+        continue;
+      }
+      if (ch == '"') {
+        quoted = !quoted;
+        continue;
+      }
+      if (quoted) {
+        continue;
+      }
+      if (ch == '{') {
+        depth++;
+      } else if (ch == '}') {
+        depth--;
+        if (depth == 0) {
+          return i;
+        }
+      }
+    }
+    return -1;
   }
 
   private static Map<String, String> attributeMap(String value) {
@@ -179,19 +275,6 @@ public class GdbMiSnapshotParser {
     }
     var remaining = Math.max(0, maxBytes - target.length());
     target.append(value, 0, Math.min(value.length(), remaining));
-  }
-
-  private static String inferType(String value) {
-    if (value == null || value.isBlank()) {
-      return "?";
-    }
-    if (value.matches("-?\\d+")) {
-      return "int";
-    }
-    if (value.startsWith("0x")) {
-      return "ptr";
-    }
-    return "?";
   }
 
   private static Integer integerOrNull(String value) {

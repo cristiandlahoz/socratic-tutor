@@ -39,13 +39,22 @@
   box-sizing: border-box;
 }
 
-.c-runner-panel {
-  min-width: 390px;
+.c-runner-scroll-shell {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
   min-height: 0;
+  overflow: auto;
+}
+
+.c-runner-panel {
+  width: 100%;
+  min-width: 390px;
+  min-height: min-content;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  overflow: hidden;
+  overflow: visible;
   padding: 18px 16px 16px;
   background: color-mix(in srgb, var(--chat-black) 88%, var(--chat-surface-strong));
   border-inline-start: 1px solid var(--chat-border-section);
@@ -159,6 +168,22 @@
   background: color-mix(in srgb, var(--chat-code-background) 72%, transparent);
 }
 
+.c-runner-vars-scroll {
+  width: 100%;
+  max-height: 307px;
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid var(--c-runner-row-border);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--chat-code-background) 72%, transparent);
+}
+
+.c-runner-vars-scroll .c-runner-vars-table {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .c-runner-vars-table th,
 .c-runner-vars-table td {
   height: 34px;
@@ -172,6 +197,10 @@
 }
 
 .c-runner-vars-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--chat-code-background) 94%, var(--chat-black));
   color: var(--chat-text-primary);
   font-family: var(--chat-font-body);
   font-size: 15px;
@@ -188,18 +217,12 @@
   border-block-end: 0;
 }
 
-.c-runner-col-type {
-  width: 88px;
+.c-runner-col-name {
+  width: 32%;
 }
 
-.c-runner-type-chip {
-  display: inline-block;
-  min-width: 38px;
-  padding: 3px 8px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--c-runner-cyan) 18%, transparent);
-  color: var(--c-runner-cyan);
-  line-height: 1.1;
+.c-runner-col-value {
+  width: 68%;
 }
 
 .c-runner-var-name {
@@ -207,7 +230,19 @@
 }
 
 .c-runner-var-value {
+  display: block;
+  max-width: 100%;
+  cursor: pointer;
+  overflow: hidden;
   color: var(--c-runner-red);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.c-runner-var-value:focus-visible {
+  outline: 1px solid var(--c-runner-cyan);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 .c-runner-collapsed-group {
@@ -323,6 +358,109 @@ c-debug-source-viewer.c-runner-source-viewer {
   --c-runner-active-line-marker-color: var(--c-runner-yellow);
 }
 
+.c-runner-terminal-card {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--c-runner-card-border);
+  border-radius: 8px;
+  background: var(--c-runner-card);
+  box-shadow: var(--chat-shadow-dark-card);
+}
+
+.c-runner-terminal-title {
+  display: block;
+  padding: 9px 12px 6px;
+  color: var(--chat-text-display);
+  font-family: var(--chat-font-display);
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.c-runner-terminal-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+vaadin-text-area.c-runner-stdin {
+  width: 100%;
+  min-width: 0;
+  --vaadin-input-field-background: color-mix(in srgb, var(--chat-code-background) 72%, transparent);
+  --vaadin-input-field-border-width: 1px;
+  --vaadin-input-field-border-color: var(--c-runner-row-border);
+  --vaadin-input-field-label-color: var(--chat-text-secondary);
+  --vaadin-input-field-value-color: var(--chat-text-primary);
+  --vaadin-input-field-placeholder-color: var(--chat-text-muted);
+  --vaadin-input-field-border-radius: 7px;
+  font-family: var(--chat-font-mono);
+  font-size: 12px;
+}
+
+vaadin-text-area.c-runner-stdin::part(input-field) {
+  min-height: 54px;
+}
+
+.c-runner-stdout-block {
+  min-width: 0;
+}
+
+.c-runner-terminal-label {
+  display: block;
+  margin-block-end: 4px;
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-body);
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.c-runner-stdout {
+  width: 100%;
+  max-height: 96px;
+  min-height: 42px;
+  margin: 0;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--c-runner-row-border);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--chat-black) 84%, var(--chat-code-background));
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.c-runner-stdout[data-empty="true"] {
+  color: var(--chat-text-muted);
+}
+
+.c-runner-value-popover {
+  max-width: min(680px, 82vw);
+}
+
+.c-runner-value-popover-title {
+  display: block;
+  margin-block-end: 6px;
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-body);
+  font-size: 12px;
+}
+
+.c-runner-value-popover-content {
+  max-width: min(640px, 78vw);
+  max-height: 280px;
+  margin: 0;
+  overflow: auto;
+  color: var(--c-runner-red);
+  font-family: var(--chat-font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 960px) {
   .c-runner-panel {
     min-width: 0;
@@ -334,5 +472,9 @@ c-debug-source-viewer.c-runner-source-viewer {
   .c-runner-code-frame {
     flex-basis: 280px;
     height: 280px;
+  }
+
+  .c-runner-vars-scroll {
+    max-height: 239px;
   }
 }
