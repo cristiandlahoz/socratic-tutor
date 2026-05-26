@@ -2,11 +2,10 @@ package com.wornux.infrastructure.external.crunner;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.wornux.application.crunner.CDebugRequest;
-import com.wornux.application.crunner.CDebugSessionResult;
-import com.wornux.application.crunner.CDiagnostic;
-import com.wornux.application.crunner.CProgramAnalysisProperties;
-import com.wornux.application.crunner.port.CDebuggerPort;
+import com.wornux.services.crunner.CDebugRequest;
+import com.wornux.services.crunner.CDebugSessionResult;
+import com.wornux.services.crunner.CDiagnostic;
+import com.wornux.config.CProgramAnalysisProperties;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DockerGdbCDebuggerAdapter implements CDebuggerPort {
+public class DockerGdbCDebuggerAdapter {
 
   private static final Logger log = LoggerFactory.getLogger(DockerGdbCDebuggerAdapter.class);
   private static final String WORKSPACE = "/workspace";
@@ -40,7 +39,6 @@ public class DockerGdbCDebuggerAdapter implements CDebuggerPort {
     this.commandRunner = commandRunner;
   }
 
-  @Override
   public String cacheKey() {
     return "docker-gdb:%s:%s:%s:%s:%d"
         .formatted(
@@ -51,7 +49,6 @@ public class DockerGdbCDebuggerAdapter implements CDebuggerPort {
             properties.getMaxSnapshots());
   }
 
-  @Override
   public CDebugSessionResult debug(CDebugRequest request, String sourceHash) {
     var startedAt = System.nanoTime();
     Path tempDir = null;

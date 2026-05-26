@@ -2,7 +2,7 @@ package com.wornux.domain.chat;
 
 import com.wornux.domain.chat.questions.StudentQuestionResponse;
 import com.wornux.domain.chat.questions.StudentQuestionSet;
-import com.wornux.presentation.chat.*;
+import com.wornux.ui.chat.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Duration;
@@ -19,10 +19,10 @@ public class StudentQuestionExchange implements Serializable {
 
     private static final Duration RESPONSE_TIMEOUT = Duration.ofMinutes(5);
 
-    private final ChatUiState state;
+    private final ChatState state;
     private transient CompletableFuture<StudentQuestionResponse> pendingResponse;
 
-    public StudentQuestionExchange(ChatUiState state) {
+    public StudentQuestionExchange(ChatState state) {
         this.state = state;
     }
 

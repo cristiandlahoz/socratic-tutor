@@ -1,6 +1,8 @@
 package com.wornux.ai.guard;
 
 import com.wornux.ai.prompt.TutorPromptResources;
+import com.wornux.data.entities.*;
+import com.wornux.data.enums.*;
 import com.wornux.domain.chat.*;
 import java.util.Objects;
 import org.springframework.ai.chat.messages.SystemMessage;

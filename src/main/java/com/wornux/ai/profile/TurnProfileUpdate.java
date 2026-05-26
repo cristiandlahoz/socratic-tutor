@@ -1,6 +1,6 @@
 package com.wornux.ai.profile;
 
-import com.wornux.domain.profile.HelpMode;
+import com.wornux.data.enums.HelpMode;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;

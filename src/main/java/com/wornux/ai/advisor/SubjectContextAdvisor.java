@@ -1,7 +1,7 @@
 package com.wornux.ai.advisor;
 
-import com.wornux.application.subject.SubjectConfig;
-import com.wornux.application.subject.SubjectConfigService;
+import com.wornux.services.subject.SubjectConfig;
+import com.wornux.services.subject.SubjectConfigService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

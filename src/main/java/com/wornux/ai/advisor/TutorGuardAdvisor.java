@@ -3,7 +3,7 @@ package com.wornux.ai.advisor;
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.prompt.PromptMessageUtils;
 import com.wornux.ai.prompt.TutorPromptResources;
-import com.wornux.domain.chat.GuardDecision;
+import com.wornux.data.enums.GuardDecision;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;

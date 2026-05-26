@@ -1,7 +1,7 @@
 package com.wornux.infrastructure.external.crunner;
 
-import com.wornux.application.crunner.CDebugSnapshot;
-import com.wornux.application.crunner.CDebugVariable;
+import com.wornux.services.crunner.CDebugSnapshot;
+import com.wornux.services.crunner.CDebugVariable;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

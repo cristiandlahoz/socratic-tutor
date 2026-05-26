@@ -1,5 +1,7 @@
 package com.wornux.ai.profile;
 
+import com.wornux.data.entities.*;
+import com.wornux.data.enums.*;
 import com.wornux.domain.profile.*;
 import java.util.List;
 import org.springframework.stereotype.Component;

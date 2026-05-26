@@ -2,12 +2,11 @@ package com.wornux.infrastructure.external.crunner;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.wornux.application.crunner.CDiagnostic;
-import com.wornux.application.crunner.CDiagnosticSeverity;
-import com.wornux.application.crunner.CProgramAnalysisProperties;
-import com.wornux.application.crunner.CSourceRequest;
-import com.wornux.application.crunner.CValidationResult;
-import com.wornux.application.crunner.port.CCompilerPort;
+import com.wornux.services.crunner.CDiagnostic;
+import com.wornux.services.crunner.CDiagnosticSeverity;
+import com.wornux.config.CProgramAnalysisProperties;
+import com.wornux.services.crunner.CSourceRequest;
+import com.wornux.services.crunner.CValidationResult;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DockerGccCCompilerAdapter implements CCompilerPort {
+public class DockerGccCCompilerAdapter {
 
   private static final Logger log = LoggerFactory.getLogger(DockerGccCCompilerAdapter.class);
   private static final String WORKSPACE = "/workspace";
@@ -38,7 +37,6 @@ public class DockerGccCCompilerAdapter implements CCompilerPort {
     this.commandRunner = commandRunner;
   }
 
-  @Override
   public String cacheKey() {
     return "docker-gcc:%s:%s:%s:%s"
         .formatted(
@@ -48,7 +46,6 @@ public class DockerGccCCompilerAdapter implements CCompilerPort {
             properties.getPidsLimit());
   }
 
-  @Override
   public CValidationResult validateSyntax(CSourceRequest request, String sourceHash) {
     var startedAt = System.nanoTime();
     Path tempDir = null;

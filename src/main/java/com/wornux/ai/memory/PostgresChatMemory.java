@@ -1,7 +1,9 @@
 package com.wornux.ai.memory;
 
+import com.wornux.data.entities.*;
+import com.wornux.data.enums.*;
 import com.wornux.domain.chat.*;
-import com.wornux.infrastructure.persistence.chat.*;
+import com.wornux.data.repositories.chat.*;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,14 +20,14 @@ import org.springframework.util.Assert;
 @NullMarked
 public class PostgresChatMemory implements ChatMemory {
 
-  private final ChatJpaRepository chatRepository;
-  private final ChatTranscriptJpaRepository chatTranscriptRepository;
-  private final ChatMessageJpaRepository chatMessageRepository;
+  private final ChatRepository chatRepository;
+  private final ChatTranscriptRepository chatTranscriptRepository;
+  private final ChatMessageRepository chatMessageRepository;
 
   public PostgresChatMemory(
-      ChatJpaRepository chatRepository,
-      ChatTranscriptJpaRepository chatTranscriptRepository,
-      ChatMessageJpaRepository chatMessageRepository) {
+      ChatRepository chatRepository,
+      ChatTranscriptRepository chatTranscriptRepository,
+      ChatMessageRepository chatMessageRepository) {
     this.chatRepository = chatRepository;
     this.chatTranscriptRepository = chatTranscriptRepository;
     this.chatMessageRepository = chatMessageRepository;
@@ -47,7 +49,7 @@ public class PostgresChatMemory implements ChatMemory {
     chatMessageRepository.saveAll(
         messages.stream()
             .filter(message -> message.getMessageType() != MessageType.SYSTEM)
-            .map(message -> ChatMessageEntity.from(transcript, message))
+            .map(message -> ChatMessage.from(transcript, message))
             .toList());
   }
 
@@ -66,7 +68,7 @@ public class PostgresChatMemory implements ChatMemory {
 
     var messages =
         chatMessageRepository.findByTranscript_IdOrderByIdAsc(transcript.getId()).stream()
-            .map(ChatMessageEntity::toSpringAiMessage)
+            .map(ChatMessage::toSpringAiMessage)
             .toList();
 
     var memoryText = transcript.memoryText();
@@ -91,17 +93,17 @@ public class PostgresChatMemory implements ChatMemory {
             .findById(UUID.fromString(conversationId))
             .orElseThrow(() -> new IllegalStateException("Chat not found: " + conversationId));
     chatTranscriptRepository.deleteByChat_Id(chat.getId());
-    var freshTranscript = chatTranscriptRepository.save(ChatTranscriptEntity.create(chat));
+    var freshTranscript = chatTranscriptRepository.save(ChatTranscript.create(chat));
     chat.activateTranscript(freshTranscript);
     chatRepository.save(chat);
   }
 
-  private ChatTranscriptEntity currentTranscript(ChatEntity chat) {
+  private ChatTranscript currentTranscript(Chat chat) {
     var transcript = chat.getCurrentTranscript();
     if (transcript != null) {
       return transcript;
     }
-    var createdTranscript = chatTranscriptRepository.save(ChatTranscriptEntity.create(chat));
+    var createdTranscript = chatTranscriptRepository.save(ChatTranscript.create(chat));
     chat.activateTranscript(createdTranscript);
     chatRepository.save(chat);
     return createdTranscript;

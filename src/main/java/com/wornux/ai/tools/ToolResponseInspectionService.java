@@ -1,7 +1,7 @@
 package com.wornux.ai.tools;
 
-import com.wornux.domain.chat.ChatMessageEntity;
-import com.wornux.infrastructure.persistence.chat.ChatMessageJpaRepository;
+import com.wornux.data.entities.ChatMessage;
+import com.wornux.data.repositories.chat.ChatMessageRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -11,9 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ToolResponseInspectionService {
 
-  private final ChatMessageJpaRepository chatMessageRepository;
+  private final ChatMessageRepository chatMessageRepository;
 
-  public ToolResponseInspectionService(ChatMessageJpaRepository chatMessageRepository) {
+  public ToolResponseInspectionService(ChatMessageRepository chatMessageRepository) {
     this.chatMessageRepository = chatMessageRepository;
   }
 
@@ -24,7 +24,7 @@ public class ToolResponseInspectionService {
         .toList();
   }
 
-  private List<ToolResponseView> toolResponses(ChatMessageEntity message) {
+  private List<ToolResponseView> toolResponses(ChatMessage message) {
     Object rawResponses = message.getMetadata().get("toolResponses");
     if (!(rawResponses instanceof List<?> responses)) {
       return List.of();

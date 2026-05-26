@@ -1,7 +1,7 @@
 package com.wornux.ai.profile;
 
-import com.wornux.ai.config.*;
-import com.wornux.application.profile.*;
+import com.wornux.config.*;
+import com.wornux.services.profile.*;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;

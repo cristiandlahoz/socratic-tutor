@@ -1,5 +1,6 @@
 package com.wornux.domain.profile;
 
+import com.wornux.data.enums.HelpMode;
 import java.util.List;
 
 public record StudentProfileSnapshot(

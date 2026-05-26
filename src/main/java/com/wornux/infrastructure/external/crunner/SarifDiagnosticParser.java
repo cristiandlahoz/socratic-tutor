@@ -1,7 +1,7 @@
 package com.wornux.infrastructure.external.crunner;
 
-import com.wornux.application.crunner.CDiagnostic;
-import com.wornux.application.crunner.CDiagnosticSeverity;
+import com.wornux.services.crunner.CDiagnostic;
+import com.wornux.services.crunner.CDiagnosticSeverity;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;

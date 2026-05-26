@@ -1,6 +1,6 @@
 package com.wornux.ai.routing;
 
-import com.wornux.ai.config.TutorAiProperties;
+import com.wornux.config.TutorAiProperties;
 import com.wornux.ai.prompt.TutorPromptResources;
 import java.util.Objects;
 import java.util.Optional;

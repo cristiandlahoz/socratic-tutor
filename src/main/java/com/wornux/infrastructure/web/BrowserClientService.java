@@ -3,7 +3,7 @@ package com.wornux.infrastructure.web;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
-import com.wornux.ai.config.*;
+import com.wornux.config.*;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.Arrays;

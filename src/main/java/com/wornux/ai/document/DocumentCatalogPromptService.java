@@ -1,7 +1,10 @@
 package com.wornux.ai.document;
 
+import com.wornux.data.entities.*;
+import com.wornux.data.enums.*;
 import com.wornux.domain.document.*;
-import com.wornux.infrastructure.persistence.document.*;
+import com.wornux.data.repositories.document.*;
+import com.wornux.config.DocumentIngestionProperties;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -13,11 +16,11 @@ public class DocumentCatalogPromptService {
 
   private static final Logger log = LoggerFactory.getLogger(DocumentCatalogPromptService.class);
 
-  private final DocumentJpaRepository documentRepository;
+  private final DocumentRepository documentRepository;
   private final DocumentIngestionProperties ingestionProperties;
 
   public DocumentCatalogPromptService(
-      DocumentJpaRepository documentRepository, DocumentIngestionProperties ingestionProperties) {
+      DocumentRepository documentRepository, DocumentIngestionProperties ingestionProperties) {
     this.documentRepository = documentRepository;
     this.ingestionProperties = ingestionProperties;
   }
@@ -27,7 +30,7 @@ public class DocumentCatalogPromptService {
       return "";
     }
     var inventory = ingestionProperties.getInventory();
-    List<DocumentEntity> documents =
+    List<Document> documents =
         documentRepository.findByClientIdAndStatusOrderByUpdatedAtDescCreatedAtDesc(
             clientId, DocumentStatus.INDEXED.name());
     if (documents.isEmpty()) {
@@ -43,7 +46,7 @@ public class DocumentCatalogPromptService {
         """);
 
     int included = 0;
-    for (DocumentEntity document : documents) {
+    for (Document document : documents) {
       if (included >= inventory.getMaxDocuments()) {
         break;
       }
@@ -69,7 +72,7 @@ public class DocumentCatalogPromptService {
     return builder.toString().trim();
   }
 
-  private String formatLine(DocumentEntity document) {
+  private String formatLine(Document document) {
     var catalogTags =
         document.getCatalogTags() == null ? List.<String>of() : document.getCatalogTags();
     var questionExamples =
