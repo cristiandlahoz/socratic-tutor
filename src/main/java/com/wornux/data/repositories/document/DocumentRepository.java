@@ -1,8 +1,6 @@
 package com.wornux.data.repositories.document;
 
 import com.wornux.data.entities.*;
-import com.wornux.data.enums.*;
-import com.wornux.domain.document.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

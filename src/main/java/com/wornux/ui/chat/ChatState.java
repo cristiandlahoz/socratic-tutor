@@ -6,8 +6,6 @@ import com.vaadin.flow.signals.local.ValueSignal;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
-import com.wornux.data.entities.*;
-import com.wornux.data.enums.*;
 import com.wornux.domain.chat.*;
 import com.wornux.domain.chat.questions.StudentQuestionSet;
 import com.wornux.data.enums.ThemePreference;

@@ -1,8 +1,6 @@
 package com.wornux.ui.ingestion;
 
-import com.wornux.data.entities.*;
 import com.wornux.data.enums.*;
-import com.wornux.domain.document.*;
 import java.util.List;
 import java.util.UUID;
 

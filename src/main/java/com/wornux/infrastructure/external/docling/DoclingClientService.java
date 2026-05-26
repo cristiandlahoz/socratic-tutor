@@ -15,10 +15,7 @@ import ai.docling.serve.api.convert.request.source.FileSource;
 import ai.docling.serve.api.convert.request.target.InBodyTarget;
 import ai.docling.serve.api.convert.response.ConvertDocumentResponse;
 import ai.docling.serve.api.convert.response.InBodyConvertDocumentResponse;
-import com.wornux.ai.document.*;
 import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.data.entities.*;
-import com.wornux.data.enums.*;
 import com.wornux.domain.document.*;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -52,16 +49,15 @@ public class DoclingClientService {
   public DoclingConversionResult convertPdfToMarkdownAndChunks(String filename, byte[] content) {
     try {
       DoclingServeApi api = createApi();
-      ChunkDocumentResponse chunkResponse =
-          api.chunkSourceWithHybridChunker(buildHybridChunkRequest(filename, content));
+      ChunkDocumentResponse chunkResponse = api
+          .chunkSourceWithHybridChunker(buildHybridChunkRequest(filename, content));
       DoclingConversionResult chunkResult = mapChunkResponse(chunkResponse);
 
       String chunkMarkdown = chunkResult.markdown();
       boolean chunkMarkdownPresent = !chunkMarkdown.isBlank();
       String convertMarkdown = "";
       if (!chunkMarkdownPresent) {
-        convertMarkdown =
-            markdown(api.convertSource(buildConvertMarkdownRequest(filename, content)));
+        convertMarkdown = markdown(api.convertSource(buildConvertMarkdownRequest(filename, content)));
       }
       boolean convertMarkdownPresent = !convertMarkdown.isBlank();
       String finalMarkdown = chunkMarkdownPresent ? chunkMarkdown : convertMarkdown;
@@ -146,8 +142,7 @@ public class DoclingClientService {
   }
 
   static DoclingConversionResult mapChunkResponse(ChunkDocumentResponse response) {
-    var chunks =
-        response == null || response.getChunks() == null ? List.<Chunk>of() : response.getChunks();
+    var chunks = response == null || response.getChunks() == null ? List.<Chunk>of() : response.getChunks();
     var segments = new ArrayList<DoclingSegmentDraft>();
     int ordinal = 1;
     for (Chunk chunk : chunks) {

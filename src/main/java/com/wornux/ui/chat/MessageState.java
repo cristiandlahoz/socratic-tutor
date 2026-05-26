@@ -1,7 +1,5 @@
 package com.wornux.ui.chat;
 
-import com.wornux.data.entities.*;
-import com.wornux.data.enums.*;
 import com.wornux.domain.chat.*;
 import java.time.Instant;
 import org.springframework.ai.chat.messages.MessageType;

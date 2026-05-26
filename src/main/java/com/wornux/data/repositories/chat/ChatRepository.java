@@ -1,8 +1,6 @@
 package com.wornux.data.repositories.chat;
 
 import com.wornux.data.entities.*;
-import com.wornux.data.enums.*;
-import com.wornux.domain.chat.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

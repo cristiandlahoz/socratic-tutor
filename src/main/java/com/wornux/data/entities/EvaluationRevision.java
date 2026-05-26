@@ -11,7 +11,6 @@ import jakarta.persistence.NamedEntityGraph;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
-import com.wornux.data.entities.SubjectConfigRevision;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

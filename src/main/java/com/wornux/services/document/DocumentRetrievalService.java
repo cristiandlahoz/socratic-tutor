@@ -1,9 +1,6 @@
 package com.wornux.services.document;
 
-import com.wornux.ai.document.*;
 import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.data.entities.*;
-import com.wornux.data.enums.*;
 import com.wornux.domain.document.*;
 import java.util.List;
 import java.util.Map;

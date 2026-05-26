@@ -6,8 +6,6 @@ import com.wornux.config.ProfileProperties;
 import com.wornux.ai.tools.AskStudentQuestionTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.services.profile.StudentProfileService;
-import com.wornux.data.entities.*;
-import com.wornux.data.enums.*;
 import com.wornux.domain.chat.*;
 import java.util.Map;
 import java.util.UUID;
