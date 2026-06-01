@@ -1,6 +1,7 @@
 package com.wornux.data.entities;
 
 import com.wornux.data.enums.EvaluationAttemptStatus;
+import com.wornux.data.enums.EvaluationAttemptCompletionReason;
 import jakarta.persistence.Column;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -58,6 +59,10 @@ public class EvaluationAttempt {
   @Column(nullable = false, length = 24)
   private EvaluationAttemptStatus status;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "completion_reason", length = 32)
+  private EvaluationAttemptCompletionReason completionReason;
+
   @Column(name = "started_at", nullable = false)
   private Instant startedAt;
 
@@ -66,6 +71,9 @@ public class EvaluationAttempt {
 
   @Column(name = "graded_at")
   private Instant gradedAt;
+
+  @Column(name = "completed_at")
+  private Instant completedAt;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "profile_snapshot", nullable = false, columnDefinition = "jsonb")
@@ -107,7 +115,7 @@ public class EvaluationAttempt {
     entity.evaluationRevision = evaluationRevision;
     entity.clientId = clientId;
     entity.chat = chat;
-    entity.status = EvaluationAttemptStatus.IN_PROGRESS;
+    entity.status = EvaluationAttemptStatus.READY_TO_RUN;
     entity.startedAt = Instant.now();
     entity.profileSnapshot =
         profileSnapshot == null ? new LinkedHashMap<>() : new LinkedHashMap<>(profileSnapshot);
@@ -130,14 +138,22 @@ public class EvaluationAttempt {
   }
 
   public void markSubmitted() {
-    this.status = EvaluationAttemptStatus.SUBMITTED;
+    this.status = EvaluationAttemptStatus.RUNNING;
     this.submittedAt = Instant.now();
   }
 
   public void applyGrade(BigDecimal score, Map<String, Object> feedback) {
-    this.status = EvaluationAttemptStatus.GRADED;
+    this.status = EvaluationAttemptStatus.COMPLETED;
+    this.completionReason = EvaluationAttemptCompletionReason.LEGACY_GRADED;
     this.score = score;
     this.feedback = feedback == null ? new LinkedHashMap<>() : new LinkedHashMap<>(feedback);
+    this.completedAt = Instant.now();
     this.gradedAt = Instant.now();
+  }
+
+  public void markCompleted(EvaluationAttemptCompletionReason reason) {
+    this.status = EvaluationAttemptStatus.COMPLETED;
+    this.completionReason = reason;
+    this.completedAt = Instant.now();
   }
 }

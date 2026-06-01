@@ -8,16 +8,21 @@ import com.wornux.services.subject.SubjectConfigService;
 import com.wornux.data.entities.EvaluationAttempt;
 import com.wornux.data.entities.EvaluationAttemptQuestion;
 import com.wornux.data.entities.EvaluationAttemptResponse;
+import com.wornux.data.entities.EvaluationGuideArtifact;
 import com.wornux.data.entities.EvaluationQuestionExample;
+import com.wornux.data.entities.EvaluationResultArtifact;
 import com.wornux.data.entities.EvaluationRevision;
+import com.wornux.data.enums.EvaluationAttemptCompletionReason;
 import com.wornux.data.enums.EvaluationStatus;
 import com.wornux.domain.profile.StudentLearningProfile;
 import com.wornux.data.repositories.subject.SubjectConfigRevisionRepository;
 import com.wornux.data.repositories.evaluation.EvaluationAttemptRepository;
 import com.wornux.data.repositories.evaluation.EvaluationAttemptQuestionRepository;
 import com.wornux.data.repositories.evaluation.EvaluationAttemptResponseRepository;
+import com.wornux.data.repositories.evaluation.EvaluationGuideArtifactRepository;
 import com.wornux.data.repositories.evaluation.EvaluationRepository;
 import com.wornux.data.repositories.evaluation.EvaluationQuestionExampleRepository;
+import com.wornux.data.repositories.evaluation.EvaluationResultArtifactRepository;
 import com.wornux.data.repositories.evaluation.EvaluationRevisionRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -27,7 +32,9 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -55,14 +62,22 @@ public class EvaluationService {
     private final EvaluationAttemptQuestionRepository attemptQuestionRepository;
     private final EvaluationAttemptResponseRepository responseRepository;
     private final EvaluationQuestionExampleRepository exampleRepository;
+    private final EvaluationGuideArtifactRepository guideArtifactRepository;
+    private final EvaluationResultArtifactRepository resultArtifactRepository;
     private final SubjectConfigRevisionRepository subjectConfigRevisionRepository;
     private final EvaluationQuestionGenerationService questionGenerationService;
     private final StudentProfileService studentProfileService;
     private final SubjectConfigService subjectConfigService;
     private final ChatModel chatModel;
+    private final DiagnosticModePolicy diagnosticModePolicy;
     private final BeanOutputConverter<EvaluationGradeResult> outputConverter =
             new BeanOutputConverter<>(EvaluationGradeResult.class);
     private final ObjectMapper objectMapper;
+    private final CurrentModeTurnFactory currentModeTurnFactory = new CurrentModeTurnFactory();
+    private final Set<String> activePublishContexts = ConcurrentHashMap.newKeySet();
+    private static final int DEFAULT_MAX_DIAGNOSTIC_QUESTIONS = 5;
+    private static final int DEFAULT_MIN_DIAGNOSTIC_QUESTIONS = 2;
+    private static final int MIN_FREE_TEXT_ANSWER_LENGTH = 10;
 
     public EvaluationService(
             EvaluationRepository evaluationRepository,
@@ -71,11 +86,14 @@ public class EvaluationService {
             EvaluationAttemptQuestionRepository attemptQuestionRepository,
             EvaluationAttemptResponseRepository responseRepository,
             EvaluationQuestionExampleRepository exampleRepository,
+            EvaluationGuideArtifactRepository guideArtifactRepository,
+            EvaluationResultArtifactRepository resultArtifactRepository,
             SubjectConfigRevisionRepository subjectConfigRevisionRepository,
             EvaluationQuestionGenerationService questionGenerationService,
             StudentProfileService studentProfileService,
             SubjectConfigService subjectConfigService,
             ChatModel chatModel,
+            DiagnosticModePolicy diagnosticModePolicy,
             ObjectMapper objectMapper) {
         this.evaluationRepository = evaluationRepository;
         this.revisionRepository = revisionRepository;
@@ -83,11 +101,14 @@ public class EvaluationService {
         this.attemptQuestionRepository = attemptQuestionRepository;
         this.responseRepository = responseRepository;
         this.exampleRepository = exampleRepository;
+        this.guideArtifactRepository = guideArtifactRepository;
+        this.resultArtifactRepository = resultArtifactRepository;
         this.subjectConfigRevisionRepository = subjectConfigRevisionRepository;
         this.questionGenerationService = questionGenerationService;
         this.studentProfileService = studentProfileService;
         this.subjectConfigService = subjectConfigService;
         this.chatModel = chatModel;
+        this.diagnosticModePolicy = diagnosticModePolicy;
         this.objectMapper = objectMapper;
     }
 
@@ -191,6 +212,13 @@ public class EvaluationService {
                 .getId();
     }
 
+    @Transactional(readOnly = true)
+    public EvaluationTargetVm resolveEvaluationTarget(UUID evaluationId) {
+        var evaluation = evaluationRepository.findById(evaluationId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown evaluation " + evaluationId));
+        return new EvaluationTargetVm(evaluation.getId(), evaluation.getSubject().getSlug(), evaluation.getSlug());
+    }
+
     @Transactional
     public UUID publishEvaluationRevision(
             String subjectSlug,
@@ -240,6 +268,244 @@ public class EvaluationService {
             Map.of("allowFreeText", true, "showReviewBeforeSubmit", true),
             Map.of("profileEvidenceOnly", true),
             exampleGuidelines);
+    }
+
+    @Transactional
+    public PublishEvaluationVm publishEvaluationRevisionWithLifecycle(
+            String subjectSlug,
+            String evaluationSlug,
+            String instructions,
+            Map<String, Object> settings,
+            Map<String, Object> rubric,
+            List<String> exampleGuidelines) {
+        var contextKey = subjectSlug + ":" + evaluationSlug;
+        if (!activePublishContexts.add(contextKey)) {
+            return new PublishEvaluationVm(
+                    PublishLifecycleState.IN_PROGRESS,
+                    null,
+                    null,
+                    "A publication attempt is already in progress");
+        }
+        try {
+            var revisionId = publishEvaluationRevision(
+                    subjectSlug, evaluationSlug, instructions, settings, rubric, exampleGuidelines);
+            var evaluation = evaluationRepository.findBySubject_SlugAndSlug(subjectSlug, evaluationSlug)
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown evaluation " + evaluationSlug));
+            var revision = revisionRepository.findById(revisionId)
+                    .orElseThrow(() -> new IllegalStateException("Published revision not found"));
+            var guide = guideArtifactRepository.save(EvaluationGuideArtifact.create(
+                    evaluation,
+                    revision,
+                    instructions == null || instructions.isBlank()
+                            ? "Generate a diagnostic evaluation."
+                            : instructions,
+                    Instant.now()));
+            return new PublishEvaluationVm(
+                    PublishLifecycleState.COMPLETED, revisionId, guide.getId(), null);
+        }
+        catch (RuntimeException exception) {
+            return new PublishEvaluationVm(PublishLifecycleState.FAILED, null, null, exception.getMessage());
+        }
+        finally {
+            activePublishContexts.remove(contextKey);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<EvaluationGuideArtifactVm> publishedGuides(UUID evaluationId) {
+        return guideArtifactRepository.findByEvaluation_IdOrderByPublishedAtDesc(evaluationId).stream()
+                .map(artifact -> new EvaluationGuideArtifactVm(
+                        artifact.getId(),
+                        artifact.getEvaluation().getId(),
+                        artifact.getRevision().getId(),
+                        artifact.getGuideContent(),
+                        artifact.getPublishedAt()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public EvaluationGuideArtifactVm guideDetail(UUID evaluationId, UUID guideArtifactId) {
+        var artifact = guideArtifactRepository.findByIdAndEvaluation_Id(guideArtifactId, evaluationId)
+                .orElseThrow(() -> new IllegalArgumentException("Guide artifact not found"));
+        return new EvaluationGuideArtifactVm(
+                artifact.getId(),
+                artifact.getEvaluation().getId(),
+                artifact.getRevision().getId(),
+                artifact.getGuideContent(),
+                artifact.getPublishedAt());
+    }
+
+    @Transactional
+    public DiagnosticSessionVm startDiagnosticSession(UUID clientId, UUID evaluationId) {
+        var launched = launchEvaluation(clientId, evaluationId);
+        var attempt = requireAttempt(launched.attemptId());
+        attempt.markSubmitted();
+        var saved = attemptRepository.save(attempt);
+        var firstQuestion = selectActiveQuestion(questionsForAttempt(saved));
+        return new DiagnosticSessionVm(
+                saved.getId(),
+                saved.getStatus().name(),
+                0,
+                resolveMaxQuestions(saved.getEvaluationRevision()),
+                currentModeTurnFactory.fromQuestion(firstQuestion, "Respond with free text (min 10 chars)."),
+                saved.getCompletionReason() == null ? null : saved.getCompletionReason().name(),
+                DiagnosticContinuationDecision.CONTINUE);
+    }
+
+    @Transactional(readOnly = true)
+    public DiagnosticSessionVm activeDiagnosticSession(UUID attemptId) {
+        var attempt = requireAttempt(attemptId);
+        var questions = questionsForAttempt(attempt);
+        var activeQuestion = selectActiveQuestion(questions);
+        int answeredCount = questions.stream().mapToInt(this::responseCount).sum();
+        return new DiagnosticSessionVm(
+                attempt.getId(),
+                attempt.getStatus().name(),
+                answeredCount,
+                resolveMaxQuestions(attempt.getEvaluationRevision()),
+                currentModeTurnFactory.fromQuestion(activeQuestion, "Respond with free text (min 10 chars)."),
+                attempt.getCompletionReason() == null ? null : attempt.getCompletionReason().name(),
+                "COMPLETED".equals(attempt.getStatus().name())
+                        ? DiagnosticContinuationDecision.COMPLETE_MAX_QUESTIONS
+                        : DiagnosticContinuationDecision.CONTINUE);
+    }
+
+    @Transactional
+    public DiagnosticSessionVm continueDiagnosticSession(UUID attemptId, UUID questionId, String answer) {
+        var attempt = requireAttempt(attemptId);
+        if (!"RUNNING".equals(attempt.getStatus().name()) && !"IN_PROGRESS".equals(attempt.getStatus().name())) {
+            throw new IllegalStateException("Diagnostic session is not active");
+        }
+        var questions = questionsForAttempt(attempt);
+        if (questions.isEmpty()) {
+            throw new IllegalStateException("Diagnostic session has no questions");
+        }
+        var activeQuestion = selectActiveAttemptQuestion(questions).orElse(null);
+        if (activeQuestion == null || !activeQuestion.getId().equals(questionId)) {
+            throw new IllegalStateException("Invalid question progression");
+        }
+        validateFreeTextAnswer(answer);
+        int answeredBeforeCurrentTurn = questions.stream()
+                .mapToInt(q -> q.getResponses() == null ? 0 : q.getResponses().size())
+                .sum();
+        responseRepository.save(EvaluationAttemptResponse.answer(activeQuestion, answer, List.of()));
+
+        int answeredCount = answeredBeforeCurrentTurn + 1;
+        int minQuestions = resolveMinQuestions(attempt.getEvaluationRevision());
+        int maxQuestions = resolveMaxQuestions(attempt.getEvaluationRevision());
+        var decision = diagnosticModePolicy.decideContinuation(
+                answer,
+                answeredCount,
+                minQuestions,
+                maxQuestions,
+                List.of(Map.of("questionId", questionId.toString(), "answer", answer == null ? "" : answer)));
+        if (decision == DiagnosticContinuationDecision.COMPLETE_MAX_QUESTIONS) {
+            return completeDiagnostic(attempt, EvaluationAttemptCompletionReason.MAX_QUESTIONS,
+                    decision, answeredCount, maxQuestions);
+        }
+        if (decision == DiagnosticContinuationDecision.COMPLETE_MODEL_STOP) {
+            return completeDiagnostic(attempt, EvaluationAttemptCompletionReason.MODEL_STOP,
+                    decision, answeredCount, maxQuestions);
+        }
+
+        var revision = attempt.getEvaluationRevision();
+        var subject = subjectConfigService.current(revision.getSubjectConfigRevision().getSubject().getSlug());
+        var examples = revision.getQuestionExamples().isEmpty()
+                ? exampleRepository.findByEvaluationRevisionOrderByOrdinalAsc(revision)
+                : revision.getQuestionExamples();
+        var profile = studentProfileService.load(attempt.getClientId()).learningProfile();
+        var turnContext = new CurrentModeTurnContext(
+                "SOCRATIC_FREE_TEXT",
+                answeredCount,
+                questions.size() + 1,
+                List.of(Map.of("questionId", questionId.toString(), "answer", answer == null ? "" : answer)),
+                "CONTINUE",
+                maxQuestions);
+        var next = questionGenerationService.generateNextQuestion(
+                subject,
+                revision,
+                examples,
+                profile,
+                turnContext);
+        var snapshot = questionSnapshot(subject.revisionId(), revision.getId(), next);
+        attempt.addGeneratedQuestion(sourceExample(next, examples), next.questionKey(), next.blueprintKey(), next.ordinal(), snapshot, hash(snapshot));
+        var saved = attemptRepository.save(attempt);
+        var nextQuestion = questionsForAttempt(saved).stream()
+                .filter(q -> q.getOrdinal() == next.ordinal())
+                .findFirst()
+                .map(this::toQuestionVm)
+                .orElse(null);
+        return new DiagnosticSessionVm(
+                saved.getId(),
+                saved.getStatus().name(),
+                answeredCount,
+                maxQuestions,
+                currentModeTurnFactory.fromQuestion(nextQuestion, "Respond with free text (min 10 chars)."),
+                saved.getCompletionReason() == null ? null : saved.getCompletionReason().name(),
+                DiagnosticContinuationDecision.CONTINUE);
+    }
+
+    @Transactional(readOnly = true)
+    public List<EvaluationResultArtifactVm> resultHistory(UUID evaluationId) {
+        return resultArtifactRepository.findByEvaluation_IdOrderByCompletedAtDesc(evaluationId).stream()
+                .map(artifact -> new EvaluationResultArtifactVm(
+                        artifact.getId(),
+                        artifact.getEvaluation().getId(),
+                        artifact.getRevision().getId(),
+                        artifact.getAttempt().getId(),
+                        artifact.getCompletedAt(),
+                        artifact.getResultPayload()))
+                .toList();
+    }
+
+    private DiagnosticSessionVm completeDiagnostic(
+            EvaluationAttempt attempt,
+            EvaluationAttemptCompletionReason reason,
+            DiagnosticContinuationDecision decision,
+            int answeredCount,
+            int maxQuestions) {
+        var grade = gradeOrFallback(attempt);
+        var feedback = objectMapper.convertValue(grade, MAP_TYPE);
+        attempt.applyGrade(grade.overallScore(), feedback);
+        attempt.setCompletionReason(reason);
+        var saved = attemptRepository.save(attempt);
+        resultArtifactRepository.save(EvaluationResultArtifact.create(
+                saved.getEvaluationRevision().getEvaluation(),
+                saved.getEvaluationRevision(),
+                saved,
+                feedback,
+                saved.getCompletedAt()));
+        return new DiagnosticSessionVm(
+                saved.getId(),
+                saved.getStatus().name(),
+                answeredCount,
+                maxQuestions,
+                null,
+                reason.name(),
+                decision);
+    }
+
+    private int resolveMaxQuestions(EvaluationRevision revision) {
+        var value = revision.getSettings().get("maxQuestions");
+        if (value instanceof Number number && number.intValue() > 0) {
+            return number.intValue();
+        }
+        return DEFAULT_MAX_DIAGNOSTIC_QUESTIONS;
+    }
+
+    private int resolveMinQuestions(EvaluationRevision revision) {
+        var value = revision.getSettings().get("minQuestions");
+        if (value instanceof Number number && number.intValue() > 0) {
+            return number.intValue();
+        }
+        return DEFAULT_MIN_DIAGNOSTIC_QUESTIONS;
+    }
+
+    private void validateFreeTextAnswer(String answer) {
+        var normalized = answer == null ? "" : answer.trim();
+        if (normalized.length() < MIN_FREE_TEXT_ANSWER_LENGTH) {
+            throw new IllegalArgumentException("Answer must contain at least 10 characters");
+        }
     }
 
     private EvaluationGradeResult gradeOrFallback(EvaluationAttempt attempt) {
@@ -325,14 +591,14 @@ public class EvaluationService {
         snapshot.put("generationMode", "generated");
         snapshot.put("subjectConfigRevisionId", subjectConfigRevisionId);
         snapshot.put("evaluationRevisionId", evaluationRevisionId);
-        snapshot.put("generatedAt", Instant.now());
+        snapshot.put("generatedAt", Instant.now().toString());
         snapshot.put("questionKey", question.questionKey());
         snapshot.put("blueprintKey", question.blueprintKey());
         snapshot.put("ordinal", question.ordinal());
         snapshot.put("topicKey", question.topicKey());
         snapshot.put("difficulty", question.difficulty());
         snapshot.put("prompt", question.prompt());
-        snapshot.put("options", question.options());
+        snapshot.put("options", List.of());
         snapshot.put("expectedAnswer", question.expectedAnswer());
         snapshot.put("rubric", question.rubric());
         snapshot.put("sourceExampleIds", question.sourceExampleIds());
@@ -370,6 +636,20 @@ public class EvaluationService {
             return attempt.getQuestions();
         }
         return attemptQuestionRepository.findByAttemptOrderByOrdinalAsc(attempt);
+    }
+
+    private EvaluationQuestionVm selectActiveQuestion(List<EvaluationAttemptQuestion> questions) {
+        return selectActiveAttemptQuestion(questions).map(this::toQuestionVm).orElse(null);
+    }
+
+    private java.util.Optional<EvaluationAttemptQuestion> selectActiveAttemptQuestion(List<EvaluationAttemptQuestion> questions) {
+        return questions.stream()
+                .filter(question -> responseCount(question) == 0)
+                .min(java.util.Comparator.comparingInt(EvaluationAttemptQuestion::getOrdinal));
+    }
+
+    private int responseCount(EvaluationAttemptQuestion question) {
+        return question.getResponses() == null ? 0 : question.getResponses().size();
     }
 
     private EvaluationQuestionVm toQuestionVm(EvaluationAttemptQuestion question) {
