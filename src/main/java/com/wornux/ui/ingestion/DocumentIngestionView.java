@@ -2,7 +2,6 @@ package com.wornux.ui.ingestion;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -26,6 +25,7 @@ import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.ingestion.*;
 import java.util.Arrays;
 import java.util.Objects;
@@ -46,9 +46,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
             DocumentIngestionProperties properties) {
         this.controller = controller;
 
-        var drawerToggle = new DrawerToggle();
-        drawerToggle.addThemeVariants(ButtonVariant.TERTIARY);
-        drawerToggle.addClassName("shell-drawer-toggle");
+        var drawerToggle = new ShellDrawerToggle("shell-drawer-toggle", "Abrir menu");
 
         var eyebrow = new Span("Document ETL");
         eyebrow.addClassName("document-ingest-eyebrow");

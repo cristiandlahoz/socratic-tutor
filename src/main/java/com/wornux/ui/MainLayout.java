@@ -84,11 +84,14 @@ public class MainLayout extends AppLayout {
         var appTitle = new H1("Tutor Socrático");
         appTitle.addClassName("chat-sidebar-app-title");
 
-        var appDescription =
-                new Paragraph("Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia con preguntas guiadas.");
+        var appTitleRow = new Div(appTitle);
+        appTitleRow.addClassName("chat-sidebar-app-title-row");
+
+        var appDescription = new Paragraph(
+                "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia con preguntas guiadas.");
         appDescription.addClassName("chat-sidebar-app-description");
 
-        var appHeader = new Div(appTitle, appDescription, createThemePreferenceControl(state, viewModel));
+        var appHeader = new Div(appTitleRow, appDescription, createThemePreferenceControl(state, viewModel));
         appHeader.addClassName("chat-sidebar-app-header");
 
         newChatButton = createActionButton();
@@ -164,10 +167,7 @@ public class MainLayout extends AppLayout {
         return control;
     }
 
-    private Button createThemePreferenceButton(
-            ThemePreference preference,
-            ChatState state,
-            ChatViewModel viewModel) {
+    private Button createThemePreferenceButton(ThemePreference preference, ChatState state, ChatViewModel viewModel) {
         var button = new Button(switch (preference) {
             case SYSTEM -> "Sistema";
             case LIGHT -> "Claro";
