@@ -84,12 +84,20 @@ class CodeMessageList extends LitElement {
         class=${ifDefined(item.className)}
       >${loading
         ? html`<braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>`
-        : html`<code-message-body .text=${item.text ?? ''} .markdown=${this.markdown}></code-message-body>`}</vaadin-message>
+        : html`<code-message-body
+            .text=${item.text ?? ''}
+            .markdown=${this.markdown}
+            .debuggableCodeBlocks=${this.isAssistantItem(item)}
+          ></code-message-body>`}</vaadin-message>
     `;
   }
 
   private isLoadingItem(item: MessageItem): boolean {
     return item.className?.split(/\s+/).includes('is-loading') ?? false;
+  }
+
+  private isAssistantItem(item: MessageItem): boolean {
+    return item.className?.split(/\s+/).includes('chat-message-assistant') ?? false;
   }
 }
 

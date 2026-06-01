@@ -94,15 +94,18 @@ class CodeMessageBody extends LitElement {
   static properties = {
     text: { type: String },
     markdown: { type: Boolean },
+    debuggableCodeBlocks: { type: Boolean, attribute: 'debuggable-code-blocks' },
   };
 
   declare text: string;
   declare markdown: boolean;
+  declare debuggableCodeBlocks: boolean;
 
   constructor() {
     super();
     this.text = '';
     this.markdown = false;
+    this.debuggableCodeBlocks = false;
   }
 
   connectedCallback(): void {
@@ -121,7 +124,12 @@ class CodeMessageBody extends LitElement {
 
   private renderSegment(segment: Segment) {
     if (segment.type === 'code') {
-      return html`<code-block-viewer class="segment" .value=${segment.content} .lang=${segment.lang}></code-block-viewer>`;
+      return html`<code-block-viewer
+        class="segment"
+        .value=${segment.content}
+        .lang=${segment.lang}
+        .debuggable=${this.debuggableCodeBlocks}
+      ></code-block-viewer>`;
     }
 
     if (!segment.content.trim()) {

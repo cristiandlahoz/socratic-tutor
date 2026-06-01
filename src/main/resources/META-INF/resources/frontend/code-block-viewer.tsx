@@ -7,6 +7,7 @@ class CodeBlockViewerElement extends HTMLElement {
   private shadowReady = false;
   private internalValue = '';
   private internalLang = '';
+  private internalDebuggable = false;
   private currentThemePreference = 'system';
   private themePreferenceObserver: MutationObserver | null = null;
   private readonly systemThemeQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
@@ -61,6 +62,15 @@ class CodeBlockViewerElement extends HTMLElement {
     return this.internalLang;
   }
 
+  set debuggable(value: boolean) {
+    this.internalDebuggable = Boolean(value);
+    this.renderEditor();
+  }
+
+  get debuggable(): boolean {
+    return this.internalDebuggable;
+  }
+
   private readonly handleSystemThemeChange = (): void => {
     if (this.currentThemePreference === 'system') {
       this.renderEditor();
@@ -71,6 +81,8 @@ class CodeBlockViewerElement extends HTMLElement {
     if (!this.shadowReady || !this.root || !this.shadowRoot) {
       return;
     }
+
+    const canDebug = this.internalDebuggable && isSupportedDebugLanguage(this.internalLang);
 
     this.root.render(
       <>
@@ -106,7 +118,45 @@ class CodeBlockViewerElement extends HTMLElement {
           .cm-gutters {
             border: 0;
           }
+
+          .code-block-viewer__toolbar {
+            display: flex;
+            justify-content: flex-end;
+            padding: 0.42rem 0.48rem 0;
+          }
+
+          .code-block-viewer__debug-button {
+            border: 1px solid var(--chat-border-visible);
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--chat-accent) 16%, transparent);
+            color: var(--chat-text-primary);
+            cursor: pointer;
+            font: 600 0.72rem var(--chat-font-body);
+            letter-spacing: 0.02em;
+            padding: 0.28rem 0.58rem;
+          }
+
+          .code-block-viewer__debug-button:hover {
+            background: color-mix(in srgb, var(--chat-accent) 26%, transparent);
+          }
+
+          .code-block-viewer__debug-button:focus-visible {
+            outline: 2px solid var(--chat-accent);
+            outline-offset: 2px;
+          }
         `}</style>
+        {canDebug ? (
+          <div className="code-block-viewer__toolbar">
+            <button
+              type="button"
+              className="code-block-viewer__debug-button"
+              aria-label="Debug this C example"
+              onClick={this.handleDebugClick}
+            >
+              Debug
+            </button>
+          </div>
+        ) : null}
         <CodeMirror
           value={this.internalValue}
           height="auto"
@@ -131,6 +181,24 @@ class CodeBlockViewerElement extends HTMLElement {
       </>,
     );
   }
+
+  private readonly handleDebugClick = (): void => {
+    this.dispatchEvent(
+      new CustomEvent('debug-code-requested', {
+        detail: {
+          code: this.internalValue,
+          lang: this.internalLang,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  };
+}
+
+function isSupportedDebugLanguage(lang: string): boolean {
+  const normalized = (lang ?? '').trim().toLowerCase();
+  return normalized === 'c' || normalized === 'c17';
 }
 
 if (!customElements.get('code-block-viewer')) {

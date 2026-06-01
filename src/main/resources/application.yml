@@ -6,6 +6,9 @@ server:
   port: ${PORT:8080}
 
 spring:
+  config:
+    import:
+    - optional:file:.env[.properties]
   profiles:
     default: dev
   servlet:
@@ -67,6 +70,8 @@ app:
       model: ${TITLE_MODEL:${spring.ai.ollama.chat.model}}
     document-catalog:
       model: ${DOCUMENT_CATALOG_MODEL:${spring.ai.ollama.chat.model}}
+    c-example-preparation:
+      model: ${C_EXAMPLE_PREPARATION_MODEL:${spring.ai.ollama.chat.model}}
   document-ingest:
     docling-base-url: ${DOCLING_BASE_URL:http://localhost:5001}
     docling-connect-timeout: ${DOCLING_CONNECT_TIMEOUT:5s}

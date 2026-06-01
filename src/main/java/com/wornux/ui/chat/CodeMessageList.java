@@ -1,11 +1,16 @@
 package com.wornux.ui.chat;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.ComponentEvent;
+import com.vaadin.flow.component.ComponentEventListener;
+import com.vaadin.flow.component.DomEvent;
+import com.vaadin.flow.component.EventData;
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.internal.JacksonUtils;
+import com.vaadin.flow.shared.Registration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -63,6 +68,11 @@ public final class CodeMessageList extends Component implements HasSize {
       return;
     }
     getElement().setProperty("thinkingSpinner", thinkingSpinner.trim());
+  }
+
+  public Registration addDebugCodeRequestListener(
+      ComponentEventListener<DebugCodeRequestEvent> listener) {
+    return addListener(DebugCodeRequestEvent.class, listener);
   }
 
   void scheduleItemsTextUpdate() {
@@ -140,5 +150,30 @@ public final class CodeMessageList extends Component implements HasSize {
           }
           item.clientText = item.getText();
         });
+  }
+
+  @DomEvent("debug-code-requested")
+  public static final class DebugCodeRequestEvent extends ComponentEvent<CodeMessageList> {
+
+    private final String code;
+    private final String lang;
+
+    public DebugCodeRequestEvent(
+        CodeMessageList source,
+        boolean fromClient,
+        @EventData("event.detail.code") String code,
+        @EventData("event.detail.lang") String lang) {
+      super(source, fromClient);
+      this.code = code == null ? "" : code;
+      this.lang = lang == null ? "" : lang;
+    }
+
+    public String getCode() {
+      return code;
+    }
+
+    public String getLang() {
+      return lang;
+    }
   }
 }

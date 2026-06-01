@@ -2,7 +2,6 @@ package com.wornux.ui.chat;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -24,12 +23,16 @@ import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.config.*;
+import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
 import com.wornux.ui.crunner.DebuggerPanel;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.MessageType;
 
@@ -41,13 +44,19 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
   private final Div historyScroller;
   private final TextArea composerField;
   private final Button sendButton;
+  private final Button debuggerToggleButton;
   private final StudentQuestionPanel questionPanel;
+  private final DebuggerPanel debuggerPanel;
+  private final SplitLayout splitLayout;
+  private boolean debuggerVisible;
 
   public ChatView(
       ChatState state,
       ChatViewModel viewModel,
       ChatProperties chatProperties,
-      CProgramDebugService cProgramDebugService) {
+      CProgramDebugService cProgramDebugService,
+      CExamplePreparationService cExamplePreparationService,
+      @Qualifier("cRunnerExecutor") Executor cRunnerExecutor) {
     this.viewModel = viewModel;
 
     Div emptyState = createEmptyState();
@@ -56,6 +65,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     messageList = new CodeMessageList();
     messageList.setMarkdown(true);
     messageList.setThinkingSpinner(chatProperties.getUi().getThinkingSpinner());
+    messageList.addDebugCodeRequestListener(
+        event -> handleDebugCodeRequest(event.getCode(), event.getLang()));
     messageList.setWidthFull();
     Signal.effect(
         messageList,
@@ -73,9 +84,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     historyScroller.addClassName("chat-scroll-region");
     historyScroller.addAttachListener(_ -> initializeAutoScrollTracking());
 
-    var floatingDrawerToggle = new DrawerToggle();
-    floatingDrawerToggle.addThemeVariants(ButtonVariant.TERTIARY);
-    floatingDrawerToggle.addClassName("shell-drawer-toggle");
+    var floatingDrawerToggle = new ShellDrawerToggle("shell-drawer-toggle", "Abrir menu");
 
     composerField = new TextArea();
     composerField.setWidthFull();
@@ -93,6 +102,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     sendButton.addClickShortcut(Key.ENTER).listenOn(composerField);
     sendButton.addClickListener(_ -> submitPrompt());
 
+    debuggerToggleButton = createDebuggerToggleButton();
+
     questionPanel = new StudentQuestionPanel();
     questionPanel.setSubmitHandler(viewModel::onSubmitInteractiveQuestionResponse);
     Signal.effect(
@@ -106,18 +117,24 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     root.addClassName("chat-view");
 
     var chatPane =
-        new Div(floatingDrawerToggle, historyScroller, createUsageBadge(state), createInputShell(state));
+        new Div(
+            floatingDrawerToggle,
+            debuggerToggleButton,
+            historyScroller,
+            createUsageBadge(state),
+            createInputShell(state));
     chatPane.setSizeFull();
     chatPane.addClassName("chat-pane");
 
-    var cRunnerPanel = new DebuggerPanel(cProgramDebugService);
-    cRunnerPanel.setSizeFull();
+    debuggerPanel = new DebuggerPanel(cProgramDebugService, cExamplePreparationService, cRunnerExecutor);
+    debuggerPanel.setSizeFull();
 
-    var splitLayout = new SplitLayout(chatPane, cRunnerPanel);
+    splitLayout = new SplitLayout(chatPane, debuggerPanel);
     splitLayout.setSizeFull();
     splitLayout.setSplitterPosition(58);
     splitLayout.addClassName("chat-debug-split");
     splitLayout.addAttachListener(_ -> installResponsiveSplitBehavior(splitLayout));
+    setDebuggerVisible(false);
 
     root.add(splitLayout);
   }
@@ -327,6 +344,35 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     }
   }
 
+  private Button createDebuggerToggleButton() {
+    var button = new Button(new Icon(VaadinIcon.BUG));
+    button.addThemeVariants(ButtonVariant.TERTIARY);
+    button.addClassName("chat-debugger-toggle");
+    button.setAriaLabel("Open debugger");
+    button.getElement().setAttribute("title", "Open debugger");
+    button.addClickListener(_ -> setDebuggerVisible(!debuggerVisible));
+    return button;
+  }
+
+  private void handleDebugCodeRequest(String code, String lang) {
+    setDebuggerVisible(true);
+    debuggerPanel.prepareAndDebugAssistantExample(code, lang);
+  }
+
+  private void setDebuggerVisible(boolean visible) {
+    debuggerVisible = visible;
+    debuggerPanel.setVisible(visible);
+    splitLayout.setSplitterPosition(visible ? 58 : 100);
+    splitLayout.setClassName("chat-debug-split--collapsed", !visible);
+    splitLayout
+        .getElement()
+        .executeJs(
+            "const mobile = window.matchMedia('(max-width: 960px)').matches; this.splitterPosition = $0 ? (mobile ? 62 : 58) : 100;",
+            visible);
+    debuggerToggleButton.setAriaLabel(visible ? "Hide debugger" : "Open debugger");
+    debuggerToggleButton.getElement().setAttribute("title", visible ? "Hide debugger" : "Open debugger");
+  }
+
   private CodeMessageListItem toMessageListItem(MessageState message) {
     var isUserMessage = message.role() == MessageType.USER;
     var item =
@@ -430,7 +476,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
             const media = window.matchMedia('(max-width: 960px)');
               const update = () => {
                 this.orientation = media.matches ? 'vertical' : 'horizontal';
-              this.splitterPosition = media.matches ? 62 : 58;
+              this.splitterPosition = this.classList.contains('chat-debug-split--collapsed') ? 100 : (media.matches ? 62 : 58);
               };
             media.addEventListener?.('change', update);
             media.addListener?.(update);
