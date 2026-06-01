@@ -1,5 +1,5 @@
 create extension if not exists vector;
-create extension if not exists "uuid-ossp";
+create extension if not exists pgcrypto;
 
 create table chat (
     id uuid primary key,
@@ -45,7 +45,7 @@ create index idx_chat_message_transcript_id_id
     on chat_message (transcript_id, id asc);
 
 create table vector_store (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     content text,
     metadata json,
     embedding vector(1024)
@@ -159,7 +159,7 @@ create index idx_document_segment_document_ordinal
     on document_segment (document_id, ordinal asc);
 
 create table subject (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     slug varchar(96) not null unique,
     display_name text not null,
     status varchar(24) not null,
@@ -171,7 +171,7 @@ create table subject (
 );
 
 create table subject_config_revision (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     subject_id uuid not null references subject(id) on delete cascade,
     version bigint not null,
     config jsonb not null default '{}'::jsonb,
@@ -187,7 +187,7 @@ alter table subject
     foreign key (current_config_revision_id) references subject_config_revision(id) on delete set null;
 
 create table evaluation (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     subject_id uuid not null references subject(id) on delete cascade,
     slug varchar(96) not null,
     title text not null,
@@ -200,7 +200,7 @@ create table evaluation (
 );
 
 create table evaluation_revision (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     evaluation_id uuid not null references evaluation(id) on delete cascade,
     subject_config_revision_id uuid not null references subject_config_revision(id),
     version bigint not null,
@@ -216,7 +216,7 @@ alter table evaluation
     foreign key (current_revision_id) references evaluation_revision(id) on delete set null;
 
 create table evaluation_question_example (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     evaluation_revision_id uuid not null references evaluation_revision(id) on delete cascade,
     example_key varchar(96) not null,
     ordinal integer not null,
@@ -226,7 +226,7 @@ create table evaluation_question_example (
 );
 
 create table evaluation_attempt (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     evaluation_revision_id uuid not null references evaluation_revision(id),
     client_id uuid not null,
     chat_id uuid null references chat(id) on delete set null,
@@ -245,7 +245,7 @@ create index idx_evaluation_attempt_client_started
     on evaluation_attempt (client_id, started_at desc);
 
 create table evaluation_attempt_question (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     attempt_id uuid not null references evaluation_attempt(id) on delete cascade,
     source_example_id uuid null references evaluation_question_example(id) on delete set null,
     question_key varchar(96) not null,
