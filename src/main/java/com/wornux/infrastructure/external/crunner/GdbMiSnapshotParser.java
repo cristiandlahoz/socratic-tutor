@@ -28,51 +28,27 @@ public class GdbMiSnapshotParser {
 
     for (var rawLine : safeLines(miOutput)) {
       var line = rawLine.trim();
-      if (line.equals(STDOUT_BEGIN)) {
-        capturingStdout = true;
-        stdoutCapture.setLength(0);
-        continue;
-      }
-      if (line.equals(STDOUT_END)) {
-        stdout.setLength(0);
-        appendCapped(stdout, stdoutCapture.toString(), maxOutputBytes);
-        stdoutCapture.setLength(0);
-        capturingStdout = false;
-        continue;
-      }
-      if (capturingStdout && !line.startsWith("~")) {
-        appendCapped(stdoutCapture, rawLine + "\n", maxOutputBytes);
-        continue;
-      }
       if (line.isBlank()) {
         continue;
       }
       if (line.startsWith("~")) {
         var payload = unquotePayload(line);
-        if (payload.contains(STDOUT_BEGIN)) {
-          capturingStdout = true;
-          stdoutCapture.setLength(0);
-          payload = payload.substring(payload.indexOf(STDOUT_BEGIN) + STDOUT_BEGIN.length());
-          if (payload.startsWith("\n")) {
-            payload = payload.substring(1);
-          }
-        }
-        if (capturingStdout) {
-          var endIndex = payload.indexOf(STDOUT_END);
-          if (endIndex >= 0) {
-            appendCapped(stdoutCapture, payload.substring(0, endIndex), maxOutputBytes);
-            stdout.setLength(0);
-            appendCapped(stdout, stdoutCapture.toString(), maxOutputBytes);
-            stdoutCapture.setLength(0);
-            capturingStdout = false;
-          } else {
-            appendCapped(stdoutCapture, payload, maxOutputBytes);
-          }
+        var stdoutResult =
+            processStdoutMarkers(payload, capturingStdout, stdoutCapture, stdout, maxOutputBytes, false);
+        capturingStdout = stdoutResult.capturing();
+        if (stdoutResult.consumed()) {
+          continue;
         }
         continue;
       }
       if (line.startsWith("@")) {
         appendCapped(stdout, unquotePayload(line), maxOutputBytes);
+        continue;
+      }
+      var stdoutResult =
+          processStdoutMarkers(rawLine, capturingStdout, stdoutCapture, stdout, maxOutputBytes, true);
+      capturingStdout = stdoutResult.capturing();
+      if (stdoutResult.consumed()) {
         continue;
       }
       if (line.startsWith("*stopped")) {
@@ -131,6 +107,57 @@ public class GdbMiSnapshotParser {
       String reason) {
     return new CDebugSnapshot(
         index, line, functionName, stdout.toString(), locals, terminated, reason);
+  }
+
+  private static StdoutMarkerResult processStdoutMarkers(
+      String text,
+      boolean capturingStdout,
+      StringBuilder stdoutCapture,
+      StringBuilder stdout,
+      int maxOutputBytes,
+      boolean appendLineBreakWhenOpen) {
+    var current = text == null ? "" : text;
+    var capturing = capturingStdout;
+    var consumed = false;
+
+    while (true) {
+      if (!capturing) {
+        var beginIndex = current.indexOf(STDOUT_BEGIN);
+        if (beginIndex < 0) {
+          return new StdoutMarkerResult(false, consumed);
+        }
+        capturing = true;
+        consumed = true;
+        stdoutCapture.setLength(0);
+        current = current.substring(beginIndex + STDOUT_BEGIN.length());
+        if (current.startsWith("\n")) {
+          current = current.substring(1);
+        }
+      }
+
+      var endIndex = current.indexOf(STDOUT_END);
+      if (endIndex >= 0) {
+        appendCapped(stdoutCapture, current.substring(0, endIndex), maxOutputBytes);
+        stdout.setLength(0);
+        appendCapped(stdout, stdoutCapture.toString(), maxOutputBytes);
+        stdoutCapture.setLength(0);
+        capturing = false;
+        consumed = true;
+        current = current.substring(endIndex + STDOUT_END.length());
+        if (current.isEmpty()) {
+          return new StdoutMarkerResult(false, true);
+        }
+        continue;
+      }
+
+      if (!current.isEmpty()) {
+        appendCapped(
+            stdoutCapture,
+            appendLineBreakWhenOpen ? "%s\n".formatted(current) : current,
+            maxOutputBytes);
+      }
+      return new StdoutMarkerResult(true, true);
+    }
   }
 
   private static List<String> safeLines(String value) {
@@ -284,4 +311,6 @@ public class GdbMiSnapshotParser {
       return null;
     }
   }
+
+  private record StdoutMarkerResult(boolean capturing, boolean consumed) {}
 }
