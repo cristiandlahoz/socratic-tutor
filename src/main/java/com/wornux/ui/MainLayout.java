@@ -21,6 +21,7 @@ import com.wornux.data.enums.ThemePreference;
 import com.wornux.ui.chat.ChatViewModel;
 import com.wornux.ui.chat.ChatState;
 import com.wornux.ui.components.chat.WidthAwareLabel;
+import com.wornux.ui.evaluation.EvaluationView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -95,7 +96,9 @@ public class MainLayout extends AppLayout {
 
         var ingestDocumentButton =
                 createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", VaadinIcon.UPLOAD_ALT);
-        var actionsRow = new Div(newChatButton, ingestDocumentButton);
+        var evaluationButton =
+                createNavigationButton(EvaluationView.class, "Evaluaciones", VaadinIcon.CLIPBOARD_CHECK);
+        var actionsRow = new Div(newChatButton, ingestDocumentButton, evaluationButton);
         actionsRow.addClassName("chat-sidebar-actions");
 
         var historyTitle = new H1("Historial");

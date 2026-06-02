@@ -13,6 +13,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Getter
 @Setter
@@ -29,10 +31,12 @@ public class Evaluation {
   @Column(nullable = false, columnDefinition = "text")
   private String instruction;
 
-  @Column(name = "questions_json", columnDefinition = "jsonb")
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "questions_json")
   private String questionsJson;
 
-  @Column(name = "answers_json", columnDefinition = "jsonb")
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "answers_json")
   private String answersJson;
 
   @Column(name = "report_markdown", columnDefinition = "text")

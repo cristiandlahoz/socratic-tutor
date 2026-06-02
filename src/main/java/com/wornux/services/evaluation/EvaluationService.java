@@ -70,6 +70,21 @@ public class EvaluationService {
     return evaluation;
   }
 
+  @Transactional
+  public void delete(UUID evaluationId) {
+    var evaluation = get(evaluationId);
+    evaluationRepository.delete(evaluation);
+  }
+
+  @Transactional
+  public Evaluation update(UUID evaluationId, String title, String instruction) {
+    var evaluation = get(evaluationId);
+    evaluation.setTitle(title);
+    evaluation.setInstruction(instruction);
+    touch(evaluation);
+    return evaluation;
+  }
+
   private void touch(Evaluation evaluation) {
     evaluation.setUpdatedAt(Instant.now());
   }
