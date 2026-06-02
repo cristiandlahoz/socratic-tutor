@@ -1,6 +1,5 @@
 package com.wornux.services.profile;
 
-import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.wornux.config.ProfileProperties;
 import com.wornux.ai.profile.TurnProfileUpdate;
@@ -17,15 +16,12 @@ import com.wornux.data.repositories.profile.StudentProfileSignalRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StudentProfileService {
-
-  private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
 
   private final StudentProfileRepository profileRepository;
   private final StudentMisconceptionRepository misconceptionRepository;
@@ -182,39 +178,6 @@ public class StudentProfileService {
 
     meterRegistry.counter("profile.update.noop").increment();
     profileRepository.save(profile);
-  }
-
-  @Transactional
-  public void applyEvaluationProfile(
-      UUID clientId, UUID attemptId, StudentLearningProfile learningProfile) {
-    if (clientId == null || learningProfile == null) {
-      return;
-    }
-
-    var profile =
-        profileRepository
-            .findById(clientId)
-            .orElseGet(() -> profileRepository.save(StudentProfile.create(clientId)));
-    profile.setPreferredLanguage(learningProfile.preferredLanguage());
-    profile.setLearningProfile(objectMapper.convertValue(learningProfile, MAP_TYPE));
-    signalRepository.save(
-        StudentProfileSignal.from(
-            clientId,
-            null,
-            attemptId == null ? UUID.randomUUID() : attemptId,
-            "evaluation_profile",
-            Map.of(
-                "attemptId",
-                attemptId == null ? "" : attemptId.toString(),
-                "recentEvidenceIds",
-                learningProfile.recentEvidenceIds(),
-                "weakConceptCount",
-                learningProfile.weakConcepts().size(),
-                "misconceptionCount",
-                learningProfile.activeMisconceptions().size())));
-    profile.touch();
-    profileRepository.save(profile);
-    meterRegistry.counter("profile.evaluation_updates.total").increment();
   }
 
   private void resolveStaleMisconceptions(UUID clientId) {

@@ -32,7 +32,7 @@ public record StudentLearningProfile(
   public static StudentLearningProfile empty(String preferredLanguage) {
     return new StudentLearningProfile(
         List.of(), List.of(), List.of(), List.of(), List.of(), preferredLanguage, List.of(),
-        List.of("No evaluation evidence has been collected yet."), List.of());
+        List.of("No learning evidence has been collected yet."), List.of());
   }
 
   public boolean hasEvidence() {

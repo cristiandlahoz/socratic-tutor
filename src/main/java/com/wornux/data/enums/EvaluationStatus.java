@@ -2,6 +2,10 @@ package com.wornux.data.enums;
 
 public enum EvaluationStatus {
   DRAFT,
-  PUBLISHED,
-  ARCHIVED
+  GENERATING_QUESTIONS,
+  QUESTIONS_READY,
+  ANSWERING,
+  GENERATING_REPORT,
+  COMPLETED,
+  FAILED
 }

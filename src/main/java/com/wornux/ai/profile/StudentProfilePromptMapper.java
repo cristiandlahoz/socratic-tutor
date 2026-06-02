@@ -17,7 +17,7 @@ public class StudentProfilePromptMapper {
       return """
       Student profile evidence:
       - Language: %s
-      - Evaluation evidence: none yet
+      - Learning evidence: none yet
 
       Adaptation:
       - Do not infer a global level from missing data.
