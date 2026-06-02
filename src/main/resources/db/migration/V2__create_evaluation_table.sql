@@ -7,7 +7,10 @@ create table if not exists evaluation (
     answers_json jsonb null,
 
     report_markdown text null,
-    status varchar(32) not null,
+
+    status varchar(32) not null check (
+        status in ('DRAFT', 'PENDING', 'RUNNING', 'COMPLETED', 'FAILED')
+    ),
 
     created_at timestamptz not null default current_timestamp,
     updated_at timestamptz not null default current_timestamp
