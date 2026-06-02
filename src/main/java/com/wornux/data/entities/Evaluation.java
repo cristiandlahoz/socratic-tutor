@@ -29,10 +29,10 @@ public class Evaluation {
   @Column(nullable = false, columnDefinition = "text")
   private String instruction;
 
-  @Column(name = "questions_json", columnDefinition = "text")
+  @Column(name = "questions_json", columnDefinition = "jsonb")
   private String questionsJson;
 
-  @Column(name = "answers_json", columnDefinition = "text")
+  @Column(name = "answers_json", columnDefinition = "jsonb")
   private String answersJson;
 
   @Column(name = "report_markdown", columnDefinition = "text")
