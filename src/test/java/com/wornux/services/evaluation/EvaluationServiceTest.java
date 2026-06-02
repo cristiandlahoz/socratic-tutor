@@ -32,15 +32,15 @@ class EvaluationServiceTest {
   }
 
   @Test
-  void createDraftPersistsNewEvaluation() {
+  void createPendingPersistsNewEvaluation() {
     when(evaluationRepository.save(any(Evaluation.class)))
         .thenAnswer(invocation -> invocation.getArgument(0, Evaluation.class));
 
-    var evaluation = evaluationService.createDraft("Intro", "Ask about variables");
+    var evaluation = evaluationService.createPending("Intro", "Ask about variables");
 
     assertEquals("Intro", evaluation.getTitle());
     assertEquals("Ask about variables", evaluation.getInstruction());
-    assertEquals(EvaluationStatus.DRAFT, evaluation.getStatus());
+    assertEquals(EvaluationStatus.PENDING, evaluation.getStatus());
     verify(evaluationRepository).save(any(Evaluation.class));
   }
 

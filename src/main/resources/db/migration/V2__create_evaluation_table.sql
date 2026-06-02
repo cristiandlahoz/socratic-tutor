@@ -1,4 +1,4 @@
-create table if not exists evaluation (
+create table evaluation (
     id uuid primary key,
     title text not null,
     instruction text not null,
@@ -9,7 +9,7 @@ create table if not exists evaluation (
     report_markdown text null,
 
     status varchar(32) not null check (
-        status in ('DRAFT', 'PENDING', 'RUNNING', 'COMPLETED', 'FAILED')
+        status in ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED')
     ),
 
     created_at timestamptz not null default current_timestamp,

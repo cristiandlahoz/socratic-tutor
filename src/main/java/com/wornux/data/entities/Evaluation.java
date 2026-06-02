@@ -54,7 +54,7 @@ public class Evaluation {
     entity.id = UUID.randomUUID();
     entity.title = title;
     entity.instruction = instruction;
-    entity.status = EvaluationStatus.DRAFT;
+    entity.status = EvaluationStatus.PENDING;
     entity.createdAt = now;
     entity.updatedAt = now;
     return entity;

@@ -19,7 +19,7 @@ public class EvaluationService {
   }
 
   @Transactional
-  public Evaluation createDraft(String title, String instruction) {
+  public Evaluation createPending(String title, String instruction) {
     return evaluationRepository.save(Evaluation.create(title, instruction));
   }
 
@@ -36,26 +36,10 @@ public class EvaluationService {
   }
 
   @Transactional
-  public Evaluation markGeneratingQuestions(UUID evaluationId) {
-    var evaluation = get(evaluationId);
-    evaluation.setStatus(EvaluationStatus.GENERATING_QUESTIONS);
-    touch(evaluation);
-    return evaluation;
-  }
-
-  @Transactional
   public Evaluation saveQuestions(UUID evaluationId, String questionsJson) {
     var evaluation = get(evaluationId);
     evaluation.setQuestionsJson(questionsJson);
-    evaluation.setStatus(EvaluationStatus.QUESTIONS_READY);
-    touch(evaluation);
-    return evaluation;
-  }
-
-  @Transactional
-  public Evaluation markAnswering(UUID evaluationId) {
-    var evaluation = get(evaluationId);
-    evaluation.setStatus(EvaluationStatus.ANSWERING);
+    evaluation.setStatus(EvaluationStatus.RUNNING);
     touch(evaluation);
     return evaluation;
   }
@@ -64,15 +48,7 @@ public class EvaluationService {
   public Evaluation saveAnswers(UUID evaluationId, String answersJson) {
     var evaluation = get(evaluationId);
     evaluation.setAnswersJson(answersJson);
-    evaluation.setStatus(EvaluationStatus.ANSWERING);
-    touch(evaluation);
-    return evaluation;
-  }
-
-  @Transactional
-  public Evaluation markGeneratingReport(UUID evaluationId) {
-    var evaluation = get(evaluationId);
-    evaluation.setStatus(EvaluationStatus.GENERATING_REPORT);
+    evaluation.setStatus(EvaluationStatus.RUNNING);
     touch(evaluation);
     return evaluation;
   }
