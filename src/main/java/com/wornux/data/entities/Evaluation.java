@@ -59,46 +59,4 @@ public class Evaluation {
     entity.updatedAt = now;
     return entity;
   }
-
-  public void markGeneratingQuestions() {
-    this.status = EvaluationStatus.GENERATING_QUESTIONS;
-    touch();
-  }
-
-  public void saveQuestions(String questionsJson) {
-    this.questionsJson = questionsJson;
-    this.status = EvaluationStatus.QUESTIONS_READY;
-    touch();
-  }
-
-  public void markAnswering() {
-    this.status = EvaluationStatus.ANSWERING;
-    touch();
-  }
-
-  public void saveAnswers(String answersJson) {
-    this.answersJson = answersJson;
-    this.status = EvaluationStatus.ANSWERING;
-    touch();
-  }
-
-  public void markGeneratingReport() {
-    this.status = EvaluationStatus.GENERATING_REPORT;
-    touch();
-  }
-
-  public void completeReport(String reportMarkdown) {
-    this.reportMarkdown = reportMarkdown;
-    this.status = EvaluationStatus.COMPLETED;
-    touch();
-  }
-
-  public void markFailed() {
-    this.status = EvaluationStatus.FAILED;
-    touch();
-  }
-
-  private void touch() {
-    this.updatedAt = Instant.now();
-  }
 }
