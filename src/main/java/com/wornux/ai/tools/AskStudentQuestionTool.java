@@ -32,18 +32,21 @@ public class AskStudentQuestionTool {
           4. Diagnose the student's understanding with concise pedagogical questions
 
           Usage notes:
-          - Ask 1 to 3 questions at a time
-          - Prefer this tool over plain-text questions when structured input would be faster
-            or clearer
-          - Users can always provide complementary custom text
-          - Use multiSelect: true to allow multiple answers for a question
-          - If you recommend a specific option, make it the first option and add
-            "(Recommended)" at the end of the label
-          - When this tool is appropriate, emit an actual tool call; never describe, print,
-            or simulate this tool in assistant text
-          - Avoid using this tool for the final lightweight question right before you
-            conclude a response
-          """)
+           - Ask 1 to 3 questions at a time
+           - Prefer this tool over plain-text questions when structured input would be faster
+             or clearer
+           - Users can always provide complementary custom text
+           - If you recommend a specific option, make it the first option and add
+             "(Recommended)" at the end of the label
+           - When this tool is appropriate, emit an actual tool call; never describe, print,
+             or simulate this tool in assistant text
+           - Do not wrap tool calls in Markdown code fences or add extra text after a tool
+             call
+           - If the runtime uses XML tool tags internally, close the call with
+             </tool_call> exactly; never close it with </tool>
+           - Avoid using this tool for the final lightweight question right before you
+             conclude a response
+           """)
   public AskStudentQuestionResult askStudentQuestion(
       @ToolParam(description = "The interactive question panel to show to the student.")
           StudentQuestionSet questionSet) {

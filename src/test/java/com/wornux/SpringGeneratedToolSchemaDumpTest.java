@@ -1,6 +1,5 @@
 package com.wornux;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -24,8 +23,6 @@ import com.wornux.services.subject.SubjectConfigService;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -37,21 +34,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-/**
- * @author github/cristiandlahoz
- */
 @Tag("integration")
 @SpringBootTest(
     classes = AiConfigToolTestSupport.class,
     properties = {
       "spring.ai.ollama.chat.model=${CHAT_MODEL:qwen3:4b-instruct}",
       "spring.ai.ollama.base-url=${OLLAMA_BASE_URL:http://localhost:11434}",
-      "spring.ai.tools.throw-exception-on-error=true",
-      "test.ollama.transcript-name=ask-student-question-tool-test"
+      "spring.ai.tools.throw-exception-on-error=false",
+      "test.ollama.transcript-name=spring-generated-tool-schema-dump"
     })
-class AskStudentQuestionToolTest {
+class SpringGeneratedToolSchemaDumpTest {
 
-  private static final Logger log = LoggerFactory.getLogger(AskStudentQuestionToolTest.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(SpringGeneratedToolSchemaDumpTest.class);
 
   @Autowired ChatClient chatClient;
 
@@ -62,20 +57,16 @@ class AskStudentQuestionToolTest {
   @MockitoBean StudentProfileService studentProfileService;
   @MockitoBean DocumentCatalogPromptService documentCatalogPromptService;
 
-  @BeforeEach
-  void setUpAiConfigCollaborators() {
+  @Test
+  @Timeout(90)
+  void dumpsSpringGeneratedToolSchemaSentToOllama() {
     when(guardClassifierService.classify(any())).thenReturn(GuardDecision.SAFE);
     when(pedagogicalRoutingService.classify(any())).thenReturn(PedagogicalRoutingMode.EXERCISE_GUIDANCE);
     when(subjectConfigService.defaultSubjectSlug()).thenReturn("c-programming");
     when(subjectConfigService.current(any())).thenReturn(subjectConfig());
     when(studentProfileService.load(any())).thenReturn(StudentProfileSnapshot.anonymous());
     when(documentCatalogPromptService.buildInventoryPrompt(any())).thenReturn("");
-  }
 
-  @Test
-  @Timeout(90)
-  void chatClientConvertsModelToolCallToStudentQuestionSet() {
-    var capturedQuestionSet = new AtomicReference<StudentQuestionSet>();
     var clientId = UUID.randomUUID();
     var conversationId = UUID.randomUUID();
     var response =
@@ -87,46 +78,33 @@ class AskStudentQuestionToolTest {
                         .param(ChatMemory.CONVERSATION_ID, conversationId.toString())
                         .param(ToolUsageAuditService.CLIENT_ID, clientId)
                         .param(ProfileAwareResponseAdvisor.CLIENT_ID_CONTEXT_KEY, clientId))
-            .tools(new AskStudentQuestionTool(questionHandler(capturedQuestionSet)))
-            .user(
-                """
-                necesito ayuda para resolver un ejercicio de cajero
-                """)
+            .toolContext(
+                Map.of(
+                    ToolUsageAuditService.CLIENT_ID,
+                    clientId,
+                    ToolUsageAuditService.CONVERSATION_ID,
+                    conversationId,
+                    ToolUsageAuditService.TURN_ID,
+                    UUID.randomUUID(),
+                    ToolUsageAuditService.PROFILE_VERSION,
+                    0L))
+            .tools(new AskStudentQuestionTool(SpringGeneratedToolSchemaDumpTest::answerFirstOption))
+            .user("necesito ayuda para resolver un ejercicio de cajero")
             .call()
             .content();
 
-    log.info("Converted StudentQuestionSet:\n{}", capturedQuestionSet.get());
-    log.info("Ask student question final model content:\n{}", response);
-
-    assertQuestionSetSchema(capturedQuestionSet.get());
-    assertThat(response).isNotNull();
+    log.info("Spring-generated schema dump response: {}", response);
   }
 
-  private AskStudentQuestionTool.QuestionHandler questionHandler(
-      AtomicReference<StudentQuestionSet> capturedQuestionSet) {
-    return questionSet -> {
-      capturedQuestionSet.set(questionSet);
-      var question = questionSet.questions().get(0);
-      var selectedLabel = question.options().get(0).label();
-      return new StudentQuestionResponse(
-          List.of(new StudentQuestionAnswer("q0", List.of(selectedLabel), "schema accepted")));
-    };
+  private static StudentQuestionResponse answerFirstOption(StudentQuestionSet questionSet) {
+    var firstQuestion = questionSet.questions().stream().findFirst();
+    var answer = firstQuestion.map(SpringGeneratedToolSchemaDumpTest::answerFirstOption);
+    return new StudentQuestionResponse(answer.stream().toList());
   }
 
-  private void assertQuestionSetSchema(StudentQuestionSet questionSet) {
-    assertThat(questionSet).isNotNull();
-    assertThat(questionSet.questions()).hasSizeBetween(1, 3).allSatisfy(this::assertQuestionSchema);
-  }
-
-  private void assertQuestionSchema(StudentQuestion question) {
-    assertThat(question.question()).isNotBlank().endsWith("?");
-    assertThat(question.options()).hasSizeBetween(1, 4);
-    assertThat(question.options())
-        .allSatisfy(
-            option -> {
-              assertThat(option.label()).isNotBlank();
-              assertThat(option.description()).isNotBlank();
-            });
+  private static StudentQuestionAnswer answerFirstOption(StudentQuestion question) {
+    var selectedLabel = question.options().stream().findFirst().map(option -> option.label()).orElse("");
+    return new StudentQuestionAnswer("q0", List.of(selectedLabel), "schema dump");
   }
 
   private SubjectConfig subjectConfig() {

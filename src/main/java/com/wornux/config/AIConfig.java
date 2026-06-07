@@ -89,7 +89,6 @@ public class AIConfig {
 
     return builder
         .defaultSystem(promptResources.baseIdentitySystemResource())
-        .defaultOptions(OllamaChatOptions.builder().disableThinking().build())
         .defaultAdvisors(advisors)
         .defaultTools(retrieveInformationTool)
         .build();

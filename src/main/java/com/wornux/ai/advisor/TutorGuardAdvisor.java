@@ -6,9 +6,7 @@ import com.wornux.ai.prompt.TutorPromptResources;
 import com.wornux.data.enums.GuardDecision;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.regex.Pattern;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullUnmarked;
 import org.slf4j.Logger;
@@ -28,41 +26,6 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
   private static final Logger log = LoggerFactory.getLogger(TutorGuardAdvisor.class);
 
-  private static final Pattern NON_C_TECH_PATTERN =
-      Pattern.compile(
-          "\\b(java|javascript|typescript|python|kotlin|swift|php|ruby|go|golang|rust|c\\+\\+|c#|\\.net)\\b",
-          Pattern.CASE_INSENSITIVE);
-
-  private static final Pattern C_OR_LOGIC_PATTERN =
-      Pattern.compile(
-          "\\b(c\\b|ansi\\s*c|flow\\s*control|control\\s*flow|control\\s*structures|if|switch|loop|while|for|do\\s*while|"
-              + "function|variable|pointer|malloc|free|memory|algorithm|algoritmo|logic|logica|pseudocode|"
-              + "pseudocodigo|trace|dry\\s*run|complexity|complejidad)\\b",
-          Pattern.CASE_INSENSITIVE);
-
-  private static final Pattern SHORTCUT_REQUEST_PATTERN =
-      Pattern.compile(
-          "\\b(give\\s+me\\s+the\\s+answer|final\\s+answer|just\\s+the\\s+answer|solve\\s+(it|this)|do\\s+my\\s+homework|"
-              + "only\\s+code|no\\s+explanation|dame\\s+la\\s+respuesta|respuesta\\s+final|resuelv(e|elo|eme)|"
-              + "haz\\s+mi\\s+tarea|solo\\s+codigo|sin\\s+explicacion)\\b",
-          Pattern.CASE_INSENSITIVE);
-
-  private static final Pattern PROMPT_INJECTION_PATTERN =
-      Pattern.compile(
-          "\\b(ignore\\s+previous\\s+instructions|show\\s+me\\s+your\\s+system\\s+prompt|"
-              + "reveal\\s+your\\s+instructions|ignora\\s+las\\s+instrucciones|"
-              + "muestrame\\s+tu\\s+prompt\\s+del\\s+sistema|revela\\s+tus\\s+instrucciones)\\b",
-          Pattern.CASE_INSENSITIVE);
-
-  private static final Pattern IMPERSONATION_PATTERN =
-      Pattern.compile(
-          "\\b(i\\s*am\\s*(the\\s+)?(professor|teacher|instructor|admin|administrator|coordinator|evaluator)|"
-              + "i'?m\\s*(the\\s+)?(professor|teacher|instructor|admin|administrator|coordinator|evaluator)|"
-              + "as\\s+(your\\s+)?(professor|teacher|instructor|admin|administrator|coordinator|evaluator)|"
-              + "soy\\s+(el|la)?\\s*(profesor|profesora|admin|administrador|administradora|coordinador|coordinadora|evaluador|evaluadora)|"
-              + "como\\s+(profesor|profesora|admin|administrador|administradora|coordinador|coordinadora|evaluador|evaluadora))\\b",
-          Pattern.CASE_INSENSITIVE);
-
   private final int order;
   private final GuardClassifierService guardClassifierService;
   private final TutorPromptResources promptResources;
@@ -81,8 +44,7 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
       ChatClientRequest request, @NonNull CallAdvisorChain chain) {
     String userQuery = PromptMessageUtils.extractLastUserText(request.prompt());
 
-    RuleDecision ruleDecision = ruleDecisionFor(userQuery);
-    return chain.nextCall(applySafetyPolicy(request, userQuery, ruleDecision));
+    return chain.nextCall(applyGuardDecision(request, guardDecisionFor(userQuery)));
   }
 
   @Override
@@ -90,37 +52,11 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
       ChatClientRequest request, @NonNull StreamAdvisorChain chain) {
     String userQuery = PromptMessageUtils.extractLastUserText(request.prompt());
 
-    RuleDecision ruleDecision = ruleDecisionFor(userQuery);
-    return chain.nextStream(applySafetyPolicy(request, userQuery, ruleDecision));
+    return chain.nextStream(applyGuardDecision(request, guardDecisionFor(userQuery)));
   }
 
-  ChatClientRequest applySafetyPolicy(
-      ChatClientRequest request, String userQuery, RuleDecision ruleDecision) {
-    return applyGuardDecision(request, guardDecisionFor(userQuery, ruleDecision));
-  }
-
-  RuleDecision ruleDecisionFor(String input) {
-    String normalized = normalize(input);
-    if (IMPERSONATION_PATTERN.matcher(normalized).find()) {
-      return RuleDecision.IMPERSONATION;
-    }
-    if (isOutOfScope(normalized)) {
-      return RuleDecision.OUT_OF_SCOPE;
-    }
-    if (SHORTCUT_REQUEST_PATTERN.matcher(normalized).find()
-        || PROMPT_INJECTION_PATTERN.matcher(normalized).find()) {
-      return RuleDecision.NOT_SAFE;
-    }
-    return RuleDecision.NEEDS_CLASSIFICATION;
-  }
-
-  GuardDecision guardDecisionFor(String userQuery, RuleDecision ruleDecision) {
-    return switch (ruleDecision) {
-      case IMPERSONATION -> GuardDecision.IMPERSONATION;
-      case OUT_OF_SCOPE -> GuardDecision.OUT_OF_SCOPE;
-      case NOT_SAFE -> GuardDecision.NOT_SAFE;
-      case NEEDS_CLASSIFICATION -> classifyGuardDecision(userQuery);
-    };
+  GuardDecision guardDecisionFor(String userQuery) {
+    return classifyGuardDecision(userQuery);
   }
 
   GuardDecision classifyGuardDecision(String userQuery) {
@@ -162,16 +98,6 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
         .prompt(promptBuilder.build())
         .context("policy_mode", policyMode)
         .build();
-  }
-
-  private static boolean isOutOfScope(String normalized) {
-    boolean mentionsNonCLanguage = NON_C_TECH_PATTERN.matcher(normalized).find();
-    boolean mentionsAllowedTopic = C_OR_LOGIC_PATTERN.matcher(normalized).find();
-    return mentionsNonCLanguage && !mentionsAllowedTopic;
-  }
-
-  private static String normalize(String input) {
-    return input == null ? "" : input.toLowerCase(Locale.ROOT).trim();
   }
 
   @Override
