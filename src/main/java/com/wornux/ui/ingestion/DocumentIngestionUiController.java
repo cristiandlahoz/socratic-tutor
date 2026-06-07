@@ -109,6 +109,24 @@ public class DocumentIngestionUiController implements Serializable {
                     error -> runUi(ui, () -> state.markFailure(message(error), lastUploadedFile != null)));
     }
 
+    public void deleteCurrentDocument(UI ui) {
+        if (state.activeDocumentId().peek() == null) {
+            return;
+        }
+        abortActiveTask();
+        UUID documentId = state.activeDocumentId().peek();
+        state.startProcessing(state.fileName().peek(), "Eliminando documento indexado.");
+        activeTask = Mono
+                .fromCallable(() -> {
+                    documentIngestionService.delete(chatUiState.clientId().peek(), documentId);
+                    return true;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                    _ -> runUi(ui, state::reset),
+                    error -> runUi(ui, () -> state.markFailure(message(error), false)));
+    }
+
     public void updateMarkdown(String markdown) {
         state.reviewedMarkdown().set(markdown == null ? "" : markdown);
         state.dirty().set(true);

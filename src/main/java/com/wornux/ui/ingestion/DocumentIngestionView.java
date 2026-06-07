@@ -4,7 +4,7 @@ import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
@@ -14,6 +14,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.UploadI18N;
@@ -39,6 +40,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     private final TextArea markdownEditor;
     private final Button approveButton;
     private final Button retryButton;
+    private final Button deleteButton;
 
     public DocumentIngestionView(
             DocumentIngestionUiController controller,
@@ -51,15 +53,15 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         var eyebrow = new Span("Document ETL");
         eyebrow.addClassName("document-ingest-eyebrow");
 
-        var title = new H2("Ingesta un PDF y conviértelo en contexto para el chat");
+        var title = new H2("Ingestar información");
         title.addClassName("document-ingest-title");
 
-        var description =
-                new Paragraph("Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y"
-                        + " luego indexalo para preguntas posteriores.");
+        var description = new Paragraph(
+                "Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y luego indexalo para preguntas posteriores.");
         description.addClassName("document-ingest-description");
 
         Button backToChatButton = new Button("Volver al chat");
+        backToChatButton.setId("document-ingestion-back-to-chat");
         backToChatButton.addThemeVariants(ButtonVariant.TERTIARY);
         backToChatButton.addClassName("document-ingest-back-button");
         backToChatButton.setIcon(new Icon(VaadinIcon.ARROW_LEFT));
@@ -77,16 +79,16 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
         Upload upload = createUpload(properties);
         var uploadCard = new Div(uploadCardIntro(), upload);
+        uploadCard.setId("document-ingestion-upload-card");
         uploadCard.addClassName("document-ingest-upload-card");
 
         statusPanel = new DocumentStatusPanel();
 
-        var topGrid = new FormLayout();
-        topGrid.setAutoResponsive(true);
-        topGrid.addClassName("document-ingest-top-grid");
+        var topGrid = new HorizontalLayout();
         topGrid.add(uploadCard, statusPanel);
 
         markdownEditor = new TextArea("Markdown revisado");
+        markdownEditor.setId("document-ingestion-markdown-editor");
         markdownEditor.setWidthFull();
         markdownEditor.setMinHeight("22rem");
         markdownEditor.setMaxLength(200_000);
@@ -95,8 +97,8 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         markdownEditor.addValueChangeListener(event -> controller.updateMarkdown(event.getValue()));
 
         var markdownShell = new Div(sectionHeader(
-            "Fuente canonical",
-            "Este markdown es el artefacto editable que después se segmenta e indexa."), markdownEditor);
+                "Fuente canonical",
+                "Este markdown es el artefacto editable que después se segmenta e indexa."), markdownEditor);
         markdownShell.addClassName("document-ingest-markdown-shell");
 
         segmentEditorList = new DocumentSegmentEditorList();
@@ -104,12 +106,14 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
         var segmentsShell = new Div(
                 sectionHeader(
-                    "segmentos",
-                    "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y" + " captions."),
+                        "segmentos",
+                        "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y captions."),
                 segmentEditorList);
+        segmentsShell.setId("document-ingestion-segments-shell");
         segmentsShell.addClassName("document-ingest-segments-shell");
 
         approveButton = new Button("Aprobar e indexar");
+        approveButton.setId("document-ingestion-approve-button");
         approveButton.addThemeVariants(ButtonVariant.PRIMARY);
         approveButton.setIcon(new Icon(VaadinIcon.DATABASE));
         approveButton.getThemeNames().remove("icon");
@@ -118,48 +122,60 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         approveButton.addClickListener(_ -> controller.approve(getUI().orElse(null)));
 
         retryButton = new Button("Reintentar");
+        retryButton.setId("document-ingestion-retry-button");
         retryButton.addThemeVariants(ButtonVariant.TERTIARY);
         retryButton.addClassName("document-ingest-retry-button");
         retryButton.addClickListener(_ -> controller.retry(getUI().orElse(null)));
 
-        var actionBar = new Div(approveButton, retryButton);
+        deleteButton = new Button("Eliminar documento");
+        deleteButton.setId("document-ingestion-delete-button");
+        deleteButton.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.TERTIARY);
+        deleteButton.addClickListener(_ -> controller.deleteCurrentDocument(getUI().orElse(null)));
+
+        var actionBar = new Div(approveButton, retryButton, deleteButton);
+        actionBar.setId("document-ingestion-action-bar");
         actionBar.addClassName("document-ingest-action-bar");
 
-        var reviewStack = new Div(markdownShell, segmentsShell, actionBar);
+        var details = new Details("Visualizar todo el contenido", markdownShell);
+        var reviewStack = new Div(details, segmentsShell, actionBar);
+        reviewStack.setId("document-ingestion-review-stack");
         reviewStack.addClassName("document-ingest-review-stack");
 
         var root = getContent();
+        root.setId("document-ingestion-view");
         root.addClassName("document-ingest-view");
         root.add(drawerToggle, header, topGrid, reviewStack);
 
         Signal.effect(
-            statusPanel,
-            () -> statusPanel.setStatus(
-                state.fileName().get(),
-                state.stageLabel().get(),
-                state.busy().get(),
-                state.indexed().get(),
-                state.failureMessage().get()));
+                statusPanel,
+                () -> statusPanel.setStatus(
+                        state.fileName().get(),
+                        state.stageLabel().get(),
+                        state.busy().get(),
+                        state.indexed().get(),
+                        state.failureMessage().get()));
         Signal.effect(markdownEditor, () -> syncMarkdownEditor(state.reviewedMarkdown().get()));
         Signal.effect(segmentEditorList, () -> segmentEditorList.setSegments(state.segments().get()));
         Signal.effect(reviewStack, () -> reviewStack.setVisible(state.reviewVisible().get()));
         Signal.effect(approveButton, () -> approveButton.setEnabled(state.canApprove().get()));
         Signal.effect(retryButton, () -> retryButton.setVisible(state.retryAvailable().get()));
+        Signal.effect(deleteButton, () -> deleteButton.setVisible(state.activeDocumentId().get() != null));
     }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         controller.initializeFromRoute(
-            event.getLocation()
-                    .getQueryParameters()
-                    .getSingleParameter(DocumentIngestionUiController.DOCUMENT_QUERY_PARAMETER)
-                    .orElse(null));
+                event.getLocation()
+                        .getQueryParameters()
+                        .getSingleParameter(DocumentIngestionUiController.DOCUMENT_QUERY_PARAMETER)
+                        .orElse(null));
     }
 
     private Upload createUpload(DocumentIngestionProperties properties) {
         Upload upload = new Upload(UploadHandler.inMemory(
-            (metadata, data) -> controller
-                    .uploadPdf(metadata.fileName(), metadata.contentType(), data, getUI().orElse(null))));
+                (metadata, data) -> controller
+                        .uploadPdf(metadata.fileName(), metadata.contentType(), data, getUI().orElse(null))));
+        upload.setId("document-ingestion-upload");
         upload.setDropAllowed(true);
         upload.setAcceptedFileTypes("application/pdf", ".pdf");
         upload.setMaxFiles(1);
@@ -178,6 +194,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
     private Button createPrimaryUploadButton() {
         var button = new Button("Subir PDF");
+        button.setId("document-ingestion-upload-button");
         button.addThemeVariants(ButtonVariant.PRIMARY);
         button.addClassName("document-ingest-upload-button");
         return button;
@@ -188,23 +205,24 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         i18n.setDropFiles(new UploadI18N.DropFiles().setOne("suelta el PDF aquí").setMany("suelta los PDFs aquí"));
         i18n.setAddFiles(new UploadI18N.AddFiles().setOne("Subir PDF").setMany("Subir PDFs"));
         i18n.setError(
-            new UploadI18N.Error().setTooManyFiles("Solo se permite un PDF por vez.")
-                    .setFileIsTooBig("El PDF supera el limite configurado.")
-                    .setIncorrectFileType("El archivo debe ser un PDF."));
+                new UploadI18N.Error().setTooManyFiles("Solo se permite un PDF por vez.")
+                        .setFileIsTooBig("El PDF supera el limite configurado.")
+                        .setIncorrectFileType("El archivo debe ser un PDF."));
         i18n.setUploading(
-            new UploadI18N.Uploading()
-                    .setStatus(
-                        new UploadI18N.Uploading.Status().setConnecting("Conectando...")
-                                .setStalled("Pausado")
-                                .setProcessing("Procesando archivo...")
-                                .setHeld("En cola"))
-                    .setRemainingTime(
-                        new UploadI18N.Uploading.RemainingTime().setPrefix("tiempo restante: ")
-                                .setUnknown("tiempo restante desconocido"))
-                    .setError(
-                        new UploadI18N.Uploading.Error().setServerUnavailable("La subida fallo, intenta otra vez.")
-                                .setUnexpectedServerError("El servidor rechazo la subida.")
-                                .setForbidden("No tienes permiso para subir este archivo.")));
+                new UploadI18N.Uploading()
+                        .setStatus(
+                                new UploadI18N.Uploading.Status().setConnecting("Conectando...")
+                                        .setStalled("Pausado")
+                                        .setProcessing("Procesando archivo...")
+                                        .setHeld("En cola"))
+                        .setRemainingTime(
+                                new UploadI18N.Uploading.RemainingTime().setPrefix("tiempo restante: ")
+                                        .setUnknown("tiempo restante desconocido"))
+                        .setError(
+                                new UploadI18N.Uploading.Error()
+                                        .setServerUnavailable("La subida fallo, intenta otra vez.")
+                                        .setUnexpectedServerError("El servidor rechazo la subida.")
+                                        .setForbidden("No tienes permiso para subir este archivo.")));
         i18n.setUnits(new UploadI18N.Units().setSize(Arrays.asList("B", "kB", "MB", "GB", "TB")));
         return i18n;
     }

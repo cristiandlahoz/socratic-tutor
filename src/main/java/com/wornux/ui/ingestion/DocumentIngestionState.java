@@ -130,4 +130,18 @@ public class DocumentIngestionState implements Serializable {
     this.busy.set(false);
     this.retryAvailable.set(retryAvailable);
   }
+
+  public void reset() {
+    activeDocumentId.set(null);
+    activeJobId.set(null);
+    fileName.set("");
+    stageLabel.set("Sube un PDF para comenzar.");
+    failureMessage.set("");
+    reviewedMarkdown.set("");
+    segments.set(List.of());
+    busy.set(false);
+    indexed.set(false);
+    dirty.set(false);
+    retryAvailable.set(false);
+  }
 }

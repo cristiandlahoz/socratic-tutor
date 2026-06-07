@@ -66,10 +66,6 @@
   line-height: 1.5;
 }
 
-.document-ingest-top-grid::part(cell) {
-  min-width: 0;
-}
-
 .document-ingest-upload-card,
 .document-ingest-status-panel,
 .document-ingest-markdown-shell,
@@ -144,6 +140,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  box-sizing: border-box;
   padding: 0.9rem;
   border-radius: var(--chat-panel-radius);
   border: 1px solid var(--theme-border-subtle);

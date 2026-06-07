@@ -18,12 +18,14 @@ public class DocumentSegmentEditorList extends Composite<Div> {
     private BiConsumer<UUID, String> segmentChangeListener = (_, _) -> {};
 
     public DocumentSegmentEditorList() {
+        list.setId("document-ingestion-segment-list");
         list.setPadding(false);
         list.setSpacing(false);
         list.setMargin(false);
         list.addClassName("document-ingest-segment-list");
 
         var root = getContent();
+        root.setId("document-ingestion-segment-editor-list");
         root.addClassName("document-ingest-segment-shell");
         root.add(list);
     }
@@ -64,6 +66,8 @@ public class DocumentSegmentEditorList extends Composite<Div> {
         provenance.setVisible(provenance.getComponentCount() > 0);
 
         var area = new TextArea();
+        area.setId("document-ingestion-segment-text-%d".formatted(segment.ordinal()));
+        area.getElement().setAttribute("data-segment-id", segment.id().toString());
         area.setWidthFull();
         area.setValue(segment.content() == null ? "" : segment.content());
         area.setMinHeight("10rem");
@@ -73,6 +77,8 @@ public class DocumentSegmentEditorList extends Composite<Div> {
         area.addValueChangeListener(event -> segmentChangeListener.accept(segment.id(), event.getValue()));
 
         var card = new Div(ordinal, heading, meta, provenance, area);
+        card.setId("document-ingestion-segment-card-%d".formatted(segment.ordinal()));
+        card.getElement().setAttribute("data-segment-id", segment.id().toString());
         card.addClassName("document-ingest-segment-card");
         card.setWidthFull();
         return card;

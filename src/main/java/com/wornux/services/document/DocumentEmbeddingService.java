@@ -21,7 +21,7 @@ public class DocumentEmbeddingService {
             return;
         }
 
-        vectorStore.delete(segments.stream().map(segment -> segment.getId().toString()).toList());
+        deleteSegments(segments);
         vectorStore.add(
             segments.stream()
                     .map(
@@ -29,6 +29,13 @@ public class DocumentEmbeddingService {
                                 segment.getContent(),
                                 metadata(document, segment)))
                     .toList());
+    }
+
+    public void deleteSegments(List<DocumentSegment> segments) {
+        if (segments == null || segments.isEmpty()) {
+            return;
+        }
+        vectorStore.delete(segments.stream().map(segment -> segment.getId().toString()).toList());
     }
 
     private Map<String, Object> metadata(com.wornux.data.entities.Document document, DocumentSegment segment) {

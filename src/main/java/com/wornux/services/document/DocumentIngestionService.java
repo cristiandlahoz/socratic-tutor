@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DocumentIngestionService {
@@ -71,7 +72,7 @@ public class DocumentIngestionService {
 
       job.advance(
           DocumentIngestionStage.DOCLING_CONVERT, "Transformando y segmentando PDF con Docling.");
-       jobRepository.save(job);
+      jobRepository.save(job);
 
       var conversion =
           doclingClientService.convertPdfToMarkdownAndChunks(
@@ -192,6 +193,8 @@ public class DocumentIngestionService {
 
       return toReviewVm(document, job);
     } catch (RuntimeException exception) {
+      embeddingService.deleteSegments(
+          segmentRepository.findByDocument_IdOrderByOrdinalAsc(document.getId()));
       document.markFailed();
       documentRepository.save(document);
       job.fail("La indexacion fallo.", safeMessage(exception));
@@ -218,6 +221,18 @@ public class DocumentIngestionService {
                 jobRepository
                     .findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
                     .map(job -> toReviewVm(document, job)));
+  }
+
+  @Transactional
+  public void delete(UUID clientId, UUID documentId) {
+    var document =
+        documentRepository
+            .findByIdAndClientId(documentId, clientId)
+            .orElseThrow(
+                () -> new DocumentIngestionException("No encontre ese documento para este usuario."));
+    var segments = segmentRepository.findByDocument_IdOrderByOrdinalAsc(document.getId());
+    embeddingService.deleteSegments(segments);
+    documentRepository.delete(document);
   }
 
   private DocumentReviewViewModel toReviewVm(Document document, DocumentIngestionJob job) {
