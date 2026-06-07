@@ -34,9 +34,6 @@ public class PostgresChatMemory implements ChatMemory {
   @Override
   @Transactional
   public void add(String conversationId, List<Message> messages) {
-    Assert.hasText(conversationId, "conversationId cannot be null or empty");
-    Assert.notNull(messages, "messages cannot be null");
-    Assert.noNullElements(messages, "messages cannot contain null elements");
     var chat =
         chatRepository
             .findById(UUID.fromString(conversationId))
@@ -54,7 +51,6 @@ public class PostgresChatMemory implements ChatMemory {
   @Override
   @Transactional(readOnly = true)
   public List<Message> get(String conversationId) {
-    Assert.hasText(conversationId, "conversationId cannot be null or empty");
     var chat =
         chatRepository
             .findById(UUID.fromString(conversationId))
@@ -85,7 +81,6 @@ public class PostgresChatMemory implements ChatMemory {
   @Override
   @Transactional
   public void clear(String conversationId) {
-    Assert.hasText(conversationId, "conversationId cannot be null or empty");
     var chat =
         chatRepository
             .findById(UUID.fromString(conversationId))
