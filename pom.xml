@@ -22,6 +22,7 @@
     <spring-ai.version>2.0.0-M4</spring-ai.version>
     <spotless.version>3.4.0</spotless.version>
     <google-java-format.version>1.35.0</google-java-format.version>
+    <testcontainers.version>1.21.4</testcontainers.version>
   </properties>
 
   <dependencyManagement>
@@ -72,8 +73,30 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.vaadin</groupId>
       <artifactId>browserless-test-junit6</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.vaadin</groupId>
+      <artifactId>vaadin-testbench-junit5</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -160,7 +183,6 @@
         <configuration>
           <java>
             <removeUnusedImports/>
-
           </java>
 
           <pom>
