@@ -8,4 +8,6 @@
 @import url("./styles/chat-empty.css");
 @import url("./styles/document-ingest.css");
 @import url("./styles/c-runner.css");
+@import url("./styles/evaluation-view.css");
+@import url("./styles/evaluation-chat.css");
 @import url("./styles/responsive.css");
