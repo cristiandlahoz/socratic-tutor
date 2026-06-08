@@ -1,4 +1,4 @@
-package com.wornux.domain.chat.questions;
+package com.wornux.dtos.chat.questions;
 
 import java.io.Serializable;
 import java.util.List;
@@ -10,15 +10,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public record StudentQuestion(
         @JsonProperty(required = true)
-        @JsonPropertyDescription("The full question shown to the student. End with a question mark.")
+        @JsonPropertyDescription("The full question shown to the student")
         @Schema(pattern = "^.*\\?$")
         String question,
 
-        @JsonProperty(required = true)
-        @JsonPropertyDescription("Selectable options. Provide 1 to 4 concrete options.")
+        @JsonPropertyDescription("Optional selectable options. Provide up to 3 concrete options only when the question is naturally categorical or multi-choice.")
         @ArraySchema(
-                minItems = 1,
-                maxItems = 4,
+                maxItems = 3,
                 schema = @Schema(implementation = StudentQuestionOption.class))
         List<StudentQuestionOption> options)
         implements Serializable {
@@ -27,8 +25,11 @@ public record StudentQuestion(
         if (question == null || question.isBlank()) {
             throw new IllegalArgumentException("Question text is required");
         }
-        if (options == null || options.isEmpty() || options.size() > 4) {
-            throw new IllegalArgumentException("Questions must have between 1 and 4 options");
+        if (options == null) {
+            options = List.of();
+        }
+        if (options.size() > 3) {
+            throw new IllegalArgumentException("Questions must have at most 3 options");
         }
         options = List.copyOf(options);
     }

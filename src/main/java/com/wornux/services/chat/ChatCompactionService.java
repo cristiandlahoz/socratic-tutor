@@ -1,11 +1,12 @@
 package com.wornux.services.chat;
 
-import com.wornux.domain.chat.ChatCompactionStatus;
 import com.wornux.data.entities.ChatMessage;
 import com.wornux.data.entities.ChatTranscript;
 import com.wornux.data.repositories.chat.ChatRepository;
 import com.wornux.data.repositories.chat.ChatMessageRepository;
 import com.wornux.data.repositories.chat.ChatTranscriptRepository;
+import com.wornux.dtos.chat.ChatCompactionStatus;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;

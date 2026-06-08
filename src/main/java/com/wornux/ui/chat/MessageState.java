@@ -1,8 +1,9 @@
 package com.wornux.ui.chat;
 
-import com.wornux.domain.chat.*;
 import java.time.Instant;
 import org.springframework.ai.chat.messages.MessageType;
+
+import com.wornux.dtos.chat.*;
 
 public record MessageState(MessageType role, String content, Instant createdAt, boolean loading) {
 

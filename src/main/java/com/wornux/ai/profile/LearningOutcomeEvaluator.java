@@ -1,8 +1,9 @@
 package com.wornux.ai.profile;
 
-import com.wornux.domain.profile.*;
 import java.util.List;
 import org.springframework.stereotype.Component;
+
+import com.wornux.dtos.profile.*;
 
 @Component
 public class LearningOutcomeEvaluator {

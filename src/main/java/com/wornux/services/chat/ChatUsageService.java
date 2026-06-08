@@ -1,8 +1,9 @@
 package com.wornux.services.chat;
 
 import com.wornux.config.ChatProperties;
-import com.wornux.domain.chat.ChatTranscriptUsage;
 import com.wornux.data.repositories.chat.ChatRepository;
+import com.wornux.dtos.chat.ChatTranscriptUsage;
+
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

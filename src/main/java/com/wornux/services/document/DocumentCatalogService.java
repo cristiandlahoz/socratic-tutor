@@ -1,7 +1,8 @@
 package com.wornux.services.document;
 
 import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.domain.document.*;
+import com.wornux.dtos.document.*;
+
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -5,15 +5,16 @@ import tools.jackson.databind.ObjectMapper;
 import com.wornux.config.ProfileProperties;
 import com.wornux.ai.profile.TurnProfileUpdate;
 import com.wornux.data.enums.MisconceptionStatus;
-import com.wornux.domain.profile.StudentLearningProfile;
 import com.wornux.data.entities.StudentMisconception;
 import com.wornux.data.entities.StudentProfile;
 import com.wornux.data.entities.StudentProfileSignal;
-import com.wornux.domain.profile.StudentProfileSnapshot;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.data.repositories.profile.StudentMisconceptionRepository;
 import com.wornux.data.repositories.profile.StudentProfileRepository;
 import com.wornux.data.repositories.profile.StudentProfileSignalRepository;
+import com.wornux.dtos.profile.StudentLearningProfile;
+import com.wornux.dtos.profile.StudentProfileSnapshot;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

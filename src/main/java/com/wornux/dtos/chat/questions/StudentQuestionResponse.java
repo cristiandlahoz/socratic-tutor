@@ -1,4 +1,4 @@
-package com.wornux.domain.chat.questions;
+package com.wornux.dtos.chat.questions;
 
 import java.io.Serializable;
 import java.util.List;

@@ -17,7 +17,8 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.local.ValueSignal;
-import com.wornux.domain.chat.questions.*;
+import com.wornux.dtos.chat.questions.*;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -138,10 +139,14 @@ public class StudentQuestionPanel extends Composite<Div> {
         activeQuestionIndex = Math.clamp(activeQuestionIndex, 0, totalQuestions - 1);
         progress.setText("%d / %d".formatted(activeQuestionIndex + 1, totalQuestions));
         var activeQuestion = questionSet.questions().get(activeQuestionIndex);
+        var questionKey = questionKey(activeQuestionIndex);
         title.setText(activeQuestion.question());
-        questionViewport.add(buildQuestionCard(activeQuestion, questionKey(activeQuestionIndex)));
+        if (!activeQuestion.options().isEmpty()) {
+            questionViewport.add(buildQuestionCard(activeQuestion, questionKey));
+        }
         responseComposer.removeAll();
-        responseComposer.add(buildResponseComposer(questionKey(activeQuestionIndex)));
+        configureCustomTextArea(customTextByQuestion.get(questionKey), activeQuestion.options().isEmpty());
+        responseComposer.add(buildResponseComposer(questionKey));
         updateSubmitEnabled();
     }
 
@@ -250,11 +255,19 @@ public class StudentQuestionPanel extends Composite<Div> {
         customText.addClassName("chat-question-custom-text");
         customText.setWidthFull();
         customText.getElement().setAttribute("data-question-id", questionId);
-        customText.setPlaceholder("Agrega contexto extra si quieres...");
-        customText.setAriaLabel("Respuesta complementaria");
         customText.setValueChangeMode(ValueChangeMode.EAGER);
         customText.addValueChangeListener(_ -> updateSubmitEnabled());
         return customText;
+    }
+
+    private void configureCustomTextArea(TextArea customText, boolean openQuestion) {
+        if (openQuestion) {
+            customText.setPlaceholder("Escribe tu respuesta...");
+            customText.setAriaLabel("Respuesta a la pregunta");
+            return;
+        }
+        customText.setPlaceholder("Agrega contexto extra si quieres...");
+        customText.setAriaLabel("Respuesta complementaria");
     }
 
     private Div buildResponseComposer(String questionKey) {

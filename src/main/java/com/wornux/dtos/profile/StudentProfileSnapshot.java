@@ -1,4 +1,4 @@
-package com.wornux.domain.profile;
+package com.wornux.dtos.profile;
 
 import com.wornux.data.enums.HelpMode;
 import java.util.List;

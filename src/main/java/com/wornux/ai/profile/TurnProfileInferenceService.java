@@ -1,8 +1,9 @@
 package com.wornux.ai.profile;
 
 import com.wornux.ai.tools.ToolExecutionAudit;
-import com.wornux.domain.chat.StoredChatMessage;
 import com.wornux.data.enums.HelpMode;
+import com.wornux.dtos.chat.StoredChatMessage;
+
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;

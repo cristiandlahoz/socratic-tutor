@@ -1,15 +1,16 @@
 package com.wornux.services.chat;
 
-import com.wornux.domain.chat.ChatCompactionStatus;
 import com.wornux.data.entities.Chat;
 import com.wornux.data.entities.ChatMessage;
 import com.wornux.data.entities.ChatTranscript;
-import com.wornux.domain.chat.ConversationSummary;
-import com.wornux.domain.chat.ResolvedConversation;
-import com.wornux.domain.chat.StoredChatMessage;
 import com.wornux.data.repositories.chat.ChatRepository;
 import com.wornux.data.repositories.chat.ChatMessageRepository;
 import com.wornux.data.repositories.chat.ChatTranscriptRepository;
+import com.wornux.dtos.chat.ChatCompactionStatus;
+import com.wornux.dtos.chat.ConversationSummary;
+import com.wornux.dtos.chat.ResolvedConversation;
+import com.wornux.dtos.chat.StoredChatMessage;
+
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;

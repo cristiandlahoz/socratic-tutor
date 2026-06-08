@@ -16,7 +16,8 @@ import ai.docling.serve.api.convert.request.target.InBodyTarget;
 import ai.docling.serve.api.convert.response.ConvertDocumentResponse;
 import ai.docling.serve.api.convert.response.InBodyConvertDocumentResponse;
 import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.domain.document.*;
+import com.wornux.dtos.document.*;
+
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;

@@ -1,4 +1,4 @@
-package com.wornux.domain.chat;
+package com.wornux.dtos.chat;
 
 import java.time.Instant;
 import java.util.UUID;

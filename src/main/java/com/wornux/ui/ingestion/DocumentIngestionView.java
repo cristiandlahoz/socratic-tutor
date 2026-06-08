@@ -1,5 +1,8 @@
 package com.wornux.ui.ingestion;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
@@ -14,7 +17,6 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.UploadI18N;
@@ -27,9 +29,8 @@ import com.vaadin.flow.signals.Signal;
 import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.components.ShellDrawerToggle;
-import com.wornux.ui.components.ingestion.*;
-import java.util.Arrays;
-import java.util.Objects;
+import com.wornux.ui.components.ingestion.DocumentSegmentEditorList;
+import com.wornux.ui.components.ingestion.DocumentStatusPanel;
 
 @Route(value = "documents", layout = MainLayout.class)
 public class DocumentIngestionView extends Composite<Div> implements BeforeEnterObserver {
@@ -183,7 +184,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         upload.setWidthFull();
         upload.setI18n(createUploadI18n());
         upload.setUploadButton(createPrimaryUploadButton());
-        upload.setDropLabel(new Span("suelta aquí el PDF o usa el selector."));
+        upload.setDropLabel(new Span("Arrastra y suelta aquí el PDF o usa el selector."));
         upload.setDropLabelIcon(VaadinIcon.CLOUD_UPLOAD_O.create());
         upload.addFileRejectedListener(event -> {
             var notification = Notification.show(event.getErrorMessage(), 4_000, Notification.Position.MIDDLE);

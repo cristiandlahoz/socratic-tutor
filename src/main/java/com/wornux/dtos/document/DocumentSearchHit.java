@@ -1,4 +1,4 @@
-package com.wornux.domain.document;
+package com.wornux.dtos.document;
 
 import java.util.List;
 import java.util.UUID;

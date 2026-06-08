@@ -1,18 +1,5 @@
 package com.wornux.services.document;
 
-import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.data.entities.Document;
-import com.wornux.domain.document.DocumentIngestionException;
-import com.wornux.data.entities.DocumentIngestionJob;
-import com.wornux.data.enums.DocumentIngestionStage;
-import com.wornux.data.entities.DocumentSegment;
-import com.wornux.data.enums.DocumentStatus;
-import com.wornux.infrastructure.external.docling.DoclingClientService;
-import com.wornux.data.repositories.document.DocumentIngestionJobRepository;
-import com.wornux.data.repositories.document.DocumentRepository;
-import com.wornux.data.repositories.document.DocumentSegmentRepository;
-import com.wornux.ui.ingestion.DocumentReviewViewModel;
-import com.wornux.ui.ingestion.EditableSegmentViewModel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,15 +12,30 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.data.entities.Document;
+import com.wornux.data.entities.DocumentIngestionJob;
+import com.wornux.data.entities.DocumentSegment;
+import com.wornux.data.enums.DocumentIngestionStage;
+import com.wornux.data.enums.DocumentStatus;
+import com.wornux.data.repositories.document.DocumentIngestionJobRepository;
+import com.wornux.data.repositories.document.DocumentRepository;
+import com.wornux.data.repositories.document.DocumentSegmentRepository;
+import com.wornux.dtos.document.DocumentIngestionException;
+import com.wornux.infrastructure.external.docling.DoclingClientService;
+import com.wornux.ui.ingestion.DocumentReviewViewModel;
+import com.wornux.ui.ingestion.EditableSegmentViewModel;
 
 @Service
 public class DocumentIngestionService {
 
   private final DocumentRepository documentRepository;
   private final DocumentSegmentRepository segmentRepository;
-  private final DocumentIngestionJobRepository jobRepository;
+  private final DocumentIngestionJobRepository ingestionRepository;
   private final DoclingClientService doclingClientService;
   private final DocumentCatalogService catalogService;
   private final DocumentEmbeddingService embeddingService;
@@ -49,7 +51,7 @@ public class DocumentIngestionService {
       DocumentIngestionProperties properties) {
     this.documentRepository = documentRepository;
     this.segmentRepository = segmentRepository;
-    this.jobRepository = jobRepository;
+    this.ingestionRepository = jobRepository;
     this.doclingClientService = doclingClientService;
     this.catalogService = catalogService;
     this.embeddingService = embeddingService;
@@ -62,7 +64,7 @@ public class DocumentIngestionService {
     var document =
         documentRepository.save(Document.create(command, sha256(command.content())));
     var job =
-        jobRepository.save(
+        ingestionRepository.save(
             DocumentIngestionJob.start(document, "PDF recibido. Preparando transformacion."));
 
     Path tempFile = null;
@@ -72,7 +74,7 @@ public class DocumentIngestionService {
 
       job.advance(
           DocumentIngestionStage.DOCLING_CONVERT, "Transformando y segmentando PDF con Docling.");
-      jobRepository.save(job);
+      ingestionRepository.save(job);
 
       var conversion =
           doclingClientService.convertPdfToMarkdownAndChunks(
@@ -92,7 +94,7 @@ public class DocumentIngestionService {
       documentRepository.save(document);
 
       job.advance(DocumentIngestionStage.SEGMENT_BUILD, "Preparando segmentos de Docling.");
-      jobRepository.save(job);
+      ingestionRepository.save(job);
 
       segmentRepository.deleteByDocument_Id(document.getId());
       segmentRepository.saveAll(
@@ -115,7 +117,7 @@ public class DocumentIngestionService {
       job.advance(
           DocumentIngestionStage.REVIEW,
           "Revisa el markdown y valida los segmentos antes de indexar.");
-      jobRepository.save(job);
+      ingestionRepository.save(job);
 
       return toReviewVm(document, job);
     } catch (IOException exception) {
@@ -137,7 +139,7 @@ public class DocumentIngestionService {
                 () ->
                     new DocumentIngestionException("No encontre ese documento para este usuario."));
     var job =
-        jobRepository
+        ingestionRepository
             .findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
             .orElseThrow(
                 () ->
@@ -153,7 +155,7 @@ public class DocumentIngestionService {
     try {
       job.advance(
           DocumentIngestionStage.EMBED, "Indexando segmentos para que el chat pueda buscarlos.");
-      jobRepository.save(job);
+      ingestionRepository.save(job);
 
       document.markApproved(command.reviewedMarkdown());
       var refreshedCatalog =
@@ -189,7 +191,7 @@ public class DocumentIngestionService {
       document.markIndexed(command.reviewedMarkdown());
       documentRepository.save(document);
       job.complete("Documento indexado. Ya puedes preguntarle al chat.");
-      jobRepository.save(job);
+      ingestionRepository.save(job);
 
       return toReviewVm(document, job);
     } catch (RuntimeException exception) {
@@ -198,7 +200,7 @@ public class DocumentIngestionService {
       document.markFailed();
       documentRepository.save(document);
       job.fail("La indexacion fallo.", safeMessage(exception));
-      jobRepository.save(job);
+      ingestionRepository.save(job);
       throw exception;
     }
   }
@@ -208,7 +210,7 @@ public class DocumentIngestionService {
         .findFirstByClientIdOrderByUpdatedAtDesc(clientId)
         .flatMap(
             document ->
-                jobRepository
+                ingestionRepository
                     .findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
                     .map(job -> toReviewVm(document, job)));
   }
@@ -218,7 +220,7 @@ public class DocumentIngestionService {
         .findByIdAndClientId(documentId, clientId)
         .flatMap(
             document ->
-                jobRepository
+                ingestionRepository
                     .findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
                     .map(job -> toReviewVm(document, job)));
   }
@@ -329,7 +331,7 @@ public class DocumentIngestionService {
     document.markFailed();
     documentRepository.save(document);
     job.fail("La transformacion del PDF fallo.", message);
-    jobRepository.save(job);
+    ingestionRepository.save(job);
   }
 
   private void deleteQuietly(Path tempFile) {

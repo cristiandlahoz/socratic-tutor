@@ -1,7 +1,7 @@
-package com.wornux.domain.chat;
+package com.wornux.dtos.chat;
 
-import com.wornux.domain.chat.questions.StudentQuestionResponse;
-import com.wornux.domain.chat.questions.StudentQuestionSet;
+import com.wornux.dtos.chat.questions.StudentQuestionResponse;
+import com.wornux.dtos.chat.questions.StudentQuestionSet;
 import com.wornux.ui.chat.*;
 import java.io.Serial;
 import java.io.Serializable;

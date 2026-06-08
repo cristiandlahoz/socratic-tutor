@@ -1,10 +1,11 @@
 package com.wornux.ai.profile;
 
-import com.wornux.domain.profile.StudentLearningProfile;
-import com.wornux.domain.profile.StudentProfileSnapshot;
 import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Component;
+
+import com.wornux.dtos.profile.StudentLearningProfile;
+import com.wornux.dtos.profile.StudentProfileSnapshot;
 
 @Component
 public class StudentProfilePromptMapper {

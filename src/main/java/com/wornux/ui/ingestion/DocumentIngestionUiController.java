@@ -1,23 +1,26 @@
 package com.wornux.ui.ingestion;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.wornux.infrastructure.web.BrowserClientService;
 import com.wornux.services.chat.ConversationService;
 import com.wornux.services.document.ApproveDocumentCommand;
 import com.wornux.services.document.DocumentIngestionService;
 import com.wornux.services.document.StartIngestionCommand;
-import com.wornux.infrastructure.web.BrowserClientService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.chat.ChatState;
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -25,6 +28,7 @@ import reactor.core.scheduler.Schedulers;
 @SpringComponent
 @RouteScope
 @RouteScopeOwner(MainLayout.class)
+@Slf4j
 public class DocumentIngestionUiController implements Serializable {
 
     @Serial
@@ -190,6 +194,7 @@ public class DocumentIngestionUiController implements Serializable {
         if (throwable == null || throwable.getMessage() == null || throwable.getMessage().isBlank()) {
             return "Ocurrió un error inesperado.";
         }
+        log.error(throwable.getMessage());
         return throwable.getMessage();
     }
 

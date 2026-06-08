@@ -2,7 +2,8 @@ package com.wornux.data.entities;
 
 import com.wornux.services.document.*;
 import com.wornux.data.enums.DocumentStatus;
-import com.wornux.domain.document.DocumentCatalogEntry;
+import com.wornux.dtos.document.DocumentCatalogEntry;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

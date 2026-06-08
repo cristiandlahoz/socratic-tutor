@@ -1,6 +1,5 @@
 package com.wornux.data.entities;
 
-import com.wornux.domain.chat.StoredChatMessage;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -25,6 +24,8 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+
+import com.wornux.dtos.chat.StoredChatMessage;
 
 @Getter
 @Setter

@@ -1,7 +1,8 @@
 package com.wornux.services.document;
 
 import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.domain.document.*;
+import com.wornux.dtos.document.*;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

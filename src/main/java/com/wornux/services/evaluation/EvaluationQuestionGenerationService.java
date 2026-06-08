@@ -3,7 +3,8 @@ package com.wornux.services.evaluation;
 import com.wornux.services.subject.SubjectConfig;
 import com.wornux.data.entities.EvaluationQuestionExample;
 import com.wornux.data.entities.EvaluationRevision;
-import com.wornux.domain.profile.StudentLearningProfile;
+import com.wornux.dtos.profile.StudentLearningProfile;
+
 import java.util.List;
 import java.util.Map;
 import org.springframework.ai.chat.messages.SystemMessage;

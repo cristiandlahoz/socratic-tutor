@@ -1,7 +1,8 @@
 package com.wornux.ai.tools;
 
+import com.wornux.dtos.document.DocumentContextResult;
 import com.wornux.services.document.DocumentRetrievalService;
-import com.wornux.domain.document.DocumentContextResult;
+
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;

@@ -1,4 +1,4 @@
-package com.wornux.domain.profile;
+package com.wornux.dtos.profile;
 
 import java.time.Instant;
 import java.util.List;

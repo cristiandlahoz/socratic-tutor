@@ -1,4 +1,4 @@
-package com.wornux.domain.chat.questions;
+package com.wornux.dtos.chat.questions;
 
 import java.io.Serializable;
 
@@ -10,7 +10,7 @@ public record StudentQuestionOption(
         @JsonProperty(required = true)
         String label,
     @JsonPropertyDescription(
-            "Short explanation that clarifies what this option means for the student.")
+            "Short explanation that clarifies what this option means.")
         @JsonProperty(required = true)
         String description)
     implements Serializable {}

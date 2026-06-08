@@ -1,4 +1,4 @@
-package com.wornux.domain.chat.questions;
+package com.wornux.dtos.chat.questions;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
