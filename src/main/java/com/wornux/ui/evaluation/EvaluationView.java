@@ -2,9 +2,9 @@ package com.wornux.ui.evaluation;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
@@ -23,12 +23,12 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.wornux.data.entities.Evaluation;
 import com.wornux.data.enums.EvaluationStatus;
-import com.wornux.services.evaluation.EvaluationChatService;
+import com.wornux.infrastructure.web.BrowserClientService;
 import com.wornux.services.evaluation.EvaluationQuestionGenerationService;
+import com.wornux.services.evaluation.EvaluationRunService;
 import com.wornux.services.evaluation.EvaluationService;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -40,8 +40,9 @@ public class EvaluationView extends Composite<Div> {
       DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", SPANISH_LOCALE);
 
   private final EvaluationService evaluationService;
+  private final EvaluationRunService runService;
   private final EvaluationQuestionGenerationService questionGenerationService;
-  private final EvaluationChatService chatService;
+  private final BrowserClientService browserClientService;
 
   private final TextField titleField = new TextField("Título");
   private final TextArea instructionField = new TextArea("Instrucción");
@@ -51,13 +52,18 @@ public class EvaluationView extends Composite<Div> {
   private final Button deleteButton = new Button("Eliminar");
   private final Button launchButton = new Button("Lanzar Evaluación");
 
+  private UUID selectedEvaluationId;
+  private Dialog openDialog;
+
   public EvaluationView(
       EvaluationService evaluationService,
+      EvaluationRunService runService,
       EvaluationQuestionGenerationService questionGenerationService,
-      EvaluationChatService chatService) {
+      BrowserClientService browserClientService) {
     this.evaluationService = evaluationService;
+    this.runService = runService;
     this.questionGenerationService = questionGenerationService;
-    this.chatService = chatService;
+    this.browserClientService = browserClientService;
 
     var content = getContent();
     content.addClassName("evaluation-view");
@@ -141,8 +147,10 @@ public class EvaluationView extends Composite<Div> {
     grid.asSingleSelect().addValueChangeListener(event -> onSelectionChange(event.getValue()));
 
     grid.addItemDoubleClickListener(event -> {
-      var dialog = new EvaluationDialog(event.getItem(), evaluationService, questionGenerationService, this::onEvaluationUpdated);
-      dialog.open();
+      if (openDialog != null && openDialog.isOpened()) return;
+      openDialog = new EvaluationDialog(event.getItem(), evaluationService, questionGenerationService, this::onEvaluationUpdated);
+      openDialog.addOpenedChangeListener(e -> { if (!e.isOpened()) openDialog = null; });
+      openDialog.open();
     });
 
     generateButton.setIcon(new Icon(VaadinIcon.QUESTION));
@@ -254,6 +262,7 @@ public class EvaluationView extends Composite<Div> {
 
   private void onSelectionChange(Evaluation evaluation) {
     boolean hasSelection = evaluation != null;
+    selectedEvaluationId = evaluation != null ? evaluation.getId() : null;
     generateButton.setEnabled(hasSelection && evaluation.getQuestionsJson() == null);
     deleteButton.setEnabled(hasSelection);
     launchButton.setVisible(hasSelection && evaluation.getQuestionsJson() != null
@@ -293,9 +302,17 @@ public class EvaluationView extends Composite<Div> {
 
   private void onLaunch() {
     var evaluation = grid.asSingleSelect().getValue();
-    if (evaluation == null) return;
+    if (evaluation == null || evaluation.getQuestionsJson() == null) return;
 
-    getUI().ifPresent(ui -> ui.navigate(EvaluationChatView.class, evaluation.getId().toString()));
+    try {
+      var clientId = browserClientService.resolveClientId();
+      var run = runService.createRun(evaluation.getId(), clientId, "[]");
+      selectedEvaluationId = evaluation.getId();
+
+      getUI().ifPresent(ui -> ui.navigate(EvaluationChatView.class, run.getId().toString()));
+    } catch (Exception e) {
+      Notification.show("Error al lanzar la evaluación: " + e.getMessage());
+    }
   }
 
   public void onEvaluationUpdated(Evaluation evaluation) {
@@ -308,6 +325,7 @@ public class EvaluationView extends Composite<Div> {
   }
 
   private void clearSelection() {
+    selectedEvaluationId = null;
     grid.asSingleSelect().clear();
     generateButton.setEnabled(false);
     deleteButton.setEnabled(false);

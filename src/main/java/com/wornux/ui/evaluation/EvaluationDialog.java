@@ -12,6 +12,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.dom.Element;
 import com.wornux.data.entities.Evaluation;
 import com.wornux.services.evaluation.EvaluationQuestionGenerationService;
 import com.wornux.services.evaluation.EvaluationService;
@@ -44,6 +45,8 @@ public class EvaluationDialog extends Dialog {
     setHeaderTitle("Evaluación: " + evaluation.getTitle());
     setWidth("48rem");
     setMinHeight("30rem");
+    setCloseOnOutsideClick(true);
+    setCloseOnEsc(true);
 
     titleField = new TextField("Título");
     titleField.setWidthFull();
@@ -140,11 +143,12 @@ public class EvaluationDialog extends Dialog {
     if (markdown == null || markdown.isBlank()) {
       container.add(new Span("Aún no se generó el reporte."));
     } else {
-      var content = new Span(markdown);
-      content.getElement().getStyle().set("white-space", "pre-wrap");
-      content.getElement().getStyle().set("font-family", "monospace");
-      content.getElement().getStyle().set("font-size", "0.875rem");
-      container.add(content);
+      var markdownEl = new Element("vaadin-markdown");
+      markdownEl.setProperty("content", markdown);
+      var wrapper = new Div();
+      wrapper.addClassName("evaluation-report-markdown");
+      wrapper.getElement().appendChild(markdownEl);
+      container.add(wrapper);
     }
 
     var section = new Div(title, container);
