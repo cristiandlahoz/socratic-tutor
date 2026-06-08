@@ -18,9 +18,14 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:${POSTGRES_PORT:4321}/socratic-tutor}
     username: ${DATABASE_USERNAME:postgres}
     password: ${DATABASE_PASSWORD:postgres}
+    
+  flyway:
+   enabled: true
+   locations: classpath:db/migration
+   baseline-on-migrate: true 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
   docker:
     compose:
       lifecycle-management: none
@@ -127,7 +132,7 @@ spring:
     chat:
       client:
         observations:
-          log-prompt: true
+          log-prompt: false
           log-completion: true
     tools:
       throw-exception-on-error: true
@@ -139,7 +144,3 @@ spring:
   docker:
     compose:
       lifecycle-management: start-only
-
-# vaadin:
-#   frontend:
-#     hotdeploy: true
