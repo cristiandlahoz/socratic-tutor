@@ -1,13 +1,19 @@
 package com.wornux.services.profile;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-import com.wornux.config.ProfileProperties;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.wornux.ai.profile.TurnProfileUpdate;
-import com.wornux.data.enums.MisconceptionStatus;
+import com.wornux.config.ProfileProperties;
 import com.wornux.data.entities.StudentMisconception;
 import com.wornux.data.entities.StudentProfile;
 import com.wornux.data.entities.StudentProfileSignal;
+import com.wornux.data.enums.MisconceptionStatus;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.data.repositories.profile.StudentMisconceptionRepository;
 import com.wornux.data.repositories.profile.StudentProfileRepository;
@@ -16,12 +22,8 @@ import com.wornux.dtos.profile.StudentLearningProfile;
 import com.wornux.dtos.profile.StudentProfileSnapshot;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import java.util.UUID;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class StudentProfileService {
@@ -32,7 +34,6 @@ public class StudentProfileService {
   private final StudentMisconceptionRepository misconceptionRepository;
   private final StudentProfileSignalRepository signalRepository;
   private final ProfileProperties profileProperties;
-  private final MeterRegistry meterRegistry;
   private final ObjectMapper objectMapper;
 
   public StudentProfileService(
@@ -46,7 +47,6 @@ public class StudentProfileService {
     this.misconceptionRepository = misconceptionRepository;
     this.signalRepository = signalRepository;
     this.profileProperties = profileProperties;
-    this.meterRegistry = meterRegistry;
     this.objectMapper = objectMapper;
   }
 
@@ -71,7 +71,6 @@ public class StudentProfileService {
 
     return new StudentProfileSnapshot(
         profile.getPreferredLanguage(),
-        profile.getHelpMode(),
         profile.isNeedsConcreteExamples(),
         activeMisconceptions,
         profile.getProfileVersion(),
@@ -126,27 +125,6 @@ public class StudentProfileService {
             .orElseGet(() -> profileRepository.save(StudentProfile.create(clientId)));
     boolean changed = false;
 
-    if (update.preferredLanguage() != null
-        && !update.preferredLanguage().isBlank()
-        && !update.preferredLanguage().equalsIgnoreCase(profile.getPreferredLanguage())) {
-      profile.setPreferredLanguage(update.preferredLanguage());
-      changed = true;
-    }
-
-    if (update.needsConcreteExamples() && !profile.isNeedsConcreteExamples()) {
-      profile.setNeedsConcreteExamples(true);
-      changed = true;
-    }
-
-    if (update.recommendedHelpMode() != null
-        && profile.getHelpMode() != update.recommendedHelpMode()
-        && update.toolEvidence().stream().filter(TurnProfileUpdate.ToolEvidence::useful).count()
-            >= 2) {
-      profile.setHelpMode(update.recommendedHelpMode());
-      meterRegistry.counter("profile.help_mode.changed").increment();
-      changed = true;
-    }
-
     for (var misconceptionObservation : update.misconceptionsObserved()) {
       var misconception =
           misconceptionRepository
@@ -158,11 +136,9 @@ public class StudentProfileService {
                           clientId,
                           misconceptionObservation.topicKey(),
                           misconceptionObservation.misconceptionKey(),
-                          misconceptionObservation.description(),
-                          misconceptionObservation.confidence()));
-      misconception.refresh(misconceptionObservation.confidence());
+                          misconceptionObservation.description()));
+      misconception.refresh();
       misconceptionRepository.save(misconception);
-      meterRegistry.counter("profile.misconception.detected").increment();
       changed = true;
     }
 
@@ -177,11 +153,9 @@ public class StudentProfileService {
     if (changed || update.hasProfileMutation()) {
       profile.touch();
       profileRepository.save(profile);
-      meterRegistry.counter("profile.updates.total").increment();
       return;
     }
 
-    meterRegistry.counter("profile.update.noop").increment();
     profileRepository.save(profile);
   }
 
@@ -215,7 +189,6 @@ public class StudentProfileService {
                 learningProfile.activeMisconceptions().size())));
     profile.touch();
     profileRepository.save(profile);
-    meterRegistry.counter("profile.evaluation_updates.total").increment();
   }
 
   private void resolveStaleMisconceptions(UUID clientId) {
