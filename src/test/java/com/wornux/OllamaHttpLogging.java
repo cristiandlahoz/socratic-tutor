@@ -1,7 +1,5 @@
 package com.wornux;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -10,11 +8,15 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 final class OllamaHttpLogging {
 
@@ -28,17 +30,17 @@ final class OllamaHttpLogging {
     var transcript = new Transcript(transcriptName);
     return RestClient.builder()
         .requestFactory(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()))
-        .requestInterceptor(
-            (request, body, execution) -> {
-              var requestBody = new String(body, StandardCharsets.UTF_8);
-              transcript.recordRequest(request.getMethod().name(), request.getURI().toString(), requestBody);
+        .requestInterceptor((request, body, execution) -> {
+          var requestBody = new String(body, StandardCharsets.UTF_8);
+          transcript.recordRequest(
+              request.getMethod().name(), request.getURI().toString(), requestBody);
 
-              var response = execution.execute(request, body);
-              var responseBody = new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8);
-              transcript.recordResponse(
-                  response.getStatusCode().value(), response.getStatusText(), responseBody);
-              return response;
-            });
+          var response = execution.execute(request, body);
+          var responseBody = new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8);
+          transcript.recordResponse(
+              response.getStatusCode().value(), response.getStatusText(), responseBody);
+          return response;
+        });
   }
 
   private static final class Transcript {
@@ -55,16 +57,14 @@ final class OllamaHttpLogging {
     private void recordRequest(String method, String uri, String body) {
       var exchange = exchangeCounter.incrementAndGet();
       var formattedBody = formatJson(body);
-      var entry =
-          """
+      var entry = """
 
           ### Exchange %d request %s
           %s %s
           Content-Type: application/json
 
           %s
-          """
-              .formatted(exchange, Instant.now(), method, uri, formattedBody);
+          """.formatted(exchange, Instant.now(), method, uri, formattedBody);
       append(entry);
       log.info("Ollama request #{} {} {}\n{}", exchange, method, uri, formattedBody);
     }
@@ -72,18 +72,17 @@ final class OllamaHttpLogging {
     private void recordResponse(int statusCode, String statusText, String body) {
       var exchange = exchangeCounter.get();
       var formattedBody = formatJson(body);
-      var entry =
-          """
+      var entry = """
 
           ### Exchange %d response %s
           HTTP %d %s
           Content-Type: application/json
 
           %s
-          """
-              .formatted(exchange, Instant.now(), statusCode, statusText, formattedBody);
+          """.formatted(exchange, Instant.now(), statusCode, statusText, formattedBody);
       append(entry);
-      log.info("Ollama response #{} HTTP {} {}\n{}", exchange, statusCode, statusText, formattedBody);
+      log.info(
+          "Ollama response #{} HTTP {} {}\n{}", exchange, statusCode, statusText, formattedBody);
     }
 
     private String formatJson(String body) {
@@ -91,7 +90,9 @@ final class OllamaHttpLogging {
         return "";
       }
       try {
-        return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectMapper.readTree(body));
+        return objectMapper
+            .writerWithDefaultPrettyPrinter()
+            .writeValueAsString(objectMapper.readTree(body));
       } catch (JsonProcessingException ex) {
         return body;
       }

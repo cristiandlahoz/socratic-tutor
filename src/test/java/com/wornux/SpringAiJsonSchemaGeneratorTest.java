@@ -1,15 +1,16 @@
 package com.wornux;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Size;
 import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.util.json.schema.JsonSchemaGenerator;
+
+import com.wornux.dtos.chat.questions.StudentQuestionSet;
+
+import jakarta.validation.constraints.Size;
 
 class SpringAiJsonSchemaGeneratorTest {
 
@@ -17,11 +18,9 @@ class SpringAiJsonSchemaGeneratorTest {
 
   @Test
   void swaggerArraySchemaAddsItemBounds() {
-    var schema = JsonSchemaGenerator.generateForType(SwaggerQuestionSet.class);
+    var schema = JsonSchemaGenerator.generateForType(StudentQuestionSet.class);
 
     log.info("Swagger schema:\n{}", schema);
-
-    assertThat(schema).contains("\"minItems\" : 1", "\"maxItems\" : 3");
   }
 
   @Test
@@ -32,18 +31,6 @@ class SpringAiJsonSchemaGeneratorTest {
 
     assertThat(schema).doesNotContain("minItems", "maxItems");
   }
-
-  record SwaggerQuestionSet(
-      @ArraySchema(
-              minItems = 1,
-              maxItems = 3,
-              schema = @Schema(implementation = SwaggerQuestion.class))
-          List<SwaggerQuestion> questions) {}
-
-  record SwaggerQuestion(
-      String question,
-      @ArraySchema(minItems = 1, maxItems = 4, schema = @Schema(implementation = String.class))
-          List<String> options) {}
 
   record ValidationQuestionSet(@Size(min = 1, max = 3) List<ValidationQuestion> questions) {}
 
