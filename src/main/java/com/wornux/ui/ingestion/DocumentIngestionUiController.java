@@ -146,6 +146,22 @@ public class DocumentIngestionUiController implements Serializable {
         state.dirty().set(true);
     }
 
+    public void deleteSegment(UUID segmentId) {
+        if (segmentId == null) {
+            return;
+        }
+        List<EditableSegmentViewModel> nextSegments = state.segments()
+                .peek()
+                .stream()
+                .filter(segment -> !segment.id().equals(segmentId))
+                .toList();
+        if (nextSegments.size() == state.segments().peek().size()) {
+            return;
+        }
+        state.segments().set(nextSegments);
+        state.dirty().set(true);
+    }
+
     public void returnToChat() {
         if (chatUiState.activeConversationId().peek() != null) {
             UI.getCurrent().navigate("", QueryParameters.of("c", chatUiState.activeConversationId().peek().toString()));

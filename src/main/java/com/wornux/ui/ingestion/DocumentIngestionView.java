@@ -104,6 +104,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
         segmentEditorList = new DocumentSegmentEditorList();
         segmentEditorList.setSegmentChangeListener(controller::updateSegment);
+        segmentEditorList.setSegmentDeleteListener(controller::deleteSegment);
 
         var segmentsShell = new Div(
                 sectionHeader(

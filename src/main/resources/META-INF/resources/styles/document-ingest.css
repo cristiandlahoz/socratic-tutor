@@ -147,6 +147,12 @@
   background: color-mix(in srgb, var(--chat-surface-raised) 92%, transparent);
 }
 
+.document-ingest-segment-card-header {
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .document-ingest-segment-provenance {
   display: flex;
   flex-wrap: wrap;
@@ -174,7 +180,8 @@
 vaadin-button.document-ingest-back-button::part(button),
 vaadin-button.document-ingest-retry-button::part(button),
 vaadin-button.document-ingest-approve-button::part(button),
-vaadin-button.document-ingest-upload-button::part(button) {
+vaadin-button.document-ingest-upload-button::part(button),
+vaadin-button.document-ingest-segment-delete-button::part(button) {
   min-height: 2.8rem;
   border-radius: var(--chat-panel-radius);
   border: 1px solid var(--chat-border-section);
@@ -191,7 +198,8 @@ vaadin-button.document-ingest-upload-button::part(button) {
 vaadin-button.document-ingest-back-button:hover::part(button),
 vaadin-button.document-ingest-retry-button:hover::part(button),
 vaadin-button.document-ingest-approve-button:hover::part(button),
-vaadin-button.document-ingest-upload-button:hover::part(button) {
+vaadin-button.document-ingest-upload-button:hover::part(button),
+vaadin-button.document-ingest-segment-delete-button:hover::part(button) {
   background: var(--theme-button-fill-hover);
   color: var(--theme-accent-contrast);
   transform: translateY(-1px);

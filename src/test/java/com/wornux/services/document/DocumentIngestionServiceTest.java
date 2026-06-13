@@ -98,6 +98,31 @@ class DocumentIngestionServiceTest {
     ordered.verify(documentRepository).delete(document);
   }
 
+  @Test
+  void deletesSegmentsExcludedFromReviewBeforeIndexing() {
+    var clientId = UUID.randomUUID();
+    var document = document(clientId);
+    var keptSegment = segment(document);
+    var removedSegment = segment(document, 2, "This duplicate chunk should be removed.");
+    var job = DocumentIngestionJob.start(document, "review");
+    var command = approveCommand(clientId, document.getId(), keptSegment);
+
+    when(documentRepository.findByIdAndClientId(document.getId(), clientId))
+        .thenReturn(Optional.of(document));
+    when(jobRepository.findFirstByDocument_IdOrderByStartedAtDesc(document.getId()))
+        .thenReturn(Optional.of(job));
+    when(segmentRepository.findByDocument_IdOrderByOrdinalAsc(document.getId()))
+        .thenReturn(List.of(keptSegment, removedSegment), List.of(keptSegment));
+    when(catalogService.analyzeOrFallback(document.getOriginalFilename(), command.reviewedMarkdown()))
+        .thenReturn(new DocumentCatalogService.CatalogAnalysis(catalog(), false));
+
+    service.approve(command);
+
+    verify(segmentRepository).deleteAll(List.of(removedSegment));
+    verify(segmentRepository).saveAll(List.of(keptSegment));
+    verify(embeddingService).reindex(document, List.of(keptSegment));
+  }
+
   private Document document(UUID clientId) {
     var document = Document.create(
         new StartIngestionCommand(clientId, "algorithms.pdf", "application/pdf", "%PDF".getBytes()),
@@ -107,17 +132,21 @@ class DocumentIngestionServiceTest {
   }
 
   private DocumentSegment segment(Document document) {
+    return segment(document, 1, "Binary search halves the search interval.");
+  }
+
+  private DocumentSegment segment(Document document, int ordinal, String content) {
     return DocumentSegment.createDraft(
         document,
-        1,
+        ordinal,
         "Algorithms",
-        "Binary search halves the search interval.",
+        content,
         6,
         1,
         List.of(1),
         List.of(),
         List.of(),
-        "Binary search halves the search interval.");
+        content);
   }
 
   private ApproveDocumentCommand approveCommand(UUID clientId, UUID documentId, DocumentSegment segment) {

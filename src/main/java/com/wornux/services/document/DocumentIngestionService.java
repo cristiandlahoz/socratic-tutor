@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -175,17 +176,27 @@ public class DocumentIngestionService {
                       (left, _) -> left,
                       LinkedHashMap::new));
 
+      Set<UUID> reviewedSegmentIds = command.segments().stream()
+          .map(EditableSegmentViewModel::id)
+          .collect(Collectors.toSet());
+      List<DocumentSegment> removedSegments = persistedSegments.values().stream()
+          .filter(segment -> !reviewedSegmentIds.contains(segment.getId()))
+          .toList();
+      List<DocumentSegment> approvedSegments = new ArrayList<>();
+
       for (EditableSegmentViewModel reviewedSegment : command.segments()) {
         var segment = persistedSegments.get(reviewedSegment.id());
         if (segment == null) {
           throw new DocumentIngestionException("La revision contiene un segmento desconocido.");
         }
         segment.applyReview(reviewedSegment);
+        approvedSegments.add(segment);
       }
-      segmentRepository.saveAll(persistedSegments.values());
+      segmentRepository.deleteAll(removedSegments);
+      segmentRepository.saveAll(approvedSegments);
 
       List<DocumentSegment> uniqueSegments =
-          deduplicateApprovedSegments(new ArrayList<>(persistedSegments.values()));
+          deduplicateApprovedSegments(approvedSegments);
       embeddingService.reindex(document, uniqueSegments);
 
       document.markIndexed(command.reviewedMarkdown());
