@@ -1,277 +1,421 @@
 package com.wornux.ui.evaluation;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import com.vaadin.flow.component.Composite;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.Location;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.wornux.data.entities.Evaluation;
+import com.wornux.data.enums.EvaluationStatus;
 import com.wornux.infrastructure.web.BrowserClientService;
-import com.wornux.services.evaluation.EvaluationAttemptVm;
-import com.wornux.services.evaluation.EvaluationGenerationException;
-import com.wornux.services.evaluation.EvaluationQuestionVm;
+import com.wornux.services.evaluation.EvaluationQuestionGenerationService;
+import com.wornux.services.evaluation.EvaluationRunService;
 import com.wornux.services.evaluation.EvaluationService;
-import com.wornux.ui.MainLayout;
-import com.wornux.ui.chat.ChatState;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+import java.util.UUID;
 
-@Route(value = "evaluations", layout = MainLayout.class)
-@PageTitle("Evaluaciones")
-public class EvaluationView extends Composite<Div> implements BeforeEnterObserver {
+@Route(value = "evaluations", layout = com.wornux.ui.MainLayout.class)
+public class EvaluationView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
 
-    private final EvaluationService evaluationService;
-    private final ChatState chatUiState;
-    private final BrowserClientService browserClientService;
-    private final Div attemptList = new Div();
-    private final Div questionList = new Div();
-    private final Div reportPanel = new Div();
-    private final TextArea teacherInstructions = new TextArea("Guías de evaluación");
-    private final TextArea teacherExamples = new TextArea("Ejemplos del profesor");
-    private final Map<UUID, TextArea> answers = new LinkedHashMap<>();
-    private EvaluationAttemptVm activeAttempt;
+  private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");
+  private static final DateTimeFormatter DATE_FORMATTER =
+      DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", SPANISH_LOCALE);
+  public static final String OPEN_EVALUATION_QUERY_PARAMETER = "evaluation";
 
-    public EvaluationView(
-            EvaluationService evaluationService,
-            ChatState chatUiState,
-            BrowserClientService browserClientService) {
-        this.evaluationService = evaluationService;
-        this.chatUiState = chatUiState;
-        this.browserClientService = browserClientService;
+  private final EvaluationService evaluationService;
+  private final EvaluationRunService runService;
+  private final EvaluationQuestionGenerationService questionGenerationService;
+  private final BrowserClientService browserClientService;
 
-        var root = getContent();
-        root.addClassName("evaluation-view");
-        root.add(createHeader(), createTeacherPanel(), createWorkspace());
+  private final TextField titleField = new TextField("Título");
+  private final TextArea instructionField = new TextArea("Instrucción");
+  private final Button saveButton = new Button("Guardar borrador");
+  private final Grid<Evaluation> grid = new Grid<>(Evaluation.class, false);
+  private final Button generateButton = new Button("Generar Preguntas");
+  private final Button deleteButton = new Button("Eliminar");
+  private final Button launchButton = new Button("Lanzar Evaluación");
+
+  private UUID selectedEvaluationId;
+  private UUID pendingDialogEvaluationId;
+  private EvaluationDialog openDialog;
+
+  public EvaluationView(
+      EvaluationService evaluationService,
+      EvaluationRunService runService,
+      EvaluationQuestionGenerationService questionGenerationService,
+      BrowserClientService browserClientService) {
+    this.evaluationService = evaluationService;
+    this.runService = runService;
+    this.questionGenerationService = questionGenerationService;
+    this.browserClientService = browserClientService;
+
+    var content = getContent();
+    content.addClassName("evaluation-view");
+
+    var header = buildHeader();
+    var formCard = buildFormCard();
+    var actionsRow = buildActionsRow();
+    var gridCard = buildGridCard();
+    var bottomActions = buildBottomActions();
+
+    var layout = new VerticalLayout(header, formCard, actionsRow, gridCard, bottomActions);
+    layout.setPadding(false);
+    layout.setSpacing(true);
+    content.add(layout);
+
+    refreshGrid();
+  }
+
+  private Div buildHeader() {
+    var title = new H2("Evaluaciones");
+    title.addClassNames(LumoUtility.Margin.NONE);
+
+    var description = new Span("Crea y gestiona evaluaciones diagnósticas. Escribe las instrucciones, genera preguntas y lanza la evaluación.");
+    description.addClassName("evaluation-description");
+
+    var header = new Div(title, description);
+    header.addClassName("evaluation-header");
+    return header;
+  }
+
+  private Div buildFormCard() {
+    titleField.setWidthFull();
+    titleField.setValueChangeMode(ValueChangeMode.EAGER);
+    titleField.setPlaceholder("Título de la evaluación");
+
+    instructionField.setWidthFull();
+    instructionField.setMinHeight("8rem");
+    instructionField.setValueChangeMode(ValueChangeMode.EAGER);
+    instructionField.setPlaceholder("Escribe las instrucciones para la evaluación diagnóstica...");
+
+    saveButton.addThemeVariants(ButtonVariant.PRIMARY);
+    saveButton.setIcon(new Icon(VaadinIcon.PLUS));
+    saveButton.addClickShortcut(Key.ENTER).listenOn(instructionField);
+    saveButton.addClickListener(_ -> onSave());
+    updateSaveButton();
+
+    titleField.addValueChangeListener(_ -> updateSaveButton());
+    instructionField.addValueChangeListener(_ -> updateSaveButton());
+
+    var card = new Div(titleField, instructionField, saveButton);
+    card.addClassName("evaluation-form-card");
+    return card;
+  }
+
+  private Div buildActionsRow() {
+    var row = new Div();
+    row.addClassName("evaluation-actions-row");
+    return row;
+  }
+
+  private Div buildGridCard() {
+    grid.addColumn(Evaluation::getTitle).setHeader("Título").setAutoWidth(true).setSortable(true);
+    grid.addColumn(eval -> {
+      var instr = eval.getInstruction();
+      return instr.length() > 80 ? instr.substring(0, 80) + "..." : instr;
+    }).setHeader("Instrucción").setWidth("20rem").setFlexGrow(1);
+    grid.addColumn(new ComponentRenderer<>(this::renderQuestionsCount))
+        .setHeader("Pregs.").setWidth("6rem");
+    grid.addColumn(new ComponentRenderer<>(this::renderStatusBadge))
+        .setHeader("Estado").setWidth("8rem");
+    grid.addColumn(eval -> eval.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_FORMATTER))
+        .setHeader("Creado").setWidth("12rem");
+    grid.addColumn(new ComponentRenderer<>(this::renderDeleteButton))
+        .setHeader("Acción").setWidth("5rem").setFlexGrow(0);
+
+    grid.setSelectionMode(Grid.SelectionMode.SINGLE);
+    grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+    grid.setWidthFull();
+    grid.setMinHeight("12rem");
+
+    grid.asSingleSelect().addValueChangeListener(event -> onSelectionChange(event.getValue()));
+
+    grid.addItemDoubleClickListener(event -> {
+      if (openDialog != null) return;
+      openEvaluationDialog(event.getItem(), false);
+    });
+
+    generateButton.setIcon(new Icon(VaadinIcon.QUESTION));
+    generateButton.addThemeVariants(ButtonVariant.PRIMARY);
+    generateButton.setEnabled(false);
+    generateButton.addClickListener(_ -> onGenerateQuestions());
+
+    deleteButton.setIcon(new Icon(VaadinIcon.TRASH));
+    deleteButton.addThemeVariants(ButtonVariant.ERROR);
+    deleteButton.setEnabled(false);
+    deleteButton.addClickListener(_ -> onDeleteSelected());
+
+    launchButton.setIcon(new Icon(VaadinIcon.PLAY));
+    launchButton.addThemeVariants(ButtonVariant.SUCCESS);
+    launchButton.setVisible(false);
+    launchButton.addClickListener(_ -> onLaunch());
+
+    var toolbar = new HorizontalLayout(generateButton, deleteButton, launchButton);
+    toolbar.setPadding(false);
+
+    var card = new Div(grid, toolbar);
+    card.addClassName("evaluation-grid-card");
+    return card;
+  }
+
+  private Div buildBottomActions() {
+    return new Div();
+  }
+
+  private Span renderQuestionsCount(Evaluation eval) {
+    var json = eval.getQuestionsJson();
+    if (json == null || json.isBlank()) {
+      return new Span("—");
+    }
+    try {
+      var questions = questionGenerationService.fromJson(json);
+      var span = new Span(String.valueOf(questions.size()));
+      span.getElement().getStyle().set("font-weight", "bold");
+      return span;
+    } catch (Exception e) {
+      return new Span("?");
+    }
+  }
+
+  private Span renderStatusBadge(Evaluation eval) {
+    var badge = new Span(switch (eval.getStatus()) {
+      case PENDING -> "Pendiente";
+      case RUNNING -> "En curso";
+      case COMPLETED -> "Completada";
+      case FAILED -> "Fallida";
+    });
+    badge.getElement().getThemeList().add(switch (eval.getStatus()) {
+      case PENDING -> "badge";
+      case RUNNING -> "badge primary";
+      case COMPLETED -> "badge success";
+      case FAILED -> "badge error";
+    });
+    return badge;
+  }
+
+  private Button renderDeleteButton(Evaluation eval) {
+    var button = new Button(new Icon(VaadinIcon.TRASH));
+    button.addThemeVariants(ButtonVariant.TERTIARY, ButtonVariant.ERROR);
+    button.getElement().setAttribute("aria-label", "Eliminar " + eval.getTitle());
+    button.addClickListener(_ -> confirmAndDelete(eval));
+    return button;
+  }
+
+  private void confirmAndDelete(Evaluation eval) {
+    var dialog = new com.vaadin.flow.component.dialog.Dialog();
+    dialog.setHeaderTitle("Eliminar evaluación");
+
+    var message = new com.vaadin.flow.component.html.Span(
+        "¿Estás seguro de que querés eliminar \"" + eval.getTitle() + "\"? Esta acción no se puede deshacer.");
+
+    var confirmButton = new Button("Eliminar", _ -> {
+      evaluationService.delete(eval.getId());
+      Notification.show("Evaluación eliminada");
+      refreshGrid();
+      clearSelection();
+      dialog.close();
+    });
+    confirmButton.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.PRIMARY);
+
+    var cancelButton = new Button("Cancelar", _ -> dialog.close());
+    cancelButton.addThemeVariants(ButtonVariant.TERTIARY);
+
+    dialog.add(message);
+    dialog.getFooter().add(cancelButton, confirmButton);
+    dialog.open();
+  }
+
+  private void onSave() {
+    var title = titleField.getValue().trim();
+    var instruction = instructionField.getValue().trim();
+
+    if (title.isBlank() || instruction.isBlank()) {
+      Notification.show("Completá el título y la instrucción antes de guardar");
+      return;
     }
 
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        ensureClientId();
-        refreshAttempts();
+    evaluationService.createPending(title, instruction);
+    Notification.show("Evaluación guardada");
+
+    titleField.clear();
+    instructionField.clear();
+    refreshGrid();
+  }
+
+  private void onSelectionChange(Evaluation evaluation) {
+    boolean hasSelection = evaluation != null;
+    selectedEvaluationId = evaluation != null ? evaluation.getId() : null;
+    generateButton.setEnabled(hasSelection && evaluation.getQuestionsJson() == null);
+    deleteButton.setEnabled(hasSelection);
+    boolean canLaunch = hasSelection && evaluation.getQuestionsJson() != null;
+    launchButton.setVisible(canLaunch);
+    if (canLaunch) {
+      launchButton.setText(evaluation.getStatus() == EvaluationStatus.COMPLETED
+          ? "Relanzar Evaluación"
+          : "Lanzar Evaluación");
+    }
+  }
+
+  private void onGenerateQuestions() {
+    var evaluation = grid.asSingleSelect().getValue();
+    if (evaluation == null) return;
+
+    generateButton.setEnabled(false);
+    generateButton.setText("Generando...");
+
+    try {
+      var questions = questionGenerationService.generateQuestions(evaluation.getInstruction());
+      var json = questionGenerationService.toJson(questions);
+      evaluationService.saveQuestions(evaluation.getId(), json);
+
+      Notification.show("Se generaron %d preguntas".formatted(questions.size()));
+      refreshGrid();
+      var refreshedEvaluation = evaluationService.get(evaluation.getId());
+      grid.asSingleSelect().setValue(refreshedEvaluation);
+      onSelectionChange(refreshedEvaluation);
+    } catch (Exception e) {
+      Notification.show("Error al generar preguntas: " + e.getMessage());
+    } finally {
+      generateButton.setText("Generar Preguntas");
+      var selected = grid.asSingleSelect().getValue();
+      generateButton.setEnabled(selected != null && selected.getQuestionsJson() == null);
+    }
+  }
+
+  private void onDeleteSelected() {
+    var evaluation = grid.asSingleSelect().getValue();
+    if (evaluation == null) return;
+    confirmAndDelete(evaluation);
+  }
+
+  private void onLaunch() {
+    var evaluation = grid.asSingleSelect().getValue();
+    if (evaluation == null || evaluation.getQuestionsJson() == null) return;
+
+    try {
+      var clientId = browserClientService.resolveClientId();
+      var run = runService.createRun(evaluation.getId(), clientId, "[]");
+      evaluationService.markRunning(evaluation.getId());
+      selectedEvaluationId = evaluation.getId();
+
+      getUI().ifPresent(ui -> ui.navigate(EvaluationChatView.class, run.getId().toString()));
+    } catch (Exception e) {
+      Notification.show("Error al lanzar la evaluación: " + e.getMessage());
+    }
+  }
+
+  public void onEvaluationUpdated(Evaluation evaluation) {
+    refreshGrid();
+  }
+
+  @Override
+  public void beforeEnter(BeforeEnterEvent event) {
+    pendingDialogEvaluationId = event
+        .getLocation()
+        .getQueryParameters()
+        .getSingleParameter(OPEN_EVALUATION_QUERY_PARAMETER)
+        .map(this::parseUuid)
+        .orElse(null);
+  }
+
+  @Override
+  public void afterNavigation(AfterNavigationEvent event) {
+    if (pendingDialogEvaluationId == null) {
+      return;
     }
 
-    private Div createHeader() {
-        var eyebrow = new Span("Modo evaluación");
-        eyebrow.addClassName("evaluation-eyebrow");
+    var evaluationId = pendingDialogEvaluationId;
+    pendingDialogEvaluationId = null;
+    openEvaluationDialogFromRoute(evaluationId);
+  }
 
-        var title = new H2("Diagnóstico del estudiante");
-        title.addClassName("evaluation-title");
+  private void refreshGrid() {
+    var items = evaluationService.listAll();
+    grid.setItems(items);
+  }
 
-        var description =
-                new Paragraph("Lanza una evaluación versionada, captura respuestas y genera un reporte persistente"
-                        + " basado en evidencia.");
-        description.addClassName("evaluation-description");
+  private UUID parseUuid(String rawValue) {
+    try {
+      return UUID.fromString(rawValue);
+    } catch (IllegalArgumentException ignored) {
+      return null;
+    }
+  }
 
-        var launchButton = new Button("Lanzar diagnóstico", new Icon(VaadinIcon.PLAY));
-        launchButton.addThemeVariants(ButtonVariant.PRIMARY);
-        launchButton.addClassName("evaluation-primary-action");
-        launchButton.setAriaLabel("Lanzar diagnóstico inicial");
-        launchButton.addClickListener(_ -> launchEvaluation());
-
-        var copy = new Div(eyebrow, title, description);
-        copy.addClassName("evaluation-header-copy");
-
-        var header = new Div(copy, launchButton);
-        header.addClassName("evaluation-header");
-        return header;
+  private void openEvaluationDialogFromRoute(UUID evaluationId) {
+    if (evaluationId == null || openDialog != null) {
+      clearDialogAddressBarState();
+      return;
     }
 
-    private Div createWorkspace() {
-        attemptList.addClassName("evaluation-panel");
-        questionList.addClassName("evaluation-panel");
-        reportPanel.addClassName("evaluation-panel");
-
-        var layout = new Div(attemptList, questionList, reportPanel);
-        layout.addClassName("evaluation-workspace");
-        return layout;
+    try {
+      var evaluation = evaluationService.get(evaluationId);
+      grid.asSingleSelect().setValue(evaluation);
+      onSelectionChange(evaluation);
+      openEvaluationDialog(evaluation, true);
+    } catch (IllegalArgumentException ignored) {
+      clearDialogAddressBarState();
     }
+  }
 
-    private Div createTeacherPanel() {
-        teacherInstructions.setWidthFull();
-        teacherInstructions.setMinHeight("7rem");
-        teacherInstructions.setValue(
-            "Genera preguntas diagnósticas personalizadas. Evalúa razonamiento observable y no asumas nivel global.");
-        teacherExamples.setWidthFull();
-        teacherExamples.setMinHeight("6rem");
-        teacherExamples.setPlaceholder("Un ejemplo por línea. Son guías, no preguntas finales.");
+  private void openEvaluationDialog(Evaluation evaluation, boolean clearAddressBarOnClose) {
+    openDialog = new EvaluationDialog(
+        evaluation,
+        evaluationService,
+        questionGenerationService,
+        this::onEvaluationUpdated,
+        () -> closeEvaluationDialog(clearAddressBarOnClose));
+    getContent().add(openDialog);
+  }
 
-        var publish = new Button("Publicar guías", new Icon(VaadinIcon.CHECK_CIRCLE));
-        publish.addThemeVariants(ButtonVariant.PRIMARY);
-        publish.addClassName("evaluation-primary-action");
-        publish.setAriaLabel("Publicar guías de evaluación");
-        publish.addClickListener(_ -> publishGuidelines());
-
-        var panel = new Div(teacherInstructions, teacherExamples, publish);
-        panel.addClassName("evaluation-panel");
-        return panel;
+  private void closeEvaluationDialog(boolean clearAddressBarOnClose) {
+    if (openDialog != null) {
+      getContent().remove(openDialog);
+      openDialog = null;
     }
-
-    private void publishGuidelines() {
-        var examples = teacherExamples.getValue() == null
-                ? List.<String>of()
-                : teacherExamples.getValue().lines().filter(line -> !line.isBlank()).toList();
-        evaluationService.publishDefaultEvaluationRevision(teacherInstructions.getValue(), examples);
-        Notification.show("Guías publicadas para la próxima evaluación");
+    if (clearAddressBarOnClose) {
+      clearDialogAddressBarState();
     }
+  }
 
-    private void launchEvaluation() {
-        ensureClientId();
-        try {
-            activeAttempt = evaluationService
-                    .launchEvaluation(chatUiState.clientId().peek(), evaluationService.defaultEvaluationId());
-            renderActiveAttempt();
-            refreshAttempts();
-        }
-        catch (EvaluationGenerationException exception) {
-            Notification.show("No se pudo generar la evaluación. Revisa las guías o intenta de nuevo.");
-        }
-    }
+  private void clearDialogAddressBarState() {
+    getUI().ifPresent(ui -> ui.getPage().getHistory().replaceState(null, new Location("evaluations", QueryParameters.empty())));
+  }
 
-    private void submitAttempt() {
-        if (activeAttempt == null) {
-            return;
-        }
-        for (var question : activeAttempt.questions()) {
-            var textArea = answers.get(question.attemptQuestionId());
-            evaluationService.submitResponse(
-                question.attemptQuestionId(),
-                textArea == null ? "" : textArea.getValue(),
-                List.of());
-        }
-        activeAttempt = evaluationService.submitAttempt(activeAttempt.attemptId());
-        activeAttempt = evaluationService.gradeAttempt(activeAttempt.attemptId());
-        Notification.show("Evaluación enviada y reporte generado");
-        renderActiveAttempt();
-        refreshAttempts();
-    }
+  private void clearSelection() {
+    selectedEvaluationId = null;
+    grid.asSingleSelect().clear();
+    generateButton.setEnabled(false);
+    deleteButton.setEnabled(false);
+    launchButton.setVisible(false);
+    launchButton.setText("Lanzar Evaluación");
+  }
 
-    private void refreshAttempts() {
-        attemptList.removeAll();
-        var title = new Span("Intentos");
-        title.addClassName("evaluation-section-title");
-        attemptList.add(title);
-
-        var attempts = evaluationService.attempts(chatUiState.clientId().peek(), null);
-        if (attempts.isEmpty()) {
-            var empty = new Paragraph("Todavía no hay evaluaciones para esta sesión.");
-            empty.addClassName("evaluation-description");
-            attemptList.add(empty);
-            return;
-        }
-        for (var attempt : attempts) {
-            var button = new Button("%s · %s".formatted(shortId(attempt.attemptId()), attempt.status()), _ -> {
-                activeAttempt = attempt;
-                renderActiveAttempt();
-            });
-            button.addThemeVariants(ButtonVariant.TERTIARY);
-            button.addClassName("evaluation-attempt-button");
-            button.setWidthFull();
-            attemptList.add(button);
-        }
-    }
-
-    private void renderActiveAttempt() {
-        questionList.removeAll();
-        reportPanel.removeAll();
-        answers.clear();
-        if (activeAttempt == null) {
-            return;
-        }
-
-        var heading = new Span("Preguntas");
-        heading.addClassName("evaluation-section-title");
-        questionList.add(heading);
-
-        for (var question : activeAttempt.questions()) {
-            questionList.add(questionCard(question));
-        }
-
-        var submit = new Button("Revisar y enviar", new Icon(VaadinIcon.CHECK));
-        submit.addThemeVariants(ButtonVariant.PRIMARY);
-        submit.addClassName("evaluation-primary-action");
-        submit.setAriaLabel("Revisar y enviar evaluación");
-        submit.setEnabled("IN_PROGRESS".equals(activeAttempt.status()));
-        submit.addClickListener(_ -> submitAttempt());
-        questionList.add(submit);
-
-        renderReport();
-    }
-
-    private Div questionCard(EvaluationQuestionVm question) {
-        var topic = new Span("%d · %s · %s".formatted(question.ordinal(), question.topicKey(), question.difficulty()));
-        topic.addClassName("evaluation-question-meta");
-
-        var prompt = new Paragraph(question.prompt());
-        prompt.addClassName("evaluation-question-prompt");
-
-        var answer = new TextArea("Respuesta");
-        answer.setWidthFull();
-        answer.setMinHeight("8rem");
-        answer.setValueChangeMode(ValueChangeMode.EAGER);
-        answer.setAriaLabel("Respuesta para " + question.questionKey());
-        answer.setEnabled("IN_PROGRESS".equals(activeAttempt.status()));
-        answers.put(question.attemptQuestionId(), answer);
-
-        var card = new Div(topic, prompt, answer);
-        card.addClassName("evaluation-question-card");
-        return card;
-    }
-
-    private void renderReport() {
-        var heading = new Span("Reporte");
-        heading.addClassName("evaluation-section-title");
-        reportPanel.add(heading);
-
-        if (!"GRADED".equals(activeAttempt.status())) {
-            var pending = new Paragraph("El reporte aparecerá después de enviar y calificar.");
-            pending.addClassName("evaluation-description");
-            reportPanel.add(pending);
-            return;
-        }
-
-        var score = new Span(activeAttempt.score() == null ? "Sin puntuación" : activeAttempt.score() + " / 100");
-        score.addClassName("evaluation-score");
-        var feedback = new Paragraph(String.valueOf(activeAttempt.feedback().getOrDefault("summary", "")));
-        feedback.addClassName("evaluation-description");
-        reportPanel.add(
-            score,
-            feedback,
-            reportList("Fortalezas", "strengths"),
-            reportList("Debilidades", "weakConcepts"),
-            reportList("Misconceptions", "activeMisconceptions"));
-    }
-
-    private Div reportList(String label, String key) {
-        var title = new Span(label);
-        title.addClassName("evaluation-report-subtitle");
-        var values = activeAttempt.feedback().get(key);
-        var body = new Paragraph(values == null ? "Sin evidencia suficiente." : String.valueOf(values));
-        body.addClassName("evaluation-description");
-        var section = new Div(title, body);
-        section.addClassName("evaluation-report-section");
-        return section;
-    }
-
-    private void ensureClientId() {
-        if (chatUiState.clientId().peek() == null) {
-            chatUiState.clientId().set(browserClientService.resolveClientId());
-        }
-    }
-
-    private static String shortId(UUID id) {
-        return id == null ? "" : id.toString().substring(0, 8);
-    }
+  private void updateSaveButton() {
+    boolean hasContent = !titleField.getValue().isBlank() && !instructionField.getValue().isBlank();
+    saveButton.setEnabled(hasContent);
+  }
 }

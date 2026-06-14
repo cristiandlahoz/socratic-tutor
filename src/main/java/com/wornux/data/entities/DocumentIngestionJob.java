@@ -1,12 +1,13 @@
 package com.wornux.data.entities;
 
 import java.time.Instant;
-import java.util.UUID;
 
 import com.wornux.data.enums.DocumentIngestionStage;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -24,7 +25,8 @@ import lombok.Setter;
 public class DocumentIngestionJob {
 
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "document_id", nullable = false)
@@ -47,7 +49,6 @@ public class DocumentIngestionJob {
 
     public static DocumentIngestionJob start(Document document, String progressLabel) {
         var job = new DocumentIngestionJob();
-        job.id = UUID.randomUUID();
         job.document = document;
         job.stage = DocumentIngestionStage.UPLOAD.name();
         job.progressLabel = progressLabel;

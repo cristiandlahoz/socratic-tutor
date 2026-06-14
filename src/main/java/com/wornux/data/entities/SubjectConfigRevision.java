@@ -3,11 +3,12 @@ package com.wornux.data.entities;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -24,7 +25,8 @@ import org.hibernate.type.SqlTypes;
 public class SubjectConfigRevision {
 
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "subject_id", nullable = false)
@@ -61,7 +63,6 @@ public class SubjectConfigRevision {
             Map<String, Object> questionPolicy,
             String createdBy) {
         var entity = new SubjectConfigRevision();
-        entity.id = UUID.randomUUID();
         entity.subject = subject;
         entity.version = version;
         entity.config = safeMap(config);

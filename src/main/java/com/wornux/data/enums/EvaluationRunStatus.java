@@ -1,8 +1,7 @@
 package com.wornux.data.enums;
 
-public enum EvaluationStatus {
-  PENDING,
-  RUNNING,
+public enum EvaluationRunStatus {
+  IN_PROGRESS,
   COMPLETED,
   FAILED
 }

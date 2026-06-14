@@ -157,7 +157,7 @@ public class DocumentIngestionService {
                             (left, _) -> left,
                             LinkedHashMap::new));
 
-            Set<UUID> reviewedSegmentIds =
+            Set<Long> reviewedSegmentIds =
                     command.segments().stream().map(EditableSegmentViewModel::id).collect(Collectors.toSet());
             List<DocumentSegment> removedSegments = persistedSegments.values()
                     .stream()

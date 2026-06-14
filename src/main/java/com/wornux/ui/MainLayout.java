@@ -102,7 +102,6 @@ public class MainLayout extends AppLayout {
                 createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", VaadinIcon.UPLOAD_ALT);
         ingestDocumentButton.setId("sidebar-ingest-document-link");
         var evaluationButton = createNavigationButton(EvaluationView.class, "Evaluaciones", VaadinIcon.CLIPBOARD_CHECK);
-
         var actionsRow = new Div(newChatButton, ingestDocumentButton, evaluationButton);
         actionsRow.addClassName("chat-sidebar-actions");
 

@@ -1,0 +1,150 @@
+.evaluation-run-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: var(--chat-space-md) clamp(1.4rem, 4vw, 3rem);
+  border-bottom: 1px solid var(--chat-border-section);
+  background: color-mix(in srgb, var(--theme-header-surface) 72%, transparent);
+  backdrop-filter: blur(24px);
+}
+
+.evaluation-run-title {
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-body);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.evaluation-run-progress {
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-body);
+  font-size: var(--chat-text-label);
+}
+
+.evaluation-chat-bubble {
+  box-sizing: border-box;
+}
+
+.evaluation-chat-evaluador {
+  padding: 0;
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-body);
+  line-height: var(--chat-leading-chat-assistant);
+}
+
+.evaluation-chat-evaluador .evaluation-chat-sender {
+  color: var(--chat-interactive);
+  text-transform: uppercase;
+  font-size: var(--chat-text-meta);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.35rem;
+}
+
+.evaluation-chat-estudiante {
+  background: var(--chat-surface);
+  color: var(--chat-text-primary);
+  border: 1px solid var(--chat-border-visible);
+  border-radius: var(--chat-message-radius);
+  box-shadow: var(--chat-shadow-dark-card);
+  backdrop-filter: blur(18px);
+  padding: 1.08rem 1.22rem;
+  max-width: min(50rem, 100%);
+  margin-left: auto;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.evaluation-chat-estudiante .evaluation-chat-sender {
+  color: var(--chat-text-tertiary);
+  font-size: var(--chat-text-meta);
+  letter-spacing: 0.06em;
+  margin-bottom: 0.25rem;
+}
+
+.evaluation-chat-sender {
+  display: block;
+  font-family: var(--chat-font-body);
+}
+
+.evaluation-chat-bubble:first-child {
+  margin-top: 0;
+}
+
+.evaluation-chat-bubble:last-child {
+  margin-bottom: 0;
+}
+
+.evaluation-loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  padding: var(--chat-space-lg);
+}
+
+.evaluation-loading-spinner {
+  flex-shrink: 0;
+  --thinking-spinner-size: 1.1rem;
+}
+
+.evaluation-loading-label {
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-body);
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.evaluation-completion-dialog-content {
+  overflow-y: auto;
+  max-height: calc(80vh - 10rem);
+  padding: 1rem 0;
+}
+
+.evaluation-report-markdown vaadin-markdown {
+  display: block;
+  line-height: var(--chat-leading-chat-assistant);
+  color: var(--chat-text-primary);
+}
+
+.evaluation-report-markdown vaadin-markdown h1,
+.evaluation-report-markdown vaadin-markdown h2,
+.evaluation-report-markdown vaadin-markdown h3,
+.evaluation-report-markdown vaadin-markdown h4,
+.evaluation-report-markdown vaadin-markdown h5,
+.evaluation-report-markdown vaadin-markdown h6 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--chat-text-display);
+}
+
+.evaluation-report-markdown vaadin-markdown h1 {
+  font-size: 1.5rem;
+}
+
+.evaluation-report-markdown vaadin-markdown h2 {
+  font-size: 1.25rem;
+}
+
+.evaluation-report-markdown vaadin-markdown h3 {
+  font-size: 1.1rem;
+}
+
+.evaluation-report-markdown vaadin-markdown p {
+  margin-bottom: 0.75rem;
+}
+
+.evaluation-report-markdown vaadin-markdown ul,
+.evaluation-report-markdown vaadin-markdown ol {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.evaluation-report-markdown vaadin-markdown li {
+  margin-bottom: 0.25rem;
+}
+
+.evaluation-report-markdown vaadin-markdown strong {
+  font-weight: 600;
+}
