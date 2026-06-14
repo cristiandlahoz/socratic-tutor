@@ -1,24 +1,25 @@
 package com.wornux.ui.chat;
 
-import com.vaadin.flow.spring.annotation.RouteScope;
-import com.vaadin.flow.spring.annotation.RouteScopeOwner;
-import com.vaadin.flow.spring.annotation.SpringComponent;
-import com.wornux.services.chat.ChatService;
-import com.wornux.services.chat.ChatUsageService;
-import com.wornux.services.chat.ConversationService;
-import com.wornux.services.chat.ConversationTitleService;
-import com.wornux.services.profile.StudentProfileService;
-import com.wornux.data.enums.ThemePreference;
-import com.wornux.dtos.chat.StudentQuestionExchange;
-import com.wornux.dtos.chat.questions.StudentQuestionResponse;
-import com.wornux.infrastructure.web.BrowserClientService;
-import com.wornux.ui.MainLayout;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.vaadin.flow.spring.annotation.RouteScope;
+import com.vaadin.flow.spring.annotation.RouteScopeOwner;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.wornux.data.enums.ThemePreference;
+import com.wornux.dtos.chat.StudentQuestionExchange;
+import com.wornux.dtos.chat.questions.StudentQuestionResponse;
+import com.wornux.infrastructure.web.BrowserClientService;
+import com.wornux.services.chat.ChatService;
+import com.wornux.services.chat.ChatUsageService;
+import com.wornux.services.chat.ConversationService;
+import com.wornux.services.chat.ConversationTitleService;
+import com.wornux.services.profile.StudentProfileService;
+import com.wornux.ui.MainLayout;
 
 @SpringComponent
 @RouteScope

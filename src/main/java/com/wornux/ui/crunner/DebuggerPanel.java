@@ -1,5 +1,11 @@
 package com.wornux.ui.crunner;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.HtmlContainer;
@@ -14,25 +20,20 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller.ScrollDirection;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.popover.Popover;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.wornux.services.crunner.CDiagnosticSeverity;
 import com.wornux.services.crunner.CDebugRequest;
 import com.wornux.services.crunner.CDebugSessionResult;
 import com.wornux.services.crunner.CDebugSnapshot;
 import com.wornux.services.crunner.CDebugVariable;
+import com.wornux.services.crunner.CDiagnosticSeverity;
 import com.wornux.services.crunner.CExamplePreparationResult;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CExamplePreparationStatus;
 import com.wornux.services.crunner.CProgramDebugService;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 @StyleSheet("styles/c-runner.css")
 public final class DebuggerPanel extends Composite<Div> implements HasSize {
@@ -115,9 +116,10 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
             renderLocals(List.of());
             renderStdout("");
             setControlsEnabled(true);
-            statusText.setText(currentSource.isBlank()
-                    ? "Pega codigo C o abre un ejemplo del asistente para visualizar la ejecucion."
-                    : "Codigo editado. Ejecuta para actualizar la visualizacion.");
+            statusText.setText(
+                currentSource.isBlank()
+                        ? "Pega codigo C o abre un ejemplo del asistente para visualizar la ejecucion."
+                        : "Codigo editado. Ejecuta para actualizar la visualizacion.");
         });
 
         var viewerShell = new Div(sourceViewer);
@@ -153,8 +155,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
             renderPreparedDebug(jobId, prepareAndDebug(source, lang, stdin), null);
             return;
         }
-        CompletableFuture
-                .supplyAsync(() -> prepareAndDebug(source, lang, stdin), cRunnerExecutor)
+        CompletableFuture.supplyAsync(() -> prepareAndDebug(source, lang, stdin), cRunnerExecutor)
                 .whenComplete((preparedResult, ex) -> ui.access(() -> renderPreparedDebug(jobId, preparedResult, ex)));
     }
 
@@ -214,7 +215,9 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
             return;
         }
         CompletableFuture
-                .supplyAsync(() -> debugService.debug(new CDebugRequest(source, "c17", "main.c", stdin)), cRunnerExecutor)
+                .supplyAsync(
+                    () -> debugService.debug(new CDebugRequest(source, "c17", "main.c", stdin)),
+                    cRunnerExecutor)
                 .whenComplete((result, ex) -> ui.access(() -> renderDebugJob(jobId, source, result, ex)));
     }
 
@@ -353,8 +356,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         localsBody.removeAll();
         var safeLocals = locals == null ? List.<CDebugVariable>of() : locals;
         variableCount.setText("%d vars".formatted(safeLocals.size()));
-        safeLocals.forEach(
-            variable -> localsBody.add(createVariableRow(variable.name(), variable.value())));
+        safeLocals.forEach(variable -> localsBody.add(createVariableRow(variable.name(), variable.value())));
     }
 
     private void renderStdout(String stdout) {
@@ -401,9 +403,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         body.setPadding(false);
         body.setSpacing(false);
         body.setWidthFull();
-        body.add(
-            localsGroup,
-            createVariablesScroll());
+        body.add(localsGroup, createVariablesScroll());
         body.addClassName("c-runner-state-body");
 
         var card = new VerticalLayout(stateHeader, body);
@@ -504,7 +504,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         return cell;
     }
 
-    private record PreparedDebugResult(
-            String originalSource, CExamplePreparationResult preparation, CDebugSessionResult debugResult) {}
+    private record PreparedDebugResult(String originalSource, CExamplePreparationResult preparation,
+            CDebugSessionResult debugResult) {}
 
 }

@@ -1,5 +1,10 @@
 package com.wornux.ui.chat;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.List;
+import java.util.UUID;
+
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.local.ListSignal;
 import com.vaadin.flow.signals.local.ValueSignal;
@@ -10,10 +15,6 @@ import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.*;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
 import com.wornux.ui.MainLayout;
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.List;
-import java.util.UUID;
 
 @SpringComponent
 @RouteScope

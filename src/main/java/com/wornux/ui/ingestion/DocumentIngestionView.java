@@ -98,8 +98,8 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         markdownEditor.addValueChangeListener(event -> controller.updateMarkdown(event.getValue()));
 
         var markdownShell = new Div(sectionHeader(
-                "Fuente canonical",
-                "Este markdown es el artefacto editable que después se segmenta e indexa."), markdownEditor);
+            "Fuente canonical",
+            "Este markdown es el artefacto editable que después se segmenta e indexa."), markdownEditor);
         markdownShell.addClassName("document-ingest-markdown-shell");
 
         segmentEditorList = new DocumentSegmentEditorList();
@@ -108,8 +108,8 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
         var segmentsShell = new Div(
                 sectionHeader(
-                        "segmentos",
-                        "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y captions."),
+                    "segmentos",
+                    "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y captions."),
                 segmentEditorList);
         segmentsShell.setId("document-ingestion-segments-shell");
         segmentsShell.addClassName("document-ingest-segments-shell");
@@ -149,13 +149,13 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         root.add(drawerToggle, header, topGrid, reviewStack);
 
         Signal.effect(
-                statusPanel,
-                () -> statusPanel.setStatus(
-                        state.fileName().get(),
-                        state.stageLabel().get(),
-                        state.busy().get(),
-                        state.indexed().get(),
-                        state.failureMessage().get()));
+            statusPanel,
+            () -> statusPanel.setStatus(
+                state.fileName().get(),
+                state.stageLabel().get(),
+                state.busy().get(),
+                state.indexed().get(),
+                state.failureMessage().get()));
         Signal.effect(markdownEditor, () -> syncMarkdownEditor(state.reviewedMarkdown().get()));
         Signal.effect(segmentEditorList, () -> segmentEditorList.setSegments(state.segments().get()));
         Signal.effect(reviewStack, () -> reviewStack.setVisible(state.reviewVisible().get()));
@@ -167,16 +167,16 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         controller.initializeFromRoute(
-                event.getLocation()
-                        .getQueryParameters()
-                        .getSingleParameter(DocumentIngestionUiController.DOCUMENT_QUERY_PARAMETER)
-                        .orElse(null));
+            event.getLocation()
+                    .getQueryParameters()
+                    .getSingleParameter(DocumentIngestionUiController.DOCUMENT_QUERY_PARAMETER)
+                    .orElse(null));
     }
 
     private Upload createUpload(DocumentIngestionProperties properties) {
         Upload upload = new Upload(UploadHandler.inMemory(
-                (metadata, data) -> controller
-                        .uploadPdf(metadata.fileName(), metadata.contentType(), data, getUI().orElse(null))));
+            (metadata, data) -> controller
+                    .uploadPdf(metadata.fileName(), metadata.contentType(), data, getUI().orElse(null))));
         upload.setId("document-ingestion-upload");
         upload.setDropAllowed(true);
         upload.setAcceptedFileTypes("application/pdf", ".pdf");
@@ -207,24 +207,23 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         i18n.setDropFiles(new UploadI18N.DropFiles().setOne("suelta el PDF aquí").setMany("suelta los PDFs aquí"));
         i18n.setAddFiles(new UploadI18N.AddFiles().setOne("Subir PDF").setMany("Subir PDFs"));
         i18n.setError(
-                new UploadI18N.Error().setTooManyFiles("Solo se permite un PDF por vez.")
-                        .setFileIsTooBig("El PDF supera el limite configurado.")
-                        .setIncorrectFileType("El archivo debe ser un PDF."));
+            new UploadI18N.Error().setTooManyFiles("Solo se permite un PDF por vez.")
+                    .setFileIsTooBig("El PDF supera el limite configurado.")
+                    .setIncorrectFileType("El archivo debe ser un PDF."));
         i18n.setUploading(
-                new UploadI18N.Uploading()
-                        .setStatus(
-                                new UploadI18N.Uploading.Status().setConnecting("Conectando...")
-                                        .setStalled("Pausado")
-                                        .setProcessing("Procesando archivo...")
-                                        .setHeld("En cola"))
-                        .setRemainingTime(
-                                new UploadI18N.Uploading.RemainingTime().setPrefix("tiempo restante: ")
-                                        .setUnknown("tiempo restante desconocido"))
-                        .setError(
-                                new UploadI18N.Uploading.Error()
-                                        .setServerUnavailable("La subida fallo, intenta otra vez.")
-                                        .setUnexpectedServerError("El servidor rechazo la subida.")
-                                        .setForbidden("No tienes permiso para subir este archivo.")));
+            new UploadI18N.Uploading()
+                    .setStatus(
+                        new UploadI18N.Uploading.Status().setConnecting("Conectando...")
+                                .setStalled("Pausado")
+                                .setProcessing("Procesando archivo...")
+                                .setHeld("En cola"))
+                    .setRemainingTime(
+                        new UploadI18N.Uploading.RemainingTime().setPrefix("tiempo restante: ")
+                                .setUnknown("tiempo restante desconocido"))
+                    .setError(
+                        new UploadI18N.Uploading.Error().setServerUnavailable("La subida fallo, intenta otra vez.")
+                                .setUnexpectedServerError("El servidor rechazo la subida.")
+                                .setForbidden("No tienes permiso para subir este archivo.")));
         i18n.setUnits(new UploadI18N.Units().setSize(Arrays.asList("B", "kB", "MB", "GB", "TB")));
         return i18n;
     }

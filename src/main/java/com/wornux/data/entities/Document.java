@@ -1,16 +1,16 @@
 package com.wornux.data.entities;
 
-import com.wornux.services.document.*;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
 import com.wornux.data.enums.DocumentStatus;
 import com.wornux.dtos.document.DocumentCatalogEntry;
-
+import com.wornux.services.document.*;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

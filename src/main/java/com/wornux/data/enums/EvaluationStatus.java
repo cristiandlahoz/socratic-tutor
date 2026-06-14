@@ -1,7 +1,5 @@
 package com.wornux.data.enums;
 
 public enum EvaluationStatus {
-  DRAFT,
-  PUBLISHED,
-  ARCHIVED
+    DRAFT, PUBLISHED, ARCHIVED
 }

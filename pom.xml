@@ -20,8 +20,12 @@
 
     <vaadin.version>25.1.0</vaadin.version>
     <spring-ai.version>2.0.0-M6</spring-ai.version>
-    <spotless.version>3.4.0</spotless.version>
-    <google-java-format.version>1.35.0</google-java-format.version>
+    <version.spotless>3.6.0</version.spotless>
+    <version.checkstyle.maven>3.6.0</version.checkstyle.maven>
+    <version.checkstyle>13.3.0</version.checkstyle>
+    <analysis.checkstyle.config>build/checkstyle-config.xml</analysis.checkstyle.config>
+    <analysis.spotless.formatter.config>build/eclipse-formatter-config.xml</analysis.spotless.formatter.config>
+    <analysis.spotless.importorder.config>build/eclipse-formatter-config.importorder </analysis.spotless.importorder.config>
   </properties>
 
   <dependencyManagement>
@@ -208,27 +212,21 @@
   <build>
     <defaultGoal>spring-boot:run</defaultGoal>
     <plugins>
-      <plugin>
-        <groupId>com.diffplug.spotless</groupId>
-        <artifactId>spotless-maven-plugin</artifactId>
-        <version>${spotless.version}</version>
-        <configuration>
-          <java>
-            <removeUnusedImports/>
-          </java>
-
-          <pom>
-            <sortPom/>
-          </pom>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+                  <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${version.spotless}</version>
+                <configuration>
+                    <java>
+                        <importOrder>
+                            <file>${analysis.spotless.importorder.config}</file>
+                        </importOrder>
+                        <eclipse>
+                            <file>${analysis.spotless.formatter.config}</file>
+                        </eclipse>
+                    </java>
+                </configuration>
+            </plugin>
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

@@ -9,8 +9,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.ai.profile")
 public class ProfileProperties {
 
-  private boolean enabled = true;
-  private boolean shadowMode;
-  private boolean chatTurnSignalsEnabled;
-  private int misconceptionTtlDays = 21;
+    private boolean enabled = true;
+    private boolean shadowMode;
+    private boolean chatTurnSignalsEnabled;
+    private int misconceptionTtlDays = 21;
 }

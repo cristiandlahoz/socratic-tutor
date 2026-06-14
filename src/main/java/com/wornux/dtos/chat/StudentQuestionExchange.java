@@ -1,8 +1,5 @@
 package com.wornux.dtos.chat;
 
-import com.wornux.dtos.chat.questions.StudentQuestionResponse;
-import com.wornux.dtos.chat.questions.StudentQuestionSet;
-import com.wornux.ui.chat.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Duration;
@@ -11,6 +8,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import com.wornux.dtos.chat.questions.StudentQuestionResponse;
+import com.wornux.dtos.chat.questions.StudentQuestionSet;
+import com.wornux.ui.chat.*;
 
 public class StudentQuestionExchange implements Serializable {
 

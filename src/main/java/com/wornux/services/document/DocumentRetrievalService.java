@@ -1,12 +1,12 @@
 package com.wornux.services.document;
 
-import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.dtos.document.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+
+import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.dtos.document.*;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionTextParser;

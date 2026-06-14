@@ -1,5 +1,10 @@
 package com.wornux.ui;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -18,15 +23,11 @@ import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.ConversationSummary;
-import com.wornux.ui.chat.ChatViewModel;
 import com.wornux.ui.chat.ChatState;
+import com.wornux.ui.chat.ChatViewModel;
 import com.wornux.ui.components.chat.WidthAwareLabel;
-import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.evaluation.EvaluationView;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import com.wornux.ui.ingestion.DocumentIngestionView;
 
 @Layout
 @PreserveOnRefresh

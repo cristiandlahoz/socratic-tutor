@@ -1,24 +1,5 @@
 package com.wornux.services.evaluation;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-
-import com.wornux.services.profile.StudentProfileService;
-import com.wornux.services.subject.SubjectConfigService;
-import com.wornux.data.entities.EvaluationAttempt;
-import com.wornux.data.entities.EvaluationAttemptQuestion;
-import com.wornux.data.entities.EvaluationAttemptResponse;
-import com.wornux.data.entities.EvaluationQuestionExample;
-import com.wornux.data.entities.EvaluationRevision;
-import com.wornux.data.enums.EvaluationStatus;
-import com.wornux.data.repositories.subject.SubjectConfigRevisionRepository;
-import com.wornux.dtos.profile.StudentLearningProfile;
-import com.wornux.data.repositories.evaluation.EvaluationAttemptRepository;
-import com.wornux.data.repositories.evaluation.EvaluationAttemptQuestionRepository;
-import com.wornux.data.repositories.evaluation.EvaluationAttemptResponseRepository;
-import com.wornux.data.repositories.evaluation.EvaluationRepository;
-import com.wornux.data.repositories.evaluation.EvaluationQuestionExampleRepository;
-import com.wornux.data.repositories.evaluation.EvaluationRevisionRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -28,6 +9,23 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import com.wornux.data.entities.EvaluationAttempt;
+import com.wornux.data.entities.EvaluationAttemptQuestion;
+import com.wornux.data.entities.EvaluationAttemptResponse;
+import com.wornux.data.entities.EvaluationQuestionExample;
+import com.wornux.data.entities.EvaluationRevision;
+import com.wornux.data.enums.EvaluationStatus;
+import com.wornux.data.repositories.evaluation.EvaluationAttemptQuestionRepository;
+import com.wornux.data.repositories.evaluation.EvaluationAttemptRepository;
+import com.wornux.data.repositories.evaluation.EvaluationAttemptResponseRepository;
+import com.wornux.data.repositories.evaluation.EvaluationQuestionExampleRepository;
+import com.wornux.data.repositories.evaluation.EvaluationRepository;
+import com.wornux.data.repositories.evaluation.EvaluationRevisionRepository;
+import com.wornux.data.repositories.subject.SubjectConfigRevisionRepository;
+import com.wornux.dtos.profile.StudentLearningProfile;
+import com.wornux.services.profile.StudentProfileService;
+import com.wornux.services.subject.SubjectConfigService;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -36,6 +34,8 @@ import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class EvaluationService {
@@ -220,8 +220,7 @@ public class EvaluationService {
                 continue;
             }
             exampleRepository.save(
-                EvaluationQuestionExample
-                        .create(revision, "teacher-example-" + ordinal, ordinal, guideline, Map.of()));
+                EvaluationQuestionExample.create(revision, "teacher-example-" + ordinal, ordinal, guideline, Map.of()));
             ordinal++;
         }
         evaluation.publish(revision);

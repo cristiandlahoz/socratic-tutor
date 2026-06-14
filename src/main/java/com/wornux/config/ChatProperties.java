@@ -9,14 +9,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.chat")
 public class ChatProperties {
 
-  private String clientIdCookieName;
-  private int contextWindowTokens;
-  private double compactionThresholdRatio;
-  private Ui ui;
+    private String clientIdCookieName;
+    private int contextWindowTokens;
+    private double compactionThresholdRatio;
+    private Ui ui;
 
-  @Setter
-  @Getter
-  public static class Ui {
-    private String thinkingSpinner;
-  }
+    @Setter
+    @Getter
+    public static class Ui {
+        private String thinkingSpinner;
+    }
 }

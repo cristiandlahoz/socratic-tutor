@@ -19,7 +19,6 @@ import com.wornux.services.document.DocumentIngestionService;
 import com.wornux.services.document.StartIngestionCommand;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.chat.ChatState;
-
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
@@ -120,11 +119,10 @@ public class DocumentIngestionUiController implements Serializable {
         abortActiveTask();
         UUID documentId = state.activeDocumentId().peek();
         state.startProcessing(state.fileName().peek(), "Eliminando documento indexado.");
-        activeTask = Mono
-                .fromCallable(() -> {
-                    documentIngestionService.delete(chatUiState.clientId().peek(), documentId);
-                    return true;
-                })
+        activeTask = Mono.fromCallable(() -> {
+            documentIngestionService.delete(chatUiState.clientId().peek(), documentId);
+            return true;
+        })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                     _ -> runUi(ui, state::reset),
@@ -150,11 +148,8 @@ public class DocumentIngestionUiController implements Serializable {
         if (segmentId == null) {
             return;
         }
-        List<EditableSegmentViewModel> nextSegments = state.segments()
-                .peek()
-                .stream()
-                .filter(segment -> !segment.id().equals(segmentId))
-                .toList();
+        List<EditableSegmentViewModel> nextSegments =
+                state.segments().peek().stream().filter(segment -> !segment.id().equals(segmentId)).toList();
         if (nextSegments.size() == state.segments().peek().size()) {
             return;
         }

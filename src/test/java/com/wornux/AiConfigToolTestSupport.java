@@ -27,64 +27,62 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootConfiguration
-@EnableConfigurationProperties({ProfileProperties.class, TutorAiProperties.class})
-@Import({AIConfig.class})
+@EnableConfigurationProperties({ ProfileProperties.class, TutorAiProperties.class })
+@Import({ AIConfig.class })
 @ImportAutoConfiguration({
-  OllamaApiAutoConfiguration.class,
-  OllamaChatAutoConfiguration.class,
-  ToolCallingAutoConfiguration.class,
-  ChatClientAutoConfiguration.class,
-  ChatMemoryAutoConfiguration.class
-})
+        OllamaApiAutoConfiguration.class,
+        OllamaChatAutoConfiguration.class,
+        ToolCallingAutoConfiguration.class,
+        ChatClientAutoConfiguration.class,
+        ChatMemoryAutoConfiguration.class })
 class AiConfigToolTestSupport {
 
-  @Bean
-  TutorPromptResources tutorPromptResources(ResourceLoader resourceLoader) {
-    return new TutorPromptResources(resourceLoader);
-  }
+    @Bean
+    TutorPromptResources tutorPromptResources(ResourceLoader resourceLoader) {
+        return new TutorPromptResources(resourceLoader);
+    }
 
-  @Bean
-  StudentProfilePromptMapper studentProfilePromptMapper() {
-    return new StudentProfilePromptMapper();
-  }
+    @Bean
+    StudentProfilePromptMapper studentProfilePromptMapper() {
+        return new StudentProfilePromptMapper();
+    }
 
-  @Bean
-  RetrieveInformationTool retrieveInformationTool(
-      DocumentRetrievalService documentRetrievalService,
-      ToolUsageAuditService toolUsageAuditService) {
-    return new RetrieveInformationTool(documentRetrievalService, toolUsageAuditService);
-  }
+    @Bean
+    RetrieveInformationTool retrieveInformationTool(
+            DocumentRetrievalService documentRetrievalService,
+            ToolUsageAuditService toolUsageAuditService) {
+        return new RetrieveInformationTool(documentRetrievalService, toolUsageAuditService);
+    }
 
-  @Bean
-  ToolUsageAuditService toolUsageAuditService(
-      MeterRegistry meterRegistry,
-      ObservationRegistry observationRegistry,
-      ObjectMapper objectMapper,
-      TutorAiProperties tutorAiProperties) {
-    tutorAiProperties.getToolObservability().setCapturePayloads(true);
-    tutorAiProperties.getToolObservability().setMaxPayloadChars(1_000);
-    return new ToolUsageAuditService(
-        meterRegistry, observationRegistry, objectMapper, tutorAiProperties);
-  }
+    @Bean
+    ToolUsageAuditService toolUsageAuditService(
+            MeterRegistry meterRegistry,
+            ObservationRegistry observationRegistry,
+            ObjectMapper objectMapper,
+            TutorAiProperties tutorAiProperties) {
+        tutorAiProperties.getToolObservability().setCapturePayloads(true);
+        tutorAiProperties.getToolObservability().setMaxPayloadChars(1_000);
+        return new ToolUsageAuditService(meterRegistry, observationRegistry, objectMapper, tutorAiProperties);
+    }
 
-  @Bean
-  MeterRegistry meterRegistry() {
-    return new SimpleMeterRegistry();
-  }
+    @Bean
+    MeterRegistry meterRegistry() {
+        return new SimpleMeterRegistry();
+    }
 
-  @Bean
-  ObservationRegistry observationRegistry() {
-    return ObservationRegistry.create();
-  }
+    @Bean
+    ObservationRegistry observationRegistry() {
+        return ObservationRegistry.create();
+    }
 
-  @Bean
-  ObjectMapper objectMapper() {
-    return new ObjectMapper();
-  }
+    @Bean
+    ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
 
-  @Bean
-  RestClient.Builder restClientBuilder(
-      @Value("${test.ollama.transcript-name:ollama-tool-test}") String transcriptName) {
-    return OllamaHttpLogging.restClientBuilder(transcriptName);
-  }
+    @Bean
+    RestClient.Builder restClientBuilder(
+            @Value("${test.ollama.transcript-name:ollama-tool-test}") String transcriptName) {
+        return OllamaHttpLogging.restClientBuilder(transcriptName);
+    }
 }

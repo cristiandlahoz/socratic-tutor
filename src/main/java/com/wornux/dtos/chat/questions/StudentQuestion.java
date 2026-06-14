@@ -9,16 +9,12 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public record StudentQuestion(
-        @JsonProperty(required = true)
-        @JsonPropertyDescription("The full question shown to the student")
-        @Schema(pattern = "^.*\\?$")
-        String question,
+        @JsonProperty(required = true) @JsonPropertyDescription("The full question shown to the student") @Schema(
+                pattern = "^.*\\?$") String question,
 
-        @JsonPropertyDescription("Optional selectable options. Provide up to 3 concrete options only when the question is naturally categorical or multi-choice.")
-        @ArraySchema(
+        @JsonPropertyDescription("Optional selectable options. Provide up to 3 concrete options only when the question is naturally categorical or multi-choice.") @ArraySchema(
                 maxItems = 3,
-                schema = @Schema(implementation = StudentQuestionOption.class))
-        List<StudentQuestionOption> options)
+                schema = @Schema(implementation = StudentQuestionOption.class)) List<StudentQuestionOption> options)
         implements Serializable {
 
     public StudentQuestion {

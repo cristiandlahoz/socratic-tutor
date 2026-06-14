@@ -1,15 +1,16 @@
 package com.wornux.ui.chat;
 
-import com.vaadin.flow.component.UI;
-import com.wornux.dtos.chat.StudentQuestionExchange;
-import com.wornux.services.chat.ChatService;
-import com.wornux.services.chat.ConversationService;
-import com.wornux.services.chat.ConversationTitleService;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.vaadin.flow.component.UI;
+import com.wornux.dtos.chat.StudentQuestionExchange;
+import com.wornux.services.chat.ChatService;
+import com.wornux.services.chat.ConversationService;
+import com.wornux.services.chat.ConversationTitleService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -20,192 +21,187 @@ import reactor.core.scheduler.Schedulers;
 @Component
 public class ChatTurnOrchestrator {
 
-  private static final Logger log = LoggerFactory.getLogger(ChatTurnOrchestrator.class);
-  private final AtomicLong streamGeneration = new AtomicLong();
-  private transient Disposable activeStream;
+    private static final Logger log = LoggerFactory.getLogger(ChatTurnOrchestrator.class);
+    private final AtomicLong streamGeneration = new AtomicLong();
+    private transient Disposable activeStream;
 
-  public void abortActiveStream(StudentQuestionExchange questionExchange) {
-    streamGeneration.incrementAndGet();
-    if (activeStream != null) {
-      activeStream.dispose();
-      activeStream = null;
-    }
-    questionExchange.cancelPending();
-  }
-
-  public void startTurn(
-      TurnContext context,
-      ChatService chatService,
-      ConversationService conversationService,
-      ConversationTitleService conversationTitleService,
-      StudentQuestionExchange questionExchange,
-      Runnable onResponseUpdated,
-      Runnable onResponseFinished,
-      Runnable refreshConversationHistory,
-      Runnable refreshTranscriptUsage,
-      Runnable refreshCompactionStatus) {
-
-    var streamId = streamGeneration.incrementAndGet();
-    var firstTokenReceived = new AtomicBoolean(false);
-    var ui = UI.getCurrent();
-
-    if (context.newConversation()) {
-      conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> {
-        conversationService.renameConversationIfTitleMatches(
-            context.clientId(), context.conversationId(), context.fallbackTitle(), generatedTitle);
-        runUiSideEffect(ui, refreshConversationHistory);
-      });
+    public void abortActiveStream(StudentQuestionExchange questionExchange) {
+        streamGeneration.incrementAndGet();
+        if (activeStream != null) {
+            activeStream.dispose();
+            activeStream = null;
+        }
+        questionExchange.cancelPending();
     }
 
-    context.state().responseInProgress().set(true);
-    context.state().messages().insertLast(MessageState.user(context.prompt(), Instant.now()));
-    context.state().composerText().set("");
-    var responseMessage =
-        context.state().messages().insertLast(MessageState.assistantLoading(Instant.now()));
+    public void startTurn(
+            TurnContext context,
+            ChatService chatService,
+            ConversationService conversationService,
+            ConversationTitleService conversationTitleService,
+            StudentQuestionExchange questionExchange,
+            Runnable onResponseUpdated,
+            Runnable onResponseFinished,
+            Runnable refreshConversationHistory,
+            Runnable refreshTranscriptUsage,
+            Runnable refreshCompactionStatus) {
 
-    activeStream = chatService
-        .chatStream(
-            context.turnId(),
-            context.prompt(),
-            context.clientId(),
-            context.conversationId(),
-            questionExchange::ask)
-        .subscribe(
-            token -> {
-              if (streamGeneration.get() != streamId) {
-                return;
-              }
-              if (firstTokenReceived.compareAndSet(false, true)) {
-                responseMessage.update(
-                    messageVm -> Objects.requireNonNull(messageVm).stopLoading());
-              }
-              responseMessage.update(message -> Objects.requireNonNull(message).append(token));
-              runUiSideEffect(ui, onResponseUpdated);
-            },
-            exception -> {
-              if (streamGeneration.get() != streamId) {
-                return;
-              }
-              log.warn(
-                  "chat_ui_stream_failed turn_id={} client_id={} conversation_id={}"
-                      + " failure_kind={} error_type={} error_message={}",
-                  context.turnId(),
-                  context.clientId(),
-                  context.conversationId(),
-                  chatFailureKind(exception),
-                  exception.getClass().getSimpleName(),
-                  exception.getMessage(),
-                  exception);
-              responseMessage.update(message -> Objects.requireNonNull(message)
-                  .fallback("Lo siento, ocurrió un problema al generar la respuesta. Intenta"
-                      + " nuevamente."));
-              finishResponse(
-                  context.state(),
-                  ui,
-                  onResponseFinished,
-                  refreshConversationHistory,
-                  refreshTranscriptUsage,
-                  refreshCompactionStatus);
-            },
-            () -> {
-              if (streamGeneration.get() != streamId) {
-                return;
-              }
-              responseMessage.update(
-                  messageVm -> Objects.requireNonNull(messageVm).stopLoading());
-              startCompactionPhase(context.state());
-              finalizeTurn(
-                  context,
-                  responseMessage.peek().content(),
-                  chatService,
-                  onResponseFinished,
-                  refreshConversationHistory,
-                  refreshTranscriptUsage,
-                  refreshCompactionStatus,
-                  ui);
+        var streamId = streamGeneration.incrementAndGet();
+        var firstTokenReceived = new AtomicBoolean(false);
+        var ui = UI.getCurrent();
+
+        if (context.newConversation()) {
+            conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> {
+                conversationService.renameConversationIfTitleMatches(
+                    context.clientId(),
+                    context.conversationId(),
+                    context.fallbackTitle(),
+                    generatedTitle);
+                runUiSideEffect(ui, refreshConversationHistory);
             });
-  }
+        }
 
-  private void finalizeTurn(
-      TurnContext context,
-      String assistantResponse,
-      ChatService chatService,
-      Runnable onResponseFinished,
-      Runnable refreshConversationHistory,
-      Runnable refreshTranscriptUsage,
-      Runnable refreshCompactionStatus,
-      UI ui) {
-    activeStream = Mono.fromCallable(() -> chatService.finalizeTurn(
-            context.turnId(),
-            context.clientId(),
-            context.conversationId(),
-            context.prompt(),
-            assistantResponse))
-        .subscribeOn(Schedulers.boundedElastic())
-        .subscribe(
-            _ -> finishResponse(
-                context.state(),
-                ui,
-                onResponseFinished,
-                refreshConversationHistory,
-                refreshTranscriptUsage,
-                refreshCompactionStatus),
-            _ -> finishResponse(
-                context.state(),
-                ui,
-                onResponseFinished,
-                refreshConversationHistory,
-                refreshTranscriptUsage,
-                refreshCompactionStatus));
-  }
+        context.state().responseInProgress().set(true);
+        context.state().messages().insertLast(MessageState.user(context.prompt(), Instant.now()));
+        context.state().composerText().set("");
+        var responseMessage = context.state().messages().insertLast(MessageState.assistantLoading(Instant.now()));
 
-  private void finishResponse(
-      ChatState state,
-      UI ui,
-      Runnable onResponseFinished,
-      Runnable refreshConversationHistory,
-      Runnable refreshTranscriptUsage,
-      Runnable refreshCompactionStatus) {
-    state.responseInProgress().set(false);
-    state.compactionInProgress().set(false);
-    state.compactionLabel().set("");
-    refreshConversationHistory.run();
-    refreshTranscriptUsage.run();
-    refreshCompactionStatus.run();
-    activeStream = null;
-    runUiSideEffect(ui, onResponseFinished);
-  }
-
-  private void startCompactionPhase(ChatState state) {
-    state.responseInProgress().set(false);
-    state.compactionInProgress().set(true);
-    state.compactionLabel().set("Compactando, no debería tardar...");
-  }
-
-  private void runUiSideEffect(UI ui, Runnable callback) {
-    if (ui != null) {
-      ui.access(callback::run);
-      return;
+        activeStream =
+                chatService
+                        .chatStream(
+                            context.turnId(),
+                            context.prompt(),
+                            context.clientId(),
+                            context.conversationId(),
+                            questionExchange::ask)
+                        .subscribe(token -> {
+                            if (streamGeneration.get() != streamId) {
+                                return;
+                            }
+                            if (firstTokenReceived.compareAndSet(false, true)) {
+                                responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
+                            }
+                            responseMessage.update(message -> Objects.requireNonNull(message).append(token));
+                            runUiSideEffect(ui, onResponseUpdated);
+                        }, exception -> {
+                            if (streamGeneration.get() != streamId) {
+                                return;
+                            }
+                            log.warn(
+                                "chat_ui_stream_failed turn_id={} client_id={} conversation_id={}"
+                                        + " failure_kind={} error_type={} error_message={}",
+                                context.turnId(),
+                                context.clientId(),
+                                context.conversationId(),
+                                chatFailureKind(exception),
+                                exception.getClass().getSimpleName(),
+                                exception.getMessage(),
+                                exception);
+                            responseMessage.update(
+                                message -> Objects.requireNonNull(message)
+                                        .fallback(
+                                            "Lo siento, ocurrió un problema al generar la respuesta. Intenta"
+                                                    + " nuevamente."));
+                            finishResponse(
+                                context.state(),
+                                ui,
+                                onResponseFinished,
+                                refreshConversationHistory,
+                                refreshTranscriptUsage,
+                                refreshCompactionStatus);
+                        }, () -> {
+                            if (streamGeneration.get() != streamId) {
+                                return;
+                            }
+                            responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
+                            startCompactionPhase(context.state());
+                            finalizeTurn(
+                                context,
+                                responseMessage.peek().content(),
+                                chatService,
+                                onResponseFinished,
+                                refreshConversationHistory,
+                                refreshTranscriptUsage,
+                                refreshCompactionStatus,
+                                ui);
+                        });
     }
-    callback.run();
-  }
 
-  private String chatFailureKind(Throwable exception) {
-    for (Throwable cursor = exception; cursor != null; cursor = cursor.getCause()) {
-      if (cursor.getMessage() != null
-          && cursor.getMessage().contains("Timed out waiting for student response")) {
-        return "interactive_question_timeout";
-      }
+    private void finalizeTurn(
+            TurnContext context,
+            String assistantResponse,
+            ChatService chatService,
+            Runnable onResponseFinished,
+            Runnable refreshConversationHistory,
+            Runnable refreshTranscriptUsage,
+            Runnable refreshCompactionStatus,
+            UI ui) {
+        activeStream = Mono
+                .fromCallable(
+                    () -> chatService.finalizeTurn(
+                        context.turnId(),
+                        context.clientId(),
+                        context.conversationId(),
+                        context.prompt(),
+                        assistantResponse))
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                    _ -> finishResponse(
+                        context.state(),
+                        ui,
+                        onResponseFinished,
+                        refreshConversationHistory,
+                        refreshTranscriptUsage,
+                        refreshCompactionStatus),
+                    _ -> finishResponse(
+                        context.state(),
+                        ui,
+                        onResponseFinished,
+                        refreshConversationHistory,
+                        refreshTranscriptUsage,
+                        refreshCompactionStatus));
     }
-    return "chat_stream_error";
-  }
 
-  public record TurnContext(
-      UUID turnId,
-      UUID clientId,
-      UUID conversationId,
-      String prompt,
-      boolean newConversation,
-      String fallbackTitle,
-      ChatState state) {}
+    private void finishResponse(
+            ChatState state,
+            UI ui,
+            Runnable onResponseFinished,
+            Runnable refreshConversationHistory,
+            Runnable refreshTranscriptUsage,
+            Runnable refreshCompactionStatus) {
+        state.responseInProgress().set(false);
+        state.compactionInProgress().set(false);
+        state.compactionLabel().set("");
+        refreshConversationHistory.run();
+        refreshTranscriptUsage.run();
+        refreshCompactionStatus.run();
+        activeStream = null;
+        runUiSideEffect(ui, onResponseFinished);
+    }
+
+    private void startCompactionPhase(ChatState state) {
+        state.responseInProgress().set(false);
+        state.compactionInProgress().set(true);
+        state.compactionLabel().set("Compactando, no debería tardar...");
+    }
+
+    private void runUiSideEffect(UI ui, Runnable callback) {
+        if (ui != null) {
+            ui.access(callback::run);
+            return;
+        }
+        callback.run();
+    }
+
+    private String chatFailureKind(Throwable exception) {
+        for (Throwable cursor = exception; cursor != null; cursor = cursor.getCause()) {
+            if (cursor.getMessage() != null && cursor.getMessage().contains("Timed out waiting for student response")) {
+                return "interactive_question_timeout";
+            }
+        }
+        return "chat_stream_error";
+    }
+
+    public record TurnContext(UUID turnId, UUID clientId, UUID conversationId, String prompt, boolean newConversation,
+            String fallbackTitle, ChatState state) {}
 }
