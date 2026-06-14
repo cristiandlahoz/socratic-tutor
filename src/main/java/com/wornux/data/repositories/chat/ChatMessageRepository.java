@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
 
-    List<ChatMessage> findByTranscript_IdOrderByIdAsc(UUID transcriptId);
+    List<ChatMessage> findByTranscript_IdOrderByIdAsc(Long transcriptId);
 
     @Query("""
            select message

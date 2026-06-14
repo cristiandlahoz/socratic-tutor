@@ -3,7 +3,6 @@ package com.wornux.services.subject;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -71,7 +70,7 @@ public class SubjectConfigService {
         return toConfig(subject.getId(), subject.getSlug(), subject.getDisplayName(), revision);
     }
 
-    private SubjectConfig toConfig(UUID subjectId, String slug, String displayName, SubjectConfigRevision revision) {
+    private SubjectConfig toConfig(Long subjectId, String slug, String displayName, SubjectConfigRevision revision) {
         return new SubjectConfig(subjectId,
                 slug,
                 displayName,

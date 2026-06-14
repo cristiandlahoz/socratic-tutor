@@ -134,7 +134,7 @@ public class DocumentIngestionUiController implements Serializable {
         state.dirty().set(true);
     }
 
-    public void updateSegment(UUID segmentId, String content) {
+    public void updateSegment(Long segmentId, String content) {
         List<EditableSegmentViewModel> nextSegments = state.segments()
                 .peek()
                 .stream()
@@ -144,7 +144,7 @@ public class DocumentIngestionUiController implements Serializable {
         state.dirty().set(true);
     }
 
-    public void deleteSegment(UUID segmentId) {
+    public void deleteSegment(Long segmentId) {
         if (segmentId == null) {
             return;
         }

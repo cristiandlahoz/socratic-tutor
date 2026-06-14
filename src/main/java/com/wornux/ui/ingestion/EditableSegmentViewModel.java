@@ -1,9 +1,8 @@
 package com.wornux.ui.ingestion;
 
 import java.util.List;
-import java.util.UUID;
 
-public record EditableSegmentViewModel(UUID id, int ordinal, String headingPath, String content, boolean approved,
+public record EditableSegmentViewModel(Long id, int ordinal, String headingPath, String content, boolean approved,
         boolean edited, Integer charCount, Integer tokenCount, Integer pageNumber, List<Integer> pageNumbers,
         List<String> captions, List<String> docItems, String rawText, String chunker) {
 

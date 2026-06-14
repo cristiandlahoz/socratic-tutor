@@ -3,11 +3,12 @@ package com.wornux.data.entities;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -27,7 +28,8 @@ import org.hibernate.type.SqlTypes;
 public class ChatTranscript {
 
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "chat_id", nullable = false)
@@ -41,7 +43,7 @@ public class ChatTranscript {
     private Integer inputTokens;
 
     @Column(name = "compacted_from_transcript_id")
-    private UUID compactedFromTranscriptId;
+    private Long compactedFromTranscriptId;
 
     @Column(name = "compaction_level", nullable = false)
     private int compactionLevel;
@@ -51,7 +53,6 @@ public class ChatTranscript {
 
     public static ChatTranscript create(Chat chat) {
         var entity = new ChatTranscript();
-        entity.id = UUID.randomUUID();
         entity.chat = chat;
         entity.memory = defaultMemory();
         entity.compactionLevel = 0;

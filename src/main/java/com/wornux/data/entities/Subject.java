@@ -3,7 +3,6 @@ package com.wornux.data.entities;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import com.wornux.data.enums.SubjectStatus;
 import jakarta.persistence.Column;
@@ -11,6 +10,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.NamedAttributeNode;
@@ -33,7 +34,8 @@ import org.hibernate.annotations.BatchSize;
 public class Subject {
 
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false, unique = true, length = 96)
     private String slug;
@@ -72,7 +74,6 @@ public class Subject {
     public static Subject create(String slug, String displayName) {
         var now = Instant.now();
         var entity = new Subject();
-        entity.id = UUID.randomUUID();
         entity.slug = slug;
         entity.displayName = displayName;
         entity.status = SubjectStatus.ACTIVE;

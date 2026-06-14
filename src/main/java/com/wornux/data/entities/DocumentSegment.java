@@ -2,12 +2,13 @@ package com.wornux.data.entities;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 import com.wornux.ui.ingestion.*;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -27,7 +28,8 @@ import org.hibernate.type.SqlTypes;
 public class DocumentSegment {
 
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "document_id", nullable = false)
@@ -93,7 +95,6 @@ public class DocumentSegment {
             List<String> docItems,
             String rawText) {
         var entity = new DocumentSegment();
-        entity.id = UUID.randomUUID();
         entity.document = document;
         entity.ordinal = ordinal;
         entity.headingPath = headingPath;

@@ -21,7 +21,7 @@ public class DocumentIngestionState implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final ValueSignal<UUID> activeDocumentId = new ValueSignal<>(null);
-    private final ValueSignal<UUID> activeJobId = new ValueSignal<>(null);
+    private final ValueSignal<Long> activeJobId = new ValueSignal<>(null);
     private final ValueSignal<String> fileName = new ValueSignal<>("");
     private final ValueSignal<String> stageLabel = new ValueSignal<>("Sube un PDF para comenzar.");
     private final ValueSignal<String> failureMessage = new ValueSignal<>("");

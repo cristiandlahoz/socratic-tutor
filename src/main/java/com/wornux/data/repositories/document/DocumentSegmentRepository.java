@@ -6,7 +6,7 @@ import java.util.UUID;
 import com.wornux.data.entities.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface DocumentSegmentRepository extends JpaRepository<DocumentSegment, UUID> {
+public interface DocumentSegmentRepository extends JpaRepository<DocumentSegment, Long> {
 
     List<DocumentSegment> findByDocument_IdOrderByOrdinalAsc(UUID documentId);
 
