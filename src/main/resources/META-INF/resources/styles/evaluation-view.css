@@ -5,6 +5,40 @@
   box-sizing: border-box;
 }
 
+.evaluation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.evaluation-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.evaluation-overlay-panel {
+  position: relative;
+  z-index: 1;
+  width: min(48rem, 100%);
+  max-height: calc(100vh - 4rem);
+  overflow: auto;
+  background: var(--chat-surface-strong);
+  border: 1px solid var(--chat-border-visible);
+  border-radius: var(--chat-panel-radius-tight);
+  box-shadow: var(--chat-shadow-soft);
+  padding: var(--chat-space-lg);
+}
+
+.evaluation-overlay-footer {
+  justify-content: flex-end;
+}
+
 .evaluation-view > vaadin-vertical-layout {
   width: 100%;
   max-width: none;

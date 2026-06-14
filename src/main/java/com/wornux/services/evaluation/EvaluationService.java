@@ -39,6 +39,13 @@ public class EvaluationService {
   public Evaluation saveQuestions(UUID evaluationId, String questionsJson) {
     var evaluation = get(evaluationId);
     evaluation.setQuestionsJson(questionsJson);
+    touch(evaluation);
+    return evaluation;
+  }
+
+  @Transactional
+  public Evaluation markRunning(UUID evaluationId) {
+    var evaluation = get(evaluationId);
     evaluation.setStatus(EvaluationStatus.RUNNING);
     touch(evaluation);
     return evaluation;

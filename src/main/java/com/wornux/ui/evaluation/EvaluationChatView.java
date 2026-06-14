@@ -1,10 +1,8 @@
 package com.wornux.ui.evaluation;
 
 import com.vaadin.flow.component.Composite;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -12,9 +10,9 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.wornux.services.evaluation.EvaluationChatService;
 import com.wornux.services.evaluation.EvaluationRunService;
@@ -28,6 +26,7 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
   private final EvaluationChatService chatService;
 
   private UUID runId;
+  private UUID evaluationId;
   private final Div titleLabel = new Div();
   private final Span progressLabel = new Span();
   private final Div messagesContainer = new Div();
@@ -39,8 +38,6 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
   private final Span loadingLabel = new Span();
   private final Div loadingIndicator = new Div(loadingSpinner, loadingLabel);
   private boolean complete = false;
-  private boolean pendingBackNav = false;
-  private Dialog completionDialog;
   private static final String NEXT_QUESTION_LOADING_TEXT = "Formulando la siguiente pregunta...";
   private static final String REPORT_LOADING_TEXT = "Generando reporte evaluativo...";
 
@@ -114,7 +111,8 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
   public void setParameter(BeforeEvent event, String parameter) {
     this.runId = UUID.fromString(parameter);
 
-    runService.loadRun(runId);
+    var run = runService.loadRun(runId);
+    this.evaluationId = run.getEvaluationId();
     startEvaluation();
   }
 
@@ -164,8 +162,7 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
             complete = true;
             progressLabel.setText("Evaluación completada");
             setLoadingState(true, REPORT_LOADING_TEXT);
-            showCompletionDialog(response.reportMarkdown());
-            setLoadingState(false, NEXT_QUESTION_LOADING_TEXT);
+            navigateToCompletedEvaluation();
           }
         });
       } catch (Exception e) {
@@ -178,56 +175,19 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
     }).start();
   }
 
-  private void showCompletionDialog(String reportMarkdown) {
-    if (completionDialog != null && completionDialog.isOpened()) return;
+  private void navigateToCompletedEvaluation() {
+    if (evaluationId == null) {
+      setLoadingState(false, NEXT_QUESTION_LOADING_TEXT);
+      backButton.removeThemeVariants(ButtonVariant.TERTIARY);
+      backButton.addThemeVariants(ButtonVariant.PRIMARY);
+      backButton.setVisible(true);
+      progressLabel.setText("Evaluación completada — presioná Volver para salir");
+      return;
+    }
 
-    var dialog = new Dialog();
-    dialog.setHeaderTitle("Reporte de evaluación");
-    dialog.setWidth("min(90vw, 50rem)");
-    dialog.setMaxHeight("80vh");
-    dialog.setCloseOnOutsideClick(false);
-    dialog.setCloseOnEsc(false);
-
-    var content = new Div();
-    content.addClassName("evaluation-completion-dialog-content");
-
-    var markdownContainer = new Div();
-    markdownContainer.addClassName("evaluation-report-markdown");
-    var markdownElement = new Element("vaadin-markdown");
-    markdownElement.setProperty("content", reportMarkdown);
-    markdownContainer.getElement().appendChild(markdownElement);
-    content.add(markdownContainer);
-
-    dialog.add(content);
-
-    var volverButton = new Button("Volver a evaluaciones", e -> {
-      pendingBackNav = true;
-      dialog.close();
-    });
-    volverButton.addThemeVariants(ButtonVariant.PRIMARY);
-
-    var cancelButton = new Button("Cancelar", e -> dialog.close());
-    cancelButton.addThemeVariants(ButtonVariant.TERTIARY);
-
-    dialog.getFooter().add(cancelButton, volverButton);
-    dialog.addOpenedChangeListener(e -> {
-      if (!e.isOpened()) {
-        if (pendingBackNav) {
-          pendingBackNav = false;
-          completionDialog = null;
-          getUI().ifPresent(ui -> ui.getPage().setLocation("/evaluations"));
-        } else {
-          completionDialog = null;
-          backButton.removeThemeVariants(ButtonVariant.TERTIARY);
-          backButton.addThemeVariants(ButtonVariant.PRIMARY);
-          backButton.setVisible(true);
-          progressLabel.setText("Evaluación completada — presioná Volver para salir");
-        }
-      }
-    });
-
-    completionDialog = dialog;
-    dialog.open();
+    getUI().ifPresent(ui -> ui.navigate(
+        EvaluationView.class,
+        QueryParameters.of(EvaluationView.OPEN_EVALUATION_QUERY_PARAMETER, evaluationId.toString())));
   }
 
   private void addMessage(String sender, String text) {

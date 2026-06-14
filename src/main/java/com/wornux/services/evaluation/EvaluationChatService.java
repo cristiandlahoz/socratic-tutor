@@ -251,11 +251,18 @@ public class EvaluationChatService {
 
   private void persistState(EvaluationSession session, UUID runId) {
     runService.persistConversation(runId, session.questions, session.answers);
+    evaluationService.saveAnswers(
+        session.evaluation.getId(),
+        serializeAnswers(session.answers));
   }
 
   private EvaluationTurnResponse completeEvaluation(EvaluationSession session, UUID runId) {
     try {
       var report = generateReport(session);
+      evaluationService.saveAnswers(
+          session.evaluation.getId(),
+          serializeAnswers(session.answers));
+      evaluationService.completeReport(session.evaluation.getId(), report);
       runService.completeReport(runId, report);
       sessions.remove(runId);
       return new EvaluationTurnResponse(
@@ -319,4 +326,28 @@ public class EvaluationChatService {
   record NextTurnResponse(String type, String questionText) {}
 
   record ReportResponse(String report) {}
+
+  private String serializeAnswers(List<AnswerRecord> answers) {
+    var json = new StringBuilder("[");
+    for (int i = 0; i < answers.size(); i++) {
+      var answer = answers.get(i);
+      if (i > 0) {
+        json.append(',');
+      }
+      json.append('{')
+          .append("\"questionKey\":\"").append(escapeJson(answer.questionKey())).append("\",")
+          .append("\"questionText\":\"").append(escapeJson(answer.questionText())).append("\",")
+          .append("\"answer\":\"").append(escapeJson(answer.answer())).append("\"}");
+    }
+    return json.append(']').toString();
+  }
+
+  private String escapeJson(String value) {
+    return value
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t");
+  }
 }
