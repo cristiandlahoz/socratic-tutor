@@ -1,6 +1,5 @@
 package com.wornux.config;
 
-import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -10,9 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.document-ingest")
 public class DocumentIngestionProperties {
 
-  private String doclingBaseUrl = "http://localhost:5001";
-  private Duration doclingConnectTimeout = Duration.ofSeconds(5);
-  private Duration doclingReadTimeout = Duration.ofMinutes(2);
   private int maxFileSizeBytes = 20 * 1024 * 1024;
   private int retrievalTopK = 4;
   private double retrievalSimilarityThreshold = 0.55;
@@ -31,7 +27,6 @@ public class DocumentIngestionProperties {
     public static class Hybrid {
 
       private int maxTokens = 512;
-      private String tokenizer = "/opt/tokenizers/qwen3-0.6b-tokenizer";
       private Boolean mergePeers = true;
       private boolean useMarkdownTables = true;
       private boolean includeRawText = true;
