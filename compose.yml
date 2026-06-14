@@ -9,14 +9,26 @@ services:
       - db_postgres:/var/lib/postgresql
     ports:
       - '${POSTGRES_PORT:-4321}:5432'
-  docling:
+  app:
+    profiles:
+      - app
     build:
-      context: ./docker/docling
+      context: .
+      dockerfile: Dockerfile
     environment:
-      - HF_HUB_OFFLINE=1
-      - TRANSFORMERS_OFFLINE=1
-      - HF_HOME=/opt/hf-cache
+      - 'PORT=6543'
+      - 'SPRING_PROFILES_ACTIVE=dev'
+      - 'SPRING_DOCKER_COMPOSE_LIFECYCLE_MANAGEMENT=none'
+      - 'DATABASE_URL=jdbc:postgresql://postgres:5432/socratic-tutor'
+      - 'DATABASE_USERNAME=postgres'
+      - 'DATABASE_PASSWORD=postgres'
+      - 'C_RUNNER_COMPILER_IMAGE=${C_RUNNER_COMPILER_IMAGE:-gcc:15.2.0-bookworm}'
+      - 'C_RUNNER_DEBUGGER_IMAGE=${C_RUNNER_DEBUGGER_IMAGE:-socratic-tutor/c-runner:local}'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "${DOCLING_PORT:-5001}:5001"
+      - '${APP_PORT:-6543}:6543'
+    depends_on:
+      - postgres
 volumes:
   db_postgres: { }
