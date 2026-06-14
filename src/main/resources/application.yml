@@ -78,16 +78,12 @@ app:
     c-example-preparation:
       model: ${C_EXAMPLE_PREPARATION_MODEL:${spring.ai.ollama.chat.model}}
   document-ingest:
-    docling-base-url: ${DOCLING_BASE_URL:http://localhost:5001}
-    docling-connect-timeout: ${DOCLING_CONNECT_TIMEOUT:5s}
-    docling-read-timeout: ${DOCLING_READ_TIMEOUT:5m}
     max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:20971520}
     retrieval-top-k: ${DOCUMENT_RETRIEVAL_TOP_K:4}
     retrieval-similarity-threshold: ${DOCUMENT_RETRIEVAL_SIMILARITY_THRESHOLD:0.55}
     chunking:
       hybrid:
         max-tokens: ${DOCUMENT_CHUNK_MAX_TOKENS:512}
-        tokenizer: ${DOCUMENT_CHUNK_TOKENIZER:/opt/tokenizers/qwen3-0.6b-tokenizer}
         merge-peers: ${DOCUMENT_CHUNK_MERGE_PEERS:true}
         use-markdown-tables: ${DOCUMENT_CHUNK_USE_MARKDOWN_TABLES:true}
         include-raw-text: ${DOCUMENT_CHUNK_INCLUDE_RAW_TEXT:true}

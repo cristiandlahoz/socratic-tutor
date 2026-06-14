@@ -1,17 +1,11 @@
 package com.wornux.infrastructure.external.crunner;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
+import com.wornux.config.CProgramAnalysisProperties;
 import com.wornux.services.crunner.CDiagnostic;
 import com.wornux.services.crunner.CDiagnosticSeverity;
-import com.wornux.config.CProgramAnalysisProperties;
 import com.wornux.services.crunner.CSourceRequest;
 import com.wornux.services.crunner.CValidationResult;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -22,19 +16,21 @@ import org.springframework.stereotype.Component;
 public class DockerGccCCompilerAdapter {
 
   private static final Logger log = LoggerFactory.getLogger(DockerGccCCompilerAdapter.class);
-  private static final String WORKSPACE = "/workspace";
 
   private final CProgramAnalysisProperties properties;
   private final SarifDiagnosticParser sarifDiagnosticParser;
-  private final DockerCommandRunner commandRunner;
+  private final CWorkspaceFactory workspaceFactory;
+  private final CCompilerRunner compilerRunner;
 
   public DockerGccCCompilerAdapter(
       CProgramAnalysisProperties properties,
       SarifDiagnosticParser sarifDiagnosticParser,
-      DockerCommandRunner commandRunner) {
+      CWorkspaceFactory workspaceFactory,
+      CCompilerRunner compilerRunner) {
     this.properties = properties;
     this.sarifDiagnosticParser = sarifDiagnosticParser;
-    this.commandRunner = commandRunner;
+    this.workspaceFactory = workspaceFactory;
+    this.compilerRunner = compilerRunner;
   }
 
   public String cacheKey() {
@@ -48,15 +44,12 @@ public class DockerGccCCompilerAdapter {
 
   public CValidationResult validateSyntax(CSourceRequest request, String sourceHash) {
     var startedAt = System.nanoTime();
-    Path tempDir = null;
-    try {
-      tempDir = Files.createTempDirectory("c-runner-");
-      writeSourceFile(tempDir, request);
-      var processResult = commandRunner.run(compilerCommand(tempDir, request), properties.getTimeout());
+    try (var workspace = workspaceFactory.compilerWorkspace(request)) {
+      var processResult = compilerRunner.validate(workspace, request);
       var elapsedMs = elapsedMillis(startedAt);
       if (processResult.timedOut()) {
         return failure(
-            "C compiler timed out after " + properties.getTimeout().toSeconds() + " seconds",
+            "C compiler timed out after %d seconds".formatted(properties.getTimeout().toSeconds()),
             "compiler-timeout",
             elapsedMs,
             sourceHash);
@@ -67,80 +60,40 @@ public class DockerGccCCompilerAdapter {
         diagnostics =
             List.of(
                 CDiagnostic.error(
-                    "C compiler failed before producing diagnostics: "
-                        + preview(processResult.stderr(), processResult.stdout()),
+                    "C compiler failed before producing diagnostics: %s"
+                        .formatted(preview(processResult.stderr(), processResult.stdout())),
                     "compiler-failed"));
       }
       var valid =
           processResult.exitCode() == 0
               && diagnostics.stream().noneMatch(diagnostic -> diagnostic.severity() == CDiagnosticSeverity.ERROR);
       return new CValidationResult(valid, diagnostics, properties.getCompilerImage(), elapsedMs, sourceHash);
-    } catch (IOException | RuntimeException exception) {
-      log.warn("Failed to run sandboxed GCC syntax validation", exception);
+    } catch (IOException | RuntimeException ex) {
+      log.warn("Failed to run sandboxed GCC syntax validation", ex);
       return failure(
-          "C compiler sandbox is unavailable: " + exception.getMessage(),
+          "C compiler sandbox is unavailable: %s".formatted(ex.getMessage()),
           "compiler-unavailable",
           elapsedMillis(startedAt),
           sourceHash);
-    } catch (InterruptedException exception) {
+    } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       return failure(
           "C compiler sandbox was interrupted",
           "compiler-interrupted",
           elapsedMillis(startedAt),
           sourceHash);
-    } finally {
-      deleteRecursively(tempDir);
     }
-  }
-
-  private void writeSourceFile(Path tempDir, CSourceRequest request) throws IOException {
-    var sourcePath = tempDir.resolve(request.filename()).normalize();
-    if (!sourcePath.getParent().equals(tempDir)) {
-      throw new IOException("Unsafe C source filename: " + request.filename());
-    }
-    Files.writeString(sourcePath, request.source(), UTF_8, StandardOpenOption.CREATE_NEW);
-  }
-
-  List<String> compilerCommand(Path tempDir, CSourceRequest request) {
-    return List.of(
-        "docker",
-        "run",
-        "--rm",
-        "--network",
-        "none",
-        "--cpus",
-        properties.getCpus(),
-        "--memory",
-        properties.getMemory(),
-        "--pids-limit",
-        String.valueOf(properties.getPidsLimit()),
-        "--read-only",
-        "--tmpfs",
-        "/tmp:rw,noexec,nosuid,size=16m",
-        "-v",
-        tempDir.toAbsolutePath() + ":" + WORKSPACE + ":ro",
-        "-w",
-        WORKSPACE,
-        properties.getCompilerImage(),
-        "gcc",
-        "-fsyntax-only",
-        "-std=" + request.standard(),
-        "-Wall",
-        "-Wextra",
-        "-Wpedantic",
-        "-fdiagnostics-format=sarif-stderr",
-        request.filename());
   }
 
   private List<CDiagnostic> parseDiagnostics(String stderr, String source) {
     try {
       return sarifDiagnosticParser.parse(stderr, source);
-    } catch (RuntimeException exception) {
-      log.warn("Failed to parse GCC SARIF diagnostics", exception);
+    } catch (RuntimeException ex) {
+      log.warn("Failed to parse GCC SARIF diagnostics", ex);
       return List.of(
           CDiagnostic.error(
-              "Unable to parse compiler diagnostics: " + preview(stderr, ""), "diagnostic-parse-failed"));
+              "Unable to parse compiler diagnostics: %s".formatted(preview(stderr, "")),
+              "diagnostic-parse-failed"));
     }
   }
 
@@ -159,29 +112,10 @@ public class DockerGccCCompilerAdapter {
   }
 
   private static String preview(String stderr, String stdout) {
-    var combined = ((stderr == null ? "" : stderr) + "\n" + (stdout == null ? "" : stdout)).trim();
+    var combined = "%s\n%s".formatted(stderr == null ? "" : stderr, stdout == null ? "" : stdout).trim();
     if (combined.isBlank()) {
       return "no compiler output";
     }
     return combined.length() <= 500 ? combined : combined.substring(0, 500) + "...";
-  }
-
-  private static void deleteRecursively(Path path) {
-    if (path == null || !Files.exists(path)) {
-      return;
-    }
-    try (var paths = Files.walk(path)) {
-      paths.sorted(Comparator.reverseOrder())
-          .forEach(
-              currentPath -> {
-                try {
-                  Files.deleteIfExists(currentPath);
-                } catch (IOException exception) {
-                  log.debug("Failed to delete temporary C runner path {}", currentPath, exception);
-                }
-              });
-    } catch (IOException exception) {
-      log.debug("Failed to clean temporary C runner directory {}", path, exception);
-    }
   }
 }

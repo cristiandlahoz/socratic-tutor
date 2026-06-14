@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 @Component
-public class GdbMiSnapshotParser {
+public class GdbDebugDumpParser {
 
   private static final Pattern FRAME_PATTERN = Pattern.compile("frame=\\{([^}]*)}");
   private static final String STDOUT_BEGIN = "__C_STDOUT_BEGIN__";
