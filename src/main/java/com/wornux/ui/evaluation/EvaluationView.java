@@ -2,7 +2,6 @@ package com.wornux.ui.evaluation;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
@@ -19,6 +18,12 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.Location;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.wornux.data.entities.Evaluation;
@@ -33,11 +38,12 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Route(value = "evaluations", layout = com.wornux.ui.MainLayout.class)
-public class EvaluationView extends Composite<Div> {
+public class EvaluationView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
 
   private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");
   private static final DateTimeFormatter DATE_FORMATTER =
       DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", SPANISH_LOCALE);
+  public static final String OPEN_EVALUATION_QUERY_PARAMETER = "evaluation";
 
   private final EvaluationService evaluationService;
   private final EvaluationRunService runService;
@@ -53,7 +59,8 @@ public class EvaluationView extends Composite<Div> {
   private final Button launchButton = new Button("Lanzar Evaluación");
 
   private UUID selectedEvaluationId;
-  private Dialog openDialog;
+  private UUID pendingDialogEvaluationId;
+  private EvaluationDialog openDialog;
 
   public EvaluationView(
       EvaluationService evaluationService,
@@ -147,10 +154,8 @@ public class EvaluationView extends Composite<Div> {
     grid.asSingleSelect().addValueChangeListener(event -> onSelectionChange(event.getValue()));
 
     grid.addItemDoubleClickListener(event -> {
-      if (openDialog != null && openDialog.isOpened()) return;
-      openDialog = new EvaluationDialog(event.getItem(), evaluationService, questionGenerationService, this::onEvaluationUpdated);
-      openDialog.addOpenedChangeListener(e -> { if (!e.isOpened()) openDialog = null; });
-      openDialog.open();
+      if (openDialog != null) return;
+      openEvaluationDialog(event.getItem(), false);
     });
 
     generateButton.setIcon(new Icon(VaadinIcon.QUESTION));
@@ -265,8 +270,13 @@ public class EvaluationView extends Composite<Div> {
     selectedEvaluationId = evaluation != null ? evaluation.getId() : null;
     generateButton.setEnabled(hasSelection && evaluation.getQuestionsJson() == null);
     deleteButton.setEnabled(hasSelection);
-    launchButton.setVisible(hasSelection && evaluation.getQuestionsJson() != null
-        && evaluation.getStatus() == EvaluationStatus.RUNNING);
+    boolean canLaunch = hasSelection && evaluation.getQuestionsJson() != null;
+    launchButton.setVisible(canLaunch);
+    if (canLaunch) {
+      launchButton.setText(evaluation.getStatus() == EvaluationStatus.COMPLETED
+          ? "Relanzar Evaluación"
+          : "Lanzar Evaluación");
+    }
   }
 
   private void onGenerateQuestions() {
@@ -283,8 +293,9 @@ public class EvaluationView extends Composite<Div> {
 
       Notification.show("Se generaron %d preguntas".formatted(questions.size()));
       refreshGrid();
-      grid.asSingleSelect().setValue(evaluationService.get(evaluation.getId()));
-      onSelectionChange(evaluation);
+      var refreshedEvaluation = evaluationService.get(evaluation.getId());
+      grid.asSingleSelect().setValue(refreshedEvaluation);
+      onSelectionChange(refreshedEvaluation);
     } catch (Exception e) {
       Notification.show("Error al generar preguntas: " + e.getMessage());
     } finally {
@@ -307,6 +318,7 @@ public class EvaluationView extends Composite<Div> {
     try {
       var clientId = browserClientService.resolveClientId();
       var run = runService.createRun(evaluation.getId(), clientId, "[]");
+      evaluationService.markRunning(evaluation.getId());
       selectedEvaluationId = evaluation.getId();
 
       getUI().ifPresent(ui -> ui.navigate(EvaluationChatView.class, run.getId().toString()));
@@ -319,9 +331,78 @@ public class EvaluationView extends Composite<Div> {
     refreshGrid();
   }
 
+  @Override
+  public void beforeEnter(BeforeEnterEvent event) {
+    pendingDialogEvaluationId = event
+        .getLocation()
+        .getQueryParameters()
+        .getSingleParameter(OPEN_EVALUATION_QUERY_PARAMETER)
+        .map(this::parseUuid)
+        .orElse(null);
+  }
+
+  @Override
+  public void afterNavigation(AfterNavigationEvent event) {
+    if (pendingDialogEvaluationId == null) {
+      return;
+    }
+
+    var evaluationId = pendingDialogEvaluationId;
+    pendingDialogEvaluationId = null;
+    openEvaluationDialogFromRoute(evaluationId);
+  }
+
   private void refreshGrid() {
     var items = evaluationService.listAll();
     grid.setItems(items);
+  }
+
+  private UUID parseUuid(String rawValue) {
+    try {
+      return UUID.fromString(rawValue);
+    } catch (IllegalArgumentException ignored) {
+      return null;
+    }
+  }
+
+  private void openEvaluationDialogFromRoute(UUID evaluationId) {
+    if (evaluationId == null || openDialog != null) {
+      clearDialogAddressBarState();
+      return;
+    }
+
+    try {
+      var evaluation = evaluationService.get(evaluationId);
+      grid.asSingleSelect().setValue(evaluation);
+      onSelectionChange(evaluation);
+      openEvaluationDialog(evaluation, true);
+    } catch (IllegalArgumentException ignored) {
+      clearDialogAddressBarState();
+    }
+  }
+
+  private void openEvaluationDialog(Evaluation evaluation, boolean clearAddressBarOnClose) {
+    openDialog = new EvaluationDialog(
+        evaluation,
+        evaluationService,
+        questionGenerationService,
+        this::onEvaluationUpdated,
+        () -> closeEvaluationDialog(clearAddressBarOnClose));
+    getContent().add(openDialog);
+  }
+
+  private void closeEvaluationDialog(boolean clearAddressBarOnClose) {
+    if (openDialog != null) {
+      getContent().remove(openDialog);
+      openDialog = null;
+    }
+    if (clearAddressBarOnClose) {
+      clearDialogAddressBarState();
+    }
+  }
+
+  private void clearDialogAddressBarState() {
+    getUI().ifPresent(ui -> ui.getPage().getHistory().replaceState(null, new Location("evaluations", QueryParameters.empty())));
   }
 
   private void clearSelection() {
@@ -330,6 +411,7 @@ public class EvaluationView extends Composite<Div> {
     generateButton.setEnabled(false);
     deleteButton.setEnabled(false);
     launchButton.setVisible(false);
+    launchButton.setText("Lanzar Evaluación");
   }
 
   private void updateSaveButton() {
