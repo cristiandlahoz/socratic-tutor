@@ -129,11 +129,11 @@ class AskStudentQuestionToolTest {
     }
 
     private SubjectConfig subjectConfig() {
-        return new SubjectConfig(UUID.randomUUID(),
+        return new SubjectConfig(1L,
                 "c-programming",
                 "C Programming",
                 1L,
-                UUID.randomUUID(),
+                1L,
                 Map.of("scope", "C pointers, memory, and control flow"),
                 Map.of("defaultHelpMode", "guided"),
                 Map.of("askBeforeAnswering", true));

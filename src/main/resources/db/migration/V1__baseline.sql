@@ -165,7 +165,7 @@ create table subject (
     slug varchar(96) not null unique,
     display_name text not null,
     status varchar(24) not null,
-    current_config_revision_id uuid null unique,
+    current_config_revision_id bigint null unique,
     config_version bigint not null default 1,
     lock_version bigint not null default 0,
     created_at timestamptz not null default current_timestamp,

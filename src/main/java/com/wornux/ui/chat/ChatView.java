@@ -308,8 +308,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         return String.format(Locale.US, "%.1f", rounded);
     }
 
-    private String shortId(UUID id) {
-        return id.toString().substring(0, 8);
+    private String shortId(Long id) {
+        return id == null ? "" : "#" + id;
     }
 
     private void submitPrompt() {

@@ -36,7 +36,7 @@ public class ChatState implements Serializable {
     private final ValueSignal<Integer> usagePercent = new ValueSignal<>(null);
     private final ValueSignal<Boolean> conversationCompacted = new ValueSignal<>(false);
     private final ValueSignal<Integer> compactionLevel = new ValueSignal<>(null);
-    private final ValueSignal<UUID> compactedFromTranscriptId = new ValueSignal<>(null);
+    private final ValueSignal<Long> compactedFromTranscriptId = new ValueSignal<>(null);
     private final ValueSignal<ThemePreference> themePreference = new ValueSignal<>(ThemePreference.SYSTEM);
     private final ValueSignal<Boolean> themePreferenceLoaded = new ValueSignal<>(false);
     private final ListSignal<MessageState> messages = new ListSignal<>();
@@ -103,7 +103,7 @@ public class ChatState implements Serializable {
         return compactionLevel;
     }
 
-    public ValueSignal<UUID> compactedFromTranscriptId() {
+    public ValueSignal<Long> compactedFromTranscriptId() {
         return compactedFromTranscriptId;
     }
 
