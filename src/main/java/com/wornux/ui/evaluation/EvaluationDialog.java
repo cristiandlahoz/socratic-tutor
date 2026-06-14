@@ -81,6 +81,7 @@ public class EvaluationDialog extends Div {
         buildReportSection(evaluation));
     body.setPadding(false);
     body.setSpacing(true);
+    body.setWidthFull();
     body.getStyle()
         .set("flex", "1 1 auto")
         .set("min-height", "0")
@@ -125,6 +126,7 @@ public class EvaluationDialog extends Div {
 
     var container = new Div();
     container.addClassName("evaluation-dialog-questions");
+    container.setWidthFull();
     container.getStyle().set("display", "flex").set("flex-direction", "column").set("gap", "0.75rem");
 
     var json = evaluation.getQuestionsJson();
@@ -138,6 +140,8 @@ public class EvaluationDialog extends Div {
           var item = new Div(new Span((i + 1) + ". "), new Span(q.questionText()));
           item.addClassName("evaluation-dialog-question-item");
           item.getStyle()
+              .set("width", "100%")
+              .set("box-sizing", "border-box")
               .set("padding", "0.85rem 1rem")
               .set("border", "1px solid var(--chat-border-subtle, rgba(255,255,255,0.08))")
               .set("border-radius", "0.75rem")
@@ -159,6 +163,7 @@ public class EvaluationDialog extends Div {
 
     var container = new Div();
     container.addClassName("evaluation-dialog-answers");
+    container.setWidthFull();
     container.getStyle().set("display", "flex").set("flex-direction", "column").set("gap", "0.85rem");
 
     var json = evaluation.getAnswersJson();
@@ -194,6 +199,7 @@ public class EvaluationDialog extends Div {
 
     var container = new Div();
     container.addClassName("evaluation-dialog-report");
+    container.setWidthFull();
 
     var markdown = evaluation.getReportMarkdown();
     if (markdown == null || markdown.isBlank()) {
@@ -215,10 +221,12 @@ public class EvaluationDialog extends Div {
 
   private Div buildSection(H4 title, Component content) {
     var section = new Div(title, content);
+    section.setWidthFull();
     section.getStyle()
         .set("display", "flex")
         .set("flex-direction", "column")
         .set("gap", "0.85rem")
+        .set("box-sizing", "border-box")
         .set("padding", "1rem")
         .set("border", "1px solid var(--chat-border-visible)")
         .set("border-radius", "0.9rem")

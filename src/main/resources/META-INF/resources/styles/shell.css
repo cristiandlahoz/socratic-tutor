@@ -27,7 +27,14 @@ vaadin-drawer-toggle.shell-drawer-toggle {
   z-index: 5;
 }
 
-vaadin-drawer-toggle.shell-drawer-toggle::part(button) {
+vaadin-app-layout[drawer-opened] vaadin-drawer-toggle.shell-drawer-toggle {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+vaadin-drawer-toggle.shell-drawer-toggle::part(button),
+vaadin-drawer-toggle.shell-drawer-toggle-inside::part(button) {
   width: 2.8rem;
   height: 2.8rem;
   border-radius: var(--chat-panel-radius);
@@ -39,11 +46,14 @@ vaadin-drawer-toggle.shell-drawer-toggle::part(button) {
       background var(--chat-transition-fast),
       border-color var(--chat-transition-fast),
       color var(--chat-transition-fast),
+      opacity var(--chat-transition-fast),
       transform var(--chat-transition-fast);
 }
 
 vaadin-drawer-toggle.shell-drawer-toggle:hover::part(button),
-vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button) {
+vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button),
+vaadin-drawer-toggle.shell-drawer-toggle-inside:hover::part(button),
+vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
   background: var(--chat-surface-hover);
   border-color: var(--chat-interactive-strong);
   color: var(--chat-text-display);

@@ -15,17 +15,24 @@ public class DocumentStatusPanel extends Composite<Div> {
     private final ProgressBar progressBar = new ProgressBar();
 
     public DocumentStatusPanel() {
+        badge.setId("document-ingestion-status-badge");
         badge.addClassName("document-ingest-status-badge");
+        title.setId("document-ingestion-status-title");
         title.addClassName("document-ingest-status-title");
+        message.setId("document-ingestion-status-message");
         message.addClassName("document-ingest-status-message");
+        failure.setId("document-ingestion-status-failure");
         failure.addClassName("document-ingest-status-failure");
         failure.setVisible(false);
 
+        progressBar.setId("document-ingestion-status-progress");
         progressBar.setIndeterminate(true);
         progressBar.setVisible(false);
         progressBar.addClassName("document-ingest-status-progress");
 
         var root = getContent();
+        root.setWidthFull();
+        root.setId("document-ingestion-status-panel");
         root.addClassName("document-ingest-status-panel");
         root.add(badge, title, message, progressBar, failure);
     }

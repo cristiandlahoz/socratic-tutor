@@ -1,15 +1,16 @@
 package com.wornux.ui.chat;
 
-import com.vaadin.flow.component.UI;
-import com.wornux.services.chat.ChatService;
-import com.wornux.services.chat.ConversationService;
-import com.wornux.services.chat.ConversationTitleService;
-import com.wornux.domain.chat.StudentQuestionExchange;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.vaadin.flow.component.UI;
+import com.wornux.dtos.chat.StudentQuestionExchange;
+import com.wornux.services.chat.ChatService;
+import com.wornux.services.chat.ConversationService;
+import com.wornux.services.chat.ConversationTitleService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

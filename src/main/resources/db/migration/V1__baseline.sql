@@ -1,10 +1,10 @@
 create extension if not exists vector;
-create extension if not exists "uuid-ossp";
+create extension if not exists pgcrypto;
 
 create table chat (
     id uuid primary key,
     client_id uuid not null,
-    title text not null,
+    title varchar(255) not null,
     current_transcript_id uuid null,
     created_at timestamptz not null default current_timestamp,
     updated_at timestamptz not null default current_timestamp
@@ -45,7 +45,7 @@ create index idx_chat_message_transcript_id_id
     on chat_message (transcript_id, id asc);
 
 create table vector_store (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     content text,
     metadata json,
     embedding vector(1024)
@@ -57,23 +57,25 @@ create index vector_store_embedding_hnsw_idx
 create table student_profile (
     client_id uuid primary key,
     preferred_language varchar(8) not null default 'es',
-    help_mode varchar(16) not null default 'GUIDED',
     needs_concrete_examples boolean not null default false,
     theme_preference varchar(16) not null default 'SYSTEM',
     learning_profile jsonb not null default '{}'::jsonb,
     last_updated_at timestamptz not null default current_timestamp,
-    profile_version bigint not null default 1
+    profile_version bigint not null default 1,
+    constraint chk_student_profile_theme_preference
+        check (theme_preference in ('SYSTEM', 'LIGHT', 'DARK'))
 );
 
 create table student_misconception (
     id bigserial primary key,
     client_id uuid not null references student_profile(client_id) on delete cascade,
-    topic_key varchar(96) not null,
-    misconception_key varchar(96) not null,
+    topic_key varchar(32) not null,
+    misconception_key varchar(64) not null,
     description text not null,
-    confidence numeric(4, 3) not null,
     status varchar(16) not null default 'ACTIVE',
-    last_seen_at timestamptz not null default current_timestamp
+    last_seen_at timestamptz not null default current_timestamp,
+    constraint chk_student_misconception_status
+        check (status in ('ACTIVE', 'COOLDOWN', 'RESOLVED'))
 );
 
 create unique index idx_student_misconception_client_key
@@ -95,17 +97,17 @@ create index idx_student_profile_signal_client_created
 create table ingested_document (
     id uuid primary key,
     client_id uuid not null,
-    original_filename text not null,
-    mime_type text not null,
-    source_type varchar(32) not null,
-    docling_format varchar(32) not null,
+    original_filename varchar(255) not null,
+    mime_type varchar(255) not null,
+    source_type varchar(255) not null,
+    docling_format varchar(255) not null,
     checksum_sha256 varchar(64) not null,
     status varchar(24) not null,
     reviewed_markdown text null,
     page_count integer null,
-    catalog_title text null,
-    catalog_topic text null,
-    catalog_summary text null,
+    catalog_title varchar(255) null,
+    catalog_topic varchar(255) null,
+    catalog_summary varchar(255) null,
     catalog_tags jsonb not null default '[]'::jsonb,
     catalog_entities jsonb not null default '[]'::jsonb,
     catalog_question_examples jsonb not null default '[]'::jsonb,
@@ -126,8 +128,8 @@ create table document_ingestion_job (
     id uuid primary key,
     document_id uuid not null references ingested_document(id) on delete cascade,
     stage varchar(24) not null,
-    progress_label text not null,
-    failure_message text null,
+    progress_label varchar(255) not null,
+    failure_message varchar(255) null,
     started_at timestamptz not null default current_timestamp,
     completed_at timestamptz null
 );
@@ -139,7 +141,7 @@ create table document_segment (
     id uuid primary key,
     document_id uuid not null references ingested_document(id) on delete cascade,
     ordinal integer not null,
-    heading_path text null,
+    heading_path varchar(255) null,
     content text not null,
     approved boolean not null default false,
     edited boolean not null default false,
@@ -150,7 +152,7 @@ create table document_segment (
     doc_items jsonb not null default '[]'::jsonb,
     captions jsonb not null default '[]'::jsonb,
     raw_text text null,
-    chunker varchar(64) not null default 'DOCLING_HYBRID',
+    chunker varchar(255) not null default 'DOCLING_HYBRID',
     created_at timestamptz not null default current_timestamp,
     updated_at timestamptz not null default current_timestamp
 );
@@ -159,25 +161,27 @@ create index idx_document_segment_document_ordinal
     on document_segment (document_id, ordinal asc);
 
 create table subject (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     slug varchar(96) not null unique,
     display_name text not null,
     status varchar(24) not null,
-    current_config_revision_id uuid null,
+    current_config_revision_id uuid null unique,
     config_version bigint not null default 1,
     lock_version bigint not null default 0,
     created_at timestamptz not null default current_timestamp,
-    updated_at timestamptz not null default current_timestamp
+    updated_at timestamptz not null default current_timestamp,
+    constraint chk_subject_status
+        check (status in ('ACTIVE', 'ARCHIVED'))
 );
 
 create table subject_config_revision (
-    id uuid primary key default uuid_generate_v4(),
+    id uuid primary key default gen_random_uuid(),
     subject_id uuid not null references subject(id) on delete cascade,
     version bigint not null,
     config jsonb not null default '{}'::jsonb,
     rubric_defaults jsonb not null default '{}'::jsonb,
     question_policy jsonb not null default '{}'::jsonb,
-    created_by text not null default 'system',
+    created_by varchar(255) not null default 'system',
     created_at timestamptz not null default current_timestamp,
     unique (subject_id, version)
 );

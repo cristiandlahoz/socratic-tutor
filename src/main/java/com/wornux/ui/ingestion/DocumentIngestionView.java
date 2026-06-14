@@ -1,11 +1,13 @@
 package com.wornux.ui.ingestion;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
@@ -26,9 +28,9 @@ import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.components.ingestion.*;
-import java.util.Arrays;
-import java.util.Objects;
+import com.wornux.ui.components.ShellDrawerToggle;
+import com.wornux.ui.components.ingestion.DocumentSegmentEditorList;
+import com.wornux.ui.components.ingestion.DocumentStatusPanel;
 
 @Route(value = "documents", layout = MainLayout.class)
 public class DocumentIngestionView extends Composite<Div> implements BeforeEnterObserver {
@@ -39,6 +41,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     private final TextArea markdownEditor;
     private final Button approveButton;
     private final Button retryButton;
+    private final Button deleteButton;
 
     public DocumentIngestionView(
             DocumentIngestionUiController controller,
@@ -46,22 +49,20 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
             DocumentIngestionProperties properties) {
         this.controller = controller;
 
-        var drawerToggle = new DrawerToggle();
-        drawerToggle.addThemeVariants(ButtonVariant.TERTIARY);
-        drawerToggle.addClassName("shell-drawer-toggle");
+        var drawerToggle = new ShellDrawerToggle("shell-drawer-toggle", "Abrir menu");
 
         var eyebrow = new Span("Document ETL");
         eyebrow.addClassName("document-ingest-eyebrow");
 
-        var title = new H2("Ingesta un PDF y conviértelo en contexto para el chat");
+        var title = new H2("Ingestar información");
         title.addClassName("document-ingest-title");
 
-        var description =
-                new Paragraph("Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y"
-                        + " luego indexalo para preguntas posteriores.");
+        var description = new Paragraph(
+                "Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y luego indexalo para preguntas posteriores.");
         description.addClassName("document-ingest-description");
 
         Button backToChatButton = new Button("Volver al chat");
+        backToChatButton.setId("document-ingestion-back-to-chat");
         backToChatButton.addThemeVariants(ButtonVariant.TERTIARY);
         backToChatButton.addClassName("document-ingest-back-button");
         backToChatButton.setIcon(new Icon(VaadinIcon.ARROW_LEFT));
@@ -79,16 +80,16 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
         Upload upload = createUpload(properties);
         var uploadCard = new Div(uploadCardIntro(), upload);
+        uploadCard.setId("document-ingestion-upload-card");
         uploadCard.addClassName("document-ingest-upload-card");
 
         statusPanel = new DocumentStatusPanel();
 
-        var topGrid = new FormLayout();
-        topGrid.setAutoResponsive(true);
-        topGrid.addClassName("document-ingest-top-grid");
+        var topGrid = new HorizontalLayout();
         topGrid.add(uploadCard, statusPanel);
 
         markdownEditor = new TextArea("Markdown revisado");
+        markdownEditor.setId("document-ingestion-markdown-editor");
         markdownEditor.setWidthFull();
         markdownEditor.setMinHeight("22rem");
         markdownEditor.setMaxLength(200_000);
@@ -103,15 +104,18 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
         segmentEditorList = new DocumentSegmentEditorList();
         segmentEditorList.setSegmentChangeListener(controller::updateSegment);
+        segmentEditorList.setSegmentDeleteListener(controller::deleteSegment);
 
         var segmentsShell = new Div(
                 sectionHeader(
                     "segmentos",
-                    "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y" + " captions."),
+                    "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y captions."),
                 segmentEditorList);
+        segmentsShell.setId("document-ingestion-segments-shell");
         segmentsShell.addClassName("document-ingest-segments-shell");
 
         approveButton = new Button("Aprobar e indexar");
+        approveButton.setId("document-ingestion-approve-button");
         approveButton.addThemeVariants(ButtonVariant.PRIMARY);
         approveButton.setIcon(new Icon(VaadinIcon.DATABASE));
         approveButton.getThemeNames().remove("icon");
@@ -120,17 +124,27 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         approveButton.addClickListener(_ -> controller.approve(getUI().orElse(null)));
 
         retryButton = new Button("Reintentar");
+        retryButton.setId("document-ingestion-retry-button");
         retryButton.addThemeVariants(ButtonVariant.TERTIARY);
         retryButton.addClassName("document-ingest-retry-button");
         retryButton.addClickListener(_ -> controller.retry(getUI().orElse(null)));
 
-        var actionBar = new Div(approveButton, retryButton);
+        deleteButton = new Button("Eliminar documento");
+        deleteButton.setId("document-ingestion-delete-button");
+        deleteButton.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.TERTIARY);
+        deleteButton.addClickListener(_ -> controller.deleteCurrentDocument(getUI().orElse(null)));
+
+        var actionBar = new Div(approveButton, retryButton, deleteButton);
+        actionBar.setId("document-ingestion-action-bar");
         actionBar.addClassName("document-ingest-action-bar");
 
-        var reviewStack = new Div(markdownShell, segmentsShell, actionBar);
+        var details = new Details("Visualizar todo el contenido", markdownShell);
+        var reviewStack = new Div(details, segmentsShell, actionBar);
+        reviewStack.setId("document-ingestion-review-stack");
         reviewStack.addClassName("document-ingest-review-stack");
 
         var root = getContent();
+        root.setId("document-ingestion-view");
         root.addClassName("document-ingest-view");
         root.add(drawerToggle, header, topGrid, reviewStack);
 
@@ -147,6 +161,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         Signal.effect(reviewStack, () -> reviewStack.setVisible(state.reviewVisible().get()));
         Signal.effect(approveButton, () -> approveButton.setEnabled(state.canApprove().get()));
         Signal.effect(retryButton, () -> retryButton.setVisible(state.retryAvailable().get()));
+        Signal.effect(deleteButton, () -> deleteButton.setVisible(state.activeDocumentId().get() != null));
     }
 
     @Override
@@ -162,6 +177,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         Upload upload = new Upload(UploadHandler.inMemory(
             (metadata, data) -> controller
                     .uploadPdf(metadata.fileName(), metadata.contentType(), data, getUI().orElse(null))));
+        upload.setId("document-ingestion-upload");
         upload.setDropAllowed(true);
         upload.setAcceptedFileTypes("application/pdf", ".pdf");
         upload.setMaxFiles(1);
@@ -169,7 +185,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         upload.setWidthFull();
         upload.setI18n(createUploadI18n());
         upload.setUploadButton(createPrimaryUploadButton());
-        upload.setDropLabel(new Span("suelta aquí el PDF o usa el selector."));
+        upload.setDropLabel(new Span("Arrastra y suelta aquí el PDF o usa el selector."));
         upload.setDropLabelIcon(VaadinIcon.CLOUD_UPLOAD_O.create());
         upload.addFileRejectedListener(event -> {
             var notification = Notification.show(event.getErrorMessage(), 4_000, Notification.Position.MIDDLE);
@@ -180,6 +196,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
     private Button createPrimaryUploadButton() {
         var button = new Button("Subir PDF");
+        button.setId("document-ingestion-upload-button");
         button.addThemeVariants(ButtonVariant.PRIMARY);
         button.addClassName("document-ingest-upload-button");
         return button;

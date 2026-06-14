@@ -1,11 +1,12 @@
 package com.wornux.ai.advisor;
 
-import com.wornux.ai.document.DocumentCatalogPromptService;
-import com.wornux.ai.tools.ToolUsageAuditService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import com.wornux.ai.document.DocumentCatalogPromptService;
+import com.wornux.ai.tools.ToolUsageAuditService;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.NullUnmarked;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -21,68 +22,63 @@ import reactor.core.publisher.Flux;
 
 public class DocumentCatalogAdvisor implements CallAdvisor, StreamAdvisor {
 
-  private final int order;
-  private final DocumentCatalogPromptService catalogPromptService;
+    private final int order;
+    private final DocumentCatalogPromptService catalogPromptService;
 
-  public DocumentCatalogAdvisor(int order, DocumentCatalogPromptService catalogPromptService) {
-    this.order = order;
-    this.catalogPromptService = catalogPromptService;
-  }
-
-  @Override
-  public @NullMarked ChatClientResponse adviseCall(
-      ChatClientRequest request, CallAdvisorChain chain) {
-    return chain.nextCall(appendInventory(request));
-  }
-
-  @Override
-  public @NullMarked Flux<ChatClientResponse> adviseStream(
-      ChatClientRequest request, StreamAdvisorChain chain) {
-    return chain.nextStream(appendInventory(request));
-  }
-
-  private ChatClientRequest appendInventory(ChatClientRequest request) {
-    var clientId = clientId(request);
-    var inventory = catalogPromptService.buildInventoryPrompt(clientId);
-    if (inventory.isBlank()) {
-      return request;
+    public DocumentCatalogAdvisor(int order, DocumentCatalogPromptService catalogPromptService) {
+        this.order = order;
+        this.catalogPromptService = catalogPromptService;
     }
 
-    List<Message> messages = new ArrayList<>(request.prompt().getInstructions());
-    messages.add(new SystemMessage(inventory));
-
-    var promptBuilder = Prompt.builder().messages(messages);
-    var options = request.prompt().getOptions();
-    if (!Objects.isNull(options)) {
-      promptBuilder.chatOptions(options);
+    @Override
+    public @NullMarked ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
+        return chain.nextCall(appendInventory(request));
     }
 
-    return request
-        .mutate()
-        .prompt(promptBuilder.build())
-        .context("document_inventory_present", true)
-        .build();
-  }
-
-  private UUID clientId(ChatClientRequest request) {
-    Object value = request.context().get(ToolUsageAuditService.CLIENT_ID);
-    if (value == null) {
-      return null;
+    @Override
+    public @NullMarked Flux<ChatClientResponse> adviseStream(ChatClientRequest request, StreamAdvisorChain chain) {
+        return chain.nextStream(appendInventory(request));
     }
-    try {
-      return UUID.fromString(String.valueOf(value));
-    } catch (IllegalArgumentException exception) {
-      return null;
+
+    private ChatClientRequest appendInventory(ChatClientRequest request) {
+        var clientId = clientId(request);
+        var inventory = catalogPromptService.buildInventoryPrompt(clientId);
+        if (inventory.isBlank()) {
+            return request;
+        }
+
+        List<Message> messages = new ArrayList<>(request.prompt().getInstructions());
+        messages.add(new SystemMessage(inventory));
+
+        var promptBuilder = Prompt.builder().messages(messages);
+        var options = request.prompt().getOptions();
+        if (!Objects.isNull(options)) {
+            promptBuilder.chatOptions(options);
+        }
+
+        return request.mutate().prompt(promptBuilder.build()).context("document_inventory_present", true).build();
     }
-  }
 
-  @Override
-  public @NullUnmarked String getName() {
-    return "document-catalog-advisor";
-  }
+    private UUID clientId(ChatClientRequest request) {
+        Object value = request.context().get(ToolUsageAuditService.CLIENT_ID);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return UUID.fromString(String.valueOf(value));
+        }
+        catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
 
-  @Override
-  public int getOrder() {
-    return order;
-  }
+    @Override
+    public @NullUnmarked String getName() {
+        return "document-catalog-advisor";
+    }
+
+    @Override
+    public int getOrder() {
+        return order;
+    }
 }

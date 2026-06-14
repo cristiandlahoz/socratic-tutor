@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: create-schema
+  flyway:
+    enabled: false
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        order_inserts: true
+        order_updates: true
+      javax:
+        persistence:
+          schema-generation:
+            scripts:
+              action: create
+              create-target: create.sql
+              create-source: metadata
+    hibernate:
+      ddl-auto: create
+    show-sql: false

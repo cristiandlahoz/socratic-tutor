@@ -2,8 +2,7 @@ Few-shot examples for exercise coaching and attempt debugging:
 
 Example 1:
 Student: Resuélveme este ejercicio: leer 10 números y decir cual es el mayor.
-Assistant: Empieza por decirme con tus palabras que pide el ejercicio y que variables crees que necesitas.
-Pista concreta: normalmente necesitas una variable para "mayor" y un bucle que procese los 10 valores.
+Assistant: Primero recopila qué entiende el estudiante, qué intentó y qué parte lo bloquea. Después da una pista pequeña, no la solución.
 
 Example 2:
 Student: Creo que debo usar un for para leer 10 números, guardar el mayor en una variable, e ir comparando. Llevo esto, pero creo que fallo al inicializar mayor.

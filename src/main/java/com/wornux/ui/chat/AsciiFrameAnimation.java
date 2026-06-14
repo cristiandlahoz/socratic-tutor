@@ -8,31 +8,31 @@ import com.vaadin.flow.component.dependency.JsModule;
 @JsModule("./ascii-frame-animation.ts")
 public class AsciiFrameAnimation extends Component {
 
-  public AsciiFrameAnimation(String frameFolder, int frameCount, int fps) {
-    setFrameFolder(frameFolder);
-    setFrameCount(frameCount);
-    setFps(fps);
-    setLoop(true);
-    setBouncing(true);
-  }
+    public AsciiFrameAnimation(String frameFolder, int frameCount, int fps) {
+        setFrameFolder(frameFolder);
+        setFrameCount(frameCount);
+        setFps(fps);
+        setLoop(true);
+        setBouncing(true);
+    }
 
-  public void setFrameFolder(String frameFolder) {
-    getElement().setProperty("frameFolder", frameFolder);
-  }
+    public void setFrameFolder(String frameFolder) {
+        getElement().setProperty("frameFolder", frameFolder);
+    }
 
-  public void setFrameCount(int frameCount) {
-    getElement().setProperty("frameCount", frameCount);
-  }
+    public void setFrameCount(int frameCount) {
+        getElement().setProperty("frameCount", frameCount);
+    }
 
-  public void setFps(int fps) {
-    getElement().setProperty("fps", fps);
-  }
+    public void setFps(int fps) {
+        getElement().setProperty("fps", fps);
+    }
 
-  public void setLoop(boolean loop) {
-    getElement().setProperty("loop", loop);
-  }
+    public void setLoop(boolean loop) {
+        getElement().setProperty("loop", loop);
+    }
 
-  public void setBouncing(boolean bouncing) {
-    getElement().setProperty("bouncing", bouncing);
-  }
+    public void setBouncing(boolean bouncing) {
+        getElement().setProperty("bouncing", bouncing);
+    }
 }

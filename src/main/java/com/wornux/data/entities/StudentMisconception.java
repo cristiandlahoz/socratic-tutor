@@ -1,5 +1,8 @@
 package com.wornux.data.entities;
 
+import java.time.Instant;
+import java.util.UUID;
+
 import com.wornux.data.enums.MisconceptionStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,9 +12,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -37,9 +37,6 @@ public class StudentMisconception {
     @Column(nullable = false, columnDefinition = "text")
     private String description;
 
-    @Column(nullable = false, precision = 4, scale = 3)
-    private BigDecimal confidence;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private MisconceptionStatus status;
@@ -53,21 +50,18 @@ public class StudentMisconception {
             UUID clientId,
             String topicKey,
             String misconceptionKey,
-            String description,
-            BigDecimal confidence) {
+            String description) {
         var entity = new StudentMisconception();
         entity.clientId = clientId;
         entity.topicKey = topicKey == null || topicKey.isBlank() ? "unknown" : topicKey;
         entity.misconceptionKey = misconceptionKey;
         entity.description = description;
-        entity.confidence = confidence;
         entity.status = MisconceptionStatus.ACTIVE;
         entity.lastSeenAt = Instant.now();
         return entity;
     }
 
-    public void refresh(BigDecimal confidence) {
-        this.confidence = confidence;
+    public void refresh() {
         this.status = MisconceptionStatus.ACTIVE;
         this.lastSeenAt = Instant.now();
     }

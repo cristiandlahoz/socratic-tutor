@@ -1,8 +1,15 @@
 package com.wornux.ui.crunner;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.HtmlContainer;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.html.Div;
@@ -13,80 +20,27 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller.ScrollDirection;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.popover.Popover;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.wornux.services.crunner.CDiagnosticSeverity;
 import com.wornux.services.crunner.CDebugRequest;
 import com.wornux.services.crunner.CDebugSessionResult;
 import com.wornux.services.crunner.CDebugSnapshot;
 import com.wornux.services.crunner.CDebugVariable;
+import com.wornux.services.crunner.CDiagnosticSeverity;
+import com.wornux.services.crunner.CExamplePreparationResult;
+import com.wornux.services.crunner.CExamplePreparationService;
+import com.wornux.services.crunner.CExamplePreparationStatus;
 import com.wornux.services.crunner.CProgramDebugService;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 @StyleSheet("styles/c-runner.css")
 public final class DebuggerPanel extends Composite<Div> implements HasSize {
 
-    private static final String DEFAULT_SOURCE = """
-                                                 #include <stdio.h>
-
-                                                 typedef struct {
-                                                     int id;
-                                                     char grade;
-                                                     int scores[3];
-                                                 } Student;
-
-                                                 int sum_scores(Student student) {
-                                                     int total = 0;
-                                                     for (int i = 0; i < 3; i++) {
-                                                         total += student.scores[i];
-                                                     }
-                                                     return total;
-                                                 }
-
-                                                 int main(void) {
-                                                     Student student = {7, 'A', {8, 9, 10}};
-                                                     int matrix[2][3] = {{1, 2, 3}, {4, 5, 6}};
-                                                     int row_total = 0;
-                                                     int bonus = 5;
-                                                     int attempts = 2;
-                                                     int limit = 100;
-                                                     int passed = 0;
-                                                     int min_score = student.scores[0];
-                                                     int max_score = student.scores[0];
-                                                     char section = 'B';
-                                                     double average = 0.0;
-                                                     int threshold = 25;
-                                                     int normalized = 0;
-
-                                                     for (int j = 0; j < 3; j++) {
-                                                         row_total += matrix[1][j];
-                                                         if (student.scores[j] < min_score) {
-                                                             min_score = student.scores[j];
-                                                         }
-                                                         if (student.scores[j] > max_score) {
-                                                             max_score = student.scores[j];
-                                                         }
-                                                     }
-
-                                                     int *selected = &matrix[1][1];
-                                                     int final_score = sum_scores(student) + row_total + *selected;
-                                                     average = final_score / 3.0;
-                                                     passed = final_score >= threshold;
-                                                     normalized = final_score + bonus - attempts;
-
-                                                     printf("student %d grade %c\\n", student.id, student.grade);
-                                                     printf("section %c final score = %d / %d\\n", section, normalized, limit);
-                                                     printf("average = %.2f passed = %d\\n", average, passed);
-                                                     return 0;
-                                                 }
-                                                 """;
-
     private final CProgramDebugService debugService;
+    private final CExamplePreparationService preparationService;
+    private final Executor cRunnerExecutor;
     private final Button validateButton = createIconButton(VaadinIcon.PLAY, "Ejecutar depuracion");
     private final Button stepButton = createIconButton(VaadinIcon.ARROW_RIGHT, "Paso siguiente");
     private final Button resetButton = createIconButton(VaadinIcon.ROTATE_LEFT, "Reiniciar");
@@ -100,14 +54,20 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
     private final HtmlContainer localsBody = new HtmlContainer("tbody");
     private List<com.wornux.services.crunner.CDiagnostic> currentDiagnostics = List.of();
     private List<CDebugSnapshot> snapshots = List.of();
-    private String currentSource = DEFAULT_SOURCE;
+    private String currentSource = "";
     private String currentDebugger = "";
     private long currentDebugElapsedMs = 0;
     private int activeLine = 0;
     private int snapshotIndex = 0;
+    private long debugJobSequence = 0;
 
-    public DebuggerPanel(CProgramDebugService debugService) {
+    public DebuggerPanel(
+            CProgramDebugService debugService,
+            CExamplePreparationService preparationService,
+            Executor cRunnerExecutor) {
         this.debugService = Objects.requireNonNull(debugService, "debugService must not be null");
+        this.preparationService = Objects.requireNonNull(preparationService, "preparationService must not be null");
+        this.cRunnerExecutor = Objects.requireNonNull(cRunnerExecutor, "cRunnerExecutor must not be null");
 
         var title = new H2("Code Visualizer");
         title.addClassName("c-runner-title");
@@ -119,11 +79,12 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         header.addClassName("c-runner-header");
 
         statusText.addClassName("c-runner-status-text");
+        statusText.setText("Pega codigo C o abre un ejemplo del asistente para visualizar la ejecucion.");
         localsLabel.addClassName("c-runner-group-label");
         variableCount.addClassName("c-runner-state-pill");
 
         validateButton.addClassName("c-runner-validate-button");
-        validateButton.addClickListener(_ -> debugCurrentSource());
+        validateButton.addClickListener(_ -> debugCurrentSourceAsync());
         stepButton.addClickListener(_ -> stepActiveLine());
         resetButton.addClickListener(_ -> resetActiveLine());
         menuButton.addClickListener(_ -> showDiagnosticsSummary());
@@ -137,13 +98,14 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         controls.setSpacing(false);
         controls.addClassName("c-runner-controls");
 
-        sourceViewer.setValue(DEFAULT_SOURCE);
+        sourceViewer.setValue("");
         sourceViewer.setEditable(true);
         sourceViewer.setDiagnostics(List.of());
         sourceViewer.setActiveLine(activeLine);
         sourceViewer.setSizeFull();
         sourceViewer.addClassName("c-runner-source-viewer");
         sourceViewer.addValueChangeListener(event -> {
+            debugJobSequence++;
             currentSource = event.getValue();
             currentDiagnostics = List.of();
             snapshots = List.of();
@@ -153,7 +115,11 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
             sourceViewer.setActiveLine(0);
             renderLocals(List.of());
             renderStdout("");
-            statusText.setText("");
+            setControlsEnabled(true);
+            statusText.setText(
+                currentSource.isBlank()
+                        ? "Pega codigo C o abre un ejemplo del asistente para visualizar la ejecucion."
+                        : "Codigo editado. Ejecuta para actualizar la visualizacion.");
         });
 
         var viewerShell = new Div(sourceViewer);
@@ -175,20 +141,30 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         renderStdout("");
     }
 
+    public void loadSource(String source) {
+        setSource(source);
+        statusText.setText("Codigo cargado. Puedes editarlo antes de ejecutar.");
+    }
+
+    public void prepareAndDebugAssistantExample(String source, String lang) {
+        var ui = UI.getCurrent();
+        var stdin = stdinField.getValue();
+        setSource("");
+        var jobId = startAsyncJob("Preparando este ejemplo para que pueda ejecutarse...");
+        if (ui == null) {
+            renderPreparedDebug(jobId, prepareAndDebug(source, lang, stdin), null);
+            return;
+        }
+        CompletableFuture.supplyAsync(() -> prepareAndDebug(source, lang, stdin), cRunnerExecutor)
+                .whenComplete((preparedResult, ex) -> ui.access(() -> renderPreparedDebug(jobId, preparedResult, ex)));
+    }
+
+    public boolean hasUserContent() {
+        return !currentSource.isBlank();
+    }
+
     void setSourceForTesting(String source) {
-        currentSource = source == null ? "" : source;
-        sourceViewer.setValue(currentSource);
-        sourceViewer.setDiagnostics(List.of());
-        currentDiagnostics = List.of();
-        snapshots = List.of();
-        snapshotIndex = 0;
-        currentDebugger = "";
-        currentDebugElapsedMs = 0;
-        activeLine = 0;
-        renderLocals(List.of());
-        sourceViewer.setActiveLine(0);
-        stdinField.clear();
-        renderStdout("");
+        setSource(source);
         statusText.setText("");
     }
 
@@ -222,15 +198,121 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
     }
 
     void debugCurrentSource() {
-        validateButton.setEnabled(false);
-        statusText.setText("Depurando...");
-        try {
-            var result = debugService.debug(new CDebugRequest(currentSource, "c17", "main.c", stdinField.getValue()));
-            renderDebugResult(result);
+        debugCurrentSourceAsync();
+    }
+
+    void debugCurrentSourceAsync() {
+        if (currentSource.isBlank()) {
+            statusText.setText("Pega codigo C antes de ejecutar.");
+            return;
         }
-        finally {
-            validateButton.setEnabled(true);
+        var ui = UI.getCurrent();
+        var source = currentSource;
+        var stdin = stdinField.getValue();
+        var jobId = startAsyncJob("Depurando...");
+        if (ui == null) {
+            renderDebugJob(jobId, source, debugService.debug(new CDebugRequest(source, "c17", "main.c", stdin)), null);
+            return;
         }
+        CompletableFuture
+                .supplyAsync(
+                    () -> debugService.debug(new CDebugRequest(source, "c17", "main.c", stdin)),
+                    cRunnerExecutor)
+                .whenComplete((result, ex) -> ui.access(() -> renderDebugJob(jobId, source, result, ex)));
+    }
+
+    private PreparedDebugResult prepareAndDebug(String source, String lang, String stdin) {
+        var preparation = preparationService.prepare(source, lang);
+        if (!preparation.ready()) {
+            return new PreparedDebugResult(source, preparation, null);
+        }
+        var result = debugService.debug(new CDebugRequest(preparation.source(), "c17", "main.c", stdin));
+        return new PreparedDebugResult(source, preparation, result);
+    }
+
+    private long startAsyncJob(String status) {
+        var jobId = ++debugJobSequence;
+        setControlsEnabled(false);
+        clearDebugState();
+        statusText.setText(status);
+        return jobId;
+    }
+
+    private void renderPreparedDebug(long jobId, PreparedDebugResult preparedResult, Throwable ex) {
+        if (jobId != debugJobSequence) {
+            return;
+        }
+        setControlsEnabled(true);
+        if (ex != null) {
+            statusText.setText("No se pudo preparar el ejemplo. Intenta pegar el codigo manualmente.");
+            return;
+        }
+        var preparation = preparedResult.preparation();
+        if (preparation.status() != CExamplePreparationStatus.READY) {
+            currentSource = preparedResult.originalSource() == null ? "" : preparedResult.originalSource();
+            sourceViewer.setValue(currentSource);
+            statusText.setText(preparation.educationalNote());
+            return;
+        }
+        currentSource = preparation.source();
+        sourceViewer.setValue(currentSource);
+        if (preparedResult.debugResult() == null) {
+            statusText.setText(preparation.educationalNote());
+            return;
+        }
+        renderDebugResult(preparedResult.debugResult());
+    }
+
+    private void renderDebugJob(long jobId, String source, CDebugSessionResult result, Throwable ex) {
+        if (jobId != debugJobSequence) {
+            return;
+        }
+        setControlsEnabled(true);
+        if (ex != null) {
+            statusText.setText("No se pudo ejecutar el debugger.");
+            return;
+        }
+        currentSource = source;
+        renderDebugResult(result);
+    }
+
+    private void setSource(String source) {
+        debugJobSequence++;
+        currentSource = source == null ? "" : source;
+        sourceViewer.setValue(currentSource);
+        sourceViewer.setDiagnostics(List.of());
+        currentDiagnostics = List.of();
+        snapshots = List.of();
+        snapshotIndex = 0;
+        currentDebugger = "";
+        currentDebugElapsedMs = 0;
+        activeLine = 0;
+        renderLocals(List.of());
+        sourceViewer.setActiveLine(0);
+        stdinField.clear();
+        renderStdout("");
+        setControlsEnabled(true);
+    }
+
+    private void clearDebugState() {
+        currentDiagnostics = List.of();
+        snapshots = List.of();
+        snapshotIndex = 0;
+        activeLine = 0;
+        currentDebugger = "";
+        currentDebugElapsedMs = 0;
+        sourceViewer.setDiagnostics(List.of());
+        sourceViewer.setActiveLine(0);
+        renderLocals(List.of());
+        renderStdout("");
+    }
+
+    private void setControlsEnabled(boolean enabled) {
+        validateButton.setEnabled(enabled);
+        stepButton.setEnabled(enabled);
+        resetButton.setEnabled(enabled);
+        menuButton.setEnabled(enabled);
+        stdinField.setEnabled(enabled);
     }
 
     private void renderDebugResult(CDebugSessionResult result) {
@@ -274,8 +356,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         localsBody.removeAll();
         var safeLocals = locals == null ? List.<CDebugVariable>of() : locals;
         variableCount.setText("%d vars".formatted(safeLocals.size()));
-        safeLocals.forEach(
-            variable -> localsBody.add(createVariableRow(variable.name(), variable.value())));
+        safeLocals.forEach(variable -> localsBody.add(createVariableRow(variable.name(), variable.value())));
     }
 
     private void renderStdout(String stdout) {
@@ -322,9 +403,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         body.setPadding(false);
         body.setSpacing(false);
         body.setWidthFull();
-        body.add(
-            localsGroup,
-            createVariablesScroll());
+        body.add(localsGroup, createVariablesScroll());
         body.addClassName("c-runner-state-body");
 
         var card = new VerticalLayout(stateHeader, body);
@@ -424,5 +503,8 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         }
         return cell;
     }
+
+    private record PreparedDebugResult(String originalSource, CExamplePreparationResult preparation,
+            CDebugSessionResult debugResult) {}
 
 }

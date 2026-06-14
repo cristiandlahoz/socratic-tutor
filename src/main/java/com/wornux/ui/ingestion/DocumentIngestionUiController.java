@@ -1,23 +1,25 @@
 package com.wornux.ui.ingestion;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.wornux.infrastructure.web.BrowserClientService;
 import com.wornux.services.chat.ConversationService;
 import com.wornux.services.document.ApproveDocumentCommand;
 import com.wornux.services.document.DocumentIngestionService;
 import com.wornux.services.document.StartIngestionCommand;
-import com.wornux.infrastructure.web.BrowserClientService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.chat.ChatState;
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -25,6 +27,7 @@ import reactor.core.scheduler.Schedulers;
 @SpringComponent
 @RouteScope
 @RouteScopeOwner(MainLayout.class)
+@Slf4j
 public class DocumentIngestionUiController implements Serializable {
 
     @Serial
@@ -109,6 +112,23 @@ public class DocumentIngestionUiController implements Serializable {
                     error -> runUi(ui, () -> state.markFailure(message(error), lastUploadedFile != null)));
     }
 
+    public void deleteCurrentDocument(UI ui) {
+        if (state.activeDocumentId().peek() == null) {
+            return;
+        }
+        abortActiveTask();
+        UUID documentId = state.activeDocumentId().peek();
+        state.startProcessing(state.fileName().peek(), "Eliminando documento indexado.");
+        activeTask = Mono.fromCallable(() -> {
+            documentIngestionService.delete(chatUiState.clientId().peek(), documentId);
+            return true;
+        })
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                    _ -> runUi(ui, state::reset),
+                    error -> runUi(ui, () -> state.markFailure(message(error), false)));
+    }
+
     public void updateMarkdown(String markdown) {
         state.reviewedMarkdown().set(markdown == null ? "" : markdown);
         state.dirty().set(true);
@@ -120,6 +140,19 @@ public class DocumentIngestionUiController implements Serializable {
                 .stream()
                 .map(segment -> segment.id().equals(segmentId) ? segment.withContent(content) : segment)
                 .toList();
+        state.segments().set(nextSegments);
+        state.dirty().set(true);
+    }
+
+    public void deleteSegment(UUID segmentId) {
+        if (segmentId == null) {
+            return;
+        }
+        List<EditableSegmentViewModel> nextSegments =
+                state.segments().peek().stream().filter(segment -> !segment.id().equals(segmentId)).toList();
+        if (nextSegments.size() == state.segments().peek().size()) {
+            return;
+        }
         state.segments().set(nextSegments);
         state.dirty().set(true);
     }
@@ -172,6 +205,7 @@ public class DocumentIngestionUiController implements Serializable {
         if (throwable == null || throwable.getMessage() == null || throwable.getMessage().isBlank()) {
             return "Ocurrió un error inesperado.";
         }
+        log.error(throwable.getMessage());
         return throwable.getMessage();
     }
 

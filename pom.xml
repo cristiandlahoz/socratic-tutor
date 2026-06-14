@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.0.5</version>
+    <version>4.0.6</version>
     <relativePath/>
   </parent>
 
@@ -19,11 +19,13 @@
     <maven.compiler.release>${java.version}</maven.compiler.release>
 
     <vaadin.version>25.1.0</vaadin.version>
-    <spring-ai.version>2.0.0-M4</spring-ai.version>
-    <testcontainers.version>1.21.3</testcontainers.version>
-
-    <spotless.version>3.4.0</spotless.version>
-    <google-java-format.version>1.35.0</google-java-format.version>
+    <spring-ai.version>2.0.0-M6</spring-ai.version>
+    <version.spotless>3.6.0</version.spotless>
+    <version.checkstyle.maven>3.6.0</version.checkstyle.maven>
+    <version.checkstyle>13.3.0</version.checkstyle>
+    <analysis.checkstyle.config>build/checkstyle-config.xml</analysis.checkstyle.config>
+    <analysis.spotless.formatter.config>build/eclipse-formatter-config.xml</analysis.spotless.formatter.config>
+    <analysis.spotless.importorder.config>build/eclipse-formatter-config.importorder </analysis.spotless.importorder.config>
   </properties>
 
   <dependencyManagement>
@@ -39,6 +41,13 @@
         <groupId>org.springframework.ai</groupId>
         <artifactId>spring-ai-bom</artifactId>
         <version>${spring-ai.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.arconia</groupId>
+        <artifactId>arconia-bom</artifactId>
+        <version>0.27.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -74,8 +83,29 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-testcontainers</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.vaadin</groupId>
       <artifactId>browserless-test-junit6</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.vaadin</groupId>
+      <artifactId>vaadin-testbench-junit5</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -106,11 +136,22 @@
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.github.docker-java</groupId>
+      <artifactId>docker-java-core</artifactId>
+      <version>3.7.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.docker-java</groupId>
+      <artifactId>docker-java-transport-httpclient5</artifactId>
+      <version>3.7.1</version>
+    </dependency>
 
     <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-core</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-flyway</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-database-postgresql</artifactId>
@@ -127,22 +168,25 @@
     </dependency>
 
     <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <version>${testcontainers.version}</version>
-      <scope>test</scope>
+      <groupId>io.arconia</groupId>
+      <artifactId>arconia-ai-docling-document-reader</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>postgresql</artifactId>
-      <version>${testcontainers.version}</version>
-      <scope>test</scope>
+      <groupId>io.arconia</groupId>
+      <artifactId>arconia-docling-spring-boot-starter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.arconia</groupId>
+      <artifactId>arconia-dev-services-docling</artifactId>
+      <scope>runtime</scope>
+      <optional>true</optional>
     </dependency>
 
     <dependency>
-      <groupId>ai.docling</groupId>
-      <artifactId>docling-serve-client</artifactId>
-      <version>0.5.0</version>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-java</artifactId>
+      <version>7.34.3</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -168,28 +212,21 @@
   <build>
     <defaultGoal>spring-boot:run</defaultGoal>
     <plugins>
-      <plugin>
-        <groupId>com.diffplug.spotless</groupId>
-        <artifactId>spotless-maven-plugin</artifactId>
-        <version>${spotless.version}</version>
-        <configuration>
-          <java>
-            <removeUnusedImports/>
-
-          </java>
-
-          <pom>
-            <sortPom/>
-          </pom>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+                  <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${version.spotless}</version>
+                <configuration>
+                    <java>
+                        <importOrder>
+                            <file>${analysis.spotless.importorder.config}</file>
+                        </importOrder>
+                        <eclipse>
+                            <file>${analysis.spotless.formatter.config}</file>
+                        </eclipse>
+                    </java>
+                </configuration>
+            </plugin>
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

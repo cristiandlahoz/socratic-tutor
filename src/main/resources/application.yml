@@ -6,6 +6,9 @@ server:
   port: ${PORT:8080}
 
 spring:
+  config:
+    import:
+    - optional:file:.env[.properties]
   profiles:
     default: dev
   servlet:
@@ -15,9 +18,14 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:${POSTGRES_PORT:4321}/socratic-tutor}
     username: ${DATABASE_USERNAME:postgres}
     password: ${DATABASE_PASSWORD:postgres}
+    
+  flyway:
+   enabled: true
+   locations: classpath:db/migration
+   baseline-on-migrate: true 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
   docker:
     compose:
       lifecycle-management: none
@@ -67,17 +75,15 @@ app:
       model: ${TITLE_MODEL:${spring.ai.ollama.chat.model}}
     document-catalog:
       model: ${DOCUMENT_CATALOG_MODEL:${spring.ai.ollama.chat.model}}
+    c-example-preparation:
+      model: ${C_EXAMPLE_PREPARATION_MODEL:${spring.ai.ollama.chat.model}}
   document-ingest:
-    docling-base-url: ${DOCLING_BASE_URL:http://localhost:5001}
-    docling-connect-timeout: ${DOCLING_CONNECT_TIMEOUT:5s}
-    docling-read-timeout: ${DOCLING_READ_TIMEOUT:5m}
     max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:20971520}
     retrieval-top-k: ${DOCUMENT_RETRIEVAL_TOP_K:4}
     retrieval-similarity-threshold: ${DOCUMENT_RETRIEVAL_SIMILARITY_THRESHOLD:0.55}
     chunking:
       hybrid:
         max-tokens: ${DOCUMENT_CHUNK_MAX_TOKENS:512}
-        tokenizer: ${DOCUMENT_CHUNK_TOKENIZER:/opt/tokenizers/qwen3-0.6b-tokenizer}
         merge-peers: ${DOCUMENT_CHUNK_MERGE_PEERS:true}
         use-markdown-tables: ${DOCUMENT_CHUNK_USE_MARKDOWN_TABLES:true}
         include-raw-text: ${DOCUMENT_CHUNK_INCLUDE_RAW_TEXT:true}
@@ -122,7 +128,7 @@ spring:
     chat:
       client:
         observations:
-          log-prompt: true
+          log-prompt: false
           log-completion: true
     tools:
       throw-exception-on-error: true
@@ -134,7 +140,3 @@ spring:
   docker:
     compose:
       lifecycle-management: start-only
-
-# vaadin:
-#   frontend:
-#     hotdeploy: true

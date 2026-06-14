@@ -73,21 +73,6 @@ vaadin-text-area.chat-composer-input {
   background: var(--chat-surface-strong);
   box-shadow: var(--chat-shadow-soft);
   backdrop-filter: blur(24px);
-  transition:
-      border-color var(--chat-transition-fast),
-      background var(--chat-transition-fast),
-      box-shadow var(--chat-transition-fast);
-  --vaadin-input-field-background: transparent;
-  --vaadin-input-field-border-color: transparent;
-  --vaadin-input-field-border-radius: var(--chat-radius-s);
-  --vaadin-input-field-border-width: 0px;
-  --vaadin-input-field-padding: 0.95rem 4.4rem 0.95rem 1rem;
-  --vaadin-input-field-placeholder-color: var(--chat-text-disabled);
-  --vaadin-input-field-value-color: var(--chat-text-primary);
-  --vaadin-input-field-value-font-size: var(--chat-text-code);
-  --vaadin-input-field-value-line-height: var(--chat-leading-code);
-  --vaadin-focus-ring-color: var(--chat-focus-ring);
-  --vaadin-focus-ring-width: 1px;
 }
 
 vaadin-text-area.chat-composer-input:hover,

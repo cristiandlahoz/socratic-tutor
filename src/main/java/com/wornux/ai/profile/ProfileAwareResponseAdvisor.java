@@ -1,8 +1,9 @@
 package com.wornux.ai.profile;
 
+import java.util.*;
+
 import com.wornux.config.*;
 import com.wornux.services.profile.*;
-import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.ai.chat.client.ChatClientRequest;

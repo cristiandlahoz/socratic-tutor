@@ -1,5 +1,10 @@
 package com.wornux.ui;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -16,17 +21,13 @@ import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.signals.Signal;
-import com.wornux.domain.chat.ConversationSummary;
 import com.wornux.data.enums.ThemePreference;
-import com.wornux.ui.chat.ChatViewModel;
+import com.wornux.dtos.chat.ConversationSummary;
 import com.wornux.ui.chat.ChatState;
+import com.wornux.ui.chat.ChatViewModel;
 import com.wornux.ui.components.chat.WidthAwareLabel;
 import com.wornux.ui.evaluation.EvaluationView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
 
 @Layout
 @PreserveOnRefresh
@@ -84,11 +85,14 @@ public class MainLayout extends AppLayout {
         var appTitle = new H1("Tutor Socrático");
         appTitle.addClassName("chat-sidebar-app-title");
 
-        var appDescription =
-                new Paragraph("Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia con preguntas guiadas.");
+        var appTitleRow = new Div(appTitle);
+        appTitleRow.addClassName("chat-sidebar-app-title-row");
+
+        var appDescription = new Paragraph(
+                "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia con preguntas guiadas.");
         appDescription.addClassName("chat-sidebar-app-description");
 
-        var appHeader = new Div(appTitle, appDescription, createThemePreferenceControl(state, viewModel));
+        var appHeader = new Div(appTitleRow, appDescription, createThemePreferenceControl(state, viewModel));
         appHeader.addClassName("chat-sidebar-app-header");
 
         newChatButton = createActionButton();
@@ -96,8 +100,8 @@ public class MainLayout extends AppLayout {
 
         var ingestDocumentButton =
                 createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", VaadinIcon.UPLOAD_ALT);
-        var evaluationButton =
-                createNavigationButton(EvaluationView.class, "Evaluaciones", VaadinIcon.CLIPBOARD_CHECK);
+        ingestDocumentButton.setId("sidebar-ingest-document-link");
+        var evaluationButton = createNavigationButton(EvaluationView.class, "Evaluaciones", VaadinIcon.CLIPBOARD_CHECK);
         var actionsRow = new Div(newChatButton, ingestDocumentButton, evaluationButton);
         actionsRow.addClassName("chat-sidebar-actions");
 
@@ -164,10 +168,7 @@ public class MainLayout extends AppLayout {
         return control;
     }
 
-    private Button createThemePreferenceButton(
-            ThemePreference preference,
-            ChatState state,
-            ChatViewModel viewModel) {
+    private Button createThemePreferenceButton(ThemePreference preference, ChatState state, ChatViewModel viewModel) {
         var button = new Button(switch (preference) {
             case SYSTEM -> "Sistema";
             case LIGHT -> "Claro";

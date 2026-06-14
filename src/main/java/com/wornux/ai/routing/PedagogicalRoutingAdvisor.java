@@ -1,11 +1,12 @@
 package com.wornux.ai.routing;
 
-import com.wornux.ai.prompt.PromptMessageUtils;
-import com.wornux.ai.prompt.TutorPromptResources;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+
+import com.wornux.ai.prompt.PromptMessageUtils;
+import com.wornux.ai.prompt.TutorPromptResources;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.NullUnmarked;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -21,74 +22,67 @@ import reactor.core.publisher.Flux;
 
 public class PedagogicalRoutingAdvisor implements CallAdvisor, StreamAdvisor {
 
-  private final int order;
-  private final PedagogicalRoutingService routingService;
-  private final TutorPromptResources promptResources;
+    private final int order;
+    private final PedagogicalRoutingService routingService;
+    private final TutorPromptResources promptResources;
 
-  public PedagogicalRoutingAdvisor(
-      int order, PedagogicalRoutingService routingService, TutorPromptResources promptResources) {
-    this.order = order;
-    this.routingService = routingService;
-    this.promptResources = promptResources;
-  }
-
-  @Override
-  public @NullMarked ChatClientResponse adviseCall(
-      ChatClientRequest request, CallAdvisorChain chain) {
-    return chain.nextCall(applyRouting(request));
-  }
-
-  @Override
-  public @NullMarked Flux<ChatClientResponse> adviseStream(
-      ChatClientRequest request, StreamAdvisorChain chain) {
-    return chain.nextStream(applyRouting(request));
-  }
-
-  ChatClientRequest applyRouting(ChatClientRequest request) {
-    String userText = PromptMessageUtils.extractLastUserText(request.prompt());
-    PedagogicalRoutingMode mode = routingService.classify(userText);
-
-    List<Message> messages = new ArrayList<>(request.prompt().getInstructions());
-    messages.add(new SystemMessage(instructionFor(mode)));
-
-    var promptBuilder = Prompt.builder().messages(messages);
-    var options = request.prompt().getOptions();
-    if (!Objects.isNull(options)) {
-      promptBuilder.chatOptions(options);
+    public PedagogicalRoutingAdvisor(
+            int order,
+            PedagogicalRoutingService routingService,
+            TutorPromptResources promptResources) {
+        this.order = order;
+        this.routingService = routingService;
+        this.promptResources = promptResources;
     }
 
-    return request
-        .mutate()
-        .prompt(promptBuilder.build())
-        .context("teaching_mode", mode.name().toLowerCase(Locale.ROOT))
-        .build();
-  }
+    @Override
+    public @NullMarked ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
+        return chain.nextCall(applyRouting(request));
+    }
 
-  private String instructionFor(PedagogicalRoutingMode mode) {
-    return switch (mode) {
-      case DIRECT_REFERENCE ->
-          promptResources.routingDirectReference()
-              + "\n\n"
-              + promptResources.directReferenceExamples();
-      case EXERCISE_GUIDANCE ->
-          promptResources.routingExerciseGuidance()
-              + "\n\n"
-              + promptResources.exerciseGuidanceExamples();
-      case DEBUG_MY_ATTEMPT ->
-          promptResources.routingDebugMyAttempt()
-              + "\n\n"
-              + promptResources.exerciseGuidanceExamples();
-      case CONCEPT_EXPLANATION -> promptResources.routingConceptExplanation();
-    };
-  }
+    @Override
+    public @NullMarked Flux<ChatClientResponse> adviseStream(ChatClientRequest request, StreamAdvisorChain chain) {
+        return chain.nextStream(applyRouting(request));
+    }
 
-  @Override
-  public @NullUnmarked String getName() {
-    return "pedagogical-routing-advisor";
-  }
+    ChatClientRequest applyRouting(ChatClientRequest request) {
+        String userText = PromptMessageUtils.extractLastUserText(request.prompt());
+        PedagogicalRoutingMode mode = routingService.classify(userText);
 
-  @Override
-  public int getOrder() {
-    return order;
-  }
+        List<Message> messages = new ArrayList<>(request.prompt().getInstructions());
+        messages.add(new SystemMessage(instructionFor(mode)));
+
+        var promptBuilder = Prompt.builder().messages(messages);
+        var options = request.prompt().getOptions();
+        if (!Objects.isNull(options)) {
+            promptBuilder.chatOptions(options);
+        }
+
+        return request.mutate()
+                .prompt(promptBuilder.build())
+                .context("teaching_mode", mode.name().toLowerCase(Locale.ROOT))
+                .build();
+    }
+
+    private String instructionFor(PedagogicalRoutingMode mode) {
+        return switch (mode) {
+            case DIRECT_REFERENCE ->
+                    promptResources.routingDirectReference() + "\n\n" + promptResources.directReferenceExamples();
+            case EXERCISE_GUIDANCE ->
+                    promptResources.routingExerciseGuidance() + "\n\n" + promptResources.exerciseGuidanceExamples();
+            case DEBUG_MY_ATTEMPT ->
+                    promptResources.routingDebugMyAttempt() + "\n\n" + promptResources.exerciseGuidanceExamples();
+            case CONCEPT_EXPLANATION -> promptResources.routingConceptExplanation();
+        };
+    }
+
+    @Override
+    public @NullUnmarked String getName() {
+        return "pedagogical-routing-advisor";
+    }
+
+    @Override
+    public int getOrder() {
+        return order;
+    }
 }

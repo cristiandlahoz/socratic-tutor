@@ -1,5 +1,12 @@
 package com.wornux.ui.components.chat;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.button.Button;
@@ -17,13 +24,7 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.local.ValueSignal;
-import com.wornux.domain.chat.questions.*;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
+import com.wornux.dtos.chat.questions.*;
 import org.jspecify.annotations.NonNull;
 
 public class StudentQuestionPanel extends Composite<Div> {
@@ -113,14 +114,14 @@ public class StudentQuestionPanel extends Composite<Div> {
             return;
         }
 
-        title.setText(questionSet.title());
         rootClasses.add("is-open");
 
-        for (StudentQuestion question : questionSet.questions()) {
-            selectedOptionsByQuestion.put(question.id(), new ValueSignal<>(Set.of()));
-            optionButtonsByQuestion.put(question.id(), new LinkedHashMap<>());
-            optionRowsByQuestion.put(question.id(), new LinkedHashMap<>());
-            customTextByQuestion.put(question.id(), buildCustomTextArea(question.id()));
+        for (int index = 0; index < questionSet.questions().size(); index++) {
+            var questionKey = questionKey(index);
+            selectedOptionsByQuestion.put(questionKey, new ValueSignal<>(Set.of()));
+            optionButtonsByQuestion.put(questionKey, new LinkedHashMap<>());
+            optionRowsByQuestion.put(questionKey, new LinkedHashMap<>());
+            customTextByQuestion.put(questionKey, buildCustomTextArea(questionKey));
         }
 
         renderActiveQuestion();
@@ -138,21 +139,20 @@ public class StudentQuestionPanel extends Composite<Div> {
         activeQuestionIndex = Math.clamp(activeQuestionIndex, 0, totalQuestions - 1);
         progress.setText("%d / %d".formatted(activeQuestionIndex + 1, totalQuestions));
         var activeQuestion = questionSet.questions().get(activeQuestionIndex);
-        questionViewport.add(buildQuestionCard(activeQuestion));
+        var questionKey = questionKey(activeQuestionIndex);
+        title.setText(activeQuestion.question());
+        if (!activeQuestion.options().isEmpty()) {
+            questionViewport.add(buildQuestionCard(activeQuestion, questionKey));
+        }
         responseComposer.removeAll();
-        responseComposer.add(buildResponseComposer(activeQuestion));
+        configureCustomTextArea(customTextByQuestion.get(questionKey), activeQuestion.options().isEmpty());
+        responseComposer.add(buildResponseComposer(questionKey));
         updateSubmitEnabled();
     }
 
-    private Div buildQuestionCard(StudentQuestion question) {
+    private Div buildQuestionCard(StudentQuestion question, String questionKey) {
         var card = new Div();
         card.addClassName("chat-question-card");
-
-        var header = new Span(question.header());
-        header.addClassName("chat-question-header");
-
-        var prompt = new Span(question.question());
-        prompt.addClassName("chat-question-prompt");
 
         var options = new VerticalLayout();
         options.addClassName("chat-question-options");
@@ -160,15 +160,16 @@ public class StudentQuestionPanel extends Composite<Div> {
         options.setSpacing(false);
         options.setMargin(false);
 
-        for (StudentQuestionOption option : question.options()) {
-            options.add(buildOptionButton(question, option));
+        for (int optionIndex = 0; optionIndex < question.options().size(); optionIndex++) {
+            options.add(buildOptionButton(questionKey, optionIndex, question.options().get(optionIndex)));
         }
 
-        card.add(header, prompt, options);
+        card.add(options);
         return card;
     }
 
-    private Component buildOptionButton(StudentQuestion question, StudentQuestionOption option) {
+    private Component buildOptionButton(String questionKey, int optionIndex, StudentQuestionOption option) {
+        var optionKey = optionKey(optionIndex);
         var optionCopy = getOptionCopy(option);
 
         var infoButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
@@ -188,10 +189,10 @@ public class StudentQuestionPanel extends Composite<Div> {
         var button = new Button(optionCopy);
         button.addThemeVariants(ButtonVariant.TERTIARY);
         button.addClassName("chat-question-option");
-        button.getElement().setAttribute("data-question-id", question.id());
-        button.getElement().setAttribute("data-option-label", option.label());
+        button.getElement().setAttribute("data-question-id", questionKey);
+        button.getElement().setAttribute("data-option-index", Integer.toString(optionIndex));
         button.getElement().setAttribute("aria-pressed", Boolean.FALSE.toString());
-        button.addClickListener(_ -> toggleOption(question, option.label()));
+        button.addClickListener(_ -> toggleOption(questionKey, optionKey));
 
         var mobileHeader = new HorizontalLayout(button, infoButton);
         mobileHeader.addClassName("chat-question-option-mobile-header");
@@ -208,16 +209,16 @@ public class StudentQuestionPanel extends Composite<Div> {
         row.setMargin(false);
         row.setWidthFull();
 
-        optionButtonsByQuestion.get(question.id()).put(option.label(), button);
-        optionRowsByQuestion.get(question.id()).put(option.label(), row);
-        bindOptionSelection(question.id(), option.label(), button, row);
+        optionButtonsByQuestion.get(questionKey).put(optionKey, button);
+        optionRowsByQuestion.get(questionKey).put(optionKey, row);
+        bindOptionSelection(questionKey, optionKey, button, row);
         return row;
     }
 
-    private void bindOptionSelection(String questionId, String optionLabel, Button button, VerticalLayout row) {
+    private void bindOptionSelection(String questionId, String optionKey, Button button, VerticalLayout row) {
         var selectedSignal = selectedOptionsByQuestion.get(questionId);
         Signal.effect(row, () -> {
-            var isSelected = selectedSignal.get().contains(optionLabel);
+            var isSelected = selectedSignal.get().contains(optionKey);
             row.getElement().getClassList().set("is-selected", isSelected);
             applySelectedButtonStyle(button, isSelected);
         });
@@ -254,54 +255,59 @@ public class StudentQuestionPanel extends Composite<Div> {
         customText.addClassName("chat-question-custom-text");
         customText.setWidthFull();
         customText.getElement().setAttribute("data-question-id", questionId);
-        customText.setPlaceholder("Agrega contexto extra si quieres...");
-        customText.setAriaLabel("Respuesta complementaria");
         customText.setValueChangeMode(ValueChangeMode.EAGER);
         customText.addValueChangeListener(_ -> updateSubmitEnabled());
         return customText;
     }
 
-    private Div buildResponseComposer(StudentQuestion question) {
+    private void configureCustomTextArea(TextArea customText, boolean openQuestion) {
+        if (openQuestion) {
+            customText.setPlaceholder("Escribe tu respuesta...");
+            customText.setAriaLabel("Respuesta a la pregunta");
+            return;
+        }
+        customText.setPlaceholder("Agrega contexto extra si quieres...");
+        customText.setAriaLabel("Respuesta complementaria");
+    }
+
+    private Div buildResponseComposer(String questionKey) {
         var composer = new Div();
         composer.addClassName("chat-question-composer-wrap");
-        composer.add(customTextByQuestion.get(question.id()));
+        composer.add(customTextByQuestion.get(questionKey));
         composer.add(composerActions);
         return composer;
     }
 
-    private void toggleOption(StudentQuestion question, String optionLabel) {
-        var selectedSignal = selectedOptionsByQuestion.get(question.id());
-        selectedSignal.update(current -> nextSelection(question.multiSelect(), current, optionLabel));
+    private void toggleOption(String questionKey, String optionKey) {
+        var selectedSignal = selectedOptionsByQuestion.get(questionKey);
+        selectedSignal.update(current -> nextSelection(current, optionKey));
         updateSubmitEnabled();
     }
 
-    private Set<String> nextSelection(boolean multiSelect, Set<String> current, String optionLabel) {
+    private Set<String> nextSelection(Set<String> current, String optionKey) {
         var next = new LinkedHashSet<>(current);
-        if (multiSelect) {
-            if (!next.add(optionLabel)) {
-                next.remove(optionLabel);
-            }
-            return Collections.unmodifiableSet(new LinkedHashSet<>(next));
-        }
-        if (next.contains(optionLabel)) {
+        if (next.contains(optionKey)) {
             return Set.of();
         }
-        return Set.of(optionLabel);
+        return Set.of(optionKey);
     }
 
     private void submitAnswers() {
         if (questionSet == null || !canSubmit()) {
             return;
         }
-        var answers = questionSet.questions()
-                .stream()
-                .map(
-                    question -> new StudentQuestionAnswer(question.id(),
-                            selectedOptions(question.id()).stream().toList(),
-                            customTextByQuestion.containsKey(question.id())
-                                    ? customTextByQuestion.get(question.id()).getValue()
-                                    : ""))
-                .toList();
+        var answers = new ArrayList<StudentQuestionAnswer>();
+        for (int index = 0; index < questionSet.questions().size(); index++) {
+            final int currentIndex = index;
+            var questionKey = questionKey(index);
+            var selectedLabels = selectedOptions(questionKey).stream()
+                    .map(optionKey -> selectedOptionLabel(questionSet.questions().get(currentIndex), optionKey))
+                    .toList();
+            var customText = customTextByQuestion.containsKey(questionKey)
+                    ? customTextByQuestion.get(questionKey).getValue()
+                    : "";
+            answers.add(new StudentQuestionAnswer(questionKey, selectedLabels, customText));
+        }
         submitHandler.accept(new StudentQuestionResponse(answers));
     }
 
@@ -326,13 +332,17 @@ public class StudentQuestionPanel extends Composite<Div> {
         if (questionSet == null) {
             return false;
         }
-        return questionSet.questions().stream().allMatch(question -> {
-            var selected = selectedOptions(question.id());
-            var customText = customTextByQuestion.containsKey(question.id())
-                    ? customTextByQuestion.get(question.id()).getValue().trim()
+        for (int index = 0; index < questionSet.questions().size(); index++) {
+            var questionKey = questionKey(index);
+            var selected = selectedOptions(questionKey);
+            var customText = customTextByQuestion.containsKey(questionKey)
+                    ? customTextByQuestion.get(questionKey).getValue().trim()
                     : "";
-            return !selected.isEmpty() || !customText.isBlank();
-        });
+            if (selected.isEmpty() && customText.isBlank()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void showPreviousQuestion() {
@@ -354,5 +364,18 @@ public class StudentQuestionPanel extends Composite<Div> {
     private Set<String> selectedOptions(String questionId) {
         var signal = selectedOptionsByQuestion.get(questionId);
         return signal == null ? Set.of() : signal.peek();
+    }
+
+    private static String questionKey(int questionIndex) {
+        return "q" + questionIndex;
+    }
+
+    private static String optionKey(int optionIndex) {
+        return "o" + optionIndex;
+    }
+
+    private static String selectedOptionLabel(StudentQuestion question, String optionKey) {
+        var optionIndex = Integer.parseInt(optionKey.substring(1));
+        return question.options().get(optionIndex).label();
     }
 }
