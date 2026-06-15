@@ -1,0 +1,74 @@
+.chat-sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.chat-sidebar-action-link,
+vaadin-button.chat-sidebar-action-button {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+vaadin-button.chat-sidebar-action-button {
+  --vaadin-button-padding: 0;
+}
+
+vaadin-button.chat-sidebar-action-button::part(button),
+.chat-sidebar-action-link-content {
+  width: 100%;
+  min-height: 2.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0 0.3rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--chat-interactive);
+  font-family: var(--chat-font-body);
+  font-size: var(--chat-text-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color var(--chat-transition-fast), transform var(--chat-transition-fast);
+}
+
+vaadin-button.chat-sidebar-action-button:hover::part(button),
+vaadin-button.chat-sidebar-action-button:focus-within::part(button),
+.chat-sidebar-action-link:hover .chat-sidebar-action-link-content,
+.chat-sidebar-action-link:focus-visible .chat-sidebar-action-link-content,
+.chat-sidebar-action-link[aria-current="page"] .chat-sidebar-action-link-content {
+  color: var(--chat-text-display);
+  transform: translateX(2px);
+}
+
+vaadin-button.chat-sidebar-action-button::part(label) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  color: inherit;
+  font-family: var(--chat-font-body);
+  font-size: var(--chat-text-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+vaadin-button.chat-sidebar-action-button[disabled]::part(button) {
+  opacity: 0.45;
+}
+
+.chat-sidebar-action-link:focus-visible {
+  outline: 2px solid var(--chat-focus-ring);
+  outline-offset: 2px;
+}
+
+.chat-sidebar-action-icon {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+}

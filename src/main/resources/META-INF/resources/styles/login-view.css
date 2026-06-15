@@ -1,0 +1,376 @@
+.login-view {
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 16% 16%, color-mix(in srgb, var(--theme-interactive) 9%, transparent), transparent 28rem),
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, #b3261e 12%, transparent), transparent 24rem),
+    var(--chat-black);
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-body);
+}
+
+.login-view__shell {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(24rem, 0.92fr);
+}
+
+.login-view__shell::before,
+.login-view__shell::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.login-view__shell::before {
+  inset: 1px 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--theme-border-default), transparent);
+}
+
+.login-view__shell::after {
+  inset: auto 0 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, #b3261e 42%, transparent), transparent);
+}
+
+.login-view__brand {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(2.75rem, 5vw) minmax(0, 1fr);
+  align-content: center;
+  gap: clamp(1.5rem, 3vw, 3.25rem);
+  padding: clamp(2rem, 5vw, 5.5rem) clamp(2rem, 5.6vw, 6.5rem);
+  border-right: 1px solid var(--theme-border-subtle);
+}
+
+.login-view__rail {
+  position: relative;
+  min-height: min(68vh, 43rem);
+  width: 1px;
+  justify-self: center;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in srgb, var(--theme-interactive) 72%, transparent) 14%,
+    color-mix(in srgb, var(--theme-interactive) 48%, transparent) 72%,
+    transparent
+  );
+}
+
+.login-view__rail::before,
+.login-view__rail::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 0.68rem;
+  height: 0.68rem;
+  border: 1px solid var(--theme-interactive);
+  border-radius: 999px;
+  background: var(--chat-black);
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 0.28rem color-mix(in srgb, var(--theme-interactive) 8%, transparent);
+}
+
+.login-view__rail::before {
+  top: 8%;
+}
+
+.login-view__rail::after {
+  bottom: 18%;
+}
+
+.login-view__brand-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 42rem;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2vw, 1.55rem);
+  animation: login-view-fade-up 260ms ease-out both;
+}
+
+.login-view__eyebrow,
+.login-view__panel-label,
+.login-view__marker {
+  font-family: var(--chat-font-mono);
+  font-size: clamp(0.72rem, 0.85vw, 0.88rem);
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.login-view__eyebrow,
+.login-view__panel-label {
+  color: var(--theme-interactive);
+}
+
+.login-view__title {
+  max-width: 8ch;
+  margin: 0;
+  color: var(--chat-text-display);
+  font-family: var(--chat-font-display);
+  font-size: clamp(4.25rem, 9.2vw, 8.4rem);
+  font-weight: 300;
+  letter-spacing: var(--chat-tracking-display);
+  line-height: 0.9;
+  text-wrap: balance;
+}
+
+.login-view__description {
+  max-width: 33rem;
+  margin: 0;
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-body);
+  font-size: clamp(1.08rem, 1.6vw, 1.5rem);
+  line-height: 1.58;
+  text-wrap: pretty;
+}
+
+.login-view__marker {
+  max-width: 25rem;
+  margin-top: clamp(0.35rem, 1vw, 0.8rem);
+  color: color-mix(in srgb, var(--theme-interactive) 82%, var(--chat-text-secondary));
+}
+
+.login-view__crow-frame {
+  position: absolute;
+  right: clamp(1rem, 4vw, 5rem);
+  bottom: clamp(1rem, 4vh, 3rem);
+  z-index: 0;
+  width: clamp(11rem, 18vw, 18rem);
+  height: clamp(8.5rem, 13vw, 13rem);
+  opacity: 0.92;
+  filter: saturate(1.08);
+}
+
+.login-view__crow {
+  display: block;
+  width: 100%;
+  height: 100%;
+  --chat-ascii-animation-color: #b3261e;
+  --chat-ascii-animation-shadow: 0 0 0.42rem color-mix(in srgb, #b3261e 34%, transparent);
+}
+
+.login-view__panel {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.25rem, 4vw, 5rem);
+}
+
+.login-view__form-card {
+  position: relative;
+  width: min(100%, 30.5rem);
+  padding: clamp(1.35rem, 2.5vw, 2.25rem);
+  overflow: hidden;
+  border: 1px solid var(--theme-border-default);
+  border-radius: clamp(1.2rem, 2vw, 1.75rem);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--theme-card-surface-raised) 92%, transparent), var(--theme-card-surface)),
+    var(--theme-card-surface);
+  box-shadow:
+    0 22px 80px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+  animation: login-view-fade-up 320ms 80ms ease-out both;
+}
+
+.login-view__form-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--theme-interactive) 16%, transparent), transparent 13rem),
+    radial-gradient(circle at 100% 24%, color-mix(in srgb, #b3261e 12%, transparent), transparent 11rem);
+  opacity: 0.84;
+}
+
+.login-view__panel-header,
+.login-view__form {
+  position: relative;
+  z-index: 1;
+}
+
+.login-view__panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+
+.login-view__panel-title {
+  margin: 0;
+  color: var(--chat-text-display);
+  font-family: var(--chat-font-display);
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  font-weight: 350;
+  letter-spacing: var(--chat-tracking-heading);
+  line-height: 1;
+}
+
+.login-view__panel-hint {
+  margin: 0;
+  color: var(--chat-text-secondary);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.login-view__form {
+  width: 100%;
+}
+
+.login-view__form vaadin-login-form-wrapper::part(form) {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.login-view__form vaadin-login-form-wrapper::part(form-title) {
+  margin-bottom: 0.8rem;
+  color: var(--chat-text-display);
+  font-family: var(--chat-font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.login-view__form vaadin-login-form-wrapper::part(error-message) {
+  border: 1px solid color-mix(in srgb, #b3261e 58%, transparent);
+  border-radius: var(--chat-radius-compact-l);
+  background: color-mix(in srgb, #b3261e 13%, transparent);
+  color: var(--chat-text-primary);
+}
+
+.login-view__form vaadin-login-form-wrapper::part(footer) {
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+.login-view__form vaadin-text-field,
+.login-view__form vaadin-password-field {
+  width: 100%;
+  color: var(--chat-text-primary);
+  --vaadin-input-field-background: color-mix(in srgb, var(--theme-card-surface-raised) 74%, transparent);
+  --vaadin-input-field-border-width: 1px;
+  --vaadin-input-field-border-color: var(--theme-border-strong);
+  --vaadin-input-field-border-radius: 999px;
+  --vaadin-input-field-value-color: var(--chat-text-display);
+  --vaadin-input-field-label-color: var(--chat-text-primary);
+  --vaadin-input-field-focused-border-color: var(--theme-interactive);
+  --vaadin-input-field-hovered-border-color: color-mix(in srgb, var(--theme-interactive) 64%, var(--theme-border-strong));
+}
+
+.login-view__form vaadin-button[theme~="submit"] {
+  width: 100%;
+  min-height: 3.15rem;
+  margin-top: 0.75rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--theme-interactive), var(--theme-interactive-strong));
+  color: var(--theme-accent-contrast);
+  font-family: var(--chat-font-display);
+  font-size: 1.08rem;
+  font-weight: 700;
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--theme-interactive) 18%, transparent);
+  transition: transform var(--chat-transition-fast), box-shadow var(--chat-transition-fast), filter var(--chat-transition-fast);
+}
+
+.login-view__form vaadin-button[theme~="submit"]:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--theme-interactive) 24%, transparent);
+}
+
+.login-view__form [slot="forgot-password"] {
+  color: color-mix(in srgb, var(--theme-interactive) 88%, var(--chat-text-display));
+  font-family: var(--chat-font-display);
+  font-weight: 700;
+}
+
+@keyframes login-view-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 980px) {
+  .login-view {
+    overflow: auto;
+  }
+
+  .login-view__shell {
+    min-height: 100vh;
+    grid-template-columns: 1fr;
+  }
+
+  .login-view__brand {
+    min-height: auto;
+    grid-template-columns: minmax(1.5rem, 2rem) minmax(0, 1fr);
+    padding: 2rem clamp(1rem, 5vw, 2.25rem) 0;
+    border-right: 0;
+  }
+
+  .login-view__rail {
+    min-height: 16rem;
+  }
+
+  .login-view__title {
+    max-width: 12ch;
+    font-size: clamp(3.25rem, 13vw, 5.5rem);
+  }
+
+  .login-view__description {
+    max-width: 42rem;
+    font-size: 1.08rem;
+  }
+
+  .login-view__crow-frame {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    grid-column: 2;
+    width: min(72vw, 20rem);
+    height: min(52vw, 15rem);
+    margin-top: 0.5rem;
+  }
+
+  .login-view__panel {
+    align-items: flex-start;
+    padding: 1.5rem clamp(1rem, 5vw, 2.25rem) 2rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .login-view__brand {
+    grid-template-columns: 1fr;
+  }
+
+  .login-view__rail {
+    display: none;
+  }
+
+  .login-view__marker {
+    display: none;
+  }
+
+  .login-view__crow-frame {
+    grid-column: auto;
+    width: min(82vw, 16rem);
+    height: 10.75rem;
+  }
+
+  .login-view__form-card {
+    padding: 1.15rem;
+  }
+}

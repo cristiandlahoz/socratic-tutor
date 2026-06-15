@@ -411,7 +411,7 @@ c-debug-source-viewer.c-runner-source-viewer {
   --c-runner-editor-background: transparent;
   --c-runner-editor-text: var(--chat-text-primary);
   --c-runner-editor-gutter: #6f858b;
-  --c-runner-active-line-background: var(--c-runner-yellow);
+  --c-runner-active-line-background: color-mix(in srgb, var(--c-runner-yellow) 72%, #6f7f14);
   --c-runner-active-line-foreground: #12120a;
   --c-runner-active-line-marker: "->";
   --c-runner-active-line-marker-color: var(--c-runner-yellow);

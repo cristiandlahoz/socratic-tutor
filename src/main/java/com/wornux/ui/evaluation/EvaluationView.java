@@ -32,23 +32,27 @@ import com.wornux.infrastructure.web.BrowserClientService;
 import com.wornux.services.evaluation.EvaluationQuestionGenerationService;
 import com.wornux.services.evaluation.EvaluationRunService;
 import com.wornux.services.evaluation.EvaluationService;
+import com.wornux.ui.MainLayout;
+import jakarta.annotation.security.PermitAll;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.UUID;
 
-@Route(value = "evaluations", layout = com.wornux.ui.MainLayout.class)
-public class EvaluationView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
+@Route(value = "evaluations", layout = MainLayout.class)
+@PermitAll
+public class EvaluationView extends Composite<Div>
+    implements BeforeEnterObserver, AfterNavigationObserver {
 
   private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");
   private static final DateTimeFormatter DATE_FORMATTER =
       DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", SPANISH_LOCALE);
   public static final String OPEN_EVALUATION_QUERY_PARAMETER = "evaluation";
 
-  private final EvaluationService evaluationService;
-  private final EvaluationRunService runService;
-  private final EvaluationQuestionGenerationService questionGenerationService;
-  private final BrowserClientService browserClientService;
+  private final transient EvaluationService evaluationService;
+  private final transient EvaluationRunService runService;
+  private final transient EvaluationQuestionGenerationService questionGenerationService;
+  private final transient BrowserClientService browserClientService;
 
   private final TextField titleField = new TextField("Título");
   private final TextArea instructionField = new TextArea("Instrucción");
@@ -58,7 +62,6 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
   private final Button deleteButton = new Button("Eliminar");
   private final Button launchButton = new Button("Lanzar Evaluación");
 
-  private UUID selectedEvaluationId;
   private UUID pendingDialogEvaluationId;
   private EvaluationDialog openDialog;
 
@@ -93,7 +96,9 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
     var title = new H2("Evaluaciones");
     title.addClassNames(LumoUtility.Margin.NONE);
 
-    var description = new Span("Crea y gestiona evaluaciones diagnósticas. Escribe las instrucciones, genera preguntas y lanza la evaluación.");
+    var description = new Span(
+        "Crea y gestiona evaluaciones diagnósticas. Escribe las instrucciones, genera preguntas y"
+            + " lanza la evaluación.");
     description.addClassName("evaluation-description");
 
     var header = new Div(title, description);
@@ -134,17 +139,28 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
   private Div buildGridCard() {
     grid.addColumn(Evaluation::getTitle).setHeader("Título").setAutoWidth(true).setSortable(true);
     grid.addColumn(eval -> {
-      var instr = eval.getInstruction();
-      return instr.length() > 80 ? instr.substring(0, 80) + "..." : instr;
-    }).setHeader("Instrucción").setWidth("20rem").setFlexGrow(1);
+          var instr = eval.getInstruction();
+          return instr.length() > 80 ? instr.substring(0, 80) + "..." : instr;
+        })
+        .setHeader("Instrucción")
+        .setWidth("20rem")
+        .setFlexGrow(1);
     grid.addColumn(new ComponentRenderer<>(this::renderQuestionsCount))
-        .setHeader("Pregs.").setWidth("6rem");
+        .setHeader("Pregs.")
+        .setWidth("6rem");
     grid.addColumn(new ComponentRenderer<>(this::renderStatusBadge))
-        .setHeader("Estado").setWidth("8rem");
-    grid.addColumn(eval -> eval.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_FORMATTER))
-        .setHeader("Creado").setWidth("12rem");
+        .setHeader("Estado")
+        .setWidth("8rem");
+    grid.addColumn(eval -> eval.getCreatedAt()
+            .atZone(ZoneId.systemDefault())
+            .toLocalDateTime()
+            .format(DATE_FORMATTER))
+        .setHeader("Creado")
+        .setWidth("12rem");
     grid.addColumn(new ComponentRenderer<>(this::renderDeleteButton))
-        .setHeader("Acción").setWidth("5rem").setFlexGrow(0);
+        .setHeader("Acción")
+        .setWidth("5rem")
+        .setFlexGrow(0);
 
     grid.setSelectionMode(Grid.SelectionMode.SINGLE);
     grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
@@ -201,18 +217,23 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
   }
 
   private Span renderStatusBadge(Evaluation eval) {
-    var badge = new Span(switch (eval.getStatus()) {
-      case PENDING -> "Pendiente";
-      case RUNNING -> "En curso";
-      case COMPLETED -> "Completada";
-      case FAILED -> "Fallida";
-    });
-    badge.getElement().getThemeList().add(switch (eval.getStatus()) {
-      case PENDING -> "badge";
-      case RUNNING -> "badge primary";
-      case COMPLETED -> "badge success";
-      case FAILED -> "badge error";
-    });
+    var badge = new Span(
+        switch (eval.getStatus()) {
+          case PENDING -> "Pendiente";
+          case RUNNING -> "En curso";
+          case COMPLETED -> "Completada";
+          case FAILED -> "Fallida";
+        });
+    badge
+        .getElement()
+        .getThemeList()
+        .add(
+            switch (eval.getStatus()) {
+              case PENDING -> "badge";
+              case RUNNING -> "badge primary";
+              case COMPLETED -> "badge success";
+              case FAILED -> "badge error";
+            });
     return badge;
   }
 
@@ -228,8 +249,8 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
     var dialog = new com.vaadin.flow.component.dialog.Dialog();
     dialog.setHeaderTitle("Eliminar evaluación");
 
-    var message = new com.vaadin.flow.component.html.Span(
-        "¿Estás seguro de que querés eliminar \"" + eval.getTitle() + "\"? Esta acción no se puede deshacer.");
+    var message = new com.vaadin.flow.component.html.Span("¿Estás seguro de que querés eliminar \""
+        + eval.getTitle() + "\"? Esta acción no se puede deshacer.");
 
     var confirmButton = new Button("Eliminar", _ -> {
       evaluationService.delete(eval.getId());
@@ -273,9 +294,10 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
     boolean canLaunch = hasSelection && evaluation.getQuestionsJson() != null;
     launchButton.setVisible(canLaunch);
     if (canLaunch) {
-      launchButton.setText(evaluation.getStatus() == EvaluationStatus.COMPLETED
-          ? "Relanzar Evaluación"
-          : "Lanzar Evaluación");
+      launchButton.setText(
+          evaluation.getStatus() == EvaluationStatus.COMPLETED
+              ? "Relanzar Evaluación"
+              : "Lanzar Evaluación");
     }
   }
 
@@ -402,7 +424,10 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
   }
 
   private void clearDialogAddressBarState() {
-    getUI().ifPresent(ui -> ui.getPage().getHistory().replaceState(null, new Location("evaluations", QueryParameters.empty())));
+    getUI()
+        .ifPresent(ui -> ui.getPage()
+            .getHistory()
+            .replaceState(null, new Location("evaluations", QueryParameters.empty())));
   }
 
   private void clearSelection() {
@@ -415,7 +440,8 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
   }
 
   private void updateSaveButton() {
-    boolean hasContent = !titleField.getValue().isBlank() && !instructionField.getValue().isBlank();
+    boolean hasContent =
+        !titleField.getValue().isBlank() && !instructionField.getValue().isBlank();
     saveButton.setEnabled(hasContent);
   }
 }
