@@ -46,6 +46,8 @@ class CDebuggerRunner {
 
     private static String shellCommand(CDebugRequest request) {
         return """
+               set -e
+
                command -v gdb >/dev/null 2>&1 || { echo 'gdb not found' >&2; exit 127; }
 
                gcc \
@@ -58,6 +60,7 @@ class CDebuggerRunner {
                  -fno-omit-frame-pointer \
                  -fdiagnostics-format=sarif-stderr \
                  %s \
+                 -lm \
                  -o main
 
                gdb --quiet --interpreter=mi2 < debug.mi

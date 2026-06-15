@@ -2,13 +2,13 @@ services:
   postgres:
     image: "pgvector/pgvector:pg18"
     environment:
-      - 'POSTGRES_DB=socratic-tutor'
-      - 'POSTGRES_USER=postgres'
-      - 'POSTGRES_PASSWORD=postgres'
+      - "POSTGRES_DB=socratic-tutor"
+      - "POSTGRES_USER=postgres"
+      - "POSTGRES_PASSWORD=postgres"
     volumes:
       - db_postgres:/var/lib/postgresql
     ports:
-      - '${POSTGRES_PORT:-4321}:5432'
+      - "${POSTGRES_PORT:-4321}:5432"
   app:
     profiles:
       - app
@@ -16,19 +16,19 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      - 'PORT=6543'
-      - 'SPRING_PROFILES_ACTIVE=dev'
-      - 'SPRING_DOCKER_COMPOSE_LIFECYCLE_MANAGEMENT=none'
-      - 'DATABASE_URL=jdbc:postgresql://postgres:5432/socratic-tutor'
-      - 'DATABASE_USERNAME=postgres'
-      - 'DATABASE_PASSWORD=postgres'
-      - 'C_RUNNER_COMPILER_IMAGE=${C_RUNNER_COMPILER_IMAGE:-gcc:15.2.0-bookworm}'
-      - 'C_RUNNER_DEBUGGER_IMAGE=${C_RUNNER_DEBUGGER_IMAGE:-socratic-tutor/c-runner:local}'
+      - "PORT=6543"
+      - "SPRING_PROFILES_ACTIVE=dev"
+      - "SPRING_DOCKER_COMPOSE_LIFECYCLE_MANAGEMENT=none"
+      - "DATABASE_URL=jdbc:postgresql://postgres:5432/socratic-tutor"
+      - "DATABASE_USERNAME=postgres"
+      - "DATABASE_PASSWORD=postgres"
+      - "C_RUNNER_COMPILER_IMAGE=${C_RUNNER_COMPILER_IMAGE:-cristiandelahooz/socratic-tutor-crunner:latest}"
+      - "C_RUNNER_DEBUGGER_IMAGE=${C_RUNNER_DEBUGGER_IMAGE:-cristiandelahooz/socratic-tutor-crunner:latest}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - '${APP_PORT:-6543}:6543'
+      - "${APP_PORT:-6543}:6543"
     depends_on:
       - postgres
 volumes:
-  db_postgres: { }
+  db_postgres: {}

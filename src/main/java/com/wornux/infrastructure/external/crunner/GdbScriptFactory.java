@@ -11,6 +11,7 @@ class GdbScriptFactory {
         var commands = new StringBuilder();
         commands.append("-gdb-set pagination off\n");
         commands.append("-gdb-set print elements 64\n");
+        commands.append("-gdb-set step-mode off\n");
         commands.append("-file-exec-and-symbols %s/main\n".formatted(WORKSPACE));
         commands.append("-interpreter-exec console \"break main\"\n");
         commands.append(
@@ -29,6 +30,6 @@ class GdbScriptFactory {
             "-interpreter-exec console \"shell printf '__C_STDOUT_BEGIN__\\\\n'; cat %s/stdout.txt 2>/dev/null; printf '__C_STDOUT_END__\\\\n'\"\n"
                     .formatted(WORKSPACE));
         commands.append("-stack-list-variables --all-values\n");
-        commands.append("-interpreter-exec console \"next\"\n");
+        commands.append("-interpreter-exec console \"step\"\n");
     }
 }

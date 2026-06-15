@@ -63,9 +63,10 @@ public class DockerGdbCDebuggerAdapter {
             if (processResult.exitCode() != 0 && processResult.stdout().isBlank()) {
                 var diagnostics = parseCompilerDiagnostics(processResult.stderr(), request.source());
                 if (diagnostics.isEmpty()) {
+                    log.warn("Debugger failed before execution: {}", preview(processResult.stderr()));
                     diagnostics = List.of(
                         CDiagnostic.error(
-                            "Debugger failed: %s".formatted(preview(processResult.stderr())),
+                            "Debugger failed before execution. Check compiler diagnostics.",
                             "debugger-failed"));
                 }
                 return new CDebugSessionResult(false,
@@ -79,12 +80,10 @@ public class DockerGdbCDebuggerAdapter {
             var snapshots = debugDumpParser
                     .parse(processResult.stdout(), properties.getMaxSnapshots(), properties.getMaxOutputBytes());
             if (snapshots.isEmpty()) {
-                return failure(
-                    "Debugger produced no snapshots: %s"
-                            .formatted(preview("%s%n%s".formatted(processResult.stderr(), processResult.stdout()))),
-                    "debugger-empty",
-                    elapsedMs,
-                    sourceHash);
+                log.warn(
+                    "Debugger produced no snapshots: {}",
+                    preview("%s%n%s".formatted(processResult.stderr(), processResult.stdout())));
+                return failure("Debugger produced no execution snapshots.", "debugger-empty", elapsedMs, sourceHash);
             }
             return new CDebugSessionResult(true,
                     List.of(),

@@ -301,6 +301,31 @@ class CDebugSourceViewerElement extends HTMLElement {
               transparent 92%
             );
           }
+
+          .cm-tooltip.cm-tooltip-lint {
+            max-width: min(42rem, calc(100vw - 2rem));
+            max-height: min(22rem, 60vh);
+            overflow: auto;
+            border: 1px solid var(--c-runner-card-border, var(--chat-border-section));
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--chat-code-background, #001f27) 94%, black);
+            box-shadow: var(--chat-shadow-dark-card, 0 18px 48px rgb(0 0 0 / 0.35));
+            color: var(--chat-text-primary, inherit);
+            font-family: var(--chat-font-mono, monospace);
+            font-size: 12px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+          }
+
+          .cm-tooltip.cm-tooltip-lint ul,
+          .cm-tooltip.cm-tooltip-lint li {
+            max-width: 100%;
+            white-space: inherit;
+            overflow-wrap: inherit;
+            word-break: inherit;
+          }
         `}</style>
         <CodeMirror
           className="c-debug-source-viewer-editor"
