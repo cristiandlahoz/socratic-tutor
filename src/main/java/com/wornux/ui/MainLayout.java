@@ -25,6 +25,7 @@ import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.ConversationSummary;
 import com.wornux.ui.chat.ChatState;
 import com.wornux.ui.chat.ChatViewModel;
+import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.chat.WidthAwareLabel;
 import com.wornux.ui.evaluation.EvaluationView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
@@ -85,7 +86,9 @@ public class MainLayout extends AppLayout {
         var appTitle = new H1("Tutor Socrático");
         appTitle.addClassName("chat-sidebar-app-title");
 
-        var appTitleRow = new Div(appTitle);
+        var drawerToggle = new ShellDrawerToggle("shell-drawer-toggle-inside", "Cerrar menu");
+
+        var appTitleRow = new Div(appTitle, drawerToggle);
         appTitleRow.addClassName("chat-sidebar-app-title-row");
 
         var appDescription = new Paragraph(

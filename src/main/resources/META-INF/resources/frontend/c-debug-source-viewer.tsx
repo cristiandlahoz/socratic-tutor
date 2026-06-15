@@ -2,8 +2,11 @@ import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import type { Extension, Text } from '@codemirror/state';
 import { Decoration, EditorView } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
+import { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { codeMirrorLanguageExtensions, resolveCodeMirrorTheme } from './code-mirror-extensions';
+
+const ACTIVE_LINE_SCROLL_MARGIN_PX = 72;
 
 type CompilerDiagnostic = {
   severity?: 'ERROR' | 'WARNING' | 'INFO' | string;
@@ -16,6 +19,18 @@ type CompilerDiagnostic = {
   toOffset?: number | null;
   ruleId?: string | null;
 };
+
+interface CDebugSourceEditorProps {
+  activeLine: number;
+  diagnostics: CompilerDiagnostic[];
+  editable: boolean;
+  lang: string;
+  shadowRoot: ShadowRoot;
+  systemThemeMatches: boolean;
+  themePreference: string;
+  value: string;
+  onValueChange: (value: string) => void;
+}
 
 function normalizeDiagnostics(value: unknown): CompilerDiagnostic[] {
   if (typeof value === 'string') {
@@ -93,6 +108,78 @@ const debuggerScrollTheme = EditorView.theme({
     overflow: 'auto',
   },
 });
+
+function scrollActiveLineIntoView(view: EditorView, activeLine: number): void {
+  if (!activeLine || activeLine < 1 || activeLine > view.state.doc.lines) {
+    return;
+  }
+
+  const line = view.state.doc.line(activeLine);
+  view.focus();
+  view.dispatch({
+    effects: EditorView.scrollIntoView(line.from, {
+      y: 'center',
+      yMargin: ACTIVE_LINE_SCROLL_MARGIN_PX,
+    }),
+  });
+}
+
+function CDebugSourceEditor({
+  activeLine,
+  diagnostics,
+  editable,
+  lang,
+  shadowRoot,
+  systemThemeMatches,
+  themePreference,
+  value,
+  onValueChange,
+}: CDebugSourceEditorProps) {
+  const editorView = useRef<EditorView | null>(null);
+
+  useEffect(() => {
+    const view = editorView.current;
+    if (!view) {
+      return;
+    }
+
+    scrollActiveLineIntoView(view, activeLine);
+  }, [activeLine, value]);
+
+  return (
+    <CodeMirror
+      className="c-debug-source-viewer-editor"
+      value={value}
+      height="100%"
+      width="100%"
+      theme={resolveCodeMirrorTheme(themePreference, systemThemeMatches)}
+      extensions={[
+        debuggerScrollTheme,
+        ...codeMirrorLanguageExtensions(lang),
+        lintGutter(),
+        linter((view) => toCodeMirrorDiagnostics(diagnostics, view.state.doc), {
+          delay: 0,
+        }),
+        ...activeLineExtension(activeLine),
+      ]}
+      root={shadowRoot}
+      editable={editable}
+      readOnly={!editable}
+      onCreateEditor={(view) => {
+        editorView.current = view;
+      }}
+      onChange={onValueChange}
+      basicSetup={{
+        highlightActiveLine: false,
+        highlightActiveLineGutter: false,
+        foldGutter: false,
+        dropCursor: false,
+        allowMultipleSelections: true,
+        indentOnInput: false,
+      }}
+    />
+  );
+}
 
 class CDebugSourceViewerElement extends HTMLElement {
   private root: Root | null = null;
@@ -327,28 +414,16 @@ class CDebugSourceViewerElement extends HTMLElement {
             word-break: inherit;
           }
         `}</style>
-        <CodeMirror
-          className="c-debug-source-viewer-editor"
-          value={this.internalValue}
-          height="100%"
-          width="100%"
-          theme={resolveCodeMirrorTheme(
-            this.currentThemePreference,
-            this.systemThemeQuery.matches,
-          )}
-          extensions={[
-            debuggerScrollTheme,
-            ...codeMirrorLanguageExtensions(this.internalLang),
-            lintGutter(),
-            linter((view) => toCodeMirrorDiagnostics(this.internalDiagnostics, view.state.doc), {
-              delay: 0,
-            }),
-            ...activeLineExtension(this.internalActiveLine),
-          ]}
-          root={this.shadowRoot}
+        <CDebugSourceEditor
+          activeLine={this.internalActiveLine}
+          diagnostics={this.internalDiagnostics}
           editable={this.internalEditable}
-          readOnly={!this.internalEditable}
-          onChange={(value) => {
+          lang={this.internalLang}
+          shadowRoot={this.shadowRoot}
+          systemThemeMatches={this.systemThemeQuery.matches}
+          themePreference={this.currentThemePreference}
+          value={this.internalValue}
+          onValueChange={(value) => {
             this.internalValue = value;
             this.dispatchEvent(
               new CustomEvent('value-changed', {
@@ -357,14 +432,6 @@ class CDebugSourceViewerElement extends HTMLElement {
                 composed: true,
               }),
             );
-          }}
-          basicSetup={{
-            highlightActiveLine: false,
-            highlightActiveLineGutter: false,
-            foldGutter: false,
-            dropCursor: false,
-            allowMultipleSelections: true,
-            indentOnInput: false,
           }}
         />
       </>,

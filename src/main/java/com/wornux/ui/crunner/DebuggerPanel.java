@@ -14,6 +14,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Pre;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -45,6 +46,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
     private final Button stepButton = createIconButton(VaadinIcon.ARROW_RIGHT, "Paso siguiente");
     private final Button resetButton = createIconButton(VaadinIcon.ROTATE_LEFT, "Reiniciar");
     private final Button menuButton = createIconButton(VaadinIcon.ELLIPSIS_V, "Diagnosticos");
+    private final Button closeButton = createPanelToggleButton();
     private final Span statusText = new Span("");
     private final DebugSourceViewer sourceViewer = new DebugSourceViewer();
     private final TextArea stdinField = new TextArea("stdin");
@@ -60,6 +62,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
     private int activeLine = 0;
     private int snapshotIndex = 0;
     private long debugJobSequence = 0;
+    private Runnable closeHandler = () -> {};
 
     public DebuggerPanel(
             CProgramDebugService debugService,
@@ -72,7 +75,9 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         var title = new H2("Code Visualizer");
         title.addClassName("c-runner-title");
 
-        var header = new HorizontalLayout(title);
+        closeButton.addClickListener(_ -> closeHandler.run());
+
+        var header = new HorizontalLayout(closeButton, title);
         header.setPadding(false);
         header.setSpacing(false);
         header.setWidthFull();
@@ -161,6 +166,10 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
 
     public boolean hasUserContent() {
         return !currentSource.isBlank();
+    }
+
+    public void setCloseHandler(Runnable closeHandler) {
+        this.closeHandler = closeHandler == null ? () -> {} : closeHandler;
     }
 
     void setSourceForTesting(String source) {
@@ -379,6 +388,17 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         button.addClassName("c-runner-control-button");
         button.getElement().setAttribute("aria-label", label);
         button.getElement().setAttribute("title", label);
+        return button;
+    }
+
+    private static Button createPanelToggleButton() {
+        var icon = new Image("/icons/toggle.svg", "");
+        icon.addClassName("c-runner-panel-toggle-icon");
+
+        var button = new Button(icon);
+        button.addClassName("c-runner-panel-toggle");
+        button.getElement().setAttribute("aria-label", "Hide debugger");
+        button.getElement().setAttribute("title", "Hide debugger");
         return button;
     }
 

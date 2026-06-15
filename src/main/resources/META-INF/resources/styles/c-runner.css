@@ -39,19 +39,30 @@
 }
 
 vaadin-button.chat-debugger-toggle {
-  position: absolute;
-  z-index: 5;
-  inset-block-start: 1rem;
-  inset-inline-end: 1rem;
-  color: var(--chat-text-primary);
+  position: fixed;
+  z-index: 12;
+  inset-block-start: 50%;
+  inset-inline-end: 0;
+  transform: translateY(-50%);
+  color: var(--chat-interactive);
 }
 
 vaadin-button.chat-debugger-toggle::part(button) {
+  width: 2.25rem;
+  min-width: 0;
+  height: 4.5rem;
+  padding: 0;
   border: 1px solid var(--chat-border-visible);
-  border-radius: 999px;
+  border-inline-end: 0;
+  border-radius: 999px 0 0 999px;
   background: color-mix(in srgb, var(--chat-surface-strong) 78%, transparent);
   box-shadow: var(--chat-shadow-dark-card);
   backdrop-filter: blur(16px);
+}
+
+vaadin-button.chat-debugger-toggle vaadin-icon {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .c-runner-panel,
@@ -93,6 +104,34 @@ vaadin-button.chat-debugger-toggle::part(button) {
   min-width: 0;
   height: 34px;
   align-items: flex-start;
+  gap: 10px;
+}
+
+vaadin-button.c-runner-panel-toggle {
+  flex: 0 0 auto;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  margin: 0;
+  color: var(--chat-interactive);
+  --vaadin-button-background: transparent;
+  --vaadin-button-hover-background: color-mix(in srgb, var(--chat-surface-hover) 68%, transparent);
+  --vaadin-button-padding: 0;
+  --vaadin-button-text-color: currentColor;
+}
+
+vaadin-button.c-runner-panel-toggle::part(button) {
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.c-runner-panel-toggle-icon {
+  width: 18px;
+  height: 18px;
+  transform: scaleX(-1);
 }
 
 .c-runner-title {

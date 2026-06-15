@@ -120,6 +120,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
         debuggerPanel = new DebuggerPanel(cProgramDebugService, cExamplePreparationService, cRunnerExecutor);
         debuggerPanel.setSizeFull();
+        debuggerPanel.setCloseHandler(() -> setDebuggerVisible(false));
 
         splitLayout = new SplitLayout(chatPane, debuggerPanel);
         splitLayout.setSizeFull();
@@ -322,7 +323,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     }
 
     private Button createDebuggerToggleButton() {
-        var button = new Button(new Icon(VaadinIcon.BUG));
+        var button = new Button(new Icon(VaadinIcon.ANGLE_LEFT));
         button.addThemeVariants(ButtonVariant.TERTIARY);
         button.addClassName("chat-debugger-toggle");
         button.setAriaLabel("Open debugger");
@@ -347,6 +348,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
                     visible);
         debuggerToggleButton.setAriaLabel(visible ? "Hide debugger" : "Open debugger");
         debuggerToggleButton.getElement().setAttribute("title", visible ? "Hide debugger" : "Open debugger");
+        debuggerToggleButton.setVisible(!visible);
     }
 
     private CodeMessageListItem toMessageListItem(MessageState message) {
