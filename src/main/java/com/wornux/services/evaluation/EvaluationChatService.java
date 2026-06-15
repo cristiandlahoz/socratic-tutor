@@ -266,7 +266,7 @@ public class EvaluationChatService {
       runService.completeReport(runId, report);
       sessions.remove(runId);
       return new EvaluationTurnResponse(
-          TurnType.COMPLETE, "¡Evaluación completada!", null, report);
+          TurnType.COMPLETE, "¡Actividad formativa completada!", null, report);
     } catch (Exception e) {
       sessions.remove(runId);
       throw new RuntimeException("Error al completar la evaluación", e);

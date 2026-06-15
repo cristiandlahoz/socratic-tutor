@@ -15,6 +15,7 @@ import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.Layout;
@@ -102,9 +103,9 @@ public class MainLayout extends AppLayout {
         newChatButton.addClickListener(_ -> viewModel.onStartNewChat());
 
         var ingestDocumentButton =
-                createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", VaadinIcon.UPLOAD_ALT);
+                createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", new Icon(VaadinIcon.UPLOAD_ALT));
         ingestDocumentButton.setId("sidebar-ingest-document-link");
-        var evaluationButton = createNavigationButton(EvaluationView.class, "Evaluaciones", VaadinIcon.CLIPBOARD_CHECK);
+        var evaluationButton = createNavigationButton(EvaluationView.class, "Actividades formativas", new SvgIcon("/icons/pencil.svg"));
         var actionsRow = new Div(newChatButton, ingestDocumentButton, evaluationButton);
         actionsRow.addClassName("chat-sidebar-actions");
 
@@ -214,8 +215,7 @@ public class MainLayout extends AppLayout {
     private RouterLink createNavigationButton(
             Class<? extends Component> navigationTarget,
             String label,
-            VaadinIcon icon) {
-        var iconComponent = new Icon(icon);
+            Component iconComponent) {
         iconComponent.addClassName("chat-sidebar-action-icon");
 
         var text = new Span(label);

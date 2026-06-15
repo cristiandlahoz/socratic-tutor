@@ -32,14 +32,14 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
   private final Div messagesContainer = new Div();
   private final TextArea answerField = new TextArea();
   private final Button sendButton = new Button(new Icon(VaadinIcon.ARROW_UP));
-  private final Button backButton = new Button("Volver a evaluaciones", new Icon(VaadinIcon.ARROW_LEFT));
+  private final Button backButton = new Button("Volver a actividades formativas", new Icon(VaadinIcon.ARROW_LEFT));
   private final Div scrollRegion = new Div();
   private final BrailleSpinner loadingSpinner = new BrailleSpinner();
   private final Span loadingLabel = new Span();
   private final Div loadingIndicator = new Div(loadingSpinner, loadingLabel);
   private boolean complete = false;
   private static final String NEXT_QUESTION_LOADING_TEXT = "Formulando la siguiente pregunta...";
-  private static final String REPORT_LOADING_TEXT = "Generando reporte evaluativo...";
+  private static final String REPORT_LOADING_TEXT = "Generando reporte formativo...";
 
   public EvaluationChatView(
       EvaluationRunService runService,
@@ -89,16 +89,16 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
     inputArea.addClassName("chat-composer-shell");
 
     backButton.addThemeVariants(ButtonVariant.TERTIARY);
-    backButton.setVisible(false);
-    backButton.addClickListener(_ ->
+        backButton.setVisible(false);
+        backButton.addClickListener(_ ->
         getUI().ifPresent(ui -> ui.navigate(EvaluationView.class)));
 
-    content.add(header, scrollRegion, inputArea, backButton);
+        content.add(header, scrollRegion, inputArea, backButton);
   }
 
   private Div buildHeader() {
     titleLabel.addClassName("evaluation-run-title");
-    titleLabel.setText("Evaluación en curso");
+    titleLabel.setText("Actividad formativa en curso");
 
     progressLabel.addClassName("evaluation-run-progress");
 
@@ -123,7 +123,7 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
       addMessage("evaluador", response.message());
       answerField.focus();
     } catch (Exception e) {
-      Notification.show("Error al iniciar la evaluación: " + e.getMessage());
+      Notification.show("Error al iniciar la actividad formativa: " + e.getMessage());
       backButton.setVisible(true);
     }
   }
@@ -160,7 +160,7 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
             }
           } else {
             complete = true;
-            progressLabel.setText("Evaluación completada");
+            progressLabel.setText("Actividad formativa completada");
             setLoadingState(true, REPORT_LOADING_TEXT);
             navigateToCompletedEvaluation();
           }
@@ -181,7 +181,7 @@ public class EvaluationChatView extends Composite<Div> implements HasUrlParamete
       backButton.removeThemeVariants(ButtonVariant.TERTIARY);
       backButton.addThemeVariants(ButtonVariant.PRIMARY);
       backButton.setVisible(true);
-      progressLabel.setText("Evaluación completada — presioná Volver para salir");
+      progressLabel.setText("Actividad formativa completada — presioná Volver para salir");
       return;
     }
 

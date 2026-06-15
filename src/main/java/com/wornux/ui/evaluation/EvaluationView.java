@@ -56,7 +56,7 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
   private final Grid<Evaluation> grid = new Grid<>(Evaluation.class, false);
   private final Button generateButton = new Button("Generar Preguntas");
   private final Button deleteButton = new Button("Eliminar");
-  private final Button launchButton = new Button("Lanzar Evaluación");
+  private final Button launchButton = new Button("Lanzar actividad formativa");
 
   private UUID selectedEvaluationId;
   private UUID pendingDialogEvaluationId;
@@ -90,10 +90,10 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
   }
 
   private Div buildHeader() {
-    var title = new H2("Evaluaciones");
+    var title = new H2("Actividades formativas");
     title.addClassNames(LumoUtility.Margin.NONE);
 
-    var description = new Span("Crea y gestiona evaluaciones diagnósticas. Escribe las instrucciones, genera preguntas y lanza la evaluación.");
+    var description = new Span("Crea y gestiona actividades formativas diagnósticas. Escribe las instrucciones, genera preguntas y lanza la actividad formativa.");
     description.addClassName("evaluation-description");
 
     var header = new Div(title, description);
@@ -104,12 +104,12 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
   private Div buildFormCard() {
     titleField.setWidthFull();
     titleField.setValueChangeMode(ValueChangeMode.EAGER);
-    titleField.setPlaceholder("Título de la evaluación");
+    titleField.setPlaceholder("Título de la actividad formativa");
 
     instructionField.setWidthFull();
     instructionField.setMinHeight("8rem");
     instructionField.setValueChangeMode(ValueChangeMode.EAGER);
-    instructionField.setPlaceholder("Escribe las instrucciones para la evaluación diagnóstica...");
+    instructionField.setPlaceholder("Escribe las instrucciones para la actividad formativa diagnóstica...");
 
     saveButton.addThemeVariants(ButtonVariant.PRIMARY);
     saveButton.setIcon(new Icon(VaadinIcon.PLUS));
@@ -226,14 +226,14 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
 
   private void confirmAndDelete(Evaluation eval) {
     var dialog = new com.vaadin.flow.component.dialog.Dialog();
-    dialog.setHeaderTitle("Eliminar evaluación");
+    dialog.setHeaderTitle("Eliminar actividad formativa");
 
     var message = new com.vaadin.flow.component.html.Span(
         "¿Estás seguro de que querés eliminar \"" + eval.getTitle() + "\"? Esta acción no se puede deshacer.");
 
     var confirmButton = new Button("Eliminar", _ -> {
       evaluationService.delete(eval.getId());
-      Notification.show("Evaluación eliminada");
+      Notification.show("Actividad formativa eliminada");
       refreshGrid();
       clearSelection();
       dialog.close();
@@ -258,7 +258,7 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
     }
 
     evaluationService.createPending(title, instruction);
-    Notification.show("Evaluación guardada");
+    Notification.show("Actividad formativa guardada");
 
     titleField.clear();
     instructionField.clear();
@@ -274,8 +274,8 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
     launchButton.setVisible(canLaunch);
     if (canLaunch) {
       launchButton.setText(evaluation.getStatus() == EvaluationStatus.COMPLETED
-          ? "Relanzar Evaluación"
-          : "Lanzar Evaluación");
+          ? "Relanzar actividad formativa"
+          : "Lanzar actividad formativa");
     }
   }
 
@@ -323,7 +323,7 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
 
       getUI().ifPresent(ui -> ui.navigate(EvaluationChatView.class, run.getId().toString()));
     } catch (Exception e) {
-      Notification.show("Error al lanzar la evaluación: " + e.getMessage());
+      Notification.show("Error al lanzar la actividad formativa: " + e.getMessage());
     }
   }
 
@@ -411,7 +411,7 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
     generateButton.setEnabled(false);
     deleteButton.setEnabled(false);
     launchButton.setVisible(false);
-    launchButton.setText("Lanzar Evaluación");
+    launchButton.setText("Lanzar actividad formativa");
   }
 
   private void updateSaveButton() {
