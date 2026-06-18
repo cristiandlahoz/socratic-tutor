@@ -56,7 +56,7 @@ public class EvaluationDialog extends Div {
     var panel = new Div();
     panel.addClassName("evaluation-overlay-panel");
 
-    var title = new H3("Evaluación: " + evaluation.getTitle());
+    var title = new H3("Actividad formativa: " + evaluation.getTitle());
     title.getStyle().set("margin", "0");
 
     titleField = new TextField("Título");
@@ -194,7 +194,7 @@ public class EvaluationDialog extends Div {
   }
 
   private Div buildReportSection(Evaluation evaluation) {
-    var title = new H4("Reporte evaluativo");
+    var title = new H4("Reporte formativo");
     title.getStyle().set("margin", "0");
 
     var container = new Div();
@@ -203,7 +203,7 @@ public class EvaluationDialog extends Div {
 
     var markdown = evaluation.getReportMarkdown();
     if (markdown == null || markdown.isBlank()) {
-      container.add(new Span("Aún no se generó el reporte."));
+      container.add(new Span("Aún no se generó el reporte formativo."));
     } else {
       var markdownEl = new Element("vaadin-markdown");
       markdownEl.setProperty("content", markdown);
