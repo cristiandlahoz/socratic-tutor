@@ -18,8 +18,8 @@ class SpringAiJsonSchemaGeneratorTest {
     @Test
     void swaggerArraySchemaAddsItemBounds() {
         var schema = JsonSchemaGenerator.generateForType(StudentQuestionSet.class);
-
         log.info("Swagger schema:\n{}", schema);
+        assertThat(schema).isNotNull();
     }
 
     @Test
