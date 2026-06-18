@@ -286,7 +286,6 @@ public class EvaluationView extends Composite<Div>
 
   private void onSelectionChange(Evaluation evaluation) {
     boolean hasSelection = evaluation != null;
-    selectedEvaluationId = evaluation != null ? evaluation.getId() : null;
     generateButton.setEnabled(hasSelection && evaluation.getQuestionsJson() == null);
     deleteButton.setEnabled(hasSelection);
     boolean canLaunch = hasSelection && evaluation.getQuestionsJson() != null;
@@ -338,8 +337,6 @@ public class EvaluationView extends Composite<Div>
       var clientId = browserClientService.resolveClientId();
       var run = runService.createRun(evaluation.getId(), clientId, "[]");
       evaluationService.markRunning(evaluation.getId());
-      selectedEvaluationId = evaluation.getId();
-
       getUI().ifPresent(ui -> ui.navigate(EvaluationChatView.class, run.getId().toString()));
     } catch (Exception e) {
       Notification.show("Error al lanzar la actividad formativa: " + e.getMessage());
@@ -428,7 +425,6 @@ public class EvaluationView extends Composite<Div>
   }
 
   private void clearSelection() {
-    selectedEvaluationId = null;
     grid.asSingleSelect().clear();
     generateButton.setEnabled(false);
     deleteButton.setEnabled(false);
