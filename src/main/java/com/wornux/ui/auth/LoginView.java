@@ -56,37 +56,32 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         "Explora ideas, resolvé dudas y aprendé algoritmia con preguntas guiadas, paso a paso.");
     description.addClassName("login-view__description");
 
-    var marker = new Span("Método socrático · práctica deliberada · razonamiento claro");
-    marker.addClassName("login-view__marker");
-
-    var copy = new Div(eyebrow, title, description, marker);
+    var copy = new Div(eyebrow, title, description);
     copy.addClassName("login-view__brand-copy");
 
-    var crow = new AsciiFrameAnimation("crow3-frames", 240, 30);
-    crow.addClassName("login-view__crow");
-
-    var crowFrame = new Div(crow);
-    crowFrame.addClassName("login-view__crow-frame");
-
-    var panel = new Div(rail, copy, crowFrame);
+    var panel = new Div(rail, copy);
     panel.addClassName("login-view__brand");
     return panel;
   }
 
   private Component createFormPanel() {
-    var label = new Span("Sesión segura");
-    label.addClassName("login-view__panel-label");
-
     var title = new H1("Continuá tu aprendizaje");
     title.addClassName("login-view__panel-title");
 
-    var hint = new Paragraph("Ingresa con tus credenciales para volver a tus conversaciones y evaluaciones.");
+    var hint = new Paragraph("Volvé a tus conversaciones, documentos y evaluaciones guardadas.");
     hint.addClassName("login-view__panel-hint");
 
-    var header = new Div(label, title, hint);
+    var header = new Div(title, hint);
     header.addClassName("login-view__panel-header");
 
-    var formCard = new Div(header, login);
+    var crow = new AsciiFrameAnimation("crow3-frames", 240, 30);
+    crow.addClassName("login-view__crow");
+    crow.getElement().setAttribute("aria-hidden", "true");
+
+    var crowFrame = new Div(crow);
+    crowFrame.addClassName("login-view__crow-frame");
+
+    var formCard = new Div(crowFrame, header, login);
     formCard.addClassName("login-view__form-card");
 
     var panel = new Div(formCard);
