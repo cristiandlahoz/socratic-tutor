@@ -1,0 +1,27 @@
+.chat-sidebar-help-popover::part(content) {
+  max-width: 16rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--chat-border-section);
+  border-radius: var(--chat-panel-radius);
+  background: var(--chat-surface-strong);
+  color: var(--chat-text-primary);
+  box-shadow: var(--chat-shadow-dark-card);
+}
+
+.chat-sidebar-help-title {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--chat-text-display);
+  font-family: var(--chat-font-body);
+  font-size: var(--chat-text-meta);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.chat-sidebar-help-description {
+  margin: 0;
+  color: var(--chat-text-secondary);
+  font-family: var(--chat-font-body);
+  font-size: var(--chat-text-ui-sm);
+  line-height: 1.55;
+}

@@ -1,0 +1,198 @@
+.chat-sidebar-shell {
+  --sidebar-rail-gutter: 3.35rem;
+  --sidebar-rail-node-size: 0.7rem;
+  --sidebar-rail-line-x: calc(var(--sidebar-rail-gutter) / 2);
+  --sidebar-rail-stub-length: 1.2rem;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: none;
+  gap: 0.45rem;
+}
+
+.sidebar-rail-shell {
+  position: relative;
+}
+
+.sidebar-rail-shell::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--sidebar-rail-line-x) + 0.65rem);
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--chat-history-accent) 84%, transparent),
+    color-mix(in srgb, var(--chat-history-line) 82%, transparent)
+  );
+  pointer-events: none;
+}
+
+.sidebar-rail-entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--sidebar-rail-gutter) minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  z-index: 1;
+}
+
+.sidebar-rail-entry::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(var(--sidebar-rail-line-x) + var(--sidebar-rail-node-size) / 2);
+  width: var(--sidebar-rail-stub-length);
+  height: 1px;
+  background: color-mix(in srgb, var(--chat-history-accent) 72%, transparent);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.sidebar-rail-entry-brand {
+  align-items: start;
+  padding-top: 1.05rem;
+}
+
+.sidebar-rail-entry-brand::after {
+  top: calc(1.05rem + 0.55rem + var(--sidebar-rail-node-size) / 2);
+}
+
+.sidebar-rail-entry-theme,
+.chat-sidebar-actions .sidebar-rail-entry,
+.sidebar-rail-entry-history {
+  min-height: 3rem;
+}
+
+.sidebar-rail-node {
+  justify-self: center;
+  position: relative;
+  z-index: 1;
+  width: var(--sidebar-rail-node-size);
+  height: var(--sidebar-rail-node-size);
+  border-radius: 999px;
+  border: 1px solid var(--chat-history-accent);
+  background: color-mix(in srgb, var(--chat-black) 72%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--chat-black) 84%, transparent);
+}
+
+.sidebar-rail-entry-brand .sidebar-rail-node {
+  margin-top: 0.55rem;
+}
+
+.chat-sidebar-app-header {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.05rem;
+  padding: 0 0.95rem 1.05rem 0;
+}
+
+.chat-sidebar-app-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.chat-sidebar-app-title {
+  margin: 0;
+  color: var(--chat-text-display);
+  font-family: var(--chat-font-display);
+  font-size: clamp(2.55rem, 3vw, 3.25rem);
+  line-height: 0.94;
+  font-weight: 320;
+  letter-spacing: var(--chat-tracking-display);
+  text-wrap: balance;
+}
+
+.chat-sidebar-app-description {
+  margin: 0;
+  max-width: 21rem;
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-body);
+  font-size: var(--chat-text-ui);
+  line-height: 1.5;
+}
+
+.chat-sidebar-theme-control {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-right: 0.95rem;
+}
+
+.chat-sidebar-theme-label {
+  color: var(--chat-text-tertiary);
+  font-family: var(--chat-font-body);
+  font-size: var(--chat-text-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chat-sidebar-theme-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+vaadin-button.chat-sidebar-theme-button {
+  --vaadin-button-padding: 0;
+}
+
+vaadin-button.chat-sidebar-theme-button::part(button) {
+  min-height: 2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: color-mix(in srgb, var(--chat-text-tertiary) 72%, transparent);
+  opacity: 0.68;
+  transition:
+      color var(--chat-transition-fast),
+      opacity var(--chat-transition-fast),
+      transform var(--chat-transition-fast);
+}
+
+vaadin-button.chat-sidebar-theme-button:hover::part(button),
+vaadin-button.chat-sidebar-theme-button.is-active::part(button) {
+  color: var(--chat-text-display);
+  opacity: 1;
+}
+
+vaadin-button.chat-sidebar-theme-button:focus-within::part(button) {
+  color: var(--chat-text-primary);
+  opacity: 0.9;
+}
+
+vaadin-button.chat-sidebar-theme-button.is-active::part(button) {
+  transform: translateY(-1px);
+}
+
+vaadin-button.chat-sidebar-theme-button::part(label) {
+  color: color-mix(in srgb, var(--chat-text-tertiary) 72%, transparent);
+  font-family: var(--chat-font-body);
+  font-size: 1.04rem;
+  font-weight: 500;
+  opacity: 0.68;
+  transition:
+      color var(--chat-transition-fast),
+      opacity var(--chat-transition-fast),
+      font-weight var(--chat-transition-fast);
+}
+
+vaadin-button.chat-sidebar-theme-button.is-active::part(label) {
+  color: var(--chat-text-display);
+  font-weight: 620;
+  opacity: 1;
+}
+
+vaadin-button.chat-sidebar-theme-button:hover::part(label),
+vaadin-button.chat-sidebar-theme-button:focus-within::part(label) {
+  color: var(--chat-text-primary);
+  opacity: 0.9;
+}

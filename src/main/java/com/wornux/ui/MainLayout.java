@@ -18,9 +18,11 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
+import com.vaadin.flow.component.shared.Tooltip;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.ConversationSummary;
@@ -33,6 +35,7 @@ import com.wornux.ui.ingestion.DocumentIngestionView;
 
 @Layout
 @PreserveOnRefresh
+@AnonymousAllowed
 public class MainLayout extends AppLayout {
 
     private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");
@@ -81,7 +84,7 @@ public class MainLayout extends AppLayout {
         viewModel.initializeShellState();
 
         var drawerContent = new Div();
-        drawerContent.addClassNames("shell-drawer-content", "chat-sidebar-shell");
+        drawerContent.addClassNames("shell-drawer-content", "chat-sidebar-shell", "sidebar-rail-shell");
         drawerContent.setSizeFull();
 
         var appTitle = new H1("Tutor Socrático");
@@ -96,7 +99,7 @@ public class MainLayout extends AppLayout {
                 "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia con preguntas guiadas.");
         appDescription.addClassName("chat-sidebar-app-description");
 
-        var appHeader = new Div(appTitleRow, appDescription, createThemePreferenceControl(state, viewModel));
+        var appHeader = new Div(appTitleRow, appDescription);
         appHeader.addClassName("chat-sidebar-app-header");
 
         newChatButton = createActionButton();
@@ -105,8 +108,10 @@ public class MainLayout extends AppLayout {
         var ingestDocumentButton =
                 createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", new Icon(VaadinIcon.UPLOAD_ALT));
         ingestDocumentButton.setId("sidebar-ingest-document-link");
+
         var evaluationButton = createNavigationButton(EvaluationView.class, "Actividades formativas", new SvgIcon("/icons/pencil.svg"));
         var actionsRow = new Div(newChatButton, ingestDocumentButton, evaluationButton);
+
         actionsRow.addClassName("chat-sidebar-actions");
 
         var historyTitle = new H1("Historial");
@@ -118,10 +123,10 @@ public class MainLayout extends AppLayout {
         var historyTitleRow = new Div(historyTitle, historyCount);
         historyTitleRow.addClassName("chat-sidebar-panel-title-row");
 
-        var historyDescription = new Paragraph("Hilos recientes ordenados por fecha y conectados como una sola ruta.");
-        historyDescription.addClassName("chat-sidebar-panel-description");
+        Tooltip.forComponent(historyTitleRow)
+                .withText("Hilos recientes ordenados por fecha y conectados como una sola ruta.");
 
-        var historyHeader = new Div(historyTitleRow, historyDescription);
+        var historyHeader = new Div(historyTitleRow);
         historyHeader.addClassName("chat-sidebar-header");
 
         var emptyTitle = new Span("Sin conversaciones todavía");
@@ -142,10 +147,15 @@ public class MainLayout extends AppLayout {
         var historyBody = new Div(emptyHistory, timelineRoot);
         historyBody.addClassName("chat-sidebar-history-body");
 
-        var historySection = new Div(historyHeader, historyBody);
+        var historySection = new Div(historyBody);
         historySection.addClassName("chat-sidebar-history-section");
 
-        drawerContent.add(appHeader, actionsRow, historySection);
+        drawerContent.add(
+                createRailEntry("brand", appHeader),
+                createRailEntry("theme", createThemePreferenceControl(state, viewModel)),
+                actionsRow,
+                createRailEntry("history", historyHeader),
+                historySection);
 
         var drawerScroller = new Scroller(drawerContent, Scroller.ScrollDirection.NONE);
         drawerScroller.setSizeFull();
@@ -170,6 +180,17 @@ public class MainLayout extends AppLayout {
         var control = new Div(label, options);
         control.addClassName("chat-sidebar-theme-control");
         return control;
+    }
+
+    private Div createRailEntry(String target, Component content) {
+        var node = new Div();
+        node.addClassName("sidebar-rail-node");
+        node.getElement().setAttribute("data-rail-node", target);
+
+        var entry = new Div(node, content);
+        entry.addClassNames("sidebar-rail-entry", "sidebar-rail-entry-" + target);
+        entry.getElement().setAttribute("data-rail-target", target);
+        return entry;
     }
 
     private Button createThemePreferenceButton(ThemePreference preference, ChatState state, ChatViewModel viewModel) {
