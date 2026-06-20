@@ -1,8 +1,5 @@
 package com.wornux.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.wornux.ai.advisor.DocumentCatalogAdvisor;
 import com.wornux.ai.advisor.SubjectContextAdvisor;
 import com.wornux.ai.advisor.TutorGuardAdvisor;
@@ -19,8 +16,6 @@ import com.wornux.services.subject.SubjectConfigService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
-import org.springframework.ai.chat.client.advisor.ToolCallingAdvisor;
-import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,7 +29,6 @@ public class AIConfig {
     private static final int DOCUMENT_CATALOG_ADVISOR_ORDER = 160;
     private static final int PEDAGOGICAL_ROUTING_ADVISOR_ORDER = 175;
     private static final int TUTOR_GUARD_ADVISOR_ORDER = 200;
-    private static final int TOOL_CALL_ADVISOR_ORDER = 300;
     private static final int LOGGER_ADVISOR_ORDER = 1000;
 
     @Bean
@@ -64,24 +58,17 @@ public class AIConfig {
                 new DocumentCatalogAdvisor(DOCUMENT_CATALOG_ADVISOR_ORDER, documentCatalogPromptService);
         var tutorGuardAdvisor =
                 new TutorGuardAdvisor(TUTOR_GUARD_ADVISOR_ORDER, guardClassifierService, promptResources);
-        var toolCallAdvisor = ToolCallingAdvisor.builder()
-                .advisorOrder(TOOL_CALL_ADVISOR_ORDER)
-                .disableInternalConversationHistory()
-                .build();
         var simpleLoggerAdvisor = new SimpleLoggerAdvisor(LOGGER_ADVISOR_ORDER);
 
-        List<Advisor> advisors = new ArrayList<>(List.of(
-            chatMemoryAdvisor,
-            subjectContextAdvisor,
-            profileAwareResponseAdvisor,
-            documentCatalogAdvisor,
-            pedagogicalRoutingAdvisor,
-            tutorGuardAdvisor,
-            toolCallAdvisor,
-            simpleLoggerAdvisor));
-
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
-                .defaultAdvisors(advisors)
+                .defaultAdvisors(
+                    chatMemoryAdvisor,
+                    subjectContextAdvisor,
+                    profileAwareResponseAdvisor,
+                    documentCatalogAdvisor,
+                    pedagogicalRoutingAdvisor,
+                    tutorGuardAdvisor,
+                    simpleLoggerAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();
     }

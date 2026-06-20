@@ -9,10 +9,12 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public record StudentQuestionSet(@JsonProperty(
-        required = false) @JsonPropertyDescription("Up to 3 short questions for collecting student context, observable progress, or"
-                + " concise pedagogical input. Questions may be open-ended; selectable options are"
-                + " optional and should be used only when they add real value.") @ArraySchema(maxItems = 3,
-                        schema = @Schema(implementation = StudentQuestion.class)) List<StudentQuestion> questions)
+        required = false) @JsonPropertyDescription("""
+                                                   Up to 3 short questions for collecting student context, observable progress, or\
+                                                    concise pedagogical input. Questions may be open-ended; selectable options are\
+                                                    optional and should be used only when they add real value.""") @ArraySchema(
+                maxItems = 3,
+                schema = @Schema(implementation = StudentQuestion.class)) List<StudentQuestion> questions)
         implements Serializable {
 
     public StudentQuestionSet {

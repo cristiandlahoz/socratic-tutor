@@ -109,7 +109,10 @@ public class MainLayout extends AppLayout {
                 createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", new Icon(VaadinIcon.UPLOAD_ALT));
         ingestDocumentButton.setId("sidebar-ingest-document-link");
 
-        var evaluationButton = createNavigationButton(EvaluationView.class, "Actividades formativas", new SvgIcon("/icons/pencil.svg"));
+        var evaluationButton = createNavigationButton(
+            EvaluationView.class,
+            "Actividades formativas",
+            new SvgIcon("/icons/pencil.svg"));
         var actionsRow = new Div(newChatButton, ingestDocumentButton, evaluationButton);
 
         actionsRow.addClassName("chat-sidebar-actions");
@@ -151,11 +154,11 @@ public class MainLayout extends AppLayout {
         historySection.addClassName("chat-sidebar-history-section");
 
         drawerContent.add(
-                createRailEntry("brand", appHeader),
-                createRailEntry("theme", createThemePreferenceControl(state, viewModel)),
-                actionsRow,
-                createRailEntry("history", historyHeader),
-                historySection);
+            createRailEntry("brand", appHeader),
+            createRailEntry("theme", createThemePreferenceControl(state, viewModel)),
+            actionsRow,
+            createRailEntry("history", historyHeader),
+            historySection);
 
         var drawerScroller = new Scroller(drawerContent, Scroller.ScrollDirection.NONE);
         drawerScroller.setSizeFull();

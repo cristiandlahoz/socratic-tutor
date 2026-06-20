@@ -137,7 +137,7 @@
   width: 100%;
   min-width: 0;
   display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr);
+  grid-template-columns: 2.5rem minmax(0, 1fr);
   align-items: center;
 }
 
@@ -195,11 +195,11 @@ vaadin-button.chat-sidebar-item-button[disabled]::part(button) {
 }
 
 .chat-sidebar-divider-row .chat-sidebar-node {
-  margin-left: 0.45rem;
+  margin-left: 0.3rem;
 }
 
 .chat-sidebar-thread-row .chat-sidebar-node {
-  margin-left: 1.7rem;
+  margin-left: 1.35rem;
 }
 
 .chat-sidebar-node.is-active {

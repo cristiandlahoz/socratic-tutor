@@ -13,29 +13,28 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-  @Bean
-  public SecurityFilterChain vaadinSecurityFilterChain(HttpSecurity http) {
+    @Bean
+    public SecurityFilterChain vaadinSecurityFilterChain(HttpSecurity http) {
 
-    http.authorizeHttpRequests(authorize -> {
-      authorize
-          .requestMatchers(
-              "/styles/**",
-              "/fonts/**",
-              "/frontend/**",
-              "/images/*.png",
-              "/crow3-frames/**",
-              "/icons/**",
-              "/line-awesome/**")
-          .permitAll();
-    });
+        http.authorizeHttpRequests(authorize -> {
+            authorize
+                    .requestMatchers(
+                        "/styles/**",
+                        "/fonts/**",
+                        "/frontend/**",
+                        "/images/*.png",
+                        "/crow3-frames/**",
+                        "/icons/**",
+                        "/line-awesome/**")
+                    .permitAll();
+        });
 
-    http.authorizeHttpRequests(
-        authorize -> authorize.requestMatchers("/share/**").anonymous());
+        http.authorizeHttpRequests(authorize -> authorize.requestMatchers("/share/**").anonymous());
 
-    http.with(vaadin(), vaadinSecurity -> {
-      vaadinSecurity.loginView(LoginView.class);
-    });
+        http.with(vaadin(), vaadinSecurity -> {
+            vaadinSecurity.loginView(LoginView.class);
+        });
 
-    return http.build();
-  }
+        return http.build();
+    }
 }

@@ -1,8 +1,8 @@
 .chat-sidebar-shell {
-  --sidebar-rail-gutter: 3.35rem;
+  --sidebar-rail-gutter: 2.65rem;
   --sidebar-rail-node-size: 0.7rem;
   --sidebar-rail-line-x: calc(var(--sidebar-rail-gutter) / 2);
-  --sidebar-rail-stub-length: 1.2rem;
+  --sidebar-rail-stub-length: 0.85rem;
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -19,7 +19,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: calc(var(--sidebar-rail-line-x) + 0.65rem);
+  left: calc(var(--sidebar-rail-line-x) + 0.35rem);
   width: 1px;
   background: linear-gradient(
     to bottom,

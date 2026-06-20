@@ -33,9 +33,7 @@ import com.wornux.ui.MainLayout;
 import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
 import com.wornux.ui.crunner.DebuggerPanel;
-
 import jakarta.annotation.security.PermitAll;
-
 import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.beans.factory.annotation.Qualifier;

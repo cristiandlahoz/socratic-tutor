@@ -5,8 +5,8 @@
   }
 
   .chat-sidebar-shell {
-    --sidebar-rail-gutter: 3rem;
-    --sidebar-rail-stub-length: 1rem;
+    --sidebar-rail-gutter: 2.45rem;
+    --sidebar-rail-stub-length: 0.75rem;
   }
 
   .chat-sidebar-app-title {
@@ -68,8 +68,8 @@
   }
 
   .chat-sidebar-shell {
-    --sidebar-rail-gutter: 2.65rem;
-    --sidebar-rail-stub-length: 0.9rem;
+    --sidebar-rail-gutter: 2.3rem;
+    --sidebar-rail-stub-length: 0.65rem;
   }
 
   .chat-sidebar-empty {
@@ -81,7 +81,7 @@
   }
 
   .chat-sidebar-entry-row {
-    grid-template-columns: 2.45rem minmax(0, 1fr);
+    grid-template-columns: 2.3rem minmax(0, 1fr);
   }
 
   .chat-sidebar-app-title {

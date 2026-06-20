@@ -44,8 +44,6 @@ spring:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
-        options:
-          dimensions: 1024
     vectorstore:
       pgvector:
         initialize-schema: false
