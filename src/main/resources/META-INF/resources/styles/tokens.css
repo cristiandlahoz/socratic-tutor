@@ -41,22 +41,25 @@
   --theme-dark-ascii-animation-color: #d4af37;
   --theme-dark-ascii-animation-shadow: 0 0 0.28rem color-mix(in srgb, #b71c1c 20%, transparent);
 
-  --chat-font-display: "Zodiak", Georgia, "Times New Roman", serif;
-  --chat-font-body: "Zodiak", Georgia, "Times New Roman", serif;
-  --chat-font-mono: "Space Mono", "SF Mono", "JetBrains Mono", monospace;
+  --chat-font-display: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
+  --chat-font-body: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
+  --chat-font-mono: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
 
   --chat-text-subheading: 1.125rem;
-  --chat-tracking-heading: -0.04em;
-  --chat-tracking-display: -0.04em;
+  --chat-tracking-heading: 0;
+  --chat-tracking-display: 0;
   --chat-text-ui-sm: 1rem;
-  --chat-text-ui: 1.08rem;
+  --chat-text-ui: 1.04rem;
   --chat-text-label: 0.875rem;
   --chat-text-meta: 0.82rem;
-  --chat-font-size: clamp(1.02rem, .42vw, 1.28rem);
-  --chat-text-code: clamp(1.04rem, .6vw, 1.12rem);
-  --chat-leading-chat-user: 1.74;
-  --chat-leading-chat-assistant: 1.84;
-  --chat-leading-code: 1.55;
+  --chat-font-weight-body: 400;
+  --chat-font-weight-title: 400;
+  --chat-font-weight-title-strong: 450;
+  --chat-font-size: clamp(1rem, 0.34vw, 1.18rem);
+  --chat-text-code: clamp(1rem, 0.38vw, 1.08rem);
+  --chat-leading-chat-user: 1.58;
+  --chat-leading-chat-assistant: 1.62;
+  --chat-leading-code: 1.48;
 
   --chat-content-max-width: 56rem;
   --chat-space-md: 16px;
@@ -83,6 +86,7 @@
   --chat-text-secondary: var(--theme-text-secondary);
   --chat-text-primary: var(--theme-text-primary);
   --chat-text-display: var(--theme-text-display);
+  --chat-text-prose: color-mix(in srgb, var(--theme-text-primary) 76%, var(--theme-text-secondary));
   --chat-link: var(--theme-link);
   --chat-interactive: var(--theme-interactive);
   --chat-interactive-strong: var(--theme-interactive-strong);
