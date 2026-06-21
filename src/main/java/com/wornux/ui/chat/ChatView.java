@@ -164,24 +164,22 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var animationFrame = new Div(animation);
         animationFrame.addClassName("chat-empty-frame");
 
-        var eyebrow = new Span("Asistente académico");
-        eyebrow.addClassName("chat-empty-eyebrow");
 
         var title = new H2("Haz tu primera pregunta");
         title.addClassName("chat-empty-title");
 
-        var contentRow = getContentRow(eyebrow, title, animationFrame);
+        var contentRow = getContentRow(title, animationFrame);
 
         state.add(contentRow);
         return state;
     }
 
-    private static @NonNull HorizontalLayout getContentRow(Span eyebrow, H2 title, Div animationFrame) {
+    private static @NonNull HorizontalLayout getContentRow( H2 title, Div animationFrame) {
         var description = new Paragraph(
                 "Escribe y te ayudare a razonar paso a paso, aclarar conceptos y practicar con" + " ejemplos.");
         description.addClassName("chat-empty-description");
 
-        var textColumn = new VerticalLayout(eyebrow, title, description);
+        var textColumn = new VerticalLayout(title, description);
         textColumn.addClassName("chat-empty-content");
         textColumn.setPadding(false);
         textColumn.setSpacing(false);

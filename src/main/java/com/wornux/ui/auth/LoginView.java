@@ -46,9 +46,6 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var rail = new Div();
         rail.addClassName("login-view__rail");
 
-        var eyebrow = new Span("Acceso académico");
-        eyebrow.addClassName("login-view__eyebrow");
-
         var title = new H1("Tutor Socrático");
         title.addClassName("login-view__title");
 
@@ -56,7 +53,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
                 new Paragraph("Explora ideas, resolvé dudas y aprendé algoritmia con preguntas guiadas, paso a paso.");
         description.addClassName("login-view__description");
 
-        var copy = new Div(eyebrow, title, description);
+        var copy = new Div( title, description);
         copy.addClassName("login-view__brand-copy");
 
         var panel = new Div(rail, copy);
