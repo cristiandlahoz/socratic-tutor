@@ -35,8 +35,8 @@ function ensureCodeMessageBodyStyles(): void {
       box-shadow: var(--chat-shadow-dark-card);
       background: var(--chat-code-background);
       backdrop-filter: blur(16px);
-      font-size: var(--chat-font-size);
-      line-height: var(--chat-leading-code);
+      font-size: 0.75rem;
+      line-height: 1rem;
     }
 
     vaadin-message.chat-message-user code-message-body code-block-viewer {

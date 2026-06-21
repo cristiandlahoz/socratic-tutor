@@ -94,9 +94,9 @@ class CodeBlockViewerElement extends HTMLElement {
           .cm-editor {
             border: 0;
             background: transparent !important;
-            font-family: var(--chat-font-body);
-            font-size: var(--chat-font-size);
-            line-height: var(--chat-leading-code);
+            font-family: var(--chat-font-mono);
+            font-size: 0.75rem;
+            line-height: 1rem;
           }
 
           .cm-scroller,
@@ -131,7 +131,7 @@ class CodeBlockViewerElement extends HTMLElement {
             background: color-mix(in srgb, var(--chat-accent) 16%, transparent);
             color: var(--chat-text-primary);
             cursor: pointer;
-            font: 600 0.72rem var(--chat-font-body);
+            font: 600 0.72rem var(--chat-font-mono);
             letter-spacing: 0.02em;
             padding: 0.28rem 0.58rem;
           }

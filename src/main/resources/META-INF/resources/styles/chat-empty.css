@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding-top: clamp(8rem, 8vh, 8.5rem);
+  padding-top: clamp(6.4rem, 6.5vh, 7.1rem);
   animation: chat-fade-up 220ms cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: clamp(0.75rem, 2vw, 1.5rem);
+  gap: clamp(0.65rem, 1.6vw, 1.15rem);
 }
 
 .chat-empty-content {
@@ -20,15 +20,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--chat-space-md);
-}
-
-.chat-empty-eyebrow {
-  color: var(--chat-text-secondary);
-  font-family: var(--chat-font-display);
-  font-size: var(--chat-text-subheading);
-  font-weight: 400;
-  line-height: 1.33;
+  gap: 0.72rem;
 }
 
 .chat-empty-frame {
@@ -53,9 +45,9 @@
   margin: 0;
   max-width: 14ch;
   font-family: var(--chat-font-display);
-  font-size: clamp(2.5rem, 12vw, 3.5rem);
-  line-height: 1.02;
-  font-weight: 300;
+  font-size: clamp(2.2rem, 9.2vw, 3rem);
+  line-height: 0.94;
+  font-weight: var(--chat-font-weight-title);
   letter-spacing: var(--chat-tracking-display);
   color: var(--chat-text-display);
   text-wrap: balance;
@@ -63,10 +55,10 @@
 
 .chat-empty-description {
   margin: 0;
-  max-width: 36rem;
+  max-width: 32rem;
   font-family: var(--chat-font-body);
-  font-size: clamp(1rem, 1.3vw, 1.125rem);
-  line-height: 1.55;
+  font-size: clamp(0.96rem, 1.08vw, 1.02rem);
+  line-height: 1.38;
   font-weight: 400;
   color: var(--chat-text-secondary);
   text-wrap: pretty;

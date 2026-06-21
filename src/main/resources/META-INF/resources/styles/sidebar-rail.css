@@ -1,13 +1,14 @@
 .chat-sidebar-shell {
-  --sidebar-rail-gutter: 2.65rem;
-  --sidebar-rail-node-size: 0.7rem;
+  --sidebar-rail-gutter: 2.45rem;
+  --sidebar-rail-node-size: 0.64rem;
   --sidebar-rail-line-x: calc(var(--sidebar-rail-gutter) / 2);
-  --sidebar-rail-stub-length: 0.85rem;
+  --sidebar-rail-stub-length: 0.72rem;
+  --sidebar-section-inline-end: 0.8rem;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   scrollbar-width: none;
-  gap: 0.45rem;
+  gap: 0.3rem;
 }
 
 .sidebar-rail-shell {
@@ -52,17 +53,27 @@
 
 .sidebar-rail-entry-brand {
   align-items: start;
-  padding-top: 1.05rem;
+  padding-top: 0.85rem;
 }
 
 .sidebar-rail-entry-brand::after {
-  top: calc(1.05rem + 0.55rem + var(--sidebar-rail-node-size) / 2);
+  top: calc(0.85rem + 0.48rem + var(--sidebar-rail-node-size) / 2);
 }
 
 .sidebar-rail-entry-theme,
+.sidebar-rail-entry-actions,
 .chat-sidebar-actions .sidebar-rail-entry,
 .sidebar-rail-entry-history {
-  min-height: 3rem;
+  min-height: 2.45rem;
+}
+
+.sidebar-rail-entry-actions {
+  align-items: start;
+}
+
+.sidebar-rail-entry-actions::after,
+.sidebar-rail-entry-actions .sidebar-rail-node {
+  opacity: 0;
 }
 
 .sidebar-rail-node {
@@ -78,57 +89,57 @@
 }
 
 .sidebar-rail-entry-brand .sidebar-rail-node {
-  margin-top: 0.55rem;
+  margin-top: 0.48rem;
 }
 
 .chat-sidebar-app-header {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.05rem;
-  padding: 0 0.95rem 1.05rem 0;
+  gap: 0.72rem;
+  padding: 0 var(--sidebar-section-inline-end) 0.68rem 0;
 }
 
 .chat-sidebar-app-title-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
 .chat-sidebar-app-title {
   margin: 0;
   color: var(--chat-text-display);
   font-family: var(--chat-font-display);
-  font-size: clamp(2.55rem, 3vw, 3.25rem);
-  line-height: 0.94;
-  font-weight: 320;
+  font-size: clamp(1.96rem, 2.2vw, 2.45rem);
+  line-height: 0.88;
+  font-weight: var(--chat-font-weight-title);
   letter-spacing: var(--chat-tracking-display);
   text-wrap: balance;
 }
 
 .chat-sidebar-app-description {
   margin: 0;
-  max-width: 21rem;
+  max-width: 17rem;
   color: var(--chat-text-primary);
   font-family: var(--chat-font-body);
-  font-size: var(--chat-text-ui);
-  line-height: 1.5;
+  font-size: 0.92rem;
+  line-height: 1.34;
 }
 
 .chat-sidebar-theme-control {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding-right: 0.95rem;
+  gap: 0.32rem;
+  padding-right: var(--sidebar-section-inline-end);
 }
 
 .chat-sidebar-theme-label {
   color: var(--chat-text-tertiary);
   font-family: var(--chat-font-body);
-  font-size: var(--chat-text-label);
-  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -136,7 +147,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.45rem;
   min-width: 0;
 }
 
@@ -145,7 +156,7 @@ vaadin-button.chat-sidebar-theme-button {
 }
 
 vaadin-button.chat-sidebar-theme-button::part(button) {
-  min-height: 2rem;
+  min-height: 1.56rem;
   padding: 0;
   border: 0;
   background: transparent;
@@ -176,8 +187,8 @@ vaadin-button.chat-sidebar-theme-button.is-active::part(button) {
 vaadin-button.chat-sidebar-theme-button::part(label) {
   color: color-mix(in srgb, var(--chat-text-tertiary) 72%, transparent);
   font-family: var(--chat-font-body);
-  font-size: 1.04rem;
-  font-weight: 500;
+  font-size: 0.88rem;
+  font-weight: 420;
   opacity: 0.68;
   transition:
       color var(--chat-transition-fast),
@@ -187,7 +198,7 @@ vaadin-button.chat-sidebar-theme-button::part(label) {
 
 vaadin-button.chat-sidebar-theme-button.is-active::part(label) {
   color: var(--chat-text-display);
-  font-weight: 620;
+  font-weight: var(--chat-font-weight-title-strong);
   opacity: 1;
 }
 
