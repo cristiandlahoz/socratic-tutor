@@ -1,28 +1,47 @@
-.chat-sidebar-actions {
+.chat-sidebar-actions,
+.sidebar-actions__list {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.16rem;
+}
+
+.chat-sidebar-actions-section,
+.sidebar-actions {
+  min-width: 0;
+  padding-right: var(--sidebar-section-inline-end);
 }
 
 .chat-sidebar-action-link,
-vaadin-button.chat-sidebar-action-button {
+.sidebar-actions__item-link,
+.chat-sidebar-action-button,
+.sidebar-actions__item-button {
   display: block;
   color: inherit;
   text-decoration: none;
 }
 
-vaadin-button.chat-sidebar-action-button {
-  --vaadin-button-padding: 0;
+.chat-sidebar-action-button,
+.sidebar-actions__item-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  text-align: left;
 }
 
-vaadin-button.chat-sidebar-action-button::part(button),
-.chat-sidebar-action-link-content {
+.chat-sidebar-action-link-content,
+.sidebar-actions__item-content {
   width: 100%;
-  min-height: 2.45rem;
-  display: inline-flex;
+  min-height: 2.1rem;
+  display: grid;
+  grid-template-columns: 0.95rem minmax(0, 1fr);
   align-items: center;
   justify-content: flex-start;
-  gap: 0.6rem;
+  column-gap: 0.55rem;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -30,14 +49,18 @@ vaadin-button.chat-sidebar-action-button::part(button),
   box-shadow: none;
   color: var(--chat-interactive);
   font-family: var(--chat-font-body);
-  font-size: var(--chat-text-label);
-  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   transition: color var(--chat-transition-fast), transform var(--chat-transition-fast);
 }
 
-vaadin-button.chat-sidebar-action-button:hover::part(button),
-vaadin-button.chat-sidebar-action-button:focus-within::part(button),
+.sidebar-actions__item-content {
+  min-width: 0;
+}
+
+.chat-sidebar-action-button:hover .sidebar-actions__item-content,
+.chat-sidebar-action-button:focus-visible .sidebar-actions__item-content,
 .chat-sidebar-action-link:hover .chat-sidebar-action-link-content,
 .chat-sidebar-action-link:focus-visible .chat-sidebar-action-link-content,
 .chat-sidebar-action-link[aria-current="page"] .chat-sidebar-action-link-content {
@@ -45,30 +68,31 @@ vaadin-button.chat-sidebar-action-button:focus-within::part(button),
   transform: translateX(2px);
 }
 
-vaadin-button.chat-sidebar-action-button::part(label) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.6rem;
-  width: 100%;
+.sidebar-actions__item-text {
+  display: block;
+  min-width: 0;
   color: inherit;
-  font-family: var(--chat-font-body);
-  font-size: var(--chat-text-label);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
 }
 
-vaadin-button.chat-sidebar-action-button[disabled]::part(button) {
+.chat-sidebar-action-button:disabled,
+.sidebar-actions__item-button:disabled {
   opacity: 0.45;
+  cursor: default;
 }
 
+.chat-sidebar-action-button:focus-visible,
 .chat-sidebar-action-link:focus-visible {
   outline: 2px solid var(--chat-focus-ring);
   outline-offset: 2px;
 }
 
-.chat-sidebar-action-icon {
+.chat-sidebar-action-icon,
+.sidebar-actions__item-icon {
   flex: none;
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 0.9rem;
+  height: 0.9rem;
 }

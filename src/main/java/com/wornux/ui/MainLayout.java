@@ -12,6 +12,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -29,6 +30,7 @@ import com.wornux.dtos.chat.ConversationSummary;
 import com.wornux.ui.chat.ChatState;
 import com.wornux.ui.chat.ChatViewModel;
 import com.wornux.ui.components.ShellDrawerToggle;
+import com.wornux.ui.components.SidebarItem;
 import com.wornux.ui.components.chat.WidthAwareLabel;
 import com.wornux.ui.evaluation.EvaluationView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
@@ -42,7 +44,7 @@ public class MainLayout extends AppLayout {
     private static final DateTimeFormatter CONVERSATION_DAY_FORMATTER =
             DateTimeFormatter.ofPattern("dd MMM yyyy", SPANISH_LOCALE);
 
-    private final Button newChatButton;
+    private final NativeButton newChatButton;
     private final Div timelineRoot;
     private final Div timelineRows;
     private final Div emptyHistory;
@@ -114,8 +116,10 @@ public class MainLayout extends AppLayout {
             "Actividades formativas",
             new SvgIcon("/icons/pencil.svg"));
         var actionsRow = new Div(newChatButton, ingestDocumentButton, evaluationButton);
+        actionsRow.addClassNames("chat-sidebar-actions", "sidebar-actions__list");
 
-        actionsRow.addClassName("chat-sidebar-actions");
+        var actionsSection = new Div(actionsRow);
+        actionsSection.addClassNames("chat-sidebar-actions-section", "sidebar-actions");
 
         var historyTitle = new H1("Historial");
         historyTitle.addClassName("chat-sidebar-panel-title");
@@ -156,7 +160,7 @@ public class MainLayout extends AppLayout {
         drawerContent.add(
             createRailEntry("brand", appHeader),
             createRailEntry("theme", createThemePreferenceControl(state, viewModel)),
-            actionsRow,
+            createRailEntry("actions", actionsSection),
             createRailEntry("history", historyHeader),
             historySection);
 
@@ -222,16 +226,10 @@ public class MainLayout extends AppLayout {
         return button;
     }
 
-    private Button createActionButton() {
-        var iconComponent = new Icon(VaadinIcon.PLUS);
-        iconComponent.addClassName("chat-sidebar-action-icon");
-
-        var button = new Button("Nuevo chat");
-        button.addClassName("chat-sidebar-action-button");
-        button.addThemeVariants(ButtonVariant.TERTIARY);
-        button.setIcon(iconComponent);
-        button.getThemeNames().remove("icon");
-        button.setWidthFull();
+    private NativeButton createActionButton() {
+        var button = new NativeButton();
+        button.addClassNames("chat-sidebar-action-button", "sidebar-actions__item-button");
+        button.add(new SidebarItem(new Icon(VaadinIcon.PLUS), "Nuevo chat"));
         button.setAriaLabel("Nuevo chat");
         return button;
     }
@@ -240,22 +238,16 @@ public class MainLayout extends AppLayout {
             Class<? extends Component> navigationTarget,
             String label,
             Component iconComponent) {
-        iconComponent.addClassName("chat-sidebar-action-icon");
-
-        var text = new Span(label);
-        var content = new Span(iconComponent, text);
-        content.addClassName("chat-sidebar-action-link-content");
-
         var link = new RouterLink();
         link.setRoute(navigationTarget);
-        link.addClassName("chat-sidebar-action-link");
+        link.addClassNames("chat-sidebar-action-link", "sidebar-actions__item-link");
         link.getElement().setAttribute("aria-label", label);
-        link.add(content);
+        link.add(new SidebarItem(iconComponent, label));
         return link;
     }
 
     private void bindConversationState(ChatState state, ChatViewModel viewModel) {
-        newChatButton.bindEnabled(Signal.not(state.responseInProgress().asReadonly()));
+        Signal.effect(newChatButton, () -> newChatButton.setEnabled(!state.responseInProgress().get()));
         Signal.effect(
             timelineRoot,
             () -> renderConversationTimeline(
