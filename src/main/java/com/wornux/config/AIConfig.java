@@ -32,7 +32,7 @@ public class AIConfig {
     private static final int LOGGER_ADVISOR_ORDER = 1000;
 
     @Bean
-    public ChatClient chatClient(
+    ChatClient chatClient(
             ChatClient.Builder builder,
             ChatMemory chatMemory,
             GuardClassifierService guardClassifierService,
@@ -63,10 +63,10 @@ public class AIConfig {
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
                 .defaultAdvisors(
                     chatMemoryAdvisor,
-                    subjectContextAdvisor,
-                    profileAwareResponseAdvisor,
-                    documentCatalogAdvisor,
-                    pedagogicalRoutingAdvisor,
+                    // subjectContextAdvisor,
+                    // profileAwareResponseAdvisor,
+                    // documentCatalogAdvisor,
+                    // pedagogicalRoutingAdvisor,
                     tutorGuardAdvisor,
                     simpleLoggerAdvisor)
                 .defaultTools(retrieveInformationTool)
