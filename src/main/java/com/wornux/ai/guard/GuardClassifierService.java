@@ -1,10 +1,13 @@
 package com.wornux.ai.guard;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import com.wornux.ai.prompt.TutorPromptResources;
-import com.wornux.data.enums.*;
-import com.wornux.dtos.chat.*;
+import com.wornux.data.enums.GuardDecision;
+import com.wornux.dtos.chat.GuardCheck;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -13,6 +16,7 @@ import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 
 /**
  * @author @github/cristiandlahoz
@@ -24,30 +28,46 @@ public class GuardClassifierService {
     private final TutorPromptResources promptResources;
     private final BeanOutputConverter<GuardCheck> outputConverter = new BeanOutputConverter<>(GuardCheck.class);
 
+    @Value("${app.ai.guard.model}")
+    private String guardModel;
+
     public GuardClassifierService(ChatModel chatModel, TutorPromptResources promptResources) {
         this.chatModel = chatModel;
         this.promptResources = promptResources;
     }
 
-    @Value("${app.ai.guard.model}")
-    private String guardModel;
+    public GuardDecision classify(List<UserMessage> userMessages) {
+        Assert.notEmpty(userMessages, "userMessages cannot be empty");
 
-    public GuardDecision classify(String userMessage) {
         Prompt prompt = Prompt.builder()
-                .messages(new SystemMessage(promptResources.guardClassifier()), new UserMessage(userMessage))
-                .chatOptions(
-                    OllamaChatOptions.builder()
-                            .model(guardModel)
-                            .temperature(0.0)
-                            .format(outputConverter.getJsonSchemaMap())
-                            .build())
+                .messages(classifierMessages(userMessages))
+                .chatOptions(OllamaChatOptions.builder()
+                        .model(guardModel)
+                        .temperature(0.0)
+                        .format(outputConverter.getJsonSchemaMap())
+                        .build())
                 .build();
 
-        GuardCheck guardCheck = outputConverter.convert(
-            Objects.requireNonNull(Objects.requireNonNull(chatModel.call(prompt).getResult()).getOutput().getText()));
+        String responseText = Objects.requireNonNull(
+                Objects.requireNonNull(chatModel.call(prompt).getResult())
+                        .getOutput()
+                        .getText(),
+                "Guard classifier returned an empty response"
+        );
+
+        GuardCheck guardCheck = outputConverter.convert(responseText);
+
         if (guardCheck == null || guardCheck.decision() == null) {
             throw new IllegalStateException("Guard classifier returned an empty decision");
         }
+
         return guardCheck.decision();
+    }
+
+    private List<Message> classifierMessages(List<UserMessage> userMessages) {
+        List<Message> messages = new ArrayList<>(userMessages.size() + 1);
+        messages.add(new SystemMessage(promptResources.guardClassifier()));
+        messages.addAll(userMessages);
+        return messages;
     }
 }

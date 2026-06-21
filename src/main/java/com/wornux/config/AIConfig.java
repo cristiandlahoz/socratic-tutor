@@ -62,13 +62,14 @@ public class AIConfig {
 
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
                 .defaultAdvisors(
-                    chatMemoryAdvisor,
+                    chatMemoryAdvisor
                     // subjectContextAdvisor,
                     // profileAwareResponseAdvisor,
                     // documentCatalogAdvisor,
                     // pedagogicalRoutingAdvisor,
-                    tutorGuardAdvisor,
-                    simpleLoggerAdvisor)
+                    // tutorGuardAdvisor,
+                    // simpleLoggerAdvisor
+    )
                 .defaultTools(retrieveInformationTool)
                 .build();
     }

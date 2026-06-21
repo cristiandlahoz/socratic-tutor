@@ -54,6 +54,8 @@ spring:
         index-type: HNSW
 
 app:
+  security:
+    disable-for-local-development: ${SECURITY_DISABLE:false}
   chat:
     client-id-cookie-name: ${CHAT_CLIENT_ID_COOKIE_NAME:st_client_id}
     context-window-tokens: ${CHAT_CONTEXT_WINDOW_TOKENS:40960}

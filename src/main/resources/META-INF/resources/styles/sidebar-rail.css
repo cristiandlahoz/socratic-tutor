@@ -65,6 +65,14 @@
   min-height: 2.45rem;
 }
 
+.sidebar-rail-entry-theme {
+  align-items: start;
+}
+
+.sidebar-rail-entry-theme::after {
+  top: calc(0.42rem + var(--sidebar-rail-node-size) / 2);
+}
+
 .sidebar-rail-entry-actions {
   align-items: start;
 }
@@ -88,6 +96,10 @@
 
 .sidebar-rail-entry-brand .sidebar-rail-node {
   margin-top: 0.48rem;
+}
+
+.sidebar-rail-entry-theme .sidebar-rail-node {
+  margin-top: 0.42rem;
 }
 
 .chat-sidebar-app-header {
@@ -144,7 +156,8 @@
 .chat-sidebar-theme-options {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   gap: 0.45rem;
   min-width: 0;
 }
