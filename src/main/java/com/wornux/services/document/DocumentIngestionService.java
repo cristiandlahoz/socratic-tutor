@@ -3,28 +3,26 @@ package com.wornux.services.document;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.data.entities.Document;
-import com.wornux.data.entities.DocumentIngestionJob;
-import com.wornux.data.entities.DocumentSegment;
-import com.wornux.data.enums.DocumentIngestionStage;
+import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.grounding.GroundingChunk;
+import com.wornux.data.entities.grounding.GroundingCollection;
+import com.wornux.data.entities.grounding.GroundingDocument;
+import com.wornux.data.entities.grounding.GroundingDocumentSourceType;
+import com.wornux.data.entities.grounding.GroundingDocumentStatus;
 import com.wornux.data.enums.DocumentStatus;
-import com.wornux.data.repositories.document.DocumentIngestionJobRepository;
-import com.wornux.data.repositories.document.DocumentRepository;
-import com.wornux.data.repositories.document.DocumentSegmentRepository;
+import com.wornux.data.repositories.grounding.GroundingChunkRepository;
+import com.wornux.data.repositories.grounding.GroundingCollectionRepository;
+import com.wornux.data.repositories.grounding.GroundingDocumentRepository;
 import com.wornux.dtos.document.DocumentIngestionException;
 import com.wornux.infrastructure.external.docling.DoclingClientService;
+import com.wornux.services.context.ActiveAcademicContextResolver;
+import com.wornux.services.context.SetupRequiredException;
 import com.wornux.ui.ingestion.DocumentReviewViewModel;
 import com.wornux.ui.ingestion.EditableSegmentViewModel;
 import org.springframework.stereotype.Service;
@@ -33,278 +31,262 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DocumentIngestionService {
 
-    private final DocumentRepository documentRepository;
-    private final DocumentSegmentRepository segmentRepository;
-    private final DocumentIngestionJobRepository ingestionRepository;
+    private static final String DEFAULT_COLLECTION_NAME = "Default grounding collection";
+
+    private final GroundingDocumentRepository groundingDocumentRepository;
+    private final GroundingChunkRepository groundingChunkRepository;
+    private final GroundingCollectionRepository groundingCollectionRepository;
     private final DoclingClientService doclingClientService;
-    private final DocumentCatalogService catalogService;
     private final DocumentEmbeddingService embeddingService;
     private final DocumentIngestionProperties properties;
+    private final ActiveAcademicContextResolver contextResolver;
 
     public DocumentIngestionService(
-            DocumentRepository documentRepository,
-            DocumentSegmentRepository segmentRepository,
-            DocumentIngestionJobRepository jobRepository,
+            GroundingDocumentRepository groundingDocumentRepository,
+            GroundingChunkRepository groundingChunkRepository,
+            GroundingCollectionRepository groundingCollectionRepository,
             DoclingClientService doclingClientService,
-            DocumentCatalogService catalogService,
             DocumentEmbeddingService embeddingService,
-            DocumentIngestionProperties properties) {
-        this.documentRepository = documentRepository;
-        this.segmentRepository = segmentRepository;
-        this.ingestionRepository = jobRepository;
+            DocumentIngestionProperties properties,
+            ActiveAcademicContextResolver contextResolver) {
+        this.groundingDocumentRepository = groundingDocumentRepository;
+        this.groundingChunkRepository = groundingChunkRepository;
+        this.groundingCollectionRepository = groundingCollectionRepository;
         this.doclingClientService = doclingClientService;
-        this.catalogService = catalogService;
         this.embeddingService = embeddingService;
         this.properties = properties;
+        this.contextResolver = contextResolver;
     }
 
+    @Transactional
     public DocumentReviewViewModel startIngestion(StartIngestionCommand command) {
         validateUpload(command);
-
-        var document = documentRepository.save(Document.create(command, sha256(command.content())));
-        var job = ingestionRepository
-                .save(DocumentIngestionJob.start(document, "PDF recibido. Preparando transformacion."));
+        var context = requireProfessorContext();
 
         Path tempFile = null;
         try {
-            tempFile = Files.createTempFile("ingested-document-", ".pdf");
+            tempFile = Files.createTempFile("grounding-document-", ".pdf");
             Files.write(tempFile, command.content());
 
-            job.advance(DocumentIngestionStage.DOCLING_CONVERT, "Transformando y segmentando PDF con Docling.");
-            ingestionRepository.save(job);
-
-            var conversion =
-                    doclingClientService.convertPdfToMarkdownAndChunks(command.originalFilename(), command.content());
+            var conversion = doclingClientService.convertPdfToMarkdownAndChunks(command.originalFilename(), command.content());
             if (conversion.markdown() == null || conversion.markdown().isBlank()) {
-                throw new DocumentIngestionException("Docling devolvio un documento vacio.");
+                throw new DocumentIngestionException("Docling returned an empty document.");
             }
             if (conversion.segments() == null || conversion.segments().isEmpty()) {
-                throw new DocumentIngestionException("Docling no pudo crear segmentos utiles para este PDF.");
+                throw new DocumentIngestionException("Docling could not create useful chunks for this PDF.");
             }
 
-            document.markReviewReady(conversion.markdown(), conversion.pageCount());
-            var initialCatalog = catalogService.analyzeOrFallback(command.originalFilename(), conversion.markdown());
-            document.applyCatalog(initialCatalog.entry(), initialCatalog.stale());
-            documentRepository.save(document);
+            var collection = findOrCreateCollection(context.groupClassId(), context.groupClassMemberId());
+            var newDocument = new GroundingDocument();
+            newDocument.setCollection(collection);
+            newDocument.setTitle(command.originalFilename());
+            newDocument.setSourceType(GroundingDocumentSourceType.UPLOAD);
+            newDocument.setStatus(GroundingDocumentStatus.PROCESSING);
+            newDocument.setCreatedAt(Instant.now());
+            newDocument.setUpdatedAt(Instant.now());
+            var document = groundingDocumentRepository.save(newDocument);
 
-            job.advance(DocumentIngestionStage.SEGMENT_BUILD, "Preparando segmentos de Docling.");
-            ingestionRepository.save(job);
-
-            segmentRepository.deleteByDocument_Id(document.getId());
-            segmentRepository.saveAll(
-                conversion.segments()
-                        .stream()
-                        .map(
-                            segment -> DocumentSegment.createDraft(
-                                document,
-                                segment.ordinal(),
-                                segment.headingPath(),
-                                segment.content(),
-                                segment.tokenCount(),
-                                segment.pageNumber(),
-                                segment.pageNumbers(),
-                                segment.captions(),
-                                segment.docItems(),
-                                segment.rawText()))
-                        .toList());
-
-            job.advance(DocumentIngestionStage.REVIEW, "Revisa el markdown y valida los segmentos antes de indexar.");
-            ingestionRepository.save(job);
-
-            return toReviewVm(document, job);
+            groundingChunkRepository.deleteByDocument_Id(document.getId());
+            List<GroundingChunk> chunks = new ArrayList<>();
+            for (var segment : conversion.segments()) {
+                var chunk = new GroundingChunk();
+                chunk.setDocument(document);
+                chunk.setChunkIndex(segment.ordinal());
+                chunk.setContent(segment.content());
+                chunk.setActive(true);
+                chunk.setCreatedAt(Instant.now());
+                chunks.add(chunk);
+            }
+            chunks = groundingChunkRepository.saveAll(chunks);
+            return toReviewVm(document, conversion.markdown(), chunks, false, "Review the converted chunks before indexing.");
         }
         catch (IOException exception) {
-            failIngestion(document, job, "No se pudo preparar el archivo temporal del PDF.", exception);
-            throw new DocumentIngestionException("No se pudo procesar el archivo subido.", exception);
-        }
-        catch (RuntimeException exception) {
-            failIngestion(document, job, safeMessage(exception), exception);
-            throw exception;
+            throw new DocumentIngestionException("Could not prepare the uploaded file.", exception);
         }
         finally {
             deleteQuietly(tempFile);
         }
     }
 
+    @Transactional
     public DocumentReviewViewModel approve(ApproveDocumentCommand command) {
-        var document = documentRepository.findByIdAndClientId(command.documentId(), command.clientId())
-                .orElseThrow(() -> new DocumentIngestionException("No encontre ese documento para este usuario."));
-        var job = ingestionRepository.findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
-                .orElseThrow(() -> new DocumentIngestionException("No encontre el job de ingestion del documento."));
-
-        if (document.status() == DocumentStatus.INDEXED) {
-            return toReviewVm(document, job);
-        }
-
+        var context = requireProfessorContext();
+        var document = groundingDocumentRepository.findByIdAndCollection_GroupClass_Id(command.documentId(), context.groupClassId())
+                .orElseThrow(() -> new DocumentIngestionException("Could not find that grounding document in the active class."));
         validateReview(command);
 
-        try {
-            job.advance(DocumentIngestionStage.EMBED, "Indexando segmentos para que el chat pueda buscarlos.");
-            ingestionRepository.save(job);
-
-            document.markApproved(command.reviewedMarkdown());
-            var refreshedCatalog =
-                    catalogService.analyzeOrFallback(document.getOriginalFilename(), command.reviewedMarkdown());
-            document.applyCatalog(refreshedCatalog.entry(), refreshedCatalog.stale());
-            documentRepository.save(document);
-
-            var persistedSegments = segmentRepository.findByDocument_IdOrderByOrdinalAsc(document.getId())
-                    .stream()
-                    .collect(
-                        Collectors.toMap(
-                            DocumentSegment::getId,
-                            segment -> segment,
-                            (left, _) -> left,
-                            LinkedHashMap::new));
-
-            Set<Long> reviewedSegmentIds =
-                    command.segments().stream().map(EditableSegmentViewModel::id).collect(Collectors.toSet());
-            List<DocumentSegment> removedSegments = persistedSegments.values()
-                    .stream()
-                    .filter(segment -> !reviewedSegmentIds.contains(segment.getId()))
-                    .toList();
-            List<DocumentSegment> approvedSegments = new ArrayList<>();
-
-            for (EditableSegmentViewModel reviewedSegment : command.segments()) {
-                var segment = persistedSegments.get(reviewedSegment.id());
-                if (segment == null) {
-                    throw new DocumentIngestionException("La revision contiene un segmento desconocido.");
-                }
-                segment.applyReview(reviewedSegment);
-                approvedSegments.add(segment);
+        var persistedChunks = groundingChunkRepository.findByDocument_IdOrderByChunkIndexAsc(document.getId());
+        if (persistedChunks.size() != command.segments().size()) {
+            groundingChunkRepository.deleteByDocument_Id(document.getId());
+            persistedChunks = new ArrayList<>();
+            for (int index = 0; index < command.segments().size(); index++) {
+                var chunk = new GroundingChunk();
+                chunk.setDocument(document);
+                chunk.setChunkIndex(index);
+                chunk.setActive(true);
+                chunk.setCreatedAt(Instant.now());
+                persistedChunks.add(chunk);
             }
-            segmentRepository.deleteAll(removedSegments);
-            segmentRepository.saveAll(approvedSegments);
-
-            List<DocumentSegment> uniqueSegments = deduplicateApprovedSegments(approvedSegments);
-            embeddingService.reindex(document, uniqueSegments);
-
-            document.markIndexed(command.reviewedMarkdown());
-            documentRepository.save(document);
-            job.complete("Documento indexado. Ya puedes preguntarle al chat.");
-            ingestionRepository.save(job);
-
-            return toReviewVm(document, job);
+            persistedChunks = groundingChunkRepository.saveAll(persistedChunks);
         }
-        catch (RuntimeException exception) {
-            embeddingService.deleteSegments(segmentRepository.findByDocument_IdOrderByOrdinalAsc(document.getId()));
-            document.markFailed();
-            documentRepository.save(document);
-            job.fail("La indexacion fallo.", safeMessage(exception));
-            ingestionRepository.save(job);
-            throw exception;
+
+        for (int index = 0; index < command.segments().size(); index++) {
+            persistedChunks.get(index).setContent(command.segments().get(index).content());
         }
+        persistedChunks = groundingChunkRepository.saveAll(persistedChunks);
+        embeddingService.reindex(document, persistedChunks);
+
+        document.setStatus(GroundingDocumentStatus.READY);
+        document.setUpdatedAt(Instant.now());
+        groundingDocumentRepository.save(document);
+        return toReviewVm(document,
+                command.reviewedMarkdown(),
+                persistedChunks,
+                true,
+                "Grounding document indexed and ready for retrieval.");
     }
 
-    public Optional<DocumentReviewViewModel> loadLatestReview(UUID clientId) {
-        return documentRepository.findFirstByClientIdOrderByUpdatedAtDesc(clientId)
-                .flatMap(
-                    document -> ingestionRepository.findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
-                            .map(job -> toReviewVm(document, job)));
+    @Transactional(readOnly = true)
+    public java.util.Optional<DocumentReviewViewModel> loadLatestReview(UUID ignoredClientId) {
+        return contextResolver.resolveCurrent()
+                .flatMap(context -> groundingDocumentRepository
+                        .findFirstByCollection_GroupClass_IdOrderByUpdatedAtDescCreatedAtDesc(context.groupClassId())
+                        .map(document -> toReviewVm(document,
+                                rebuildMarkdown(document.getId()),
+                                groundingChunkRepository.findByDocument_IdOrderByChunkIndexAsc(document.getId()),
+                                document.getStatus() == GroundingDocumentStatus.READY,
+                                stageLabel(document))));
     }
 
-    public Optional<DocumentReviewViewModel> loadReview(UUID clientId, UUID documentId) {
-        return documentRepository.findByIdAndClientId(documentId, clientId)
-                .flatMap(
-                    document -> ingestionRepository.findFirstByDocument_IdOrderByStartedAtDesc(document.getId())
-                            .map(job -> toReviewVm(document, job)));
+    @Transactional(readOnly = true)
+    public java.util.Optional<DocumentReviewViewModel> loadReview(UUID ignoredClientId, Long documentId) {
+        return contextResolver.resolveCurrent()
+                .flatMap(context -> groundingDocumentRepository.findByIdAndCollection_GroupClass_Id(documentId, context.groupClassId())
+                        .map(document -> toReviewVm(document,
+                                rebuildMarkdown(document.getId()),
+                                groundingChunkRepository.findByDocument_IdOrderByChunkIndexAsc(document.getId()),
+                                document.getStatus() == GroundingDocumentStatus.READY,
+                                stageLabel(document))));
     }
 
     @Transactional
-    public void delete(UUID clientId, UUID documentId) {
-        var document = documentRepository.findByIdAndClientId(documentId, clientId)
-                .orElseThrow(() -> new DocumentIngestionException("No encontre ese documento para este usuario."));
-        var segments = segmentRepository.findByDocument_IdOrderByOrdinalAsc(document.getId());
-        embeddingService.deleteSegments(segments);
-        documentRepository.delete(document);
+    public void delete(UUID ignoredClientId, Long documentId) {
+        var context = requireProfessorContext();
+        var document = groundingDocumentRepository.findByIdAndCollection_GroupClass_Id(documentId, context.groupClassId())
+                .orElseThrow(() -> new DocumentIngestionException("Could not find that grounding document in the active class."));
+        var chunks = groundingChunkRepository.findByDocument_IdOrderByChunkIndexAsc(document.getId());
+        embeddingService.deleteSegments(chunks);
+        groundingChunkRepository.deleteByDocument_Id(document.getId());
+        groundingDocumentRepository.delete(document);
     }
 
-    private DocumentReviewViewModel toReviewVm(Document document, DocumentIngestionJob job) {
+    private GroundingCollection findOrCreateCollection(UUID groupClassId, UUID groupClassMemberId) {
+        return groundingCollectionRepository.findByGroupClass_IdOrderByCreatedAtDesc(groupClassId).stream().findFirst()
+                .orElseGet(() -> {
+                    var collection = new GroundingCollection();
+                    collection.setGroupClass(new com.wornux.data.entities.academic.GroupClass());
+                    collection.getGroupClass().setId(groupClassId);
+                    collection.setCreatedByGroupClassMember(new com.wornux.data.entities.academic.GroupClassMember());
+                    collection.getCreatedByGroupClassMember().setId(groupClassMemberId);
+                    collection.setName(DEFAULT_COLLECTION_NAME);
+                    collection.setActive(true);
+                    collection.setCreatedAt(Instant.now());
+                    collection.setUpdatedAt(Instant.now());
+                    return groundingCollectionRepository.save(collection);
+                });
+    }
+
+    private DocumentReviewViewModel toReviewVm(
+            GroundingDocument document,
+            String markdown,
+            List<GroundingChunk> chunks,
+            boolean indexed,
+            String stageLabel) {
         return new DocumentReviewViewModel(document.getId(),
-                job.getId(),
-                document.getOriginalFilename(),
-                document.status(),
-                job.getProgressLabel(),
-                document.getReviewedMarkdown() == null ? "" : document.getReviewedMarkdown(),
-                segmentRepository.findByDocument_IdOrderByOrdinalAsc(document.getId())
-                        .stream()
-                        .map(DocumentSegment::toViewModel)
-                        .toList(),
-                document.status() == DocumentStatus.INDEXED);
+                document.getId(),
+                document.getTitle(),
+                indexed ? DocumentStatus.INDEXED : DocumentStatus.REVIEW_READY,
+                stageLabel,
+                markdown == null ? "" : markdown,
+                chunks.stream().map(this::toSegmentVm).toList(),
+                indexed);
+    }
+
+    private EditableSegmentViewModel toSegmentVm(GroundingChunk chunk) {
+        return new EditableSegmentViewModel(chunk.getId(),
+                chunk.getChunkIndex(),
+                "Document",
+                chunk.getContent(),
+                true,
+                false,
+                chunk.getContent() == null ? 0 : chunk.getContent().length(),
+                EditableSegmentViewModel.approximateTokens(chunk.getContent()),
+                null,
+                List.of(),
+                List.of(),
+                List.of(),
+                chunk.getContent(),
+                "grounding");
+    }
+
+    private String rebuildMarkdown(Long documentId) {
+        return groundingChunkRepository.findByDocument_IdOrderByChunkIndexAsc(documentId).stream()
+                .map(GroundingChunk::getContent)
+                .reduce((left, right) -> left + "\n\n" + right)
+                .orElse("");
+    }
+
+    private String stageLabel(GroundingDocument document) {
+        return switch (document.getStatus()) {
+            case PROCESSING -> "Review the converted chunks before indexing.";
+            case READY -> "Grounding document indexed and ready for retrieval.";
+            case FAILED -> "Grounding document processing failed.";
+            case INACTIVE -> "Grounding document is inactive.";
+        };
+    }
+
+    private com.wornux.services.context.ActiveAcademicContext requireProfessorContext() {
+        var context = contextResolver.requireCurrent();
+        if (context.groupClassRole() != GroupClassMemberRole.PROFESSOR) {
+            throw new SetupRequiredException("An active professor class context is required for grounding uploads.");
+        }
+        return context;
     }
 
     private void validateUpload(StartIngestionCommand command) {
-        if (command.clientId() == null) {
-            throw new DocumentIngestionException("No pude resolver el cliente del navegador.");
-        }
         if (command.originalFilename() == null || command.originalFilename().isBlank()) {
-            throw new DocumentIngestionException("El archivo necesita un nombre.");
+            throw new DocumentIngestionException("The file needs a name.");
         }
         if (!command.originalFilename().toLowerCase().endsWith(".pdf")) {
-            throw new DocumentIngestionException("Por ahora solo acepto archivos PDF.");
+            throw new DocumentIngestionException("Only PDF uploads are supported right now.");
         }
         if (command.content() == null || command.content().length == 0) {
-            throw new DocumentIngestionException("El archivo esta vacio.");
+            throw new DocumentIngestionException("The uploaded file is empty.");
         }
         if (command.content().length > properties.getMaxFileSizeBytes()) {
-            throw new DocumentIngestionException("El PDF supera el tamano maximo permitido.");
+            throw new DocumentIngestionException("The PDF exceeds the configured size limit.");
         }
         if (!looksLikePdf(command.content())) {
-            throw new DocumentIngestionException("El archivo no parece ser un PDF valido.");
+            throw new DocumentIngestionException("The uploaded file does not look like a valid PDF.");
         }
     }
 
     private void validateReview(ApproveDocumentCommand command) {
         if (command.reviewedMarkdown() == null || command.reviewedMarkdown().isBlank()) {
-            throw new DocumentIngestionException("El markdown no puede quedar vacio antes de indexar.");
+            throw new DocumentIngestionException("Reviewed markdown cannot be empty before indexing.");
         }
         if (command.segments() == null || command.segments().isEmpty()) {
-            throw new DocumentIngestionException("Necesito al menos un segmento para indexar.");
+            throw new DocumentIngestionException("At least one chunk is required before indexing.");
         }
-        boolean hasBlankSegment = command.segments()
-                .stream()
+        boolean hasBlankSegment = command.segments().stream()
                 .anyMatch(segment -> segment.content() == null || segment.content().isBlank());
         if (hasBlankSegment) {
-            throw new DocumentIngestionException("Todos los segmentos deben tener contenido antes de indexar.");
+            throw new DocumentIngestionException("Every chunk must contain text before indexing.");
         }
-    }
-
-    private List<DocumentSegment> deduplicateApprovedSegments(List<DocumentSegment> segments) {
-        Map<String, DocumentSegment> uniqueByContent = new LinkedHashMap<>();
-        for (DocumentSegment segment : segments) {
-            uniqueByContent.putIfAbsent(normalize(segment.getContent()), segment);
-        }
-        return List.copyOf(uniqueByContent.values());
     }
 
     private boolean looksLikePdf(byte[] content) {
         return content.length >= 4 && content[0] == '%' && content[1] == 'P' && content[2] == 'D' && content[3] == 'F';
-    }
-
-    private String normalize(String value) {
-        return value == null ? "" : value.replaceAll("\\s+", " ").trim();
-    }
-
-    private String sha256(byte[] content) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(content);
-            StringBuilder encoded = new StringBuilder(hash.length * 2);
-            for (byte value : hash) {
-                encoded.append(String.format("%02x", value));
-            }
-            return encoded.toString();
-        }
-        catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 no esta disponible en la JVM.", exception);
-        }
-    }
-
-    private void failIngestion(Document document, DocumentIngestionJob job, String message, Exception exception) {
-        document.markFailed();
-        documentRepository.save(document);
-        job.fail("La transformacion del PDF fallo.", message);
-        ingestionRepository.save(job);
     }
 
     private void deleteQuietly(Path tempFile) {
@@ -315,12 +297,5 @@ public class DocumentIngestionService {
             Files.deleteIfExists(tempFile);
         }
         catch (IOException ignored) {}
-    }
-
-    private String safeMessage(Throwable throwable) {
-        if (throwable == null || throwable.getMessage() == null || throwable.getMessage().isBlank()) {
-            return "Ocurrio un error inesperado.";
-        }
-        return throwable.getMessage();
     }
 }
