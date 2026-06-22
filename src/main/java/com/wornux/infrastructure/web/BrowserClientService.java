@@ -8,7 +8,7 @@ import java.util.UUID;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
-import com.wornux.config.*;
+import com.wornux.config.BrowserIdentityProperties;
 import jakarta.servlet.http.Cookie;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +17,10 @@ public class BrowserClientService {
 
     private static final int COOKIE_MAX_AGE_SECONDS = (int) Duration.ofDays(365L * 5L).getSeconds();
 
-    private final ChatProperties chatProperties;
+    private final BrowserIdentityProperties browserIdentityProperties;
 
-    public BrowserClientService(ChatProperties chatProperties) {
-        this.chatProperties = chatProperties;
+    public BrowserClientService(BrowserIdentityProperties browserIdentityProperties) {
+        this.browserIdentityProperties = browserIdentityProperties;
     }
 
     public UUID resolveClientId() {
@@ -35,7 +35,7 @@ public class BrowserClientService {
         }
 
         return Arrays.stream(cookies)
-                .filter(cookie -> chatProperties.getClientIdCookieName().equals(cookie.getName()))
+                .filter(cookie -> browserIdentityProperties.getIdCookieName().equals(cookie.getName()))
                 .map(Cookie::getValue)
                 .flatMap(value -> {
                     try {
@@ -51,7 +51,7 @@ public class BrowserClientService {
     private UUID createClientId(boolean secureRequest) {
         var response = requireCurrentResponse();
         var clientId = UUID.randomUUID();
-        var cookie = new Cookie(chatProperties.getClientIdCookieName(), clientId.toString());
+        var cookie = new Cookie(browserIdentityProperties.getIdCookieName(), clientId.toString());
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(COOKIE_MAX_AGE_SECONDS);

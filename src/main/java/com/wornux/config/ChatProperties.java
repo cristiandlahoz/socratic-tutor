@@ -1,22 +1,48 @@
 package com.wornux.config;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@Getter
-@Setter
 @ConfigurationProperties(prefix = "app.chat")
 public class ChatProperties {
 
-    private String clientIdCookieName;
     private int contextWindowTokens;
     private double compactionThresholdRatio;
-    private Ui ui;
+    private Ui ui = new Ui();
 
-    @Setter
-    @Getter
+    public int getContextWindowTokens() {
+        return contextWindowTokens;
+    }
+
+    public void setContextWindowTokens(int contextWindowTokens) {
+        this.contextWindowTokens = contextWindowTokens;
+    }
+
+    public double getCompactionThresholdRatio() {
+        return compactionThresholdRatio;
+    }
+
+    public void setCompactionThresholdRatio(double compactionThresholdRatio) {
+        this.compactionThresholdRatio = compactionThresholdRatio;
+    }
+
+    public Ui getUi() {
+        return ui;
+    }
+
+    public void setUi(Ui ui) {
+        this.ui = ui;
+    }
+
     public static class Ui {
+
         private String thinkingSpinner;
+
+        public String getThinkingSpinner() {
+            return thinkingSpinner;
+        }
+
+        public void setThinkingSpinner(String thinkingSpinner) {
+            this.thinkingSpinner = thinkingSpinner;
+        }
     }
 }
