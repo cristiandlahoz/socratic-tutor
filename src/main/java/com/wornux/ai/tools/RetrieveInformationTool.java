@@ -46,10 +46,11 @@ public class RetrieveInformationTool {
                 topicHint == null ? "none" : topicHint,
                 tagHint == null ? "none" : tagHint),
             () -> {
-                var clientId = java.util.UUID
-                        .fromString(String.valueOf(toolContext.getContext().get(ToolUsageAuditService.CLIENT_ID)));
-                var result = documentRetrievalService
-                        .search(clientId, query, documentIdHint, filenameHint, topicHint, tagHint);
+                var rawGroupClassId = toolContext.getContext().get(ToolUsageAuditService.GROUP_CLASS_ID);
+                var groupClassId = rawGroupClassId == null || String.valueOf(rawGroupClassId).isBlank()
+                        ? null
+                        : java.util.UUID.fromString(String.valueOf(rawGroupClassId));
+                var result = documentRetrievalService.search(groupClassId, query, documentIdHint, filenameHint, topicHint, tagHint);
                 return new ToolUsageAuditService.ToolResult<>(result,
                         "hits=%d context_found=%s".formatted(result.hits().size(), result.contextFound()),
                         new ToolLearningSignal("uploaded_documents", false, "retrieval_context"));

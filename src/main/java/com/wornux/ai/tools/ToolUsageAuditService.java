@@ -23,6 +23,7 @@ public class ToolUsageAuditService {
 
     private static final Logger log = LoggerFactory.getLogger(ToolUsageAuditService.class);
     public static final String CLIENT_ID = "clientId";
+    public static final String GROUP_CLASS_ID = "groupClassId";
     public static final String CONVERSATION_ID = "conversationId";
     public static final String TURN_ID = "turnId";
     public static final String PROFILE_VERSION = "profileVersion";
