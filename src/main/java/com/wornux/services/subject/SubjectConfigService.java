@@ -6,10 +6,10 @@ import java.util.Map;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.wornux.data.entities.SubjectConfigRevision;
+import com.wornux.legacy.data.entities.SubjectConfigRevision;
 import com.wornux.data.enums.SubjectStatus;
-import com.wornux.data.repositories.subject.SubjectConfigRevisionRepository;
-import com.wornux.data.repositories.subject.SubjectRepository;
+import com.wornux.legacy.data.repositories.subject.SubjectConfigRevisionRepository;
+import com.wornux.legacy.data.repositories.subject.SubjectRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +43,7 @@ public class SubjectConfigService {
         return cache.get(cacheKey, _ -> {
             var revision = subject.getCurrentConfigRevision();
             if (revision == null) {
-                revision = revisionRepository.findFirstBySubjectOrderByVersionDesc(subject)
+                revision = revisionRepository.findFirstByLegacySubjectOrderByVersionDesc(subject)
                         .orElseThrow(
                             () -> new IllegalStateException(
                                     "Subject has no current config revision " + subject.getSlug()));
