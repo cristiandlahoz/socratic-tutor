@@ -1,100 +1,292 @@
 # Project Context
 
-Socratic Tutor is an academic learning product for students and educators. Its job is not to behave like a generic chat app, but to support reasoning, guided practice, and trustworthy learning workflows through tutor conversations, document ingestion, and evaluations.
+> High-level context for Socratic Tutor: the problem being solved, who it is for, what is in scope, and what constraints must guide future use cases, architecture, data model work, and implementation.
 
-## Why this document exists
+---
 
-Use this file as the shared vocabulary anchor for future use cases, architecture notes, and data model documents. It defines the product-level nouns and boundaries that should stay stable even when implementation details change.
+## 1. Vision
 
-## Product direction
+Socratic Tutor is an academic tutoring platform for programming and algorithm learning. Its purpose is to help students reason through concepts and exercises using guided Socratic dialogue, class-specific learning material, and formative activities.
 
-The default academic scope for this project is **Introduction to Algorithms**. Future legacySubject expansion may exist later, but the current specification baseline assumes one legacySubject domain with professor-owned tenant spaces inside it.
+The application must not behave like a generic anonymous chat application. It must behave like a structured academic platform where every protected action happens inside an authenticated institutional and group-class context.
 
-The product serves two primary audiences:
+Success means:
 
-- **Students**, who use the tutor to explore concepts, ask questions, work through algorithms, use ingested learning material, and run evaluations.
-- **Educators / professors**, who need the tutor to feel academically trustworthy and to manage learning assets that support students.
+- students can enter an assigned class context and receive useful Socratic tutoring,
+- professors can configure the learning context for their group classes,
+- tenant admins can create the academic structure that professors and students operate inside,
+- system admins can bootstrap institutions safely,
+- tutor conversations, grounding material, and formative activities remain scoped to the right tenant and group class,
+- authorization is explicit, persisted, and enforced beyond the UI.
 
-The intended experience is rigorous, calm, and learning-first. The system should reduce cognitive noise and keep attention on reasoning, evidence, and guided progress.
+---
 
-## Core domain vocabulary
+## 2. Product Problem
 
-| Term | Meaning in Socratic Tutor |
-|------|---------------------------|
-| **account** | The shared authenticated identity aggregate for every signed-in person. Students and professors are both accounts. |
-| **tenant** | A first-class academic workspace boundary inside the default legacySubject scope. A tenant is owned by one professor account and contains the students and tutor resources managed within that professor's space. |
-| **role** | A capability grouping assigned to an account, such as `STUDENT` or `PROFESSOR`. |
-| **permission** | An allowed `resource:action` pair granted through role assignments. |
-| **resource** | A protected tutor capability area. The current foundation centers on `chat`, `document`, and `evaluation`. |
-| **action** | An operation on a resource, such as `view`, `create`, `update`, `delete`, or `run`. |
-| **chat** | A tutor conversation workspace used for guided reasoning. Every chat belongs to one tenant and one authenticated owning account. |
-| **document** | Ingested academic material that can be processed, reviewed, cataloged, and used as tutor context. Documents are tenant-scoped resources. |
-| **evaluation** | A structured assessment artifact, including both evaluation definitions and learner runs. Evaluations are tenant-scoped resources. |
-| **ownership boundary** | A rule that ties a resource instance to a specific tenant and, where needed, to a specific account. Student chat access remains personal within the tenant boundary. |
+Students often need help learning programming and algorithms without being given full answers immediately. Professors need a way to provide class-specific tutor context, formative activities, and guided support while keeping student data and academic resources separated by institution and class.
 
-## Identity and authorization model
+The core product problem is:
 
-The project direction established by UC-001 is explicit:
+```text
+How can an academic institution offer a guided AI tutor that helps students reason,
+while preserving class boundaries, professor control, and trustworthy access rules?
+```
 
-- Authentication and authorization are **application-managed**, not delegated to Keycloak or an external role server.
-- `account` is the single identity root for authenticated people.
-- `tenant` is the first-class workspace boundary for professor-led academic spaces inside the default legacySubject scope.
-- Roles and permissions are persisted in the application database.
-- Tutor access is decided through a role/permission/resource matrix plus tenant and ownership checks, not through separate identity types or anonymous claims.
+Socratic Tutor solves this through:
 
-This means future specs should talk about:
+- authenticated accounts,
+- institution-level tenancy,
+- group-class membership,
+- role-based permissions,
+- class-scoped conversations,
+- class-scoped grounding material,
+- class-scoped formative activities,
+- service-layer authorization and ownership checks,
+- AI guardrails that keep the tutor learning-first.
 
-`account` → `account_role` → `role_permission` → `permission` (`resource` + `action`)
+---
 
-and should avoid reintroducing old concepts such as `client_id` as the long-term identity model, anonymous ownership, or Keycloak-specific authority assumptions.
+## 3. Core Users
 
-## Subject and tenant foundation
+### System Admin
 
-- The baseline legacySubject scope is **Introduction to Algorithms**.
-- Each professor owns one or more tenant spaces within that legacySubject scope.
-- Students belong to a professor-owned tenant space; they are not globally attached to every professor in the system.
-- Tutor resources in this foundation are created and accessed within tenant boundaries.
+Global platform operator.
 
-### Chat
+Responsibilities:
 
-Chat is the learner-facing tutor workspace. It stores conversations, messages, and tutor continuity. Chat access is tenant-scoped first, then ownership-scoped where applicable. For students, access is not only permission-based; it is also ownership-based, meaning an account can only access its own conversations inside its assigned tenant unless a future use case defines a broader rule.
+- create tenants/institutions,
+- invite tenant admins,
+- inspect global platform setup where allowed,
+- bootstrap the academic hierarchy.
 
-### Document
+The system admin is not a normal professor or student. This role has global administrative responsibility.
 
-Document represents ingested learning material that the tutor can process and use as context. In the current foundation, document capabilities are professor-managed inside the professor's tenant. Future use cases should treat document ingestion, review, cataloging, and retrieval as part of one coherent tutor resource family without implying cross-tenant professor access.
+### Tenant Admin
 
-### Evaluation
+Institution-level academic operator.
 
-Evaluation covers structured formative assessment. The foundation already distinguishes between managing evaluations and running them. Professors manage evaluation definitions inside their tenant; students are limited to permitted learner actions such as `evaluation:run` within their assigned tenant unless a later use case extends the model.
+Responsibilities:
 
-## Role foundation
+- manage academic periods inside the tenant,
+- manage subjects inside the tenant,
+- create group classes,
+- invite professors into group classes,
+- operate only inside assigned tenant boundaries.
 
-The initial authorization matrix is intentionally small and product-specific:
+A tenant admin does not own the whole platform.
 
-- **`STUDENT`**: chat capabilities plus `evaluation:run`; no document permissions; access stays inside the student's assigned tenant.
-- **`PROFESSOR`**: chat capabilities plus document and evaluation management capabilities inside professor-owned tenants only.
+### Professor
 
-This is a foundation, not the final full policy surface. New roles or permissions should be introduced only when a concrete use case requires them.
+Group-class educator.
 
-## Domain boundaries for future specs
+Responsibilities:
 
-When writing future use cases or design docs, keep these boundaries clear:
+- operate inside group classes where they are active professor members,
+- configure group-class information where allowed,
+- manage students inside their own group classes,
+- configure grounding material,
+- create and manage formative activities,
+- use tutor chat in the selected class context,
+- review class-related information only when a use case explicitly allows it.
 
-- **Identity** answers who the authenticated person is: `account`.
-- **Authorization** answers what that account may do: roles, permissions, resources, actions.
-- **Tenancy** answers which professor-owned workspace contains the account and the resource instance.
-- **Ownership** answers which specific records that account may access inside that tenant, especially for student chat data.
-- **Tutor resources** should stay centered on chat, document, and evaluation unless the product scope explicitly expands.
-- **Learning context** such as the default legacySubject scope, misconceptions, document segments, and evaluation runs supports the tutor domain, but does not replace the account-centered and tenant-aware security model.
+A professor is not globally attached to all tenants or all group classes.
 
-## Transitional note
+### Assistant
 
-The current codebase still contains legacy identifiers such as `client_id` in existing schema and flows. That reflects implementation history, not the target vocabulary for new specification work. New specs and architecture discussions should treat `account` as the canonical identity concept, `tenant` as the canonical workspace boundary, and describe legacy identifiers only when documenting migration or compatibility work.
+Reserved academic support role.
 
-## What this document should guide next
+The role is part of the foundation, but broad assistant capabilities should not be implemented until a dedicated use case defines what assistants can do.
 
-Use this context as the baseline for:
+### Student
 
-- future use cases that need consistent tutor-domain language,
-- architecture notes that define application-managed security,
-- data model documents that formalize `account`, `tenant`, roles, permissions, and tenant-aware tutor resource ownership.
+Learner.
+
+Responsibilities:
+
+- access invited/assigned group classes,
+- create and continue their own tutor conversations,
+- use class-specific grounding through the tutor,
+- view and update their own formative activity assignments,
+- remain inside their own class and ownership boundaries.
+
+Students do not manage tenants, subjects, academic periods, group classes, professors, students, or grounding material in the baseline.
+
+---
+
+## 4. Product Scope
+
+The current product scope includes:
+
+- Spring Boot + Vaadin Flow academic web application.
+- PostgreSQL database with Flyway migrations.
+- Application-managed authentication and authorization.
+- Account-based identity.
+- Tenant/institution hierarchy.
+- Tenant account membership.
+- Tenant-scoped roles and permissions.
+- Academic structure: subjects, academic periods, group classes.
+- Group-class membership.
+- Tutor conversations through `conversation` and `conversation_snapshot`.
+- Grounding material through `grounding_collection`, `grounding_document`, and `grounding_chunk`.
+- Formative activities through `evaluation` and `evaluation_assignment`.
+- Role-based onboarding and workspace routing.
+- Service-layer permission, tenant, group-class, and ownership checks.
+- AI tutor orchestration with guardrails and authorized grounding retrieval.
+- Legacy isolation for obsolete persistence.
+
+---
+
+## 5. Out of Scope
+
+Do not implement or imply these unless a future approved use case adds them:
+
+- anonymous browser identity as target persistence,
+- open public self-signup,
+- professor-owned tenants,
+- global professor access across all tenants,
+- hardcoded PUCMM/ICC-101/periods/classes/professors/students in the baseline,
+- Keycloak-managed authorization as the tutor authority source,
+- `conversation_message`,
+- `evaluation_run`,
+- old `student_profile` as active identity, authorization, membership, or tutor context source,
+- schools, departments, pensums, or deeper institutional hierarchy,
+- payment/subscription features,
+- production SIS integration.
+
+---
+
+## 6. Canonical Model
+
+The canonical identity chain is:
+
+```text
+account
+  -> tenant_account
+      -> group_class_member
+```
+
+The canonical academic chain is:
+
+```text
+tenant
+  -> subject
+  -> academic_period
+  -> group_class
+      -> group_class_member
+```
+
+The canonical tutor activity chain is:
+
+```text
+group_class_member
+  -> conversation
+      -> conversation_snapshot
+```
+
+The canonical grounding chain is:
+
+```text
+group_class
+  -> grounding_collection
+      -> grounding_document
+          -> grounding_chunk
+```
+
+The canonical formative activity chain is:
+
+```text
+group_class
+  -> evaluation
+      -> evaluation_assignment
+```
+
+---
+
+## 7. Key Domain Decisions
+
+### Tenant means institution
+
+A `tenant` represents a university, school, or academic institution.
+
+It does not represent a professor workspace.
+
+### Group class is the operational workspace
+
+A `group_class` is the concrete class section where professors and students interact with tutor resources.
+
+Conversations, grounding material, evaluations, and assignments are scoped to group classes.
+
+### Account is the only authenticated identity root
+
+Students, professors, assistants, tenant admins, and system admins are all `account` records.
+
+Role and membership decide what an account can do.
+
+### Roles are tenant-scoped
+
+Roles are assigned through `tenant_account_role`, not directly to a global account.
+
+This allows a person to have different responsibilities in different tenants.
+
+### Permissions are not enough by themselves
+
+Access requires:
+
+```text
+permission
+  + tenant boundary
+  + group-class membership
+  + ownership check where required
+```
+
+For example, a student may have `CONVERSATION:VIEW`, but can still only view their own conversations inside an allowed group class.
+
+### AI is downstream of authorization
+
+AI advisors, prompts, memory, and retrieval must only receive authorized data.
+
+The AI layer must not decide permissions or bypass service-layer checks.
+
+---
+
+## 8. Tutor Learning Principles
+
+The tutor should:
+
+- ask guiding questions,
+- provide progressive hints,
+- avoid dumping final answers when the student should reason,
+- help students explain their thinking,
+- correct misconceptions gently,
+- use examples appropriate to the course and group-class context,
+- stay academically scoped,
+- use authorized grounding material when available,
+- clearly avoid exposing other students' work or restricted material.
+
+---
+
+## 9. Constraints
+
+- **Platform:** Web application using Vaadin Flow and Spring Boot.
+- **Database:** PostgreSQL with Flyway migrations.
+- **Authorization:** Application-managed RBAC with persisted roles, resources, actions, and permissions.
+- **Tenancy:** Hierarchical academic multi-tenancy.
+- **Operational workspace:** `group_class`.
+- **Persistence identity:** `account`, not browser `client_id`.
+- **Schema source of truth:** Flyway SQL migrations.
+- **ORM behavior:** Hibernate validates schema; it must not create the production-like schema.
+- **AI:** Spring AI/Ollama-style orchestration may be used, but it must remain downstream of authorization.
+- **Vector search:** pgvector-backed grounding may be used for embeddings and retrieval.
+- **UI:** Vaadin Flow protected routes and role-specific workspaces.
+- **Security:** Password hashes only; no raw passwords.
+- **Legacy:** Obsolete persistence must be isolated from active startup.
+
+---
+
+## 10. Related Documents
+
+- [Spec README](README.md) — spec folder workflow and reading order.
+- [Architecture](architecture.md) — technology stack, internal boundaries, and runtime architecture.
+- [Design Context](design_context.md) — UX, navigation, layouts, and design intent for Socratic Tutor.
+- [Data Model](datamodel/datamodel.md) — detailed schema, relationships, constraints, and seed data.
+- [Use Case Template](use-cases/use-case-template.md) — template for feature-level use cases.

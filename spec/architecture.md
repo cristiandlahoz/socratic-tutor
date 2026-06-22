@@ -1,173 +1,647 @@
 # Architecture
 
-This document defines the implementation-level architecture baseline for Socratic Tutor. It keeps the project centered on learning workflows while aligning future work to the `account`-based, tenant-aware security direction established in `project-context.md` and UC-001.
+> Technology stack, runtime architecture, application structure, and implementation boundaries for Socratic Tutor. `pom.xml` remains the source of truth for exact dependency versions.
 
-## Quick path
+---
 
-1. Treat `account` as the canonical authenticated identity for every signed-in person.
-2. Treat `tenant` as the first-class workspace boundary in a hierarchical multi-tenant model rooted in the default legacySubject scope **Introduction to Algorithms**.
-3. Implement authorization through persisted roles and permissions enforced by application-managed Spring Security.
-4. Keep tutor resources centered on `chat`, `document`, and `evaluation`, with tenant and ownership checks layered on top where required.
+## 1. Architectural Stance
 
-## Architectural stance
+Socratic Tutor is a Spring Boot + Vaadin Flow monolith with clear internal domain boundaries.
 
-Socratic Tutor is a Spring Boot + Vaadin monolith with clear internal boundaries, not a collection of disconnected features. The architecture should optimize for:
+It is not a set of disconnected features and it is not an anonymous chat app. It is an academic tutor platform where identity, tenancy, authorization, academic context, tutor conversations, grounding, formative activities, and AI orchestration each have distinct responsibilities.
 
-- **Learning-first workflows** across chat, document ingestion, and evaluation.
-- **Explicit security rules** inside the application, not delegated to external role systems.
-- **Hierarchical multi-tenancy** where the legacySubject scope contains professor-owned tenant spaces.
-- **Stable domain vocabulary** so future specs and code talk about the same nouns.
-- **Incremental migration** from legacy `client_id` ownership to `account` + `tenant` boundaries without freezing delivery.
+The architecture must optimize for:
 
-The target model is an application-managed tutor platform where identity, tenancy, authorization, ownership, AI orchestration, and UI flows each have a distinct responsibility.
+- learning-first tutor workflows,
+- application-managed security,
+- hierarchical academic multi-tenancy,
+- explicit tenant and group-class boundaries,
+- service-layer authorization,
+- safe AI grounding retrieval,
+- clean UI routing by role and context,
+- legacy isolation without deleting useful reusable logic.
 
-## Hierarchical multi-tenant baseline
+---
 
-The architectural baseline is hierarchical multi-tenancy:
+## 2. Technology Stack
 
-- **Subject scope root:** `Introduction to Algorithms` is the default legacySubject boundary for this project.
-- **Tenant layer:** each professor owns a tenant space inside that legacySubject scope.
-- **Membership layer:** students are associated with a professor tenant, not with the platform globally.
-- **Resource layer:** `chat`, `document`, and `evaluation` instances are tenant-scoped records.
+- **Web Framework:** Vaadin Flow — server-side Java UI.
+- **Backend:** Spring Boot — dependency injection, configuration, embedded server, application lifecycle.
+- **Language:** Java, version determined by `pom.xml`.
+- **Build Tool:** Maven, Maven wrapper preferred.
+- **Database:** PostgreSQL.
+- **Vector Support:** pgvector for grounding embeddings where retrieval requires vector search.
+- **Database Migrations:** Flyway SQL migrations.
+- **ORM:** Spring Data JPA with Hibernate validation.
+- **Security:** Spring Security with Vaadin integration and database-backed authentication.
+- **Authorization:** Application-managed RBAC with roles, resources, actions, and permissions.
+- **Validation:** Jakarta Bean Validation and Vaadin Binder.
+- **Password Hashing:** Spring Security password encoder, normally BCrypt unless changed deliberately.
+- **AI:** Spring AI / ChatClient-oriented orchestration with guardrails, routing, retrieval, and prompt composition.
+- **Testing:** JUnit 5, Spring Boot tests, repository/service integration tests, Vaadin route/view tests where applicable.
 
-This means a professor's permissions do not imply global access to every tutor resource in the system. Professor authority is always interpreted inside professor-owned tenant boundaries unless a future use case explicitly expands the model.
+---
 
-## System shape
+## 3. System Shape
 
-| Layer / area | Responsibility |
+The application is organized around these active bounded areas:
+
+| Area | Responsibility |
 |---|---|
-| `ui` | Vaadin views, view models, and UI orchestration for login, chat, document ingestion, and evaluation flows. |
-| `services` | Application use-case orchestration, transaction boundaries, ownership checks, and policy-aware business workflows. |
-| `data.entities` / `data.repositories` | Persistence model and repository access for tutor records and security records. |
-| `ai` | Tutor prompting, routing, guardrails, memory, retrieval, and AI-adjacent orchestration. |
-| `infrastructure` | External integrations and runtime adapters such as browser/session helpers and document-processing clients. |
-| `config` | Spring configuration, property binding, and application-managed security wiring. |
+| `account` | Authenticated identity and account lifecycle. |
+| `tenant` | Institution boundary and tenant membership. |
+| `authorization` | Roles, resources, actions, permissions, and authorization helpers. |
+| `academic` | Subjects, academic periods, group classes, and group-class members. |
+| `conversation` | Tutor conversations and snapshots. |
+| `grounding` | Grounding collections, documents, chunks, embeddings, and retrieval. |
+| `evaluation` | Formative activity definitions and student assignments. |
+| `onboarding` | Invitation acceptance, registration, role assignment, and workspace routing. |
+| `ai` | Tutor prompt composition, advisors, tools, guardrails, memory, and retrieval orchestration. |
+| `ui` | Vaadin views, layouts, navigation, and role/context-specific workspaces. |
+| `legacy` | Isolated obsolete code that must not participate in active runtime. |
 
-This structure is already visible in the codebase and should remain the top-level organization. New work should deepen these boundaries rather than introduce parallel architectures.
+---
 
-## Canonical bounded areas
+## 4. Canonical Runtime Chains
 
-### Identity and access
+Identity and context:
 
-Identity and authorization form one shared platform capability for the whole tutor.
+```text
+account
+  -> tenant_account
+      -> tenant_account_role
+      -> group_class_member
+```
 
-- `account` is the root identity aggregate for both students and professors.
-- `tenant` is the first-class workspace aggregate for professor-owned academic spaces.
-- Role assignment answers what an account may do.
-- Permission assignment answers which `resource:action` pairs are allowed.
-- Tenant membership answers which workspace an account operates inside.
-- Ownership answers which specific records an account may access inside that tenant.
+Academic hierarchy:
 
-This area should own:
+```text
+tenant
+  -> subject
+  -> academic_period
+  -> group_class
+      -> group_class_member
+```
 
-- account lifecycle needed for sign-up and sign-in,
-- tenant lifecycle and tenant membership needed for professor-owned academic spaces,
-- persisted roles, permissions, and join relationships,
-- authority derivation for Spring Security,
-- authorization helpers used by tutor resource services.
+Tutor conversation:
 
-### Chat
+```text
+group_class_member
+  -> conversation
+      -> conversation_snapshot
+```
 
-Chat is the learner-facing tutor workspace. It owns conversations, transcripts, messages, continuity, and tutor turn orchestration.
+Grounding:
 
-Authorization for chat is three-stage:
+```text
+group_class
+  -> grounding_collection
+      -> grounding_document
+          -> grounding_chunk
+```
 
-1. permission check for `chat:*`
-2. tenant boundary check for the authenticated account and target chat
-3. ownership check against the authenticated account for student-scoped conversations
+Formative activities:
 
-Chat services should never rely only on route protection. They must re-check tenant boundary and ownership before loading or mutating a conversation. Anonymous conversations are outside the target architecture.
+```text
+group_class
+  -> evaluation
+      -> evaluation_assignment
+```
 
-### Document
+---
 
-Document covers ingestion, review, segmentation, cataloging, retrieval, and tutor-context preparation for academic material.
+## 5. Application Structure
 
-In the current direction, document capabilities are professor-managed within the owning professor tenant. Document workflows may use AI and background processing, but access control still comes from the same account/role/permission model plus tenant boundary enforcement.
+Recommended structure:
 
-### Evaluation
+```text
+src/main/java/com/wornux/
+  ├── Application.java
+  ├── config/
+  │   ├── SecurityConfig.java
+  │   ├── AiConfig.java
+  │   ├── ChatProperties.java
+  │   ├── GroundingProperties.java
+  │   └── ...
+  ├── security/
+  │   ├── AuthenticatedAccount.java
+  │   ├── CustomUserDetailsService.java
+  │   ├── PermissionChecker.java
+  │   ├── ScopeAuthorizer.java
+  │   └── WorkspaceContextResolver.java
+  ├── data/
+  │   ├── entities/
+  │   │   ├── account/
+  │   │   ├── tenant/
+  │   │   ├── authorization/
+  │   │   ├── academic/
+  │   │   ├── conversation/
+  │   │   ├── grounding/
+  │   │   └── evaluation/
+  │   └── repositories/
+  │       ├── account/
+  │       ├── tenant/
+  │       ├── authorization/
+  │       ├── academic/
+  │       ├── conversation/
+  │       ├── grounding/
+  │       └── evaluation/
+  ├── services/
+  │   ├── account/
+  │   ├── tenant/
+  │   ├── authorization/
+  │   ├── academic/
+  │   ├── conversation/
+  │   ├── grounding/
+  │   ├── evaluation/
+  │   └── onboarding/
+  ├── ai/
+  │   ├── advisor/
+  │   ├── guard/
+  │   ├── prompt/
+  │   ├── retrieval/
+  │   ├── routing/
+  │   └── tools/
+  ├── ui/
+  │   ├── auth/
+  │   ├── onboarding/
+  │   ├── admin/
+  │   ├── tenant/
+  │   ├── professor/
+  │   ├── student/
+  │   ├── chat/
+  │   ├── grounding/
+  │   └── evaluation/
+  ├── infrastructure/
+  │   ├── document/
+  │   ├── storage/
+  │   └── observability/
+  └── legacy/
+      ├── chat/
+      ├── student_profile/
+      ├── document_ingestion/
+      └── evaluation_run/
+```
 
-Evaluation covers both evaluation definitions and learner runs.
+Active code must not depend on `legacy`.
 
-- Professors manage evaluation definitions and related tutor assets.
-- Students are limited to learner actions such as `evaluation:run` inside their assigned tenant unless a future use case expands the policy.
+Legacy packages may remain for reference or future migration, but they must be excluded from active JPA repository scanning, entity scanning, Spring component scanning, AI prompt context, and authorization logic.
 
-Evaluation should stay separate from chat as a domain area even when the UI reuses conversational interaction patterns.
+---
 
-## Security architecture
+## 6. Database Architecture
 
-Security is application-managed. The target flow is:
+- **Database:** PostgreSQL.
+- **Schema management:** Flyway.
+- **Migration location:** `src/main/resources/db/migration/`.
+- **Naming:** `V[N]__[description].sql`.
+- **Hibernate behavior:** `ddl-auto=validate`.
+- **Timestamps:** Java `Instant`; PostgreSQL `timestamptz`.
+- **Business/domain identifiers:** UUID.
+- **Internal/catalog identifiers:** `BIGINT GENERATED BY DEFAULT AS IDENTITY`.
+- **Vector embeddings:** Stored on `grounding_chunk.embedding` when vector retrieval is enabled.
 
-`SecurityConfig` → authentication entry points → `CustomUserDetailsService` → persisted `account` + tenant membership + active roles + permissions → derived authorities → service-level tenant authorization + ownership checks
+### Identifier Split
 
-### Required components
+UUID for:
 
-| Component | Responsibility |
+```text
+account
+tenant
+tenant_account
+subject
+academic_period
+group_class
+group_class_member
+group_class_join_code
+conversation
+evaluation
+evaluation_assignment
+```
+
+BIGINT identity for:
+
+```text
+role
+resource
+action
+permission
+grounding_collection
+grounding_document
+grounding_chunk
+conversation_snapshot
+```
+
+This split keeps business/security boundary identifiers non-sequential while allowing internal implementation records to remain simple and efficient.
+
+---
+
+## 7. Security Architecture
+
+### Authentication
+
+- Spring Security authenticates users.
+- Database-backed `account` is the source of authenticated identity.
+- Passwords are stored as hashes only.
+- Vaadin routes integrate with Spring Security.
+- Login is the first screen for unauthenticated users.
+- Open public self-signup is not part of the target model.
+- Registration happens through valid invitation/onboarding context.
+
+### Authorization
+
+Authorization is application-managed.
+
+Persisted chain:
+
+```text
+tenant_account
+  -> tenant_account_role
+      -> role
+          -> role_permission
+              -> permission
+                  -> resource
+                  -> action
+```
+
+Every protected service operation should evaluate:
+
+```text
+1. Is the account authenticated?
+2. Is the account active/unlocked?
+3. Is the tenant account active/unlocked?
+4. Does the tenant account have the required permission?
+5. Is the target record inside the same tenant?
+6. Is the target record inside an allowed group class?
+7. If the record is personal, does ownership match?
+```
+
+### Scope Enforcement
+
+Permissions do not automatically grant data access.
+
+A student may have `CONVERSATION:VIEW`, but still cannot view another student's conversation.
+
+A professor may have `GROUNDING:CREATE`, but only inside a group class where the professor is an active professor member.
+
+A tenant admin may have `GROUP_CLASS:CREATE`, but only inside the assigned tenant.
+
+A system admin may have global administrative visibility where explicitly allowed.
+
+---
+
+## 8. Spring Security Configuration Intent
+
+Security configuration should be explicit and simple.
+
+Conceptual shape:
+
+```java
+@Configuration
+@EnableWebSecurity
+class SecurityConfig {
+
+    @Bean
+    SecurityFilterChain vaadinSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.authorizeHttpRequests(authorize -> authorize
+            .requestMatchers(
+                "/styles/**",
+                "/fonts/**",
+                "/frontend/**",
+                "/images/**",
+                "/icons/**",
+                "/line-awesome/**",
+                "/VAADIN/**"
+            ).permitAll()
+            .requestMatchers(
+                "/login",
+                "/invitations/accept",
+                "/onboarding/**"
+            ).permitAll()
+        );
+
+        http.with(vaadin(), vaadinSecurity -> {
+            vaadinSecurity.loginView(LoginView.class);
+        });
+
+        return http.build();
+    }
+}
+```
+
+The exact code may vary by framework version, but the architectural intention is stable.
+
+| Security area | Architectural intent |
 |---|---|
-| `SecurityConfig` | Define login flow, protected routes, public assets, session rules, and authorization hooks for the Vaadin/Spring application. |
-| `CustomUserDetailsService` | Load the authenticated `account`, resolve active roles and permissions, and emit Spring Security authorities from persisted data. |
-| Security persistence model | Store `account`, `tenant`, membership, `role`, `account_role`, `permission`, and `role_permission` relationships. |
-| Authorization helpers | Centralize permission, tenant, and ownership decisions so chat, document, and evaluation services do not duplicate policy logic inconsistently. |
+| Static assets | Permit Vaadin and theme assets so public pages render. |
+| `/login` | Public entry for unauthenticated users. |
+| Invitation acceptance | Public token entry; token validation decides whether flow continues. |
+| Onboarding routes | Temporary onboarding access only; not a workspace bypass. |
+| Workspaces | Require authenticated session. |
+| Service authorization | Required for every protected domain operation. |
+| UI hiding | Helpful UX, never the security source of truth. |
+| User details service | Load `account`, tenant accounts, roles, and permissions from DB. |
+| Workspace resolver | Resolve default tenant/group-class context after login. |
 
-### Authority model
+---
 
-Authorities should come from persisted tutor permissions, not hardcoded UI assumptions and not external identity-provider claims.
+## 9. Workspace Context Architecture
 
-The conceptual chain is:
+The UI and services need a current academic context.
 
-`account` → `account_role` → `role_permission` → `permission(resource, action)`
+A context resolver should determine:
 
-Recommended authority representation is a direct `resource:action` string or a small wrapper that preserves the same semantics. The important rule is consistency: UI guards, service guards, and tests should all reason over the same persisted permission vocabulary.
+```text
+authenticated account
+active tenant_account
+active role set
+active group_class_member
+active tenant
+active group_class
+```
 
-### Ownership model
+The resolver should use:
 
-Permissions alone are not enough. Tutor records are also tenant-scoped, and some are personal.
+- explicit user selection when available,
+- `last_tenant_account_id`,
+- `last_group_class_member_id`,
+- deterministic fallback to first accessible context,
+- safe no-context state when nothing is available.
 
-- Chat, document, and evaluation records are tenant-scoped.
-- Student chat access is ownership-scoped to the authenticated `account` inside the assigned tenant.
-- Document and evaluation management are professor-scoped only within the owning professor tenant in the current foundation.
-- If a future use case introduces shared or delegated access, it must extend this model explicitly instead of bypassing it with ad hoc repository filters.
+Missing context must not fall back to browser cookies or create academic records implicitly.
 
-## Package responsibility guidance
+---
 
-Future implementation should use package boundaries like these:
+## 10. Conversation Architecture
 
-| Package | Responsibility |
-|---|---|
-| `com.wornux.config` | Spring configuration and cross-cutting runtime wiring. Keep framework setup here, not business rules. |
-| `com.wornux.security` | Security-specific components such as `CustomUserDetailsService`, authority mapping, security principals, and authorization helpers. |
-| `com.wornux.data.entities.security` / `repositories.security` | Persistent identity, tenant, membership, and authorization records for `account`, `tenant`, roles, and permissions. |
-| `com.wornux.services.chat` | Conversation lifecycle, tutor turns, transcript usage, tenant boundary checks, and chat ownership enforcement. |
-| `com.wornux.services.document` | Ingestion pipeline, review flow, retrieval, and professor-tenant-scoped document management. |
-| `com.wornux.services.evaluation` | Evaluation definition management, evaluation runs, and learner/professor capability boundaries inside tenant scope. |
-| `com.wornux.services.profile` | Learner-profile signals and adaptive tutoring support. Keep this supportive to account security, not a replacement for it. |
-| `com.wornux.ai` | AI orchestration only. It may consume authorized domain data, but it must not become the source of truth for access control. |
-| `com.wornux.ui.*` | View composition and user interaction. UI can hide unavailable capabilities, but service-layer policy remains authoritative. |
+Target model:
 
-The critical discipline here is SIMPLE: authorization decisions belong to security and service layers; repositories fetch data; UI reflects decisions; AI adapts learning behavior but does not decide permissions.
+```text
+conversation
+conversation_snapshot
+```
 
-## Transitional treatment of legacy `client_id`
+Old model:
 
-The current codebase still uses `client_id` across chat, document, and profile flows. Architecturally, this should be treated as a **legacy migration concern**, not the target identity or tenancy model.
+```text
+chat
+chat_transcript
+chat_message
+```
 
-That means:
+The old model is obsolete as active persistence.
 
-- new specs and new security design should use `account` as the canonical term,
-- new specs and new security design should use `tenant` as the canonical workspace boundary,
-- new authorization logic should be designed around authenticated accounts and persisted authorities,
-- existing `client_id` fields may remain temporarily as compatibility or migration scaffolding,
-- migration work should progressively replace `client_id`-based ownership with `account` + `tenant` boundaries rather than expanding `client_id` into new areas.
+### Relationship Shape
 
-In other words, `client_id` is an implementation-history concern. `account` and `tenant` are the architectural model.
+```text
+GroupClassMember 1 -> * Conversation
+Conversation 1 -> * ConversationSnapshot
+Conversation 1 -> 0..1 currentSnapshot
+ConversationSnapshot 0..1 -> previous ConversationSnapshot
+```
 
-## Implementation rules for future work
+A conversation's `current_snapshot_id` points to the currently active snapshot.
 
-- Keep tutor resources centered on `chat`, `document`, and `evaluation`.
-- Keep hierarchical multi-tenancy explicit in new design and migration work.
-- Do not reintroduce Keycloak-specific or OAuth-only authority assumptions into domain design.
-- Prefer explicit policy checks over implicit access hidden inside UI flows.
-- Keep AI adapters and prompt services downstream from authorization, never upstream from it.
-- Add new roles or permissions only when a concrete use case requires them.
+The full snapshot list is separate from the current snapshot relationship.
 
-## Next step
+### Snapshot Strategy
 
-Use this architecture as the baseline for future implementation and for the later `datamodel` document, which should formalize the `account` / `tenant` / role / permission schema and tenant-aware ownership relationships without changing the architectural direction defined here.
+A snapshot stores:
+
+- message list,
+- compacted carry context,
+- message count,
+- token count,
+- version,
+- creation timestamp,
+- optional compaction timestamp.
+
+Compaction should create a new snapshot and move the conversation pointer forward instead of mutating old transcript rows.
+
+---
+
+## 11. Grounding Architecture
+
+Grounding provides class-specific material to the tutor.
+
+Target model:
+
+```text
+grounding_collection
+grounding_document
+grounding_chunk
+```
+
+Old model:
+
+```text
+ingested_document
+document_ingestion_job
+document_segment
+vector_store
+```
+
+Old document ingestion persistence is obsolete as active persistence.
+
+### Retrieval Boundary
+
+Grounding retrieval must be scoped to the active group class.
+
+AI retrieval tools should receive either:
+
+- an already-authorized group-class id,
+- or an already-authorized retrieval context object.
+
+They must not query global chunks without scope constraints.
+
+---
+
+## 12. Formative Activity Architecture
+
+Database model:
+
+```text
+evaluation
+evaluation_assignment
+```
+
+Product-facing name:
+
+```text
+formative activity
+```
+
+`evaluation` is the definition.
+
+`evaluation_assignment` is the student-facing assigned state.
+
+`evaluation_run` is not part of the active target model.
+
+Assignment progress is represented by status transitions on `evaluation_assignment`.
+
+---
+
+## 13. AI Architecture
+
+AI configuration should remain centralized and explicit.
+
+AI orchestration may include:
+
+- ChatClient/model configuration,
+- tutor prompt resources,
+- guard advisors,
+- pedagogical routing advisors,
+- grounding retrieval tools,
+- document/catalog context backed by target grounding data,
+- memory/conversation context backed by target snapshots,
+- logging/observability advisors.
+
+AI must not:
+
+- decide authorization,
+- bypass tenant or group-class checks,
+- use legacy persistence as active context,
+- hardcode obsolete subject vocabulary,
+- query cross-tenant data.
+
+The AI layer should consume authorized domain context prepared by services.
+
+---
+
+## 14. Vaadin UI Architecture
+
+Use role-specific workspace layouts.
+
+| Workspace | Context selector | Main navigation |
+|---|---|---|
+| System Admin | Platform-level | Tenants, tenant-admin invitations, platform setup |
+| Tenant Admin | Tenant selector | Dashboard, periods, subjects, group classes, invitations |
+| Professor | Group-class selector | Home, new chat, formative activities, grounding, students |
+| Student | Group-class selector or simple context header | New chat, conversation history, assigned activities |
+
+Vaadin route guards and layouts should reflect authentication and context, but the service layer remains authoritative.
+
+---
+
+## 15. Configuration Architecture
+
+Application configuration should be centralized and meaningful.
+
+Important configuration groups:
+
+```text
+spring.datasource
+spring.flyway
+spring.jpa
+spring.ai / model provider settings
+app.chat or tutor.chat settings
+grounding/vector store settings
+security/session settings
+document processing settings
+observability/logging settings
+```
+
+Avoid introducing replacement configuration objects unless they have a clear target purpose.
+
+Do not create a new browser identity configuration for academic persistence. Browser cookies may exist for technical session behavior, but they must not become domain identity.
+
+---
+
+## 16. Legacy Architecture
+
+Legacy code must be isolated under a clear package such as:
+
+```text
+com.wornux.legacy
+```
+
+Legacy areas include:
+
+```text
+old chat persistence
+old student profile persistence
+old document ingestion persistence
+old evaluation_run persistence
+client_id-based ownership logic
+```
+
+Active startup must not scan legacy entities or repositories.
+
+Active services must not inject legacy repositories.
+
+Legacy logic may only be reintroduced through a future use case that maps it into the target account/tenant/group-class model.
+
+---
+
+## 17. Service Layer Rules
+
+- Services own business logic.
+- Services own authorization checks.
+- Services own transaction boundaries.
+- Services should return DTOs or view models, not expose mutable entities to UI.
+- Repositories only fetch and persist data.
+- UI never performs direct repository access.
+- AI tools do not perform unrestricted data access.
+- All write operations must validate tenant/group-class context.
+
+---
+
+## 18. Testing Strategy
+
+Test by use case and by architectural boundary.
+
+Required categories:
+
+- schema migration tests,
+- repository mapping tests,
+- authorization tests,
+- tenant scope tests,
+- group-class membership tests,
+- ownership tests,
+- conversation snapshot tests,
+- grounding retrieval tests,
+- formative assignment tests,
+- Vaadin route startup tests,
+- AI advisor startup tests,
+- legacy exclusion tests.
+
+Final verification command:
+
+```bash
+CHAT_MODEL=tutor-socratico-8b:latest mvn
+```
+
+---
+
+## 19. Build and Run Locally
+
+Typical local verification:
+
+```bash
+./mvnw clean test
+CHAT_MODEL=tutor-socratico-8b:latest mvn
+```
+
+PostgreSQL should be available locally or through Docker Compose according to project configuration.
+
+The application must start only when Flyway migrations apply and Hibernate validates the schema.
+
+---
+
+## 20. Deployment Checklist
+
+- [ ] Flyway migrations apply.
+- [ ] Hibernate validates target ERD.
+- [ ] Legacy repositories are excluded.
+- [ ] Security filter chain protects workspaces.
+- [ ] Static assets and login render unauthenticated.
+- [ ] Password hashing is configured.
+- [ ] Account principal resolves after login.
+- [ ] Role and permission authorities derive from DB.
+- [ ] Tenant scope checks are enforced.
+- [ ] Group-class membership checks are enforced.
+- [ ] Student ownership checks are enforced.
+- [ ] AI guardrails start.
+- [ ] Grounding retrieval is scoped.
+- [ ] Vaadin routes instantiate.
+- [ ] No active runtime depends on `client_id`.

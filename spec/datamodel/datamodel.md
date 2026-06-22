@@ -1,319 +1,1263 @@
 # Data Model
 
-This document defines the target relational model for Socratic Tutor's identity, tenancy, authorization, and ownership foundation. It is the reference for future Flyway migrations that move the product from legacy `client_id` ownership toward an `account`- and `tenant`-centered, application-managed security model.
+> Entity definitions, relationships, identifiers, constraints, authorization boundaries, and legacy mapping for Socratic Tutor. This document is the data-model source of truth for implementation prompts, Flyway migrations, repository work, and schema verification.
 
-## Quick path
+---
 
-1. Treat `account` as the canonical identity aggregate for every authenticated person.
-2. Treat `tenant` as the first-class workspace aggregate under the default legacySubject scope **Introduction to Algorithms**.
-3. Model authorization as persisted roles, resources, actions, permissions, and join tables.
-4. Keep tutor resources centered on `chat`, `document`, and `evaluation`, with explicit tenant and account boundaries where required.
+## 1. Model Purpose
 
-## Scope of this model
+Socratic Tutor uses an academic multi-tenant relational model.
 
-This foundation covers:
+The database must represent:
 
-- shared identity through `account`,
-- hierarchical workspace boundaries through `tenant`,
-- authorization through role and permission relationships,
-- ownership boundaries for tutor resources,
-- seeded reference data required for UC-001.
+- authenticated users through `account`,
+- institution membership through `tenant_account`,
+- tenant-scoped roles through `tenant_account_role`,
+- academic structure through `subject`, `academic_period`, and `group_class`,
+- class participation through `group_class_member`,
+- tutor conversations through `conversation` and `conversation_snapshot`,
+- class grounding material through `grounding_collection`, `grounding_document`, and `grounding_chunk`,
+- formative activities through `evaluation` and `evaluation_assignment`,
+- authorization through `role`, `resource`, `action`, `permission`, and `role_permission`.
 
-It does **not** define every tutor-supporting table in detail. Existing learning-profile, transcript, ingestion, and legacySubject tables may remain, but future schema work should anchor security and ownership on `account` and `tenant` instead of expanding legacy `client_id` usage.
+The model must not be centered on browser cookies, anonymous `client_id`, old chat persistence, old document ingestion persistence, old evaluation-run persistence, or old student-profile persistence.
 
-## Model summary
+---
 
-| Area | Target decision |
-|------|-----------------|
-| Identity root | `account` is the single authenticated aggregate for students and professors. |
-| Workspace root | `tenant` is the first-class professor-owned workspace inside the default legacySubject scope `Introduction to Algorithms`. |
-| Authorization | Authorities derive from `account` → `account_role` → `role_permission` → `permission`. |
-| Protected resources | The initial protected resource set is `chat`, `document`, and `evaluation`. |
-| Ownership | All three protected resources are tenant-scoped; chat is also ownership-scoped to an account; document and evaluation management are professor-scoped within tenant boundaries in the current foundation. |
-| Security source of truth | The application database stores accounts, tenants, membership, role assignments, permissions, and policy seed data. |
-| Legacy context | `client_id` is transitional migration context only, not the target identity model. |
+## 2. Canonical Chains
 
-## Domain entities
+### Identity and Academic Context
 
-These tables represent business concepts with their own lifecycle.
+```text
+account
+  -> tenant_account
+      -> group_class_member
+```
+
+### Authorization
+
+```text
+tenant_account
+  -> tenant_account_role
+      -> role
+          -> role_permission
+              -> permission
+                  -> resource
+                  -> action
+```
+
+### Academic Structure
+
+```text
+tenant
+  -> subject
+  -> academic_period
+  -> group_class
+      -> group_class_member
+```
+
+### Tutor Conversation
+
+```text
+group_class_member
+  -> conversation
+      -> conversation_snapshot
+```
+
+### Grounding
+
+```text
+group_class
+  -> grounding_collection
+      -> grounding_document
+          -> grounding_chunk
+```
+
+### Formative Activities
+
+```text
+group_class
+  -> evaluation
+      -> evaluation_assignment
+```
+
+---
+
+## 3. Core ERD
+
+<schema>
+~~~mermaid
+erDiagram
+    ACCOUNT ||--o{ TENANT_ACCOUNT : joins
+    TENANT ||--o{ TENANT_ACCOUNT : has_members
+    TENANT_ACCOUNT ||--o{ TENANT : owns
+
+    TENANT_ACCOUNT ||--o{ TENANT_ACCOUNT_ROLE : receives
+    ROLE ||--o{ TENANT_ACCOUNT_ROLE : assigned_as
+
+    ROLE ||--o{ ROLE_PERMISSION : contains
+    PERMISSION ||--o{ ROLE_PERMISSION : included_in
+
+    RESOURCE ||--o{ PERMISSION : protects
+    ACTION ||--o{ PERMISSION : defines
+
+    TENANT ||--o{ SUBJECT : has
+    TENANT ||--o{ ACADEMIC_PERIOD : has
+    TENANT ||--o{ GROUP_CLASS : has
+
+    SUBJECT ||--o{ GROUP_CLASS : groups
+    ACADEMIC_PERIOD ||--o{ GROUP_CLASS : contains
+    TENANT_ACCOUNT ||--o{ GROUP_CLASS : creates
+
+    GROUP_CLASS ||--o{ GROUP_CLASS_MEMBER : has_members
+    TENANT_ACCOUNT ||--o{ GROUP_CLASS_MEMBER : participates_in
+
+    GROUP_CLASS ||--o{ GROUP_CLASS_JOIN_CODE : has_codes
+    GROUP_CLASS_MEMBER ||--o{ GROUP_CLASS_JOIN_CODE : creates
+
+    GROUP_CLASS ||--o{ GROUNDING_COLLECTION : has
+    GROUP_CLASS_MEMBER ||--o{ GROUNDING_COLLECTION : creates
+    GROUNDING_COLLECTION ||--o{ GROUNDING_DOCUMENT : contains
+    GROUNDING_DOCUMENT ||--o{ GROUNDING_CHUNK : splits_into
+
+    GROUP_CLASS ||--o{ EVALUATION : has
+    GROUP_CLASS_MEMBER ||--o{ EVALUATION : creates
+    EVALUATION ||--o{ EVALUATION_ASSIGNMENT : assigns
+    GROUP_CLASS_MEMBER ||--o{ EVALUATION_ASSIGNMENT : receives
+
+    GROUP_CLASS_MEMBER ||--o{ CONVERSATION : starts
+    CONVERSATION ||--o{ CONVERSATION_SNAPSHOT : has
+    CONVERSATION_SNAPSHOT ||--o| CONVERSATION_SNAPSHOT : previous
+
+    ACCOUNT {
+        uuid id PK
+        uuid last_tenant_account_id FK
+        uuid last_group_class_member_id FK
+        text first_name
+        text last_name
+        text email UK
+        text username UK
+        text password_hash
+        boolean system_admin
+        boolean locked
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    TENANT {
+        uuid id PK
+        uuid owner_tenant_account_id FK
+        text name
+        boolean locked
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    TENANT_ACCOUNT {
+        uuid id PK
+        uuid tenant_id FK
+        uuid account_id FK
+        boolean locked
+        timestamptz joined_at
+        timestamptz updated_at
+    }
+
+    ROLE {
+        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
+        text code UK
+        text name
+        text description
+        boolean assignable
+        int priority
+        boolean active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    TENANT_ACCOUNT_ROLE {
+        uuid tenant_account_id PK,FK
+        bigint role_id PK,FK
+        uuid assigned_by_tenant_account_id FK
+        timestamptz assigned_at
+    }
+
+    RESOURCE {
+        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
+        text code UK
+        text name
+        text description
+        boolean active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ACTION {
+        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
+        text code UK
+        text name
+        text description
+        boolean active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    PERMISSION {
+        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
+        bigint resource_id FK
+        bigint action_id FK
+        text code UK
+        text description
+        boolean active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ROLE_PERMISSION {
+        bigint role_id PK,FK
+        bigint permission_id PK,FK
+        timestamptz granted_at
+    }
+
+    SUBJECT {
+        uuid id PK
+        uuid tenant_id FK
+        text code
+        text name
+        boolean active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ACADEMIC_PERIOD {
+        uuid id PK
+        uuid tenant_id FK
+        text code
+        text name
+        date starts_at
+        date ends_at
+        boolean active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    GROUP_CLASS {
+        uuid id PK
+        uuid tenant_id FK
+        uuid subject_id FK
+        uuid academic_period_id FK
+        uuid created_by_tenant_account_id FK
+        text code
+        text name
+        boolean active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    GROUP_CLASS_MEMBER {
+        uuid id PK
+        uuid group_class_id FK
+        uuid tenant_account_id FK
+        text role "PROFESSOR | STUDENT | ASSISTANT"
+        boolean locked
+        timestamptz joined_at
+        timestamptz updated_at
+    }
+
+    GROUP_CLASS_JOIN_CODE {
+        uuid id PK
+        uuid group_class_id FK
+        uuid created_by_group_class_member_id FK
+        text code UK
+        boolean active
+        timestamptz expires_at
+        int max_uses
+        int used_count
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    GROUNDING_COLLECTION {
+        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
+        uuid group_class_id FK
+        uuid created_by_group_class_member_id FK
+        text name
+        boolean active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    GROUNDING_DOCUMENT {
+        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
+        bigint collection_id FK
+        text title
+        text source_type "UPLOAD | TEXT"
+        text storage_key
+        text status "PROCESSING | READY | FAILED | INACTIVE"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    GROUNDING_CHUNK {
+        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
+        bigint document_id FK
+        int chunk_index
+        text content
+        vector embedding
+        boolean active
+        timestamptz created_at
+    }
+
+    EVALUATION {
+        uuid id PK
+        uuid group_class_id FK
+        uuid created_by_group_class_member_id FK
+        text title
+        text instructions
+        text status "DRAFT | PUBLISHED | CLOSED | ARCHIVED"
+        timestamptz opens_at
+        timestamptz closes_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    EVALUATION_ASSIGNMENT {
+        uuid id PK
+        uuid evaluation_id FK
+        uuid group_class_member_id FK
+        text status "ASSIGNED | STARTED | SUBMITTED | SKIPPED | EXPIRED | EXCUSED"
+        timestamptz assigned_at
+        timestamptz started_at
+        timestamptz submitted_at
+        timestamptz updated_at
+    }
+
+    CONVERSATION {
+        uuid id PK
+        uuid group_class_member_id FK
+        bigint current_snapshot_id FK
+        text title
+        bigint version
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    CONVERSATION_SNAPSHOT {
+        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
+        uuid conversation_id FK
+        bigint previous_snapshot_id FK
+        bigint snapshot_no
+        jsonb carry_context
+        jsonb messages
+        int message_count
+        int token_count
+        bigint version
+        timestamptz created_at
+        timestamptz compacted_at
+    }
+~~~
+</schema>
+
+---
+
+## 4. Identifier Strategy
+
+Use UUID for business, security, and academic boundary records.
+
+| Entity | ID Type | Reason |
+|---|---:|---|
+| `account` | UUID | Stable authenticated identity. |
+| `tenant` | UUID | Institution boundary. |
+| `tenant_account` | UUID | Account-in-tenant membership boundary. |
+| `subject` | UUID | Tenant academic entity. |
+| `academic_period` | UUID | Tenant academic entity. |
+| `group_class` | UUID | Operational academic workspace. |
+| `group_class_member` | UUID | Group-class identity/ownership boundary. |
+| `group_class_join_code` | UUID | Exposed or referenced joining workflow entity. |
+| `conversation` | UUID | Tutor activity root. |
+| `evaluation` | UUID | Formative activity root. |
+| `evaluation_assignment` | UUID | Student assignment ownership boundary. |
+
+Use `BIGINT GENERATED BY DEFAULT AS IDENTITY` for internal catalog and implementation-detail records.
+
+| Entity | ID Type | Reason |
+|---|---:|---|
+| `role` | BIGINT identity | Internal authorization catalog. |
+| `resource` | BIGINT identity | Internal authorization catalog. |
+| `action` | BIGINT identity | Internal authorization catalog. |
+| `permission` | BIGINT identity | Internal authorization catalog. |
+| `grounding_collection` | BIGINT identity | Internal class-scoped grounding container. |
+| `grounding_document` | BIGINT identity | Internal grounding document record. |
+| `grounding_chunk` | BIGINT identity | Internal chunk/retrieval record. |
+| `conversation_snapshot` | BIGINT identity | Internal versioned conversation state. |
+
+Java type guidance:
+
+- UUID database IDs should map to `java.util.UUID`.
+- BIGINT database IDs should map to `Long`.
+- `grounding_document.id`, `grounding_chunk.id`, `conversation_snapshot.id`, `role.id`, `resource.id`, `action.id`, and `permission.id` must not be modeled as UUID in Java DTOs or entities.
+
+---
+
+## 5. Core Entities
+
+Java timestamp fields should use `Instant`. PostgreSQL should persist timestamps as `timestamptz`.
+
+| Entity | Key Fields | Relationships | Purpose |
+|---|---|---|---|
+| `Account` | id, first_name, last_name, email, username, password_hash, system_admin, locked, last_tenant_account_id, last_group_class_member_id, created_at, updated_at | Has many TenantAccount | Root authenticated identity. |
+| `Tenant` | id, owner_tenant_account_id, name, locked, created_at, updated_at | Has many TenantAccount, Subject, AcademicPeriod, GroupClass | Institution/university boundary. |
+| `TenantAccount` | id, tenant_id, account_id, locked, joined_at, updated_at | Belongs to Account and Tenant; Has many TenantAccountRole and GroupClassMember | Account membership inside a tenant. |
+| `Role` | id, code, name, description, assignable, priority, active, created_at, updated_at | Has many TenantAccountRole and RolePermission | Tenant-scoped capability grouping. |
+| `TenantAccountRole` | tenant_account_id, role_id, assigned_by_tenant_account_id, assigned_at | Belongs to TenantAccount and Role | Assigns roles inside a tenant. |
+| `Resource` | id, code, name, description, active, created_at, updated_at | Has many Permission | Protected capability boundary. |
+| `Action` | id, code, name, description, active, created_at, updated_at | Has many Permission | Operation on a resource. |
+| `Permission` | id, resource_id, action_id, code, description, active, created_at, updated_at | Belongs to Resource and Action; Has many RolePermission | Unique resource/action capability. |
+| `RolePermission` | role_id, permission_id, granted_at | Belongs to Role and Permission | Grants permissions to roles. |
+| `Subject` | id, tenant_id, code, name, active, created_at, updated_at | Belongs to Tenant; Has many GroupClass | Tenant-scoped course/subject. |
+| `AcademicPeriod` | id, tenant_id, code, name, starts_at, ends_at, active, created_at, updated_at | Belongs to Tenant; Has many GroupClass | Tenant-scoped academic period. |
+| `GroupClass` | id, tenant_id, subject_id, academic_period_id, created_by_tenant_account_id, code, name, active, created_at, updated_at | Belongs to Tenant, Subject, AcademicPeriod; Has many GroupClassMember, GroundingCollection, Evaluation | Concrete class section and operational tutor workspace. |
+| `GroupClassMember` | id, group_class_id, tenant_account_id, role, locked, joined_at, updated_at | Belongs to GroupClass and TenantAccount; Has many Conversation, EvaluationAssignment | A person inside a concrete class section. |
+| `GroupClassJoinCode` | id, group_class_id, created_by_group_class_member_id, code, active, expires_at, max_uses, used_count, created_at, updated_at | Belongs to GroupClass and creator GroupClassMember | Controlled access code for group-class joining. |
+| `Conversation` | id, group_class_member_id, current_snapshot_id, title, version, created_at, updated_at | Belongs to GroupClassMember; Has many ConversationSnapshot; Has one current ConversationSnapshot | Canonical tutor conversation root. |
+| `ConversationSnapshot` | id, conversation_id, previous_snapshot_id, snapshot_no, carry_context, messages, message_count, token_count, version, created_at, compacted_at | Belongs to Conversation; optionally references previous ConversationSnapshot | Versioned/compacted conversation state. |
+| `GroundingCollection` | id, group_class_id, created_by_group_class_member_id, name, active, created_at, updated_at | Belongs to GroupClass and creator GroupClassMember; Has many GroundingDocument | Class-scoped collection of grounding material. |
+| `GroundingDocument` | id, collection_id, title, source_type, storage_key, status, created_at, updated_at | Belongs to GroundingCollection; Has many GroundingChunk | Uploaded or text grounding source. |
+| `GroundingChunk` | id, document_id, chunk_index, content, embedding, active, created_at | Belongs to GroundingDocument | Searchable chunk with optional embedding. |
+| `Evaluation` | id, group_class_id, created_by_group_class_member_id, title, instructions, status, opens_at, closes_at, created_at, updated_at | Belongs to GroupClass and creator GroupClassMember; Has many EvaluationAssignment | Group-class formative activity definition. |
+| `EvaluationAssignment` | id, evaluation_id, group_class_member_id, status, assigned_at, started_at, submitted_at, updated_at | Belongs to Evaluation and target GroupClassMember | Student-facing assigned formative activity state. |
+
+---
+
+## 6. Entity Rules
 
 ### `account`
 
-Represents the authenticated person.
-
-Suggested columns:
-
-- `id` (UUID, PK)
-- `email` (unique)
-- `password_hash`
-- `display_name`
-- `status` (for example `ACTIVE`, `DISABLED`, `PENDING_VERIFICATION` if needed later)
-- `created_at`, `updated_at`
-
 Rules:
 
-- Every signed-in student or professor is an `account`.
-- New self-service registrations receive the `STUDENT` role by default through `account_role`.
-- Authentication and Spring Security principal loading should resolve from this table, not from anonymous cookies or external role claims.
+- Every authenticated user is an `account`.
+- Email is unique.
+- Username is unique.
+- Passwords are stored only as hashes.
+- `system_admin` identifies global platform administrators.
+- `locked` prevents normal login/access.
+- `last_tenant_account_id` and `last_group_class_member_id` are navigation/context hints, not authorization sources.
+
+Do not:
+
+- use browser `client_id` as account identity,
+- assign normal roles directly to global accounts,
+- allow open self-signup as a default path.
 
 ### `tenant`
 
-Represents a professor-owned academic workspace inside the default legacySubject scope.
+Rules:
 
-Suggested columns:
+- A tenant represents an institution/university.
+- A tenant is not a professor workspace.
+- A tenant may have an owner tenant account.
+- Locked tenants must not allow normal active operations.
 
-- `id` (UUID, PK)
-- `subject_code` or `subject_slug` (seeded initially to `introduction-to-algorithms`)
-- `name`
-- `owner_professor_account_id` (FK → `account.id`)
-- `status`
-- `created_at`, `updated_at`
+Do not:
+
+- seed PUCMM or any demo tenant in the schema baseline,
+- attach all professors globally to all tenants.
+
+### `tenant_account`
 
 Rules:
 
-- A tenant belongs to exactly one professor owner account.
-- The current foundation assumes the project legacySubject root is **Introduction to Algorithms**.
-- Tenant ownership does not imply cross-tenant professor access.
-- Chat, document, and evaluation records must reference a tenant.
-
-### `tenant_membership`
-
-Represents account participation in a tenant.
-
-Suggested columns:
-
-- `tenant_id` (FK → `tenant.id`)
-- `account_id` (FK → `account.id`)
-- `membership_type` (for example `PROFESSOR_OWNER`, `STUDENT_MEMBER`)
-- `created_at`
-- composite unique key on (`tenant_id`, `account_id`)
-
-Rules:
-
-- Every professor owner must also be represented as a tenant membership.
-- Students belong to a professor tenant through this table.
-- Membership is the schema anchor for future tenant-bound authorization checks and data filtering.
-
-### `chat`
-
-Represents a tutor conversation workspace.
-
-Target ownership columns:
-
-- `id` (UUID, PK)
-- `tenant_id` (FK → `tenant.id`)
-- `owner_account_id` (FK → `account.id`)
-- `title`
-- `current_transcript_id`
-- `created_at`, `updated_at`
-
-Rules:
-
-- A chat belongs to exactly one tenant and one owning account.
-- Student access to a chat requires `chat:{action}` permission, tenant membership alignment, and ownership match on `owner_account_id`.
-- `chat_transcript` and `chat_message` stay downstream of `chat` and inherit access through the parent chat.
-
-### `document`
-
-Represents an ingested academic document managed by the tutor. `document` is the **target model name** used throughout this specification; the currently deployed table name `ingested_document` is legacy schema vocabulary that future Flyway work should map into this target aggregate rather than treat as a separate domain concept.
-
-Target ownership columns:
-
-- `id` (UUID, PK)
-- `tenant_id` (FK → `tenant.id`)
-- `owner_account_id` (FK → `account.id`)
-- file and ingestion metadata
-- catalog and review fields
-- `created_at`, `updated_at`
-
-Rules:
-
-- In the current foundation, document management is professor-scoped through permissions inside the owning tenant.
-- Ownership should still be explicit so the product can later distinguish which professor uploaded or manages a document.
-- `document_ingestion_job` and `document_segment` remain child records of `document`.
-
-### `evaluation`
-
-Represents an evaluation definition or managed assessment artifact.
-
-Suggested target columns:
-
-- `id` (UUID, PK)
-- `tenant_id` (FK → `tenant.id`)
-- `owner_account_id` (FK → `account.id`)
-- `title`
-- `instruction`
-- structured question / answer payload fields
-- `status`
-- `created_at`, `updated_at`
-
-Rules:
-
-- Evaluation management belongs to professor-authorized accounts in this foundation and remains tenant-scoped.
-- Ownership should be explicit for provenance and future auditing even when access is primarily role-scoped.
-
-### `evaluation_run`
-
-Represents a learner execution of an evaluation.
-
-Target ownership columns:
-
-- `id` (UUID, PK)
-- `evaluation_id` (FK → `evaluation.id`)
-- `tenant_id` (FK → `tenant.id`)
-- `student_account_id` (FK → `account.id`)
-- learner response / report fields
-- `status`
-- `created_at`, `updated_at`
-
-Rules:
-
-- A run belongs to one tenant, one learner account, and one evaluation.
-- `evaluation:run` is the only evaluation permission granted to `STUDENT` in UC-001.
-- Within this foundation, `evaluation:run` covers starting a learner run and reading that learner's own `evaluation_run` state/results for the same `student_account_id` inside the same tenant; it does **not** grant access to evaluation-definition management or to another learner's runs.
-- Future access checks should ensure learners only access their own runs unless a later use case adds educator review access.
-
-## Relationship entities / tables
-
-These tables exist to express many-to-many or policy relationships cleanly.
-
-### `account_role`
-
-Assigns roles to accounts.
-
-Suggested columns:
-
-- `account_id` (FK → `account.id`)
-- `role_id` (FK → `role.id`)
-- `assigned_at`
-- `assigned_by_account_id` (nullable FK → `account.id`, optional but useful)
-- composite unique key on (`account_id`, `role_id`)
-
-This table is the default-role entry point for new registrations.
-
-Note: role assignment remains global to the account identity, while tenant membership determines which tenant context the account can act within.
-
-### `permission`
-
-Represents an allowed `resource:action` pair.
-
-Suggested columns:
-
-- `id` (PK)
-- `resource_id` (FK → `resource.id`)
-- `action_id` (FK → `action.id`)
-- unique key on (`resource_id`, `action_id`)
-
-This table is the authority vocabulary consumed by security components.
-
-### `role_permission`
-
-Assigns permissions to roles.
-
-Suggested columns:
-
-- `role_id` (FK → `role.id`)
-- `permission_id` (FK → `permission.id`)
-- composite unique key on (`role_id`, `permission_id`)
-
-This is the policy matrix that drives derived Spring Security authorities.
-
-## Seeded reference data
-
-These tables contain stable reference values that should be seeded by Flyway and treated as controlled vocabulary.
+- Connects one account to one tenant.
+- `(tenant_id, account_id)` must be unique.
+- Roles are assigned to this entity.
+- Locked tenant accounts must not receive normal active access.
 
 ### `role`
 
-Seed at least:
+Rules:
 
-| Code | Purpose |
-|------|---------|
-| `STUDENT` | Default self-service learner role. |
-| `PROFESSOR` | Educator role with document and evaluation management capabilities. |
+- Role codes are stable and unique.
+- Required roles are:
+
+```text
+SYSTEM_ADMIN
+TENANT_ADMIN
+PROFESSOR
+STUDENT
+ASSISTANT
+```
+
+- `ASSISTANT` is reserved until a use case defines its behavior.
+- `assignable=false` may be used for roles that should not be manually assigned through normal UI flows.
 
 ### `resource`
 
-Seed exactly this foundation set:
+Rules:
 
-| Code | Meaning |
-|------|---------|
-| `chat` | Tutor conversation workspace and its child records. |
-| `document` | Ingested academic material and its review / segmentation flow. |
-| `evaluation` | Evaluation definitions and learner runs. |
+Resources are user-facing or policy-relevant capability boundaries.
+
+Seed:
+
+```text
+TENANT
+SUBJECT
+ACADEMIC_PERIOD
+GROUP_CLASS
+GROUP_CLASS_MEMBER
+GROUP_CLASS_JOIN_CODE
+GROUNDING
+EVALUATION
+EVALUATION_ASSIGNMENT
+CONVERSATION
+```
+
+Do not seed these internal tables as standalone resources in the baseline:
+
+```text
+TENANT_ACCOUNT
+ROLE_PERMISSION
+PERMISSION
+RESOURCE
+ACTION
+CONVERSATION_SNAPSHOT
+GROUNDING_COLLECTION
+GROUNDING_DOCUMENT
+GROUNDING_CHUNK
+```
 
 ### `action`
 
-Seed at least:
+Seed:
 
-| Code | Meaning |
-|------|---------|
-| `view` | Read or list a protected resource. |
-| `create` | Create a new protected resource. |
-| `update` | Modify an existing protected resource. |
-| `delete` | Delete or remove a protected resource. |
-| `run` | Execute a learner-facing evaluation action. |
+```text
+VIEW
+CREATE
+UPDATE
+DELETE
+INVITE
+```
 
-### `permission` seed matrix
+Meaning:
 
-Seed only the tutor-specific combinations required by UC-001.
+- `VIEW`: read, list, or open.
+- `CREATE`: create a new record/capability instance.
+- `UPDATE`: modify fields or transition state.
+- `DELETE`: delete, disable, lock, archive, or logically remove.
+- `INVITE`: invite/assign a person into a tenant or group-class context.
 
-| Permission | Granted to |
-|------------|------------|
-| `chat:view` | `STUDENT`, `PROFESSOR` |
-| `chat:create` | `STUDENT`, `PROFESSOR` |
-| `chat:update` | `STUDENT`, `PROFESSOR` |
-| `chat:delete` | `STUDENT`, `PROFESSOR` |
-| `document:view` | `PROFESSOR` |
-| `document:create` | `PROFESSOR` |
-| `document:update` | `PROFESSOR` |
-| `document:delete` | `PROFESSOR` |
-| `evaluation:create` | `PROFESSOR` |
-| `evaluation:view` | `PROFESSOR` |
-| `evaluation:update` | `PROFESSOR` |
-| `evaluation:delete` | `PROFESSOR` |
-| `evaluation:run` | `STUDENT` |
+### `subject`
 
-## Ownership boundaries
+Rules:
 
-| Resource | Ownership rule | Authorization implication |
-|----------|----------------|---------------------------|
-| `chat` | Each chat row belongs to one `tenant_id` and one `owner_account_id`. | Permission check is necessary but not sufficient; student chat access must also match tenant boundary and owner account. |
-| `document` | Each document belongs to one `tenant_id` and should record its owning or creating account. | Current foundation is professor role-scoped within tenant boundaries; ownership mainly supports provenance and future policy evolution. |
-| `evaluation` | Each evaluation belongs to one `tenant_id` and should record its owning professor account. | Management actions are professor-only in the current foundation and must stay inside the owning tenant. |
-| `evaluation_run` | Each run belongs to one `tenant_id` and one `student_account_id`. | `evaluation:run` allows a student to create and read only their own run records inside the same tenant; broader evaluation management remains professor-only unless a later use case extends visibility. |
+- Belongs to one tenant.
+- `(tenant_id, code)` must be unique.
+- Represents a course/subject inside an institution.
+- The active target vocabulary is `subject`.
+- Do not use `legacySubject` in prompts, specs, or active UI copy.
 
-## Relationship to existing tutor tables
+### `academic_period`
 
-The current schema already contains tutor-domain tables such as `chat_transcript`, `chat_message`, `document_ingestion_job`, `document_segment`, `student_profile`, `student_misconception`, and `student_profile_signal`.
+Rules:
 
-Future migrations should treat them like this:
+- Belongs to one tenant.
+- `(tenant_id, code)` must be unique.
+- Must represent a real academic time window where dates are provided.
+- Group classes require a valid academic period.
 
-- child records of `chat` and `document` continue to inherit access from their parent aggregate,
-- learner-profile tables should eventually reference `account` as the owning identity,
-- tenant-aware tutor tables should eventually reference `tenant` as the primary workspace boundary,
-- new tables must not introduce fresh `client_id`-based ownership.
+### `group_class`
 
-## Transitional legacy note
+Rules:
 
-The current implementation still stores legacy identifiers such as:
+- Belongs to one tenant, one subject, and one academic period.
+- `(tenant_id, code)` must be unique.
+- Created by a tenant account.
+- It is the operational tutor workspace.
+- Conversations, grounding, and formative activities are group-class scoped.
 
-- `chat.client_id`
-- `ingested_document.client_id` (`ingested_document` is the current legacy table name for the target `document` aggregate)
-- `evaluation_run.student_client_id`
-- `student_profile.client_id` and related profile tables
+### `group_class_member`
 
-These fields describe the **current schema state**, not the target design. Future Flyway work should migrate toward tenant-linked and account-linked ownership columns such as `tenant_id`, `owner_account_id`, or `student_account_id`, with compatibility steps only where necessary to preserve existing data.
+Rules:
 
-## Migration guidance
+- Belongs to one group class and one tenant account.
+- Allowed roles:
 
-When translating this document into Flyway migrations:
+```text
+PROFESSOR
+STUDENT
+ASSISTANT
+```
 
-1. Create the security and tenancy foundation first: `account`, `tenant`, `tenant_membership`, `role`, `resource`, `action`, `permission`, `account_role`, `role_permission`.
-2. Seed the reference tables and role-permission matrix before enabling protected tutor flows.
-3. Add `tenant_id` plus account ownership columns to `chat`, `document`, `evaluation`, and `evaluation_run`, then backfill from legacy data where possible.
-4. Move service and security code to derive authorities from persisted permissions while enforcing tenant membership boundaries.
-5. Retire legacy `client_id` as an authorization key once account- and tenant-based ownership is fully enforced.
+- `(group_class_id, tenant_account_id, role)` must be unique.
+- Locked members must not receive normal active group-class access.
+- Removing a member should usually mean locking/disabling, not deleting account identity.
 
-## Next step
+### `conversation`
 
-Use this data model as the schema baseline for the first Flyway migrations and security implementation that realize UC-001 without reintroducing `client_id`, anonymous conversations, Keycloak assumptions, or unrelated resource families.
+Rules:
+
+- Belongs to exactly one group-class member.
+- Has zero or one current snapshot.
+- May have many historical snapshots.
+- Title must not be blank once assigned.
+- Version supports optimistic/concurrent update safety.
+
+Student access:
+
+- A student may create and view only their own conversations inside active group-class memberships.
+- Professors may view student conversations only when a future use case or explicit rule allows it.
+
+### `conversation_snapshot`
+
+Rules:
+
+- Uses `BIGINT GENERATED BY DEFAULT AS IDENTITY`.
+- Belongs to exactly one conversation.
+- May reference one previous snapshot.
+- `(conversation_id, snapshot_no)` must be unique.
+- Stores messages in `messages` JSONB.
+- Stores compacted context in `carry_context` JSONB.
+- Stores `message_count` and `token_count`.
+- Is controlled through the `CONVERSATION` resource; it is not an independent authorization resource.
+
+Expected relationship shape:
+
+```text
+Conversation 1 -> * ConversationSnapshot
+Conversation 1 -> 0..1 currentSnapshot
+ConversationSnapshot 0..1 -> previous ConversationSnapshot
+```
+
+### `grounding_collection`
+
+Rules:
+
+- Uses BIGINT identity.
+- Belongs to one group class.
+- Created by a group-class member.
+- Controlled through `GROUNDING`.
+
+### `grounding_document`
+
+Rules:
+
+- Uses BIGINT identity.
+- Belongs to one grounding collection.
+- Java ID type should be `Long`.
+- Allowed source types:
+
+```text
+UPLOAD
+TEXT
+```
+
+- Allowed statuses:
+
+```text
+PROCESSING
+READY
+FAILED
+INACTIVE
+```
+
+- Controlled through `GROUNDING`.
+
+### `grounding_chunk`
+
+Rules:
+
+- Uses BIGINT identity.
+- Belongs to one grounding document.
+- `(document_id, chunk_index)` must be unique.
+- Stores content.
+- Stores vector embedding when available.
+- Controlled through `GROUNDING`.
+
+### `evaluation`
+
+Product-facing name: formative activity.
+
+Rules:
+
+- Belongs to one group class.
+- Created by a valid group-class member.
+- Allowed statuses:
+
+```text
+DRAFT
+PUBLISHED
+CLOSED
+ARCHIVED
+```
+
+- Controlled through `EVALUATION`.
+- Physical table remains `evaluation` until a later migration explicitly renames it.
+
+### `evaluation_assignment`
+
+Product-facing name: formative activity assignment.
+
+Rules:
+
+- Belongs to one evaluation.
+- Targets one group-class member.
+- Must target a student group-class member.
+- `(evaluation_id, group_class_member_id)` must be unique.
+- Allowed statuses:
+
+```text
+ASSIGNED
+STARTED
+SUBMITTED
+SKIPPED
+EXPIRED
+EXCUSED
+```
+
+- Student progress is represented by updating assignment status.
+- `evaluation_run` is not part of the active target model.
+
+---
+
+## 7. Key Constraints
+
+### Identity and Tenant Constraints
+
+- `account.email` unique.
+- `account.username` unique.
+- `tenant_account(tenant_id, account_id)` unique.
+- `tenant.owner_tenant_account_id` references `tenant_account(id)` when set.
+- `account.last_tenant_account_id` references `tenant_account(id)` when set.
+- `account.last_group_class_member_id` references `group_class_member(id)` when set.
+
+### Authorization Constraints
+
+- `role.code` unique.
+- `resource.code` unique.
+- `action.code` unique.
+- `permission.code` unique.
+- `permission(resource_id, action_id)` unique.
+- `tenant_account_role(tenant_account_id, role_id)` primary key.
+- `role_permission(role_id, permission_id)` primary key.
+- Foreign-key types must match referenced IDs.
+
+### Academic Constraints
+
+- `subject(tenant_id, code)` unique.
+- `academic_period(tenant_id, code)` unique.
+- `group_class(tenant_id, code)` unique.
+- `group_class_member(group_class_id, tenant_account_id, role)` unique.
+- `group_class_member.role` constrained to `PROFESSOR`, `STUDENT`, `ASSISTANT`.
+- `group_class_join_code.code` unique.
+
+### Conversation Constraints
+
+- `conversation.group_class_member_id` not null.
+- `conversation.current_snapshot_id` nullable.
+- `conversation_snapshot.conversation_id` not null.
+- `conversation_snapshot(conversation_id, snapshot_no)` unique.
+- `conversation_snapshot.previous_snapshot_id` nullable.
+
+### Grounding Constraints
+
+- `grounding_collection.group_class_id` not null.
+- `grounding_collection.created_by_group_class_member_id` not null.
+- `grounding_document.collection_id` not null.
+- `grounding_document.source_type` constrained to `UPLOAD`, `TEXT`.
+- `grounding_document.status` constrained to `PROCESSING`, `READY`, `FAILED`, `INACTIVE`.
+- `grounding_chunk.document_id` not null.
+- `grounding_chunk(document_id, chunk_index)` unique.
+
+### Formative Activity Constraints
+
+- `evaluation.group_class_id` not null.
+- `evaluation.created_by_group_class_member_id` not null.
+- `evaluation.status` constrained to `DRAFT`, `PUBLISHED`, `CLOSED`, `ARCHIVED`.
+- `evaluation_assignment.evaluation_id` not null.
+- `evaluation_assignment.group_class_member_id` not null.
+- `evaluation_assignment(evaluation_id, group_class_member_id)` unique.
+- `evaluation_assignment.status` constrained to `ASSIGNED`, `STARTED`, `SUBMITTED`, `SKIPPED`, `EXPIRED`, `EXCUSED`.
+
+---
+
+## 8. Recommended Indexes
+
+Create indexes on all foreign keys and common lookup fields.
+
+Recommended indexes:
+
+```text
+tenant_account.tenant_id
+tenant_account.account_id
+
+tenant_account_role.tenant_account_id
+tenant_account_role.role_id
+
+role_permission.role_id
+role_permission.permission_id
+
+permission.resource_id
+permission.action_id
+
+subject.tenant_id
+academic_period.tenant_id
+
+group_class.tenant_id
+group_class.subject_id
+group_class.academic_period_id
+group_class.created_by_tenant_account_id
+
+group_class_member.group_class_id
+group_class_member.tenant_account_id
+group_class_member.role
+
+group_class_join_code.group_class_id
+group_class_join_code.code
+
+conversation.group_class_member_id
+conversation.current_snapshot_id
+
+conversation_snapshot.conversation_id
+conversation_snapshot.previous_snapshot_id
+
+grounding_collection.group_class_id
+grounding_collection.created_by_group_class_member_id
+
+grounding_document.collection_id
+grounding_document.status
+
+grounding_chunk.document_id
+grounding_chunk.active
+
+evaluation.group_class_id
+evaluation.created_by_group_class_member_id
+evaluation.status
+
+evaluation_assignment.evaluation_id
+evaluation_assignment.group_class_member_id
+evaluation_assignment.status
+```
+
+If vector search is used:
+
+```text
+grounding_chunk.embedding
+```
+
+should use the pgvector index strategy selected by the project, such as HNSW or another supported index type.
+
+---
+
+## 9. State Values
+
+### Group Class Member Role
+
+| Value | Meaning |
+|---|---|
+| `PROFESSOR` | Educator inside a group class. |
+| `STUDENT` | Learner inside a group class. |
+| `ASSISTANT` | Reserved class support role. |
+
+### Grounding Source Type
+
+| Value | Meaning |
+|---|---|
+| `UPLOAD` | Document came from uploaded file/object storage. |
+| `TEXT` | Document came from direct text input. |
+
+### Grounding Document Status
+
+| Value | Meaning |
+|---|---|
+| `PROCESSING` | Ingestion/chunking/embedding is in progress. |
+| `READY` | Document can be used for retrieval. |
+| `FAILED` | Processing failed. |
+| `INACTIVE` | Document is disabled or no longer used. |
+
+### Evaluation Status
+
+| Value | Meaning |
+|---|---|
+| `DRAFT` | Activity is being prepared. |
+| `PUBLISHED` | Activity is available/assignable according to rules. |
+| `CLOSED` | Activity is closed. |
+| `ARCHIVED` | Activity is retained historically but not active. |
+
+### Evaluation Assignment Status
+
+| Value | Meaning |
+|---|---|
+| `ASSIGNED` | Student has not started. |
+| `STARTED` | Student started. |
+| `SUBMITTED` | Student submitted. |
+| `SKIPPED` | Student skipped where allowed. |
+| `EXPIRED` | Assignment expired. |
+| `EXCUSED` | Student was excused. |
+
+---
+
+## 10. Access Control Model
+
+The system implements tenant-scoped RBAC plus scope and ownership checks.
+
+### Permission Query Shape
+
+Conceptual authorization query:
+
+```sql
+select exists (
+    select 1
+    from tenant_account ta
+    join tenant_account_role tar on tar.tenant_account_id = ta.id
+    join role ro on ro.id = tar.role_id
+    join role_permission rp on rp.role_id = ro.id
+    join permission p on p.id = rp.permission_id
+    join resource r on r.id = p.resource_id
+    join action a on a.id = p.action_id
+    where ta.id = :tenant_account_id
+      and ta.locked = false
+      and ro.active = true
+      and p.active = true
+      and r.active = true
+      and a.active = true
+      and r.code = :resource_code
+      and a.code = :action_code
+);
+```
+
+After permission passes, services must still check:
+
+```text
+tenant boundary
+group-class membership
+record ownership
+record active/locked state
+```
+
+### Ownership Rules
+
+| Data | Ownership / scope rule |
+|---|---|
+| Tenant setup | System admin or tenant admin depending on action. |
+| Subject | Tenant-scoped. |
+| Academic period | Tenant-scoped. |
+| Group class | Tenant-scoped. |
+| Group class member | Group-class-scoped. |
+| Conversation | Owned by one group-class member. |
+| Conversation snapshot | Inherits access from parent conversation. |
+| Grounding collection/document/chunk | Group-class-scoped; controlled through `GROUNDING`. |
+| Evaluation | Group-class-scoped; created by group-class member. |
+| Evaluation assignment | Owned by target student group-class member; managed by authorized professor/admin within scope. |
+
+---
+
+## 11. Seed Data
+
+The baseline must seed only foundational authorization data and the initial system admin account.
+
+### Initial System Admin
+
+```text
+account.email = admin@socratic-tutor.com
+account.username = admin
+account.system_admin = true
+account.locked = false
+account.password_hash = configured secure hash
+```
+
+Do not hardcode a plaintext password.
+
+### Roles
+
+```text
+SYSTEM_ADMIN
+TENANT_ADMIN
+PROFESSOR
+STUDENT
+ASSISTANT
+```
+
+### Resources
+
+```text
+TENANT
+SUBJECT
+ACADEMIC_PERIOD
+GROUP_CLASS
+GROUP_CLASS_MEMBER
+GROUP_CLASS_JOIN_CODE
+GROUNDING
+EVALUATION
+EVALUATION_ASSIGNMENT
+CONVERSATION
+```
+
+### Actions
+
+```text
+VIEW
+CREATE
+UPDATE
+DELETE
+INVITE
+```
+
+### Do Not Seed
+
+The baseline must not seed:
+
+```text
+PUCMM
+ICC-101
+academic periods
+group classes
+tenant admins
+professors
+students
+grounding collections
+grounding documents
+evaluations
+evaluation assignments
+conversations
+```
+
+These records must be created through role-based onboarding/admin workflows.
+
+---
+
+## 12. Baseline Permission Matrix
+
+### `SYSTEM_ADMIN`
+
+```text
+TENANT:VIEW
+TENANT:CREATE
+TENANT:UPDATE
+
+SUBJECT:VIEW
+ACADEMIC_PERIOD:VIEW
+GROUP_CLASS:VIEW
+GROUP_CLASS_MEMBER:VIEW
+GROUP_CLASS_JOIN_CODE:VIEW
+GROUNDING:VIEW
+EVALUATION:VIEW
+EVALUATION_ASSIGNMENT:VIEW
+CONVERSATION:VIEW
+```
+
+### `TENANT_ADMIN`
+
+```text
+SUBJECT:VIEW
+SUBJECT:CREATE
+SUBJECT:UPDATE
+SUBJECT:DELETE
+
+ACADEMIC_PERIOD:VIEW
+ACADEMIC_PERIOD:CREATE
+ACADEMIC_PERIOD:UPDATE
+ACADEMIC_PERIOD:DELETE
+
+GROUP_CLASS:VIEW
+GROUP_CLASS:CREATE
+GROUP_CLASS:UPDATE
+GROUP_CLASS:DELETE
+
+GROUP_CLASS_MEMBER:VIEW
+GROUP_CLASS_MEMBER:INVITE
+GROUP_CLASS_MEMBER:UPDATE
+GROUP_CLASS_MEMBER:DELETE
+```
+
+### `PROFESSOR`
+
+```text
+GROUP_CLASS:VIEW
+GROUP_CLASS:UPDATE
+
+GROUP_CLASS_MEMBER:VIEW
+GROUP_CLASS_MEMBER:INVITE
+GROUP_CLASS_MEMBER:UPDATE
+GROUP_CLASS_MEMBER:DELETE
+
+GROUP_CLASS_JOIN_CODE:VIEW
+GROUP_CLASS_JOIN_CODE:CREATE
+GROUP_CLASS_JOIN_CODE:UPDATE
+GROUP_CLASS_JOIN_CODE:DELETE
+
+GROUNDING:VIEW
+GROUNDING:CREATE
+GROUNDING:UPDATE
+GROUNDING:DELETE
+
+EVALUATION:VIEW
+EVALUATION:CREATE
+EVALUATION:UPDATE
+EVALUATION:DELETE
+
+EVALUATION_ASSIGNMENT:VIEW
+EVALUATION_ASSIGNMENT:CREATE
+EVALUATION_ASSIGNMENT:UPDATE
+EVALUATION_ASSIGNMENT:DELETE
+
+CONVERSATION:VIEW
+```
+
+### `STUDENT`
+
+```text
+GROUP_CLASS:VIEW
+
+CONVERSATION:VIEW
+CONVERSATION:CREATE
+CONVERSATION:UPDATE
+CONVERSATION:DELETE
+
+EVALUATION:VIEW
+
+EVALUATION_ASSIGNMENT:VIEW
+EVALUATION_ASSIGNMENT:UPDATE
+```
+
+### `ASSISTANT`
+
+Reserved.
+
+Do not grant broad assistant capabilities until a later use case defines them.
+
+---
+
+## 13. Relationship Notes for JPA
+
+### Conversation and Snapshot
+
+Correct conceptual mapping:
+
+```java
+@Entity
+@Table(name = "conversation")
+public class Conversation {
+
+    @Id
+    private UUID id;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "group_class_member_id", nullable = false)
+    private GroupClassMember groupClassMember;
+
+    @OneToOne
+    @JoinColumn(name = "current_snapshot_id")
+    private ConversationSnapshot currentSnapshot;
+
+    @OneToMany(mappedBy = "conversation")
+    private List<ConversationSnapshot> snapshots = new ArrayList<>();
+}
+```
+
+```java
+@Entity
+@Table(name = "conversation_snapshot")
+public class ConversationSnapshot {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "conversation_id", nullable = false)
+    private Conversation conversation;
+
+    @ManyToOne
+    @JoinColumn(name = "previous_snapshot_id")
+    private ConversationSnapshot previousSnapshot;
+}
+```
+
+Important:
+
+- `Conversation.currentSnapshot` is one-to-one from the conversation pointer perspective.
+- `Conversation.snapshots` is one-to-many.
+- `ConversationSnapshot.id` is `Long`, not UUID.
+- `conversation.current_snapshot_id` is nullable for empty/new conversations.
+
+### Grounding Document and Search DTOs
+
+Because `grounding_document.id` is BIGINT identity, Java entity and DTO IDs for grounding documents should use `Long`.
+
+Do not use UUID for:
+
+```text
+groundingDocumentId
+documentId when it refers to grounding_document.id
+groundingChunkId
+chunkId when it refers to grounding_chunk.id
+```
+
+If a DTO field may refer to a business document identifier in the future, rename it to avoid ambiguity.
+
+---
+
+## 14. Legacy Mapping
+
+The following old concepts are obsolete as active persistence:
+
+| Old concept | Target concept |
+|---|---|
+| `client_id` | `account -> tenant_account -> group_class_member` |
+| `chat` | `conversation` |
+| `chat_transcript` | `conversation_snapshot` |
+| `chat_message` | `conversation_snapshot.messages` |
+| `chat_transcript.memory` | `conversation_snapshot.carry_context` |
+| `chat_transcript.input_tokens` | `conversation_snapshot.token_count` |
+| `chat.current_transcript_id` | `conversation.current_snapshot_id` |
+| `ingested_document` | `grounding_document` |
+| `document_segment` | `grounding_chunk` |
+| `vector_store` | `grounding_chunk.embedding` or target scoped pgvector retrieval |
+| old global `evaluation` | group-class-scoped `evaluation` |
+| `evaluation_run` | `evaluation_assignment` |
+| `student_profile` | legacy-only until redesigned |
+| `student_misconception` | legacy-only until redesigned |
+| `student_profile_signal` | legacy-only until redesigned |
+| `legacySubject` prompt vocabulary | `subject` / active academic context vocabulary |
+
+Do not add compatibility adapters that make obsolete persistence active again.
+
+---
+
+## 15. Migration Guidance
+
+Recommended Flyway direction:
+
+1. Create target identity and tenant tables.
+2. Create authorization catalog and role assignment tables.
+3. Create academic structure tables.
+4. Create group-class membership and join-code tables.
+5. Create conversation and snapshot tables.
+6. Create grounding tables.
+7. Create evaluation and assignment tables.
+8. Add constraints and indexes.
+9. Seed only initial system admin and authorization reference data.
+10. Exclude legacy entities/repositories from active startup.
+
+Do not seed academic demo data in the baseline.
+
+Do not create new runtime behavior that depends on old `client_id` ownership.
+
+---
+
+## 16. Data Model Review Checklist
+
+Before accepting schema or entity changes:
+
+- [ ] `tenant` still means institution.
+- [ ] `group_class` remains the operational workspace.
+- [ ] Roles are assigned through `tenant_account_role`.
+- [ ] No `account_role` is introduced for normal tutor roles.
+- [ ] No `tenant_membership` replacement for `tenant_account` is introduced.
+- [ ] No active `chat`, `chat_transcript`, or `chat_message` persistence is required.
+- [ ] No `conversation_message` table is introduced.
+- [ ] No `evaluation_run` table is introduced.
+- [ ] Grounding uses `grounding_collection`, `grounding_document`, and `grounding_chunk`.
+- [ ] `grounding_document.id` and `grounding_chunk.id` are `Long` in Java.
+- [ ] `conversation_snapshot.id` is `Long` in Java.
+- [ ] Mermaid ERD, Flyway SQL, JPA entities, and repositories agree.
+- [ ] Authorization resources are capability boundaries, not every table.
+- [ ] Service-layer scope and ownership checks are still required.
