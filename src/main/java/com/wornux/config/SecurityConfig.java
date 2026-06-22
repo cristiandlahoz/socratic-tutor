@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -47,7 +49,8 @@ public class SecurityConfig {
             "/images/*.png",
             "/crow3-frames/**",
             "/icons/**",
-            "/line-awesome/**")
+            "/line-awesome/**",
+            "/invitations/accept/**")
           .permitAll()
           .requestMatchers("/share/**")
           .anonymous());
@@ -58,4 +61,10 @@ public class SecurityConfig {
 
     return http.build();
   }
+
+  @Bean
+  PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
+
 }
