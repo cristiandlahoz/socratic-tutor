@@ -1,4 +1,4 @@
-package com.wornux.data.entities;
+package com.wornux.legacy.data.entities;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;

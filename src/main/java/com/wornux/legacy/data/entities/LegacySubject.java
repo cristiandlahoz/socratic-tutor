@@ -1,4 +1,4 @@
-package com.wornux.data.entities;
+package com.wornux.legacy.data.entities;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,12 +26,12 @@ import lombok.Setter;
 import org.hibernate.annotations.BatchSize;
 
 @Entity
-@Table(name = "subject")
+@Table(name = "legacy_subject")
 @NamedEntityGraph(name = "Subject.withCurrentConfigRevision",
         attributeNodes = @NamedAttributeNode("currentConfigRevision"))
 @Getter
 @Setter
-public class Subject {
+public class LegacySubject {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,7 +51,7 @@ public class Subject {
     @JoinColumn(name = "current_config_revision_id")
     private SubjectConfigRevision currentConfigRevision;
 
-    @OneToMany(mappedBy = "subject", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "legacySubject", fetch = FetchType.LAZY)
     @OrderBy("version asc")
     @BatchSize(size = 50)
     private List<SubjectConfigRevision> configRevisions = new ArrayList<>();
@@ -69,11 +69,11 @@ public class Subject {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected Subject() {}
+    protected LegacySubject() {}
 
-    public static Subject create(String slug, String displayName) {
+    public static LegacySubject create(String slug, String displayName) {
         var now = Instant.now();
-        var entity = new Subject();
+        var entity = new LegacySubject();
         entity.slug = slug;
         entity.displayName = displayName;
         entity.status = SubjectStatus.ACTIVE;
@@ -85,7 +85,7 @@ public class Subject {
 
     public void publishConfig(SubjectConfigRevision revision) {
         this.currentConfigRevision = revision;
-        this.configVersion = revision.getVersion();
+        this.configVersion = revision.version();
         this.updatedAt = Instant.now();
     }
 

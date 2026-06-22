@@ -1,4 +1,4 @@
-package com.wornux.data.entities;
+package com.wornux.legacy.data.entities;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -19,7 +19,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "subject_config_revision")
+@Table(name = "legacy_subject_config_revision")
 @Getter
 @Setter
 public class SubjectConfigRevision {
@@ -30,7 +30,7 @@ public class SubjectConfigRevision {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "subject_id", nullable = false)
-    private Subject subject;
+    private LegacySubject legacySubject;
 
     @Column(nullable = false)
     private long version;
@@ -56,14 +56,14 @@ public class SubjectConfigRevision {
     protected SubjectConfigRevision() {}
 
     public static SubjectConfigRevision create(
-            Subject subject,
+            LegacySubject legacySubject,
             long version,
             Map<String, Object> config,
             Map<String, Object> rubricDefaults,
             Map<String, Object> questionPolicy,
             String createdBy) {
         var entity = new SubjectConfigRevision();
-        entity.subject = subject;
+        entity.legacySubject = legacySubject;
         entity.version = version;
         entity.config = safeMap(config);
         entity.rubricDefaults = safeMap(rubricDefaults);
@@ -71,6 +71,10 @@ public class SubjectConfigRevision {
         entity.createdBy = createdBy == null || createdBy.isBlank() ? "session" : createdBy;
         entity.createdAt = Instant.now();
         return entity;
+    }
+
+    public long version() {
+        return version;
     }
 
     private static Map<String, Object> safeMap(Map<String, Object> value) {

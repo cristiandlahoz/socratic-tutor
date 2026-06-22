@@ -1,4 +1,4 @@
-package com.wornux.data.entities;
+package com.wornux.legacy.data.entities;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -62,8 +62,8 @@ public class ChatTranscript {
 
     public static ChatTranscript createFromCompaction(Chat chat, ChatTranscript sourceTranscript, String memoryText) {
         var entity = create(chat);
-        entity.compactedFromTranscriptId = sourceTranscript.getId();
-        entity.compactionLevel = sourceTranscript.getCompactionLevel() + 1;
+        entity.compactedFromTranscriptId = sourceTranscript.id;
+        entity.compactionLevel = sourceTranscript.compactionLevel + 1;
         entity.setMemoryText(memoryText);
         return entity;
     }

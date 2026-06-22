@@ -1,9 +1,9 @@
-package com.wornux.data.entities;
+package com.wornux.legacy.data.entities;
 
 import java.time.Instant;
 import java.util.UUID;
 
-import com.wornux.data.enums.EvaluationRunStatus;
+import com.wornux.data.enums.EvaluationStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,32 +21,32 @@ import org.hibernate.type.SqlTypes;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "evaluation_run")
-public class EvaluationRun {
+@Table(name = "legacy_evaluation")
+public class Evaluation {
 
     @Id
     private UUID id;
 
-    @Column(name = "evaluation_id", nullable = false)
-    private UUID evaluationId;
+    @Column(nullable = false)
+    private String title;
 
-    @Column(name = "student_client_id", nullable = false)
-    private UUID studentClientId;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "questions_asked_json")
-    private String questionsAskedJson;
+    @Column(nullable = false, columnDefinition = "text")
+    private String instruction;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "answers_given_json")
-    private String answersGivenJson;
+    @Column(name = "questions_json")
+    private String questionsJson;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "answers_json")
+    private String answersJson;
 
     @Column(name = "report_markdown", columnDefinition = "text")
     private String reportMarkdown;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private EvaluationRunStatus status;
+    private EvaluationStatus status;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -54,14 +54,13 @@ public class EvaluationRun {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public static EvaluationRun create(UUID evaluationId, UUID studentClientId, String questionsAskedJson) {
+    public static Evaluation create(String title, String instruction) {
         var now = Instant.now();
-        var entity = new EvaluationRun();
+        var entity = new Evaluation();
         entity.id = UUID.randomUUID();
-        entity.evaluationId = evaluationId;
-        entity.studentClientId = studentClientId;
-        entity.questionsAskedJson = questionsAskedJson;
-        entity.status = EvaluationRunStatus.IN_PROGRESS;
+        entity.title = title;
+        entity.instruction = instruction;
+        entity.status = EvaluationStatus.PENDING;
         entity.createdAt = now;
         entity.updatedAt = now;
         return entity;
