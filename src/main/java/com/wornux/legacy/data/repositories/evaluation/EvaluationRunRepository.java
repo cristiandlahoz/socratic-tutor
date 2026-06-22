@@ -1,9 +1,9 @@
-package com.wornux.data.repositories.evaluation;
+package com.wornux.legacy.data.repositories.evaluation;
 
 import java.util.List;
 import java.util.UUID;
 
-import com.wornux.data.entities.EvaluationRun;
+import com.wornux.legacy.data.entities.EvaluationRun;
 import com.wornux.data.enums.EvaluationRunStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 

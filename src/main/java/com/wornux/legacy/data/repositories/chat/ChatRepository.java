@@ -1,10 +1,10 @@
-package com.wornux.data.repositories.chat;
+package com.wornux.legacy.data.repositories.chat;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.wornux.data.entities.*;
+import com.wornux.legacy.data.entities.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ChatRepository extends JpaRepository<Chat, UUID> {

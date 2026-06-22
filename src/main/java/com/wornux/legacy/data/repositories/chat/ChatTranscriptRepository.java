@@ -1,8 +1,8 @@
-package com.wornux.data.repositories.chat;
+package com.wornux.legacy.data.repositories.chat;
 
 import java.util.UUID;
 
-import com.wornux.data.entities.*;
+import com.wornux.legacy.data.entities.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ChatTranscriptRepository extends JpaRepository<ChatTranscript, Long> {

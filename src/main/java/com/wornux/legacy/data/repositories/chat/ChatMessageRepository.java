@@ -1,9 +1,9 @@
-package com.wornux.data.repositories.chat;
+package com.wornux.legacy.data.repositories.chat;
 
 import java.util.List;
 import java.util.UUID;
 
-import com.wornux.data.entities.*;
+import com.wornux.legacy.data.entities.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

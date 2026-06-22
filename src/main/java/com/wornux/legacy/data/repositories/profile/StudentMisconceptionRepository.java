@@ -1,11 +1,11 @@
-package com.wornux.data.repositories.profile;
+package com.wornux.legacy.data.repositories.profile;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.wornux.data.entities.*;
+import com.wornux.legacy.data.entities.*;
 import com.wornux.data.enums.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 
