@@ -47,8 +47,8 @@ public class DocumentIngestionUiController implements Serializable {
             DocumentIngestionService documentIngestionService,
             BrowserClientService browserClientService,
             ConversationService conversationService,
-            ChatState chatUiState,
-            DocumentIngestionState state) {
+            @RouteScopeOwner(MainLayout.class) ChatState chatUiState,
+            @RouteScopeOwner(MainLayout.class) DocumentIngestionState state) {
         this.documentIngestionService = documentIngestionService;
         this.browserClientService = browserClientService;
         this.conversationService = conversationService;
@@ -62,7 +62,7 @@ public class DocumentIngestionUiController implements Serializable {
 
     public void initializeFromRoute(String documentIdParam) {
         ensureClientContext();
-        Optional<DocumentReviewViewModel> review = parseUuid(documentIdParam)
+        Optional<DocumentReviewViewModel> review = parseLong(documentIdParam)
                 .flatMap(documentId -> documentIngestionService.loadReview(chatUiState.clientId().peek(), documentId));
         if (review.isEmpty()) {
             review = documentIngestionService.loadLatestReview(chatUiState.clientId().peek());
@@ -117,7 +117,7 @@ public class DocumentIngestionUiController implements Serializable {
             return;
         }
         abortActiveTask();
-        UUID documentId = state.activeDocumentId().peek();
+        Long documentId = state.activeDocumentId().peek();
         state.startProcessing(state.fileName().peek(), "Eliminando documento indexado.");
         activeTask = Mono.fromCallable(() -> {
             documentIngestionService.delete(chatUiState.clientId().peek(), documentId);
@@ -159,10 +159,10 @@ public class DocumentIngestionUiController implements Serializable {
 
     public void returnToChat() {
         if (chatUiState.activeConversationId().peek() != null) {
-            UI.getCurrent().navigate("", QueryParameters.of("c", chatUiState.activeConversationId().peek().toString()));
+            UI.getCurrent().navigate(com.wornux.ui.chat.ChatView.class, QueryParameters.of("c", chatUiState.activeConversationId().peek().toString()));
             return;
         }
-        UI.getCurrent().navigate("");
+        UI.getCurrent().navigate(com.wornux.ui.chat.ChatView.class);
     }
 
     private void applyReview(DocumentReviewViewModel review) {
@@ -170,7 +170,7 @@ public class DocumentIngestionUiController implements Serializable {
         synchronizeAddressBar(review.documentId());
     }
 
-    private void synchronizeAddressBar(UUID documentId) {
+    private void synchronizeAddressBar(Long documentId) {
         UI.getCurrent()
                 .getPage()
                 .getHistory()
@@ -209,14 +209,14 @@ public class DocumentIngestionUiController implements Serializable {
         return throwable.getMessage();
     }
 
-    private Optional<UUID> parseUuid(String value) {
+    private Optional<Long> parseLong(String value) {
         if (value == null || value.isBlank()) {
             return Optional.empty();
         }
         try {
-            return Optional.of(UUID.fromString(value));
+            return Optional.of(Long.parseLong(value));
         }
-        catch (IllegalArgumentException exception) {
+        catch (NumberFormatException exception) {
             return Optional.empty();
         }
     }

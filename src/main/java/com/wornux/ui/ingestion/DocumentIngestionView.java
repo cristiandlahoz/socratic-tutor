@@ -26,7 +26,11 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.signals.Signal;
+import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.workspace.WorkspaceDestination;
+import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.ingestion.DocumentSegmentEditorList;
@@ -42,12 +46,18 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     private final Button approveButton;
     private final Button retryButton;
     private final Button deleteButton;
+    private final AuthenticatedAccountService authenticatedAccountService;
+    private final WorkspaceRoutingService workspaceRoutingService;
 
     public DocumentIngestionView(
-            DocumentIngestionUiController controller,
-            DocumentIngestionState state,
-            DocumentIngestionProperties properties) {
+            @RouteScopeOwner(MainLayout.class) DocumentIngestionUiController controller,
+            @RouteScopeOwner(MainLayout.class) DocumentIngestionState state,
+            DocumentIngestionProperties properties,
+            AuthenticatedAccountService authenticatedAccountService,
+            WorkspaceRoutingService workspaceRoutingService) {
         this.controller = controller;
+        this.authenticatedAccountService = authenticatedAccountService;
+        this.workspaceRoutingService = workspaceRoutingService;
 
         var drawerToggle = new ShellDrawerToggle("shell-drawer-toggle", "Abrir menu");
 
@@ -61,7 +71,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
                 "Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y luego indexalo para preguntas posteriores.");
         description.addClassName("document-ingest-description");
 
-        Button backToChatButton = new Button("Volver al chat");
+        Button backToChatButton = new Button("Volver a la conversación");
         backToChatButton.setId("document-ingestion-back-to-chat");
         backToChatButton.addThemeVariants(ButtonVariant.TERTIARY);
         backToChatButton.addClassName("document-ingest-back-button");
@@ -166,6 +176,11 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        var account = authenticatedAccountService.requireCurrentAccount();
+        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
+            event.forwardTo("no-access");
+            return;
+        }
         controller.initializeFromRoute(
             event.getLocation()
                     .getQueryParameters()

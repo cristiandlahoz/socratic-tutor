@@ -3,8 +3,6 @@ package com.wornux.ui.ingestion;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
-import java.util.UUID;
-
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.local.ValueSignal;
 import com.vaadin.flow.spring.annotation.RouteScope;
@@ -20,7 +18,7 @@ public class DocumentIngestionState implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private final ValueSignal<UUID> activeDocumentId = new ValueSignal<>(null);
+    private final ValueSignal<Long> activeDocumentId = new ValueSignal<>(null);
     private final ValueSignal<Long> activeJobId = new ValueSignal<>(null);
     private final ValueSignal<String> fileName = new ValueSignal<>("");
     private final ValueSignal<String> stageLabel = new ValueSignal<>("Sube un PDF para comenzar.");
@@ -43,7 +41,7 @@ public class DocumentIngestionState implements Serializable {
                         .stream()
                         .allMatch(segment -> segment.content() != null && !segment.content().isBlank()));
 
-    public ValueSignal<UUID> activeDocumentId() {
+    public ValueSignal<Long> activeDocumentId() {
         return activeDocumentId;
     }
 
