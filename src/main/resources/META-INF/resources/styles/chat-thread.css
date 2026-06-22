@@ -40,36 +40,49 @@ vaadin-message.chat-message-assistant::part(content) {
     max-width: min(50rem, 100%);
 }
 
-vaadin-markdown {
-    p, ul, ol, li, blockquote, table, figure, hr, h1, h2, h3, h4, h5, h6 {
-        margin-block: 0;
-        margin: 0;
-    }
+vaadin-message {
+    --vaadin-message-font-size: var(--chat-message-font-size);
+    --vaadin-message-font-weight: var(--chat-message-font-weight);
+    --vaadin-message-line-height: var(--chat-message-line-height);
+    --vaadin-message-name-color: transparent;
+    --vaadin-message-time-color: transparent;
 }
 
-code-message-body code-block-viewer {
-    margin-bottom: 1em;
+vaadin-message.chat-message-user {
+    --vaadin-message-text-color: var(--chat-message-user-text-color);
+}
+
+vaadin-message.chat-message-assistant {
+    --vaadin-message-text-color: var(--chat-message-assistant-text-color);
+}
+
+vaadin-message message-content-renderer {
+    font-size: var(--chat-message-font-size);
+    line-height: var(--chat-message-line-height);
+}
+
+message-code-renderer code-block-viewer {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--chat-border-visible);
+    border-radius: var(--chat-code-radius);
+    box-shadow: var(--chat-shadow-dark-card);
+    background: var(--chat-code-background);
+    backdrop-filter: blur(16px);
 }
 
 vaadin-message.chat-message-user::part(message) {
     background: var(--chat-surface);
-    color: var(--chat-text-primary);
     border: 1px solid var(--chat-border-visible);
     border-radius: var(--chat-message-radius);
     box-shadow: var(--chat-shadow-dark-card);
     backdrop-filter: blur(18px);
     padding: 1.08rem 1.22rem;
-    font-family: var(--chat-font-body);
-    font-size: 0.75rem;
-    line-height: 1rem;
 }
 
-vaadin-message.chat-message-user code-message-body,
-vaadin-message.chat-message-user code-message-body vaadin-markdown,
-vaadin-message.chat-message-user vaadin-markdown :is(p, ul, ol, li, blockquote, h1, h2, h3, h4, h5, h6, strong) {
-    color: var(--chat-text-primary);
-    font-size: 0.75rem;
-    line-height: 1rem;
+vaadin-message.chat-message-user :is(message-content-renderer, message-prose-renderer, vaadin-markdown) :is(p, ul, ol, li, blockquote, h1, h2, h3, h4, h5, h6, strong) {
+    color: var(--chat-message-user-text-color);
 }
 
 vaadin-message.chat-message-assistant::part(message) {
@@ -77,38 +90,7 @@ vaadin-message.chat-message-assistant::part(message) {
     border: 0;
     box-shadow: none;
     padding: 0;
-    color: var(--chat-text-prose);
-    font-family: var(--chat-font-body);
-    font-size: 0.75rem;
-    line-height: 1rem;
     letter-spacing: 0;
-}
-
-vaadin-message.chat-message-assistant code-message-body,
-vaadin-message.chat-message-assistant code-message-body vaadin-markdown {
-    color: var(--chat-text-prose);
-    font-weight: var(--chat-font-weight-body);
-    font-size: 0.75rem;
-    line-height: 1rem;
-}
-
-vaadin-message.chat-message-assistant vaadin-markdown :is(p, ul, ol, li, blockquote) {
-    color: var(--chat-text-prose);
-    font-weight: var(--chat-font-weight-body);
-    font-size: 0.75rem;
-    line-height: 1rem;
-}
-
-vaadin-message.chat-message-assistant vaadin-markdown :is(h1, h2, h3, h4, h5, h6) {
-    color: var(--chat-text-display);
-    font-weight: var(--chat-font-weight-title);
-    font-size: 0.75rem;
-    line-height: 1rem;
-}
-
-vaadin-message.chat-message-assistant vaadin-markdown strong {
-    color: var(--chat-text-primary);
-    font-weight: var(--chat-font-weight-title-strong);
 }
 
 vaadin-message.chat-message-assistant vaadin-markdown :is(ul, ol) {
@@ -137,7 +119,7 @@ vaadin-message.is-loading::part(message) {
     letter-spacing: 0;
 }
 
-vaadin-message.is-loading code-message-body,
+vaadin-message.is-loading message-content-renderer,
 vaadin-message.is-loading braille-spinner {
     display: inline-block;
     min-width: 2ch;
@@ -161,7 +143,7 @@ vaadin-message a:hover {
     text-decoration-color: var(--chat-link);
 }
 
-vaadin-message code-message-body {
+vaadin-message message-content-renderer {
     display: block;
     width: 100%;
 }

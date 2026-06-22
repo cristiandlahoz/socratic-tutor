@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.wornux.ai.profile.ProfileAwareResponseAdvisor;
 import com.wornux.ai.profile.TurnProfileInferenceService;
 import com.wornux.ai.tools.AskStudentQuestionTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
@@ -57,7 +56,6 @@ public class ChatService {
       AskStudentQuestionTool.QuestionHandler questionHandler) {
     var promptTokens = new AtomicReference<Integer>();
     var promptSpec = chatClient.prompt()
-
         .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId.toString()))
         .toolContext(
           Map.of(

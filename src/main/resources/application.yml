@@ -140,3 +140,7 @@ spring:
   docker:
     compose:
       lifecycle-management: start-only
+
+vaadin:
+  frontend:
+    hotdeploy: true

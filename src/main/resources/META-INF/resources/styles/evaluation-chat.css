@@ -102,13 +102,6 @@
   padding: 1rem 0;
 }
 
-.evaluation-report-markdown vaadin-markdown {
-  display: block;
-  line-height: var(--chat-leading-chat-assistant);
-  color: var(--chat-text-prose);
-  font-weight: var(--chat-font-weight-body);
-}
-
 .evaluation-report-markdown vaadin-markdown h1,
 .evaluation-report-markdown vaadin-markdown h2,
 .evaluation-report-markdown vaadin-markdown h3,
@@ -117,43 +110,18 @@
 .evaluation-report-markdown vaadin-markdown h6 {
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
-  color: var(--chat-text-display);
-  font-weight: var(--chat-font-weight-title);
-  line-height: 1.16;
-}
-
-.evaluation-report-markdown vaadin-markdown h1 {
-  font-size: 1.5rem;
-}
-
-.evaluation-report-markdown vaadin-markdown h2 {
-  font-size: 1.25rem;
-}
-
-.evaluation-report-markdown vaadin-markdown h3 {
-  font-size: 1.1rem;
 }
 
 .evaluation-report-markdown vaadin-markdown p {
   margin-bottom: 0.75rem;
-  color: var(--chat-text-prose);
-  line-height: 1.48;
 }
 
 .evaluation-report-markdown vaadin-markdown ul,
 .evaluation-report-markdown vaadin-markdown ol {
   margin-bottom: 0.75rem;
   padding-left: 1.5rem;
-  color: var(--chat-text-prose);
 }
 
 .evaluation-report-markdown vaadin-markdown li {
   margin-bottom: 0.25rem;
-  color: var(--chat-text-prose);
-  line-height: 1.48;
-}
-
-.evaluation-report-markdown vaadin-markdown strong {
-  color: var(--chat-text-primary);
-  font-weight: var(--chat-font-weight-title-strong);
 }

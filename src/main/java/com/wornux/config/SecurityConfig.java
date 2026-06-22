@@ -20,15 +20,16 @@ public class SecurityConfig {
   SecurityFilterChain vaadinSecurityFilterChain(
       HttpSecurity http,
       Environment environment,
-      @Value("${app.security.disable-for-local-development:false}") boolean securityEnabled) throws Exception {
+      @Value("${app.security.disable-for-local-development:false}") boolean disableSecurity) throws Exception {
 
     boolean isProduction = Arrays.asList(environment.getActiveProfiles()).contains("prod");
 
-    if (isProduction && !securityEnabled) {
-      throw new IllegalStateException("Refusing to start production with app.security.enabled=false");
+    if (isProduction && disableSecurity) {
+      throw new IllegalStateException(
+          "Refusing to start production with app.security.disable-for-local-development=true");
     }
 
-    if (!securityEnabled) {
+    if (disableSecurity) {
       http.with(vaadin(), vaadinSecurity -> {
         vaadinSecurity.enableNavigationAccessControl(false);
         vaadinSecurity.anyRequest(any -> any.permitAll());

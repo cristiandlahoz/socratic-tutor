@@ -25,8 +25,17 @@ html {
     --vaadin-app-layout-drawer-background: var(--theme-header-surface);
     --vaadin-overlay-shadow: var(--chat-shadow-soft);
     --vaadin-overlay-backdrop-background: rgba(0, 0, 0, 0.36);
-    --vaadin-message-font-size: var(--chat-font-size);
-    --vaadin-message-font-weight: var(--chat-font-weight-body);
+    --vaadin-message-font-size: var(--chat-message-font-size);
+    --vaadin-message-font-weight: var(--chat-message-font-weight);
+    --vaadin-message-line-height: var(--chat-message-line-height);
+    --vaadin-message-text-color: var(--chat-message-user-text-color);
+    --vaadin-message-name-color: var(--chat-text-secondary);
+    --vaadin-message-name-font-size: var(--chat-text-meta);
+    --vaadin-message-name-font-weight: var(--chat-font-weight-body);
+    --vaadin-message-time-color: var(--chat-text-tertiary);
+    --vaadin-message-time-font-size: var(--chat-text-meta);
+    --vaadin-message-time-font-weight: var(--chat-font-weight-body);
+    --vaadin-message-gap: 0;
 
     --theme-app-background: var(--theme-dark-background);
     --theme-canvas: var(--theme-dark-background);
@@ -100,6 +109,47 @@ body > * {
     z-index: 1;
 }
 
+vaadin-markdown {
+    display: block;
+    color: var(--chat-message-prose-color);
+    font-size: var(--chat-message-font-size);
+    line-height: var(--chat-message-line-height);
+    font-weight: var(--chat-message-font-weight);
+}
+
+vaadin-markdown :is(p, ul, ol, li, blockquote, table, figure, hr, h1, h2, h3, h4, h5, h6) {
+    margin-block: 0;
+    margin: 0;
+}
+
+vaadin-markdown :is(p, ul, ol, li, blockquote) {
+    color: var(--chat-message-prose-color);
+    line-height: var(--chat-message-line-height);
+}
+
+vaadin-markdown :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--chat-message-heading-color);
+    font-weight: var(--chat-markdown-heading-font-weight);
+    line-height: var(--chat-message-line-height);
+}
+
+vaadin-markdown h1 {
+    font-size: var(--chat-markdown-h1-font-size);
+}
+
+vaadin-markdown h2 {
+    font-size: var(--chat-markdown-h2-font-size);
+}
+
+vaadin-markdown :is(h3, h4, h5, h6) {
+    font-size: var(--chat-markdown-h3-font-size);
+}
+
+vaadin-markdown strong {
+    color: var(--chat-message-strong-color);
+    font-weight: var(--chat-markdown-heading-font-weight);
+}
+
 ::selection {
     background: var(--chat-selection);
 }
@@ -120,6 +170,7 @@ body > * {
     body:not([data-theme-preference]),
     body[data-theme-preference="system"] {
         --chat-font-weight-body: 450;
+        --chat-message-font-weight: 450;
         --theme-app-background: var(--theme-light-background);
         --theme-canvas: var(--theme-light-background);
         --theme-header-surface: color-mix(in srgb, var(--theme-light-surface) 86%, transparent);
@@ -167,6 +218,7 @@ html[data-theme-preference="light"] {
 html[data-theme-preference="light"],
 body[data-theme-preference="light"] {
     --chat-font-weight-body: 450;
+    --chat-message-font-weight: 450;
     --theme-app-background: var(--theme-light-background);
     --theme-canvas: var(--theme-light-background);
     --theme-header-surface: color-mix(in srgb, var(--theme-light-surface) 86%, transparent);

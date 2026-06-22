@@ -48,6 +48,10 @@ function ensureCodeMessageBodyStyles(): void {
       color: inherit;
     }
 
+    code-message-body code-block-viewer + vaadin-markdown {
+      margin-top: 0.75rem;
+    }
+
     code-message-body :where(vaadin-markdown > :is(h1, h2, h3, h4, h5, h6, p, ul, ol, hr, blockquote, pre):first-child) {
       margin-top: 0;
     }

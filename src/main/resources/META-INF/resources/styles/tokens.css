@@ -1,7 +1,7 @@
 :root {
   /* Light mode foundation, inspired by fechan.github.io */
-  --theme-light-background: oklch(92.5% 0.036 78);
-  --theme-light-surface: oklch(95.6% 0.025 79);
+  --theme-light-background: oklch(97.5% 0.036 78);
+  --theme-light-surface: oklch(91.6% 0.025 79);
   --theme-light-surface-muted: oklch(89.8% 0.039 80);
   --theme-light-text: oklch(32.4% 0.007 107);
   --theme-light-text-muted: oklch(45.4% 0.016 71);
@@ -14,7 +14,7 @@
 
   /* Dark mode foundation, intentionally close to the existing shell. */
   --theme-dark-background: #091c1e;
-  --theme-dark-surface: rgba(12, 20, 21, 0.92);
+  --theme-dark-surface: rgba(7, 13, 14, 0.92);
   --theme-dark-surface-strong: rgba(15, 24, 25, 0.96);
   --theme-dark-surface-raised: rgba(18, 28, 29, 0.98);
   --theme-dark-surface-hover: rgba(23, 34, 35, 0.98);
@@ -55,6 +55,13 @@
   --chat-font-weight-body: 400;
   --chat-font-weight-title: 400;
   --chat-font-weight-title-strong: 450;
+  --chat-message-font-size: 0.75rem;
+  --chat-message-line-height: 1rem;
+  --chat-message-font-weight: 400;
+  --chat-markdown-heading-font-weight: 700;
+  --chat-markdown-h1-font-size: 1rem;
+  --chat-markdown-h2-font-size: 0.88rem;
+  --chat-markdown-h3-font-size: var(--chat-message-font-size);
   --chat-font-size: clamp(1rem, 0.34vw, 1.18rem);
   --chat-text-code: clamp(1rem, 0.38vw, 1.08rem);
   --chat-leading-chat-user: 1.58;
@@ -87,6 +94,11 @@
   --chat-text-primary: var(--theme-text-primary);
   --chat-text-display: var(--theme-text-display);
   --chat-text-prose: color-mix(in srgb, var(--theme-text-primary) 76%, var(--theme-text-secondary));
+  --chat-message-user-text-color: var(--chat-text-primary);
+  --chat-message-assistant-text-color: var(--chat-text-prose);
+  --chat-message-prose-color: var(--chat-text-prose);
+  --chat-message-heading-color: var(--chat-text-display);
+  --chat-message-strong-color: var(--chat-text-primary);
   --chat-link: var(--theme-link);
   --chat-interactive: var(--theme-interactive);
   --chat-interactive-strong: var(--theme-interactive-strong);
