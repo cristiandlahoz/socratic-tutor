@@ -46,11 +46,11 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var rail = new Div();
         rail.addClassName("login-view__rail");
 
-        var title = new H1("Tutor Socrático");
+        var title = new H1("Socratic Tutor");
         title.addClassName("login-view__title");
 
         var description =
-                new Paragraph("Explora ideas, resolvé dudas y aprendé algoritmia con preguntas guiadas, paso a paso.");
+                new Paragraph("Explore ideas, ask better questions, and learn algorithms step by step.");
         description.addClassName("login-view__description");
 
         var copy = new Div( title, description);
@@ -62,10 +62,10 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private Component createFormPanel() {
-        var title = new H1("Continuá tu aprendizaje");
+        var title = new H1("Continue your learning");
         title.addClassName("login-view__panel-title");
 
-        var hint = new Paragraph("Volvé a tus conversaciones, documentos y evaluaciones guardadas.");
+        var hint = new Paragraph("Return to your saved conversations, documents, and evaluations.");
         hint.addClassName("login-view__panel-hint");
 
         var header = new Div(title, hint);
@@ -90,16 +90,16 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var i18n = LoginI18n.createDefault();
 
         var form = i18n.getForm();
-        form.setTitle("Ingresar");
-        form.setUsername("Usuario");
-        form.setPassword("Contraseña");
-        form.setSubmit("Entrar");
-        form.setForgotPassword("Olvidé mi contraseña");
+        form.setTitle("Sign in");
+        form.setUsername("Email or username");
+        form.setPassword("Password");
+        form.setSubmit("Sign in");
+        form.setForgotPassword("Invitation-only access");
         i18n.setForm(form);
 
         var error = i18n.getErrorMessage();
-        error.setTitle("No pudimos iniciar sesión");
-        error.setMessage("Revisá tu usuario y contraseña, y volvé a intentarlo.");
+        error.setTitle("We could not sign you in");
+        error.setMessage("Check your email or username and password, then try again.");
         i18n.setErrorMessage(error);
 
         return i18n;
