@@ -26,20 +26,22 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
-import com.wornux.config.*;
+import com.vaadin.flow.spring.annotation.RouteScopeOwner;
+import com.wornux.config.ChatProperties;
+import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
+import com.wornux.services.workspace.WorkspaceDestination;
+import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
 import com.wornux.ui.crunner.DebuggerPanel;
-import jakarta.annotation.security.PermitAll;
 import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-@Route(value = "", layout = MainLayout.class)
-@PermitAll
+@Route(value = "chat", layout = MainLayout.class)
 public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
     private final ChatViewModel viewModel;
@@ -51,18 +53,32 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     private final StudentQuestionPanel questionPanel;
     private final DebuggerPanel debuggerPanel;
     private final SplitLayout splitLayout;
+    private final ChatProperties chatProperties;
+    private final CProgramDebugService cProgramDebugService;
+    private final CExamplePreparationService cExamplePreparationService;
+    private final Executor cRunnerExecutor;
+    private final AuthenticatedAccountService authenticatedAccountService;
+    private final WorkspaceRoutingService workspaceRoutingService;
     private boolean debuggerVisible;
 
     public ChatView(
-            ChatState state,
-            ChatViewModel viewModel,
+            @RouteScopeOwner(MainLayout.class) ChatState state,
+            @RouteScopeOwner(MainLayout.class) ChatViewModel viewModel,
             ChatProperties chatProperties,
             CProgramDebugService cProgramDebugService,
             CExamplePreparationService cExamplePreparationService,
-            @Qualifier("cRunnerExecutor") Executor cRunnerExecutor) {
+            @Qualifier("cRunnerExecutor") Executor cRunnerExecutor,
+            AuthenticatedAccountService authenticatedAccountService,
+            WorkspaceRoutingService workspaceRoutingService) {
         this.viewModel = viewModel;
+        this.chatProperties = chatProperties;
+        this.cProgramDebugService = cProgramDebugService;
+        this.cExamplePreparationService = cExamplePreparationService;
+        this.cRunnerExecutor = cRunnerExecutor;
+        this.authenticatedAccountService = authenticatedAccountService;
+        this.workspaceRoutingService = workspaceRoutingService;
 
-        Div emptyState = createEmptyState();
+        Div emptyState = createEmptyState(state);
         emptyState.bindVisible(state.emptyStateVisible());
 
         messageList = new CodeMessageList();
@@ -136,6 +152,21 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        var account = authenticatedAccountService.requireCurrentAccount();
+        var hasProfessorAccess = workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR);
+        var hasStudentAccess = workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT);
+        if (!hasProfessorAccess && !hasStudentAccess) {
+            event.forwardTo("no-access");
+            return;
+        }
+        if (!workspaceRoutingService.currentClassMembership(account, null).isPresent()) {
+            if (hasProfessorAccess) {
+                workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR);
+            }
+            else {
+                workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT);
+            }
+        }
         var draftRequested = event.getLocation()
                 .getQueryParameters()
                 .getSingleParameter(ChatViewModel.DRAFT_QUERY_PARAMETER)
@@ -154,9 +185,9 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         historyScroller.getElement().executeJs("this.scrollTop = 0;");
     }
 
-    private Div createEmptyState() {
-        var state = new Div();
-        state.addClassName("chat-empty");
+    private Div createEmptyState(ChatState chatState) {
+        var emptyState = new Div();
+        emptyState.addClassName("chat-empty");
 
         var animation = new AsciiFrameAnimation("crow3-frames", 240, 30);
         animation.addClassName("chat-empty-illustration");
@@ -164,21 +195,27 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var animationFrame = new Div(animation);
         animationFrame.addClassName("chat-empty-frame");
 
-
-        var title = new H2("Haz tu primera pregunta");
+        var title = new H2("Ask your first question");
         title.addClassName("chat-empty-title");
 
-        var contentRow = getContentRow(title, animationFrame);
+        var description = new Paragraph(
+                "Write a prompt and the tutor will help you reason step by step, clarify concepts, and practice with examples.");
+        description.addClassName("chat-empty-description");
+        com.vaadin.flow.signals.Signal.effect(title, () -> title.setText(Boolean.TRUE.equals(chatState.setupRequired().get())
+                ? "Academic setup required"
+                : "Ask your first question"));
+        com.vaadin.flow.signals.Signal.effect(description, () -> description.setText(
+                Boolean.TRUE.equals(chatState.setupRequired().get())
+                        ? chatState.setupMessage().get()
+                        : "Write a prompt and the tutor will help you reason step by step, clarify concepts, and practice with examples."));
 
-        state.add(contentRow);
-        return state;
+        var contentRow = getContentRow(title, description, animationFrame);
+
+        emptyState.add(contentRow);
+        return emptyState;
     }
 
-    private static @NonNull HorizontalLayout getContentRow( H2 title, Div animationFrame) {
-        var description = new Paragraph(
-                "Escribe y te ayudare a razonar paso a paso, aclarar conceptos y practicar con" + " ejemplos.");
-        description.addClassName("chat-empty-description");
-
+    private static @NonNull HorizontalLayout getContentRow(H2 title, Paragraph description, Div animationFrame) {
         var textColumn = new VerticalLayout(title, description);
         textColumn.addClassName("chat-empty-content");
         textColumn.setPadding(false);
@@ -232,7 +269,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
         var helpCopy =
                 new Paragraph("Muestra los prompt tokens del transcript activo y el porcentaje usado contra el umbral"
-                        + " de compactación configurado para resumir la conversación antes de perder" + " calidad.");
+                        + " de compactación configurado para resumir la conversación antes de perder calidad.");
         helpCopy.addClassName("chat-sidebar-help-description");
         helpPopover.add(new Div(helpTitle, helpCopy));
 
