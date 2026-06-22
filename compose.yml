@@ -9,6 +9,13 @@ services:
       - db_postgres:/var/lib/postgresql
     ports:
       - "${POSTGRES_PORT:-4321}:5432"
+  mailpit:
+    image: "axllent/mailpit:v1.27"
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+    volumes:
+      - mailpit_data:/data
   app:
     profiles:
       - app
@@ -22,6 +29,12 @@ services:
       - "DATABASE_URL=jdbc:postgresql://postgres:5432/socratic-tutor"
       - "DATABASE_USERNAME=postgres"
       - "DATABASE_PASSWORD=postgres"
+      - "SOCRATIC_EMAIL_SMTP_HOST=mailpit"
+      - "SOCRATIC_EMAIL_SMTP_PORT=1025"
+      - "SOCRATIC_EMAIL_SMTP_USERNAME="
+      - "SOCRATIC_EMAIL_SMTP_PASSWORD="
+      - "SOCRATIC_EMAIL_SMTP_AUTH=false"
+      - "SOCRATIC_EMAIL_SMTP_STARTTLS_ENABLED=false"
       - "C_RUNNER_COMPILER_IMAGE=${C_RUNNER_COMPILER_IMAGE:-cristiandelahooz/socratic-tutor-crunner:latest}"
       - "C_RUNNER_DEBUGGER_IMAGE=${C_RUNNER_DEBUGGER_IMAGE:-cristiandelahooz/socratic-tutor-crunner:latest}"
     volumes:
@@ -30,5 +43,7 @@ services:
       - "${APP_PORT:-6543}:6543"
     depends_on:
       - postgres
+      - mailpit
 volumes:
   db_postgres: {}
+  mailpit_data: {}

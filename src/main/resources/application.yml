@@ -24,6 +24,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
   jpa:
+    packages-to-scan: com.wornux.data.entities
     hibernate:
       ddl-auto: validate
   docker:
@@ -44,20 +45,18 @@ spring:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
-    vectorstore:
-      pgvector:
-        initialize-schema: false
-        schema-name: public
-        table-name: vector_store
-        dimensions: 1024
-        distance-type: COSINE_DISTANCE
-        index-type: HNSW
+arconia:
+  dev:
+    services:
+      docling:
+        startup-timeout: 3m
 
 app:
   security:
     disable-for-local-development: ${SECURITY_DISABLE:false}
+  browser:
+    id-cookie-name: ${BROWSER_ID_COOKIE_NAME:st_browser_id}
   chat:
-    client-id-cookie-name: ${CHAT_CLIENT_ID_COOKIE_NAME:st_client_id}
     context-window-tokens: ${CHAT_CONTEXT_WINDOW_TOKENS:40960}
     compaction-threshold-ratio: ${CHAT_COMPACTION_THRESHOLD_RATIO:0.30}
     ui:
@@ -107,6 +106,23 @@ app:
     pids-limit: ${C_RUNNER_PIDS_LIMIT:64}
     cache-maximum-size: ${C_RUNNER_CACHE_MAXIMUM_SIZE:256}
     cache-ttl: ${C_RUNNER_CACHE_TTL:10m}
+
+socratic:
+  email:
+    invitation-base-url: ${SOCRATIC_EMAIL_INVITATION_BASE_URL:${app.base-url:http://localhost:${server.port}}}
+    invitation-expiration: ${SOCRATIC_EMAIL_INVITATION_EXPIRATION:PT72H}
+    from-address: ${SOCRATIC_EMAIL_FROM_ADDRESS:no-reply@socratic-tutor.local}
+    from-name: ${SOCRATIC_EMAIL_FROM_NAME:Socratic Tutor}
+    smtp:
+      host: ${SOCRATIC_EMAIL_SMTP_HOST:localhost}
+      port: ${SOCRATIC_EMAIL_SMTP_PORT:1025}
+      username: ${SOCRATIC_EMAIL_SMTP_USERNAME:}
+      password: ${SOCRATIC_EMAIL_SMTP_PASSWORD:}
+      auth: ${SOCRATIC_EMAIL_SMTP_AUTH:false}
+      starttls-enabled: ${SOCRATIC_EMAIL_SMTP_STARTTLS_ENABLED:false}
+      connection-timeout: ${SOCRATIC_EMAIL_SMTP_CONNECTION_TIMEOUT:5000}
+      timeout: ${SOCRATIC_EMAIL_SMTP_TIMEOUT:5000}
+      write-timeout: ${SOCRATIC_EMAIL_SMTP_WRITE_TIMEOUT:5000}
 
 vaadin:
   allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux
