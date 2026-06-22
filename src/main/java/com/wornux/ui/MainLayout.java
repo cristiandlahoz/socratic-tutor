@@ -23,8 +23,8 @@ import com.vaadin.flow.component.shared.Tooltip;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.RouterLink;
-import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.signals.Signal;
+import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.ConversationSummary;
 import com.wornux.ui.chat.ChatState;
@@ -37,7 +37,6 @@ import com.wornux.ui.ingestion.DocumentIngestionView;
 
 @Layout
 @PreserveOnRefresh
-@AnonymousAllowed
 public class MainLayout extends AppLayout {
 
     private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");
@@ -80,10 +79,12 @@ public class MainLayout extends AppLayout {
         }
     }
 
-    public MainLayout(ChatState state, ChatViewModel viewModel) {
+    public MainLayout(
+            @RouteScopeOwner(MainLayout.class) ChatState state,
+            @RouteScopeOwner(MainLayout.class) ChatViewModel viewModel) {
         setPrimarySection(Section.DRAWER);
         this.viewModel = viewModel;
-        viewModel.initializeShellState();
+        this.viewModel.initializeShellState();
 
         var drawerContent = new Div();
         drawerContent.addClassNames("shell-drawer-content", "chat-sidebar-shell", "sidebar-rail-shell");
@@ -98,14 +99,14 @@ public class MainLayout extends AppLayout {
         appTitleRow.addClassName("chat-sidebar-app-title-row");
 
         var appDescription = new Paragraph(
-                "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia con preguntas guiadas.");
+                "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia con conversaciones guiadas.");
         appDescription.addClassName("chat-sidebar-app-description");
 
         var appHeader = new Div(appTitleRow, appDescription);
         appHeader.addClassName("chat-sidebar-app-header");
 
         newChatButton = createActionButton();
-        newChatButton.addClickListener(_ -> viewModel.onStartNewChat());
+        newChatButton.addClickListener(_ -> this.viewModel.onStartNewChat());
 
         var ingestDocumentButton =
                 createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", new Icon(VaadinIcon.UPLOAD_ALT));
@@ -139,7 +140,7 @@ public class MainLayout extends AppLayout {
         var emptyTitle = new Span("Sin conversaciones todavía");
         emptyTitle.addClassName("chat-sidebar-empty-title");
 
-        var emptyDescription = new Paragraph("Inicia un nuevo chat para empezar a construir tu historial del tutor.");
+        var emptyDescription = new Paragraph("Inicia una nueva conversación para empezar a construir tu historial del tutor.");
         emptyDescription.addClassName("chat-sidebar-empty-description");
 
         emptyHistory = new Div(emptyTitle, emptyDescription);
@@ -159,7 +160,7 @@ public class MainLayout extends AppLayout {
 
         drawerContent.add(
             createRailEntry("brand", appHeader),
-            createRailEntry("theme", createThemePreferenceControl(state, viewModel)),
+            createRailEntry("theme", createThemePreferenceControl(state, this.viewModel)),
             createRailEntry("actions", actionsSection),
             createRailEntry("history", historyHeader),
             historySection);
@@ -169,7 +170,7 @@ public class MainLayout extends AppLayout {
         drawerScroller.addClassName("shell-drawer-scroller");
         addToDrawer(drawerScroller);
 
-        bindConversationState(state, viewModel);
+        bindConversationState(state, this.viewModel);
         installTimelineGraphRenderer();
     }
 
@@ -229,8 +230,8 @@ public class MainLayout extends AppLayout {
     private NativeButton createActionButton() {
         var button = new NativeButton();
         button.addClassNames("chat-sidebar-action-button", "sidebar-actions__item-button");
-        button.add(new SidebarItem(new Icon(VaadinIcon.PLUS), "Nuevo chat"));
-        button.setAriaLabel("Nuevo chat");
+        button.add(new SidebarItem(new Icon(VaadinIcon.PLUS), "Nueva conversación"));
+        button.setAriaLabel("Nueva conversación");
         return button;
     }
 
