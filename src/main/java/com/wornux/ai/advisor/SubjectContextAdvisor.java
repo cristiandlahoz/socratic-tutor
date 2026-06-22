@@ -42,9 +42,9 @@ public class SubjectContextAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private ChatClientRequest applySubjectContext(ChatClientRequest request) {
-        var subject = subjectConfigService.current(subjectSlugFrom(request));
+        var legacySubject = subjectConfigService.current(subjectSlugFrom(request));
         List<Message> messages = new ArrayList<>(request.prompt().getInstructions());
-        messages.add(new SystemMessage(toPrompt(subject)));
+        messages.add(new SystemMessage(toPrompt(legacySubject)));
 
         var promptBuilder = Prompt.builder().messages(messages);
         var options = request.prompt().getOptions();
@@ -62,7 +62,7 @@ public class SubjectContextAdvisor implements CallAdvisor, StreamAdvisor {
         return subjectConfigService.defaultSubjectSlug();
     }
 
-    private String toPrompt(SubjectConfig subject) {
+    private String toPrompt(SubjectConfig legacySubject) {
         return """
                Subject context:
                - Subject: %s
@@ -70,13 +70,13 @@ public class SubjectContextAdvisor implements CallAdvisor, StreamAdvisor {
                - Scope and policy: %s
                - Rubric defaults: %s
 
-               Use this subject context as the source of course-specific facts. Do not invent course policy.
-               """.formatted(subject.displayName(), subject.version(), subject.config(), subject.rubricDefaults());
+               Use this legacySubject context as the source of course-specific facts. Do not invent course policy.
+               """.formatted(legacySubject.displayName(), legacySubject.version(), legacySubject.config(), legacySubject.rubricDefaults());
     }
 
     @Override
     public @NullUnmarked String getName() {
-        return "subject-context-advisor";
+        return "legacySubject-context-advisor";
     }
 
     @Override
