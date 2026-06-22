@@ -41,8 +41,8 @@ public class DocumentCatalogAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private ChatClientRequest appendInventory(ChatClientRequest request) {
-        var clientId = clientId(request);
-        var inventory = catalogPromptService.buildInventoryPrompt(clientId);
+        var groupClassId = groupClassId(request);
+        var inventory = catalogPromptService.buildInventoryPrompt(groupClassId);
         if (inventory.isBlank()) {
             return request;
         }
@@ -59,8 +59,8 @@ public class DocumentCatalogAdvisor implements CallAdvisor, StreamAdvisor {
         return request.mutate().prompt(promptBuilder.build()).context("document_inventory_present", true).build();
     }
 
-    private UUID clientId(ChatClientRequest request) {
-        Object value = request.context().get(ToolUsageAuditService.CLIENT_ID);
+    private UUID groupClassId(ChatClientRequest request) {
+        Object value = request.context().get(ToolUsageAuditService.GROUP_CLASS_ID);
         if (value == null) {
             return null;
         }
