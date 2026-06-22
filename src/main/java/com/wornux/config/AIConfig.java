@@ -1,18 +1,6 @@
 package com.wornux.config;
 
-import com.wornux.ai.advisor.DocumentCatalogAdvisor;
-import com.wornux.ai.advisor.SubjectContextAdvisor;
-import com.wornux.ai.advisor.TutorGuardAdvisor;
-import com.wornux.ai.document.DocumentCatalogPromptService;
-import com.wornux.ai.guard.*;
-import com.wornux.ai.profile.ProfileAwareResponseAdvisor;
-import com.wornux.ai.profile.StudentProfilePromptMapper;
 import com.wornux.ai.prompt.TutorPromptResources;
-import com.wornux.ai.routing.PedagogicalRoutingAdvisor;
-import com.wornux.ai.routing.PedagogicalRoutingService;
-import com.wornux.ai.tools.RetrieveInformationTool;
-import com.wornux.services.profile.StudentProfileService;
-import com.wornux.services.subject.SubjectConfigService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
