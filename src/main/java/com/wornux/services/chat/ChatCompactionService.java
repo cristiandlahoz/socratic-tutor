@@ -1,14 +1,15 @@
 package com.wornux.services.chat;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import com.wornux.data.entities.ChatMessage;
-import com.wornux.data.entities.ChatTranscript;
-import com.wornux.data.repositories.chat.ChatMessageRepository;
-import com.wornux.data.repositories.chat.ChatRepository;
-import com.wornux.data.repositories.chat.ChatTranscriptRepository;
+import com.wornux.data.entities.conversation.ConversationSnapshot;
+import com.wornux.data.repositories.conversation.ConversationSnapshotRepository;
 import com.wornux.dtos.chat.ChatCompactionStatus;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ChatCompactionService {
 
+    private static final int RETAINED_MESSAGE_COUNT = 4;
     private static final String COMPACTION_SYSTEM_PROMPT =
             """
             You compress a tutoring conversation into a continuation memory.
@@ -38,9 +40,8 @@ public class ChatCompactionService {
             - Do not use markdown.
             """;
 
-    private final ChatRepository chatRepository;
-    private final ChatTranscriptRepository chatTranscriptRepository;
-    private final ChatMessageRepository chatMessageRepository;
+    private final ConversationService conversationService;
+    private final ConversationSnapshotRepository snapshotRepository;
     private final ChatUsageService chatUsageService;
     private final ChatModel chatModel;
     private final BeanOutputConverter<CompactedMemory> outputConverter =
@@ -50,56 +51,59 @@ public class ChatCompactionService {
     private String compactionModel;
 
     public ChatCompactionService(
-            ChatRepository chatRepository,
-            ChatTranscriptRepository chatTranscriptRepository,
-            ChatMessageRepository chatMessageRepository,
+            ConversationService conversationService,
+            ConversationSnapshotRepository snapshotRepository,
             ChatUsageService chatUsageService,
             ChatModel chatModel) {
-        this.chatRepository = chatRepository;
-        this.chatTranscriptRepository = chatTranscriptRepository;
-        this.chatMessageRepository = chatMessageRepository;
+        this.conversationService = conversationService;
+        this.snapshotRepository = snapshotRepository;
         this.chatUsageService = chatUsageService;
         this.chatModel = chatModel;
     }
 
     @Transactional
-    public ChatCompactionStatus compactIfNeeded(UUID chatId) {
-        if (!chatUsageService.exceedsCompactionThreshold(chatId)) {
+    public ChatCompactionStatus compactIfNeeded(UUID conversationId) {
+        if (!chatUsageService.exceedsCompactionThreshold(conversationId)) {
             return ChatCompactionStatus.none();
         }
 
-        var chat = chatRepository.findById(chatId)
-                .orElseThrow(() -> new IllegalStateException("Chat not found: " + chatId));
-        var activeTranscript = chat.getCurrentTranscript();
-        if (activeTranscript == null) {
+        var conversation = conversationService.requireOwnedConversation(conversationId);
+        var activeSnapshot = conversation.getCurrentSnapshot();
+        if (activeSnapshot == null || activeSnapshot.getMessages().isEmpty()) {
             return ChatCompactionStatus.none();
         }
 
-        var transcriptMessages = chatMessageRepository.findByTranscript_IdOrderByIdAsc(activeTranscript.getId());
-        if (transcriptMessages.isEmpty() && activeTranscript.memoryText().isBlank()) {
-            return ChatCompactionStatus.none();
-        }
-
-        var compactedMemory = summarize(activeTranscript, transcriptMessages);
+        var compactedMemory = summarize(activeSnapshot);
         if (compactedMemory == null || compactedMemory.isBlank()) {
             return ChatCompactionStatus.none();
         }
 
-        var compactedTranscript = ChatTranscript.createFromCompaction(chat, activeTranscript, compactedMemory);
-        compactedTranscript.setInputTokens(null);
-        compactedTranscript = chatTranscriptRepository.save(compactedTranscript);
-        chat.activateTranscript(compactedTranscript);
-        chatRepository.save(chat);
-        return new ChatCompactionStatus(true,
-                compactedTranscript.getCompactionLevel(),
-                compactedTranscript.getCompactedFromTranscriptId());
+        var retainedMessages = retainRecentMessages(activeSnapshot.getMessages());
+        var compactedSnapshot = new ConversationSnapshot();
+        compactedSnapshot.setConversation(conversation);
+        compactedSnapshot.setPreviousSnapshot(activeSnapshot);
+        compactedSnapshot.setSnapshotNo(activeSnapshot.getSnapshotNo() + 1L);
+        compactedSnapshot.setCarryContext(new LinkedHashMap<>(Map.of("text", compactedMemory)));
+        compactedSnapshot.setMessages(retainedMessages);
+        compactedSnapshot.setMessageCount(retainedMessages.size());
+        compactedSnapshot.setTokenCount(Math.max(1, compactedMemory.split("\\s+").length));
+        compactedSnapshot.setVersion(activeSnapshot.getVersion() + 1L);
+        compactedSnapshot.setCreatedAt(Instant.now());
+        compactedSnapshot.setCompactedAt(Instant.now());
+
+        var persistedSnapshot = snapshotRepository.save(compactedSnapshot);
+        conversation.setCurrentSnapshot(persistedSnapshot);
+        conversation.setVersion(conversation.getVersion() + 1L);
+        conversation.setUpdatedAt(Instant.now());
+        conversation.setCurrentSnapshot(persistedSnapshot);
+        return new ChatCompactionStatus(true, Math.toIntExact(persistedSnapshot.getSnapshotNo()), activeSnapshot.getId());
     }
 
-    private String summarize(ChatTranscript transcript, List<ChatMessage> transcriptMessages) {
+    private String summarize(ConversationSnapshot snapshot) {
         var prompt = Prompt.builder()
                 .messages(
                     new SystemMessage(COMPACTION_SYSTEM_PROMPT),
-                    new UserMessage(buildCompactionInput(transcript, transcriptMessages)))
+                    new UserMessage(buildCompactionInput(snapshot)))
                 .chatOptions(
                     OllamaChatOptions.builder()
                             .model(compactionModel)
@@ -114,10 +118,10 @@ public class ChatCompactionService {
         return compactedMemory.text();
     }
 
-    private String buildCompactionInput(ChatTranscript transcript, List<ChatMessage> transcriptMessages) {
-        String existingMemory = transcript.memoryText().isBlank() ? "(none)" : transcript.memoryText();
-        String transcriptBody = transcriptMessages.stream()
-                .map(message -> "%s: %s".formatted(message.getRole().toUpperCase(), message.getContent()))
+    private String buildCompactionInput(ConversationSnapshot snapshot) {
+        String existingMemory = String.valueOf(snapshot.getCarryContext().getOrDefault("text", "(none)"));
+        String transcriptBody = snapshot.getMessages().stream()
+                .map(message -> "%s: %s".formatted(message.get("role"), message.get("content")))
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("(empty)");
 
@@ -130,6 +134,13 @@ public class ChatCompactionService {
 
                Return JSON only with the fields required by this schema.
                """.formatted(existingMemory, transcriptBody);
+    }
+
+    private List<Map<String, Object>> retainRecentMessages(List<Map<String, Object>> messages) {
+        if (messages.size() <= RETAINED_MESSAGE_COUNT) {
+            return List.copyOf(messages);
+        }
+        return List.copyOf(new ArrayList<>(messages.subList(messages.size() - RETAINED_MESSAGE_COUNT, messages.size())));
     }
 
     private record CompactedMemory(String text) {}
