@@ -37,6 +37,9 @@ public class ChatState implements Serializable {
     private final ValueSignal<Boolean> conversationCompacted = new ValueSignal<>(false);
     private final ValueSignal<Integer> compactionLevel = new ValueSignal<>(null);
     private final ValueSignal<Long> compactedFromTranscriptId = new ValueSignal<>(null);
+    private final ValueSignal<Boolean> setupRequired = new ValueSignal<>(false);
+    private final ValueSignal<String> setupMessage = new ValueSignal<>(
+            "Academic setup is required before persisted tutor features can be used.");
     private final ValueSignal<ThemePreference> themePreference = new ValueSignal<>(ThemePreference.SYSTEM);
     private final ValueSignal<Boolean> themePreferenceLoaded = new ValueSignal<>(false);
     private final ListSignal<MessageState> messages = new ListSignal<>();
@@ -105,6 +108,14 @@ public class ChatState implements Serializable {
 
     public ValueSignal<Long> compactedFromTranscriptId() {
         return compactedFromTranscriptId;
+    }
+
+    public ValueSignal<Boolean> setupRequired() {
+        return setupRequired;
+    }
+
+    public ValueSignal<String> setupMessage() {
+        return setupMessage;
     }
 
     public ValueSignal<ThemePreference> themePreference() {

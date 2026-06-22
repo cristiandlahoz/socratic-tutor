@@ -24,6 +24,6 @@ public class ChatNavigationOrchestrator {
                 .getHistory()
                 .replaceState(
                     null,
-                    new Location("", QueryParameters.of(conversationParameter, conversationId.toString())));
+                    new Location("chat", QueryParameters.of(conversationParameter, conversationId.toString())));
     }
 }

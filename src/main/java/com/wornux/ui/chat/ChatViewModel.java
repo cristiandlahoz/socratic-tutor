@@ -18,7 +18,9 @@ import com.wornux.services.chat.ChatService;
 import com.wornux.services.chat.ChatUsageService;
 import com.wornux.services.chat.ConversationService;
 import com.wornux.services.chat.ConversationTitleService;
-import com.wornux.services.profile.StudentProfileService;
+import com.wornux.services.context.ActiveAcademicContextResolver;
+import com.wornux.services.context.SetupRequiredException;
+import com.wornux.services.ui.ThemePreferenceService;
 import com.wornux.ui.MainLayout;
 
 @SpringComponent
@@ -38,7 +40,8 @@ public class ChatViewModel implements Serializable {
     private final ChatUsageService chatUsageService;
     private final ConversationTitleService conversationTitleService;
     private final BrowserClientService browserClientService;
-    private final StudentProfileService studentProfileService;
+    private final ThemePreferenceService themePreferenceService;
+    private final ActiveAcademicContextResolver contextResolver;
     private final ChatNavigationOrchestrator navigationOrchestrator;
     private final ChatThemeOrchestrator themeOrchestrator;
     private final ChatTurnOrchestrator turnOrchestrator;
@@ -51,17 +54,19 @@ public class ChatViewModel implements Serializable {
             ChatUsageService chatUsageService,
             ConversationTitleService conversationTitleService,
             BrowserClientService browserClientService,
-            StudentProfileService studentProfileService,
+            ThemePreferenceService themePreferenceService,
+            ActiveAcademicContextResolver contextResolver,
             ChatNavigationOrchestrator navigationOrchestrator,
             ChatThemeOrchestrator themeOrchestrator,
             ChatTurnOrchestrator turnOrchestrator,
-            ChatState state) {
+            @RouteScopeOwner(MainLayout.class) ChatState state) {
         this.chatService = chatService;
         this.conversationService = conversationService;
         this.chatUsageService = chatUsageService;
         this.conversationTitleService = conversationTitleService;
         this.browserClientService = browserClientService;
-        this.studentProfileService = studentProfileService;
+        this.themePreferenceService = themePreferenceService;
+        this.contextResolver = contextResolver;
         this.navigationOrchestrator = navigationOrchestrator;
         this.themeOrchestrator = themeOrchestrator;
         this.turnOrchestrator = turnOrchestrator;
@@ -74,14 +79,14 @@ public class ChatViewModel implements Serializable {
     }
 
     public void initializeShellState() {
-        ensureClientId();
+        ensureBrowserSessionId();
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
     }
 
     public void onThemePreferenceChanged(ThemePreference preference) {
-        ensureClientId();
-        var resolvedPreference = studentProfileService.updateThemePreference(state.clientId().peek(), preference);
+        ensureBrowserSessionId();
+        var resolvedPreference = themePreferenceService.updateThemePreference(preference);
         state.themePreference().set(resolvedPreference);
         state.themePreferenceLoaded().set(true);
         themeOrchestrator.applyThemePreference(resolvedPreference);
@@ -91,9 +96,10 @@ public class ChatViewModel implements Serializable {
         turnOrchestrator.abortActiveStream(questionExchange);
         state.responseInProgress().set(false);
         state.compactionInProgress().set(false);
-        ensureClientId();
+        ensureBrowserSessionId();
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
+        state.setupRequired().set(contextResolver.resolveCurrent().isEmpty());
 
         if (draftRequested) {
             state.activeConversationId().set(null);
@@ -154,8 +160,17 @@ public class ChatViewModel implements Serializable {
             return false;
         }
 
-        ensureClientId();
-        var ensuredConversation = ensureConversation(prompt);
+        ensureBrowserSessionId();
+        EnsuredConversation ensuredConversation;
+        try {
+            ensuredConversation = ensureConversation(prompt);
+            state.setupRequired().set(false);
+        }
+        catch (SetupRequiredException exception) {
+            state.setupRequired().set(true);
+            state.setupMessage().set(exception.getMessage());
+            return false;
+        }
         turnOrchestrator.startTurn(
             new ChatTurnOrchestrator.TurnContext(UUID.randomUUID(),
                     state.clientId().peek(),
@@ -218,7 +233,7 @@ public class ChatViewModel implements Serializable {
         questionExchange.submit(response);
     }
 
-    private void ensureClientId() {
+    private void ensureBrowserSessionId() {
         if (state.clientId().peek() == null) {
             state.clientId().set(browserClientService.resolveClientId());
         }
@@ -229,7 +244,7 @@ public class ChatViewModel implements Serializable {
             return;
         }
 
-        state.themePreference().set(studentProfileService.getThemePreference(state.clientId().peek()));
+        state.themePreference().set(themePreferenceService.getThemePreference());
         state.themePreferenceLoaded().set(true);
     }
 
