@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+  <h1>You have been invited as a professor</h1>
+  <p>You were invited to teach <strong th:text="${groupClassName}">Class</strong> in <strong th:text="${tenantName}">Tenant</strong>.</p>
+  <p>Your invitation email is <strong th:text="${invitedEmail}">email@example.com</strong>.</p>
+  <p><a th:href="${acceptUrl}">Accept invitation</a></p>
+</body>
+</html>
