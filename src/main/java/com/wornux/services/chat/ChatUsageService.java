@@ -1,9 +1,9 @@
 package com.wornux.services.chat;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import com.wornux.config.ChatProperties;
-import com.wornux.data.repositories.chat.ChatRepository;
 import com.wornux.dtos.chat.ChatTranscriptUsage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,51 +11,49 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ChatUsageService {
 
-    private final ChatRepository chatRepository;
+    private final ConversationService conversationService;
     private final ChatProperties chatProperties;
 
-    public ChatUsageService(ChatRepository chatRepository, ChatProperties chatProperties) {
-        this.chatRepository = chatRepository;
+    public ChatUsageService(ConversationService conversationService, ChatProperties chatProperties) {
+        this.conversationService = conversationService;
         this.chatProperties = chatProperties;
     }
 
     @Transactional
-    public void updateActiveTranscriptInputTokens(UUID chatId, Integer inputTokens) {
+    public void updateActiveTranscriptInputTokens(UUID conversationId, Integer inputTokens) {
         if (inputTokens == null) {
             return;
         }
-        var chat = chatRepository.findById(chatId)
-                .orElseThrow(() -> new IllegalStateException("Chat not found: " + chatId));
-        var transcript = chat.getCurrentTranscript();
-        if (transcript == null) {
-            throw new IllegalStateException("Active transcript not found for chat: " + chatId);
+        var conversation = conversationService.requireOwnedConversation(conversationId);
+        var snapshot = conversation.getCurrentSnapshot();
+        if (snapshot == null) {
+            return;
         }
-        transcript.setInputTokens(inputTokens);
-        chat.touch();
-        chatRepository.save(chat);
+        snapshot.setTokenCount(inputTokens);
+        conversation.setUpdatedAt(Instant.now());
+        conversation.setCurrentSnapshot(snapshot);
     }
 
     @Transactional(readOnly = true)
-    public ChatTranscriptUsage getActiveTranscriptUsage(UUID clientId, UUID chatId) {
-        var chat = chatRepository.findByIdAndClientId(chatId, clientId).orElse(null);
-        if (chat == null
-                || chat.getCurrentTranscript() == null
-                || chat.getCurrentTranscript().getInputTokens() == null) {
+    public ChatTranscriptUsage getActiveTranscriptUsage(UUID ignoredClientId, UUID conversationId) {
+        var conversation = conversationService.findOwnedConversation(conversationId).orElse(null);
+        if (conversation == null || conversation.getCurrentSnapshot() == null) {
             return ChatTranscriptUsage.empty();
         }
-        var inputTokens = chat.getCurrentTranscript().getInputTokens();
+        var inputTokens = conversation.getCurrentSnapshot().getTokenCount();
+        if (inputTokens <= 0) {
+            return ChatTranscriptUsage.empty();
+        }
         return new ChatTranscriptUsage(inputTokens, usagePercent(inputTokens));
     }
 
     @Transactional(readOnly = true)
-    public boolean exceedsCompactionThreshold(UUID chatId) {
-        var chat = chatRepository.findById(chatId).orElse(null);
-        if (chat == null
-                || chat.getCurrentTranscript() == null
-                || chat.getCurrentTranscript().getInputTokens() == null) {
+    public boolean exceedsCompactionThreshold(UUID conversationId) {
+        var conversation = conversationService.findOwnedConversation(conversationId).orElse(null);
+        if (conversation == null || conversation.getCurrentSnapshot() == null) {
             return false;
         }
-        return exceedsCompactionThreshold(chat.getCurrentTranscript().getInputTokens());
+        return exceedsCompactionThreshold(conversation.getCurrentSnapshot().getTokenCount());
     }
 
     boolean exceedsCompactionThreshold(int inputTokens) {
