@@ -6,11 +6,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wornux.ai.profile.TurnProfileInferenceService;
+import com.wornux.ai.memory.PostgresChatMemory;
 import com.wornux.ai.tools.AskStudentQuestionTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
-import com.wornux.config.ProfileProperties;
 import com.wornux.dtos.chat.*;
-import com.wornux.services.profile.StudentProfileService;
+import com.wornux.services.context.ActiveAcademicContextResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -32,6 +32,8 @@ public class ChatService {
   private final ChatUsageService chatUsageService;
   private final ChatCompactionService chatCompactionService;
   private final ToolUsageAuditService toolUsageAuditService;
+  private final ActiveAcademicContextResolver contextResolver;
+  private final PostgresChatMemory chatMemory;
   private final Map<UUID, Integer> turnPromptTokens = new ConcurrentHashMap<>();
 
   public ChatService(
@@ -39,14 +41,15 @@ public class ChatService {
       ConversationService conversationService,
       ChatUsageService chatUsageService,
       ChatCompactionService chatCompactionService,
-      StudentProfileService studentProfileService,
-      TurnProfileInferenceService turnProfileInferenceService,
       ToolUsageAuditService toolUsageAuditService,
-      ProfileProperties profileProperties) {
+      ActiveAcademicContextResolver contextResolver,
+      PostgresChatMemory chatMemory) {
     this.chatClient = chatClient;
     this.chatUsageService = chatUsageService;
     this.chatCompactionService = chatCompactionService;
     this.toolUsageAuditService = toolUsageAuditService;
+    this.contextResolver = contextResolver;
+    this.chatMemory = chatMemory;
   }
 
   public Flux<String> chatStream(
@@ -62,6 +65,8 @@ public class ChatService {
           Map.of(
             ToolUsageAuditService.CLIENT_ID,
             clientId,
+            ToolUsageAuditService.GROUP_CLASS_ID,
+            contextResolver.resolveCurrent().map(context -> context.groupClassId().toString()).orElse(""),
             ToolUsageAuditService.CONVERSATION_ID,
             conversationId,
             ToolUsageAuditService.TURN_ID,
@@ -88,6 +93,11 @@ public class ChatService {
       String userInput,
       String assistantResponse) {
     try {
+      chatMemory.add(
+        conversationId.toString(),
+        java.util.List.of(
+          new org.springframework.ai.chat.messages.UserMessage(userInput),
+          new org.springframework.ai.chat.messages.AssistantMessage(assistantResponse)));
       chatUsageService.updateActiveTranscriptInputTokens(conversationId, turnPromptTokens.remove(turnId));
       return new TurnFinalizationResult(compactConversationIfNeeded(conversationId));
     }
