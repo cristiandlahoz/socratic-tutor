@@ -49,12 +49,12 @@ group_class
           -> grounding_chunk
 ```
 
-The canonical formative assessment chain is:
+The canonical formative activity chain is:
 
 ```text
 group_class
-  -> evaluation
-      -> evaluation_assignment
+  -> training_activity
+      -> training_activity_assignment
 ```
 
 Do not use `client_id`, browser cookies, legacy chat tables, legacy document ingestion tables, legacy evaluation-run tables, or old student-profile tables as the active source of identity, authorization, ownership, membership, or tutor activity.
@@ -100,7 +100,7 @@ The application must include:
 - Group-class-centered professor and student workflows.
 - Socratic tutor chat through `conversation` and `conversation_snapshot`.
 - Group-class grounding through `grounding_collection`, `grounding_document`, and `grounding_chunk`.
-- Formative activities through `evaluation` and `evaluation_assignment`.
+- Formative activities through `training_activity` and `training_activity_assignment`.
 - Invitation-based access for tenant admins, professors, and students.
 - Service-layer authorization and scope checks.
 - Vaadin protected routes.
@@ -166,7 +166,6 @@ SYSTEM_ADMIN
 TENANT_ADMIN
 PROFESSOR
 STUDENT
-ASSISTANT
 ```
 
 The conceptual hierarchy is:
@@ -187,7 +186,7 @@ This hierarchy expresses administrative breadth, not automatic inheritance of ev
 | `SYSTEM_ADMIN` | Global platform setup, tenant creation, tenant-admin invitation, platform-level visibility. |
 | `TENANT_ADMIN` | Tenant academic setup: subjects, academic periods, group classes, professor invitations. |
 | `PROFESSOR` | Group-class teaching operations: student management, grounding, formative activities, class-scoped tutor use. |
-| `ASSISTANT` | Reserved support role. Must not receive broad capabilities until a future use case defines them. |
+| `ASSISTANT` | Reserved. Not a group_class_member role in the baseline. |
 | `STUDENT` | Learner operations: own conversations, assigned formative activities, active group-class context. |
 
 ---
@@ -254,7 +253,6 @@ A `group_class_member` connects a tenant account to a group class with a class-l
 ```text
 PROFESSOR
 STUDENT
-ASSISTANT
 ```
 
 It answers:
@@ -275,7 +273,7 @@ Most tutor activity is owned by or created through a `group_class_member`.
 | `tenant` | Institution/university boundary. |
 | `tenant_account` | Account membership inside a tenant. |
 | `tenant_account_role` | Role assignment inside a tenant. |
-| `role` | Capability grouping such as `SYSTEM_ADMIN`, `TENANT_ADMIN`, `PROFESSOR`, `STUDENT`, or `ASSISTANT`. |
+| `role` | Capability grouping such as `SYSTEM_ADMIN`, `TENANT_ADMIN`, `PROFESSOR`, or `STUDENT`. |
 | `resource` | User-facing or policy-relevant capability boundary. |
 | `action` | Operation over a resource. |
 | `permission` | Unique resource/action capability. |
@@ -289,327 +287,8 @@ Most tutor activity is owned by or created through a `group_class_member`.
 | `grounding_collection` | Group-class collection of tutor grounding material. |
 | `grounding_document` | Uploaded or text source document inside a grounding collection. |
 | `grounding_chunk` | Chunked document content with optional vector embedding. |
-| `evaluation` | Group-class formative activity definition. |
-| `evaluation_assignment` | Student-facing assigned formative activity state. |
-
----
-
-## Schema
-
-The following ERD is the canonical baseline schema for the academic multi-tenant tutor model.
-
-<schema>
-~~~mermaid
-erDiagram
-    ACCOUNT ||--o{ TENANT_ACCOUNT : joins
-    TENANT ||--o{ TENANT_ACCOUNT : has_members
-    TENANT_ACCOUNT ||--o{ TENANT : owns
-
-    TENANT_ACCOUNT ||--o{ TENANT_ACCOUNT_ROLE : receives
-    ROLE ||--o{ TENANT_ACCOUNT_ROLE : assigned_as
-
-    ROLE ||--o{ ROLE_PERMISSION : contains
-    PERMISSION ||--o{ ROLE_PERMISSION : included_in
-
-    RESOURCE ||--o{ PERMISSION : protects
-    ACTION ||--o{ PERMISSION : defines
-
-    TENANT ||--o{ SUBJECT : has
-    TENANT ||--o{ ACADEMIC_PERIOD : has
-    TENANT ||--o{ GROUP_CLASS : has
-
-    SUBJECT ||--o{ GROUP_CLASS : groups
-    ACADEMIC_PERIOD ||--o{ GROUP_CLASS : contains
-    TENANT_ACCOUNT ||--o{ GROUP_CLASS : creates
-
-    GROUP_CLASS ||--o{ GROUP_CLASS_MEMBER : has_members
-    TENANT_ACCOUNT ||--o{ GROUP_CLASS_MEMBER : participates_in
-
-    GROUP_CLASS ||--o{ GROUP_CLASS_JOIN_CODE : has_codes
-    GROUP_CLASS_MEMBER ||--o{ GROUP_CLASS_JOIN_CODE : creates
-
-    GROUP_CLASS ||--o{ GROUNDING_COLLECTION : has
-    GROUP_CLASS_MEMBER ||--o{ GROUNDING_COLLECTION : creates
-    GROUNDING_COLLECTION ||--o{ GROUNDING_DOCUMENT : contains
-    GROUNDING_DOCUMENT ||--o{ GROUNDING_CHUNK : splits_into
-
-    GROUP_CLASS ||--o{ EVALUATION : has
-    GROUP_CLASS_MEMBER ||--o{ EVALUATION : creates
-    EVALUATION ||--o{ EVALUATION_ASSIGNMENT : assigns
-    GROUP_CLASS_MEMBER ||--o{ EVALUATION_ASSIGNMENT : receives
-
-    GROUP_CLASS_MEMBER ||--o{ CONVERSATION : starts
-    CONVERSATION ||--o{ CONVERSATION_SNAPSHOT : has
-    CONVERSATION_SNAPSHOT ||--o| CONVERSATION_SNAPSHOT : previous
-
-    ACCOUNT {
-        uuid id PK
-        uuid last_tenant_account_id FK
-        uuid last_group_class_member_id FK
-        text first_name
-        text last_name
-        text email UK
-        text username UK
-        text password_hash
-        boolean system_admin
-        boolean locked
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    TENANT {
-        uuid id PK
-        uuid owner_tenant_account_id FK
-        text name
-        boolean locked
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    TENANT_ACCOUNT {
-        uuid id PK
-        uuid tenant_id FK
-        uuid account_id FK
-        boolean locked
-        timestamptz joined_at
-        timestamptz updated_at
-    }
-
-    ROLE {
-        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
-        text code UK
-        text name
-        text description
-        boolean assignable
-        int priority
-        boolean active
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    TENANT_ACCOUNT_ROLE {
-        uuid tenant_account_id PK,FK
-        bigint role_id PK,FK
-        uuid assigned_by_tenant_account_id FK
-        timestamptz assigned_at
-    }
-
-    RESOURCE {
-        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
-        text code UK
-        text name
-        text description
-        boolean active
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    ACTION {
-        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
-        text code UK
-        text name
-        text description
-        boolean active
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    PERMISSION {
-        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
-        bigint resource_id FK
-        bigint action_id FK
-        text code UK
-        text description
-        boolean active
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    ROLE_PERMISSION {
-        bigint role_id PK,FK
-        bigint permission_id PK,FK
-        timestamptz granted_at
-    }
-
-    SUBJECT {
-        uuid id PK
-        uuid tenant_id FK
-        text code
-        text name
-        boolean active
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    ACADEMIC_PERIOD {
-        uuid id PK
-        uuid tenant_id FK
-        text code
-        text name
-        date starts_at
-        date ends_at
-        boolean active
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    GROUP_CLASS {
-        uuid id PK
-        uuid tenant_id FK
-        uuid subject_id FK
-        uuid academic_period_id FK
-        uuid created_by_tenant_account_id FK
-        text code
-        text name
-        boolean active
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    GROUP_CLASS_MEMBER {
-        uuid id PK
-        uuid group_class_id FK
-        uuid tenant_account_id FK
-        text role "PROFESSOR | STUDENT | ASSISTANT"
-        boolean locked
-        timestamptz joined_at
-        timestamptz updated_at
-    }
-
-    GROUP_CLASS_JOIN_CODE {
-        uuid id PK
-        uuid group_class_id FK
-        uuid created_by_group_class_member_id FK
-        text code UK
-        boolean active
-        timestamptz expires_at
-        int max_uses
-        int used_count
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    GROUNDING_COLLECTION {
-        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
-        uuid group_class_id FK
-        uuid created_by_group_class_member_id FK
-        text name
-        boolean active
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    GROUNDING_DOCUMENT {
-        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
-        bigint collection_id FK
-        text title
-        text source_type "UPLOAD | TEXT"
-        text storage_key
-        text status "PROCESSING | READY | FAILED | INACTIVE"
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    GROUNDING_CHUNK {
-        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
-        bigint document_id FK
-        int chunk_index
-        text content
-        vector embedding
-        boolean active
-        timestamptz created_at
-    }
-
-    EVALUATION {
-        uuid id PK
-        uuid group_class_id FK
-        uuid created_by_group_class_member_id FK
-        text title
-        text instructions
-        text status "DRAFT | PUBLISHED | CLOSED | ARCHIVED"
-        timestamptz opens_at
-        timestamptz closes_at
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    EVALUATION_ASSIGNMENT {
-        uuid id PK
-        uuid evaluation_id FK
-        uuid group_class_member_id FK
-        text status "ASSIGNED | STARTED | SUBMITTED | SKIPPED | EXPIRED | EXCUSED"
-        timestamptz assigned_at
-        timestamptz started_at
-        timestamptz submitted_at
-        timestamptz updated_at
-    }
-
-    CONVERSATION {
-        uuid id PK
-        uuid group_class_member_id FK
-        bigint current_snapshot_id FK
-        text title
-        bigint version
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    CONVERSATION_SNAPSHOT {
-        bigint id PK "BIGINT GENERATED BY DEFAULT AS IDENTITY"
-        uuid conversation_id FK
-        bigint previous_snapshot_id FK
-        bigint snapshot_no
-        jsonb carry_context
-        jsonb messages
-        int message_count
-        int token_count
-        bigint version
-        timestamptz created_at
-        timestamptz compacted_at
-    }
-~~~
-</schema>
-
----
-
-## Identifier Strategy
-
-Use UUID identifiers for business/domain boundary records that may be referenced across academic or security boundaries:
-
-```text
-account.id
-tenant.id
-tenant_account.id
-subject.id
-academic_period.id
-group_class.id
-group_class_member.id
-group_class_join_code.id
-evaluation.id
-evaluation_assignment.id
-conversation.id
-```
-
-Use PostgreSQL identity `BIGINT` identifiers for internal catalog, snapshot, and implementation-detail records:
-
-```sql
-id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY
-```
-
-This applies to:
-
-```text
-role.id
-resource.id
-action.id
-permission.id
-grounding_collection.id
-grounding_document.id
-grounding_chunk.id
-conversation_snapshot.id
-```
-
-Join tables without their own surrogate identity must use composite primary keys and foreign-key types that match the referenced table identifiers.
+| `training_activity` | Group-class formative activity definition. |
+| `training_activity_assignment` | Student-facing assigned formative activity state. |
 
 ---
 
@@ -667,8 +346,8 @@ conversation_snapshot
 grounding_collection
 grounding_document
 grounding_chunk
-evaluation
-evaluation_assignment
+training_activity
+training_activity_assignment
 ```
 
 The baseline must not create active legacy tables as part of the target model.
@@ -685,7 +364,6 @@ SYSTEM_ADMIN
 TENANT_ADMIN
 PROFESSOR
 STUDENT
-ASSISTANT
 TENANT
 SUBJECT
 ACADEMIC_PERIOD
@@ -693,8 +371,8 @@ GROUP_CLASS
 GROUP_CLASS_MEMBER
 GROUP_CLASS_JOIN_CODE
 GROUNDING
-EVALUATION
-EVALUATION_ASSIGNMENT
+TRAINING_ACTIVITY
+TRAINING_ACTIVITY_ASSIGNMENT
 CONVERSATION
 VIEW
 CREATE
@@ -714,8 +392,8 @@ tenant admins
 professors
 students
 grounding documents
-evaluations
-evaluation assignments
+training activities
+training activity assignments
 conversations
 ```
 
@@ -745,17 +423,17 @@ Required constraints include:
 - `group_class_member(group_class_id, tenant_account_id, role)` unique.
 - `group_class_join_code.code` unique.
 - `grounding_chunk(document_id, chunk_index)` unique.
-- `evaluation_assignment(evaluation_id, group_class_member_id)` unique.
+- `training_activity_assignment(training_activity_id, group_class_member_id)` unique.
 - `conversation_snapshot(conversation_id, snapshot_no)` unique.
 
 Allowed values must be constrained where appropriate:
 
 ```text
-group_class_member.role = PROFESSOR | STUDENT | ASSISTANT
+group_class_member.role = PROFESSOR | STUDENT
 grounding_document.source_type = UPLOAD | TEXT
 grounding_document.status = PROCESSING | READY | FAILED | INACTIVE
-evaluation.status = DRAFT | PUBLISHED | CLOSED | ARCHIVED
-evaluation_assignment.status = ASSIGNED | STARTED | SUBMITTED | SKIPPED | EXPIRED | EXCUSED
+training_activity.status = DRAFT | PUBLISHED | CLOSED | ARCHIVED
+training_activity_assignment.status = ASSIGNED | STARTED | SUBMITTED | SKIPPED | EXPIRED | EXCUSED
 ```
 
 ---
@@ -808,8 +486,8 @@ Seed these resources:
 | `GROUP_CLASS_MEMBER` | Membership and invitation operations. |
 | `GROUP_CLASS_JOIN_CODE` | Student access-code generation/control. |
 | `GROUNDING` | Group-class grounding configuration. |
-| `EVALUATION` | Group-class formative activity definition. |
-| `EVALUATION_ASSIGNMENT` | Student-facing assigned activity state. |
+| `TRAINING_ACTIVITY` | Group-class formative activity definition. |
+| `TRAINING_ACTIVITY_ASSIGNMENT` | Student-facing assigned activity state. |
 | `CONVERSATION` | Tutor conversations owned by group-class members. |
 
 Do not seed implementation tables as standalone authorization resources unless a later use case requires it.
@@ -856,8 +534,8 @@ GROUP_CLASS:VIEW
 GROUP_CLASS_MEMBER:VIEW
 GROUP_CLASS_JOIN_CODE:VIEW
 GROUNDING:VIEW
-EVALUATION:VIEW
-EVALUATION_ASSIGNMENT:VIEW
+TRAINING_ACTIVITY:VIEW
+TRAINING_ACTIVITY_ASSIGNMENT:VIEW
 CONVERSATION:VIEW
 ```
 
@@ -899,14 +577,14 @@ GROUNDING:VIEW
 GROUNDING:CREATE
 GROUNDING:UPDATE
 GROUNDING:DELETE
-EVALUATION:VIEW
-EVALUATION:CREATE
-EVALUATION:UPDATE
-EVALUATION:DELETE
-EVALUATION_ASSIGNMENT:VIEW
-EVALUATION_ASSIGNMENT:CREATE
-EVALUATION_ASSIGNMENT:UPDATE
-EVALUATION_ASSIGNMENT:DELETE
+TRAINING_ACTIVITY:VIEW
+TRAINING_ACTIVITY:CREATE
+TRAINING_ACTIVITY:UPDATE
+TRAINING_ACTIVITY:DELETE
+TRAINING_ACTIVITY_ASSIGNMENT:VIEW
+TRAINING_ACTIVITY_ASSIGNMENT:CREATE
+TRAINING_ACTIVITY_ASSIGNMENT:UPDATE
+TRAINING_ACTIVITY_ASSIGNMENT:DELETE
 CONVERSATION:VIEW
 ```
 
@@ -918,15 +596,15 @@ CONVERSATION:VIEW
 CONVERSATION:CREATE
 CONVERSATION:UPDATE
 CONVERSATION:DELETE
-EVALUATION:VIEW
-EVALUATION_ASSIGNMENT:VIEW
-EVALUATION_ASSIGNMENT:UPDATE
+TRAINING_ACTIVITY:VIEW
+TRAINING_ACTIVITY_ASSIGNMENT:VIEW
+TRAINING_ACTIVITY_ASSIGNMENT:UPDATE
 ```
 
 `ASSISTANT`:
 
 ```text
-Reserved. Do not grant broad capabilities until a dedicated use case defines the assistant behavior.
+Reserved. Not a group_class_member role in the baseline.
 ```
 
 ---
@@ -1260,15 +938,15 @@ The tutor may only retrieve from documents/chunks that are usable according to t
 The schema names this area:
 
 ```text
-evaluation
-evaluation_assignment
+training_activity
+training_activity_assignment
 ```
 
 The user-facing product concept may be presented as formative activities.
 
-### Evaluation Definition
+### Training Activity Definition
 
-An `evaluation` represents a group-class formative activity definition.
+A `training_activity` represents a group-class formative activity definition.
 
 Rules:
 
@@ -1287,13 +965,13 @@ CLOSED
 ARCHIVED
 ```
 
-### Evaluation Assignment
+### Training Activity Assignment
 
-An `evaluation_assignment` represents a student's assigned activity state.
+A `training_activity_assignment` represents a student's assigned activity state.
 
 Rules:
 
-- It belongs to an evaluation.
+- It belongs to a training_activity.
 - It targets a group-class member.
 - It must target a student group-class member.
 - Students can view and update only their own assignments.
@@ -1418,7 +1096,7 @@ com.wornux
 │   │   ├── academic
 │   │   ├── conversation
 │   │   ├── grounding
-│   │   └── evaluation
+│   │   └── training_activity
 │   └── repositories
 ├── services
 │   ├── account
@@ -1427,7 +1105,7 @@ com.wornux
 │   ├── academic
 │   ├── conversation
 │   ├── grounding
-│   └── evaluation
+│   └── training_activity
 ├── ai
 ├── ui
 │   ├── auth
@@ -1438,7 +1116,7 @@ com.wornux
 │   ├── student
 │   ├── chat
 │   ├── grounding
-│   └── evaluation
+│   └── training_activity
 ├── infrastructure
 └── legacy
     ├── chat
@@ -1510,14 +1188,14 @@ Legacy packages may remain for reference or later migration work, but they must 
 - Grounding retrieval must be group-class scoped.
 - Students do not manage grounding in the baseline.
 
-### Evaluation / Formative Activities
+### Training Activity / Formative Activities
 
-- An evaluation must belong to a group class.
-- An evaluation must be created by a valid authorized group-class member.
-- An evaluation assignment must belong to an evaluation.
-- An evaluation assignment must target a student group-class member.
+- A training_activity must belong to a group class.
+- A training_activity must be created by a valid authorized group-class member.
+- A training_activity_assignment must belong to a training_activity.
+- A training_activity_assignment must target a student group-class member.
 - Students can view and update only their own assignments.
-- Assignment progress is represented by updating `evaluation_assignment.status`.
+- Assignment progress is represented by updating `training_activity_assignment.status`.
 - `evaluation_run` must not be active target persistence.
 
 ### Delete and Disable Policy
@@ -1533,8 +1211,8 @@ This applies especially to:
 - group-class members,
 - conversations,
 - grounding documents,
-- evaluations,
-- evaluation assignments,
+- training activities,
+- training activity assignments,
 - roles,
 - permissions.
 
@@ -1637,7 +1315,7 @@ Use these criteria to evaluate whether an implementation is acceptable.
 - AI tutor response flow runs without legacy persistence dependencies.
 - Conversation persistence uses `conversation` and `conversation_snapshot`.
 - Grounding persistence uses `grounding_*`.
-- Formative activity persistence uses `evaluation` and `evaluation_assignment`.
+- Formative activity persistence uses `training_activity` and `training_activity_assignment`.
 
 ### UX Criteria
 
@@ -1696,7 +1374,7 @@ Required verification coverage:
 - ownership checks,
 - conversation snapshot persistence,
 - grounding persistence,
-- evaluation assignment persistence,
+- training activity assignment persistence,
 - legacy exclusion,
 - Vaadin route startup,
 - AI advisor startup.
@@ -1748,7 +1426,7 @@ Generate and maintain a complete Spring Boot + Vaadin Flow Socratic Tutor applic
 </p>
 
 <p>
-The final application must preserve Socratic learning behavior while operating on the target model centered on `account`, `tenant_account`, `group_class_member`, `conversation`, `conversation_snapshot`, `grounding`, `evaluation`, and `evaluation_assignment`.
+The final application must preserve Socratic learning behavior while operating on the target model centered on `account`, `tenant_account`, `group_class_member`, `conversation`, `conversation_snapshot`, `grounding`, `training_activity`, and `training_activity_assignment`.
 </p>
 
 <p>

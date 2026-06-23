@@ -27,8 +27,8 @@ This use case includes:
   - `grounding_document`
   - `grounding_chunk`
 - Adapting evaluation logic from the obsolete global evaluation/evaluation-run model to:
-  - `evaluation`
-  - `evaluation_assignment`
+  - `training_activity`
+  - `training_activity_assignment`
 - Replacing old `client_id` persistence assumptions with the new academic identity chain:
   - `account`
   - `tenant_account`
@@ -123,8 +123,8 @@ For evaluations:
 
 ```text
 group_class
-  -> evaluation
-      -> evaluation_assignment
+  -> training_activity
+      -> training_activity_assignment
 ```
 
 ---
@@ -181,8 +181,8 @@ To this:
 
 ```text
 EvaluationService creates group-class evaluation
-EvaluationAssignmentService manages student evaluation_assignment
-Evaluation execution updates evaluation_assignment status
+EvaluationAssignmentService manages student training_activity_assignment
+Evaluation execution updates training_activity_assignment status
 ```
 
 ---
@@ -234,7 +234,7 @@ Therefore:
 
 ```text
 Old evaluation_run persistence becomes legacy.
-Active evaluation behavior is adapted to evaluation/evaluation_assignment.
+Active evaluation behavior is adapted to training_activity/training_activity_assignment.
 ```
 
 ---
@@ -257,7 +257,7 @@ Active evaluation behavior is adapted to evaluation/evaluation_assignment.
   - group classes
   - conversations
   - grounding
-  - evaluations
+  - training activities
 - Target JPA entities exist under the active data model packages.
 - Target repositories exist under the active repository packages.
 - Legacy JPA entities and repositories have been identified.
@@ -666,26 +666,26 @@ report_markdown
 The target model uses:
 
 ```text
-evaluation
-evaluation_assignment
+training_activity
+training_activity_assignment
 ```
 
 with:
 
 ```text
-evaluation.group_class_id
-evaluation.created_by_group_class_member_id
-evaluation_assignment.group_class_member_id
+training_activity.group_class_id
+training_activity.created_by_group_class_member_id
+training_activity_assignment.group_class_member_id
 ```
 
 ### Flow
 
 1. **Development team** reviews evaluation services.
 2. **Development team** separates old evaluation-run behavior from the target assignment model.
-3. **Development team** adapts evaluation creation to create a group-class scoped `evaluation`.
+3. **Development team** adapts evaluation creation to create a group-class scoped `training_activity`.
 4. **Development team** ensures evaluation creation requires a professor or authorized group-class member context.
-5. **Development team** adapts assignment creation to create one `evaluation_assignment` per target student group-class member.
-6. **Development team** replaces `evaluation_run` lifecycle with `evaluation_assignment.status`.
+5. **Development team** adapts assignment creation to create one `training_activity_assignment` per target student group-class member.
+6. **Development team** replaces `evaluation_run` lifecycle with `training_activity_assignment.status`.
 7. **System** supports the assignment lifecycle:
 
 ```text
@@ -703,14 +703,14 @@ EXCUSED
 9. **Development team** adapts student evaluation execution to update the student's own assignment.
 10. **Development team** prevents a student from updating another student's assignment.
 11. **Development team** prevents use of `evaluation_run` in active services.
-12. **System** can list evaluations by group class.
+12. **System** can list training activities by group class.
 13. **System** can list assignments by student group-class member.
 14. **System** can update assignment status through allowed transitions.
 
 ### Result
 
 ```text
-Active evaluation behavior uses evaluation and evaluation_assignment.
+Active evaluation behavior uses evaluation and training_activity_assignment.
 evaluation_run is no longer an active runtime concept.
 ```
 
@@ -727,7 +727,7 @@ Keep the evaluation UI aligned with the new evaluation assignment model.
 1. **Development team** reviews existing evaluation UI classes.
 2. **Development team** identifies UI assumptions tied to old global evaluations or evaluation runs.
 3. **Development team** changes professor-facing evaluation screens to work with group-class evaluations.
-4. **Development team** changes student-facing evaluation execution screens to work with `evaluation_assignment`.
+4. **Development team** changes student-facing evaluation execution screens to work with `training_activity_assignment`.
 5. **System** shows evaluations available in the current group-class context.
 6. **System** shows a student's own assigned evaluations.
 7. **System** prevents students from seeing or updating assignments that do not belong to them.
@@ -1021,7 +1021,7 @@ The app starts on the target ERD without active legacy persistence dependencies.
 **Condition:** The system attempts to assign an evaluation to a group-class member whose role is not `STUDENT`.
 
 1. **System** rejects the assignment.
-2. **System** does not create an `evaluation_assignment`.
+2. **System** does not create an `training_activity_assignment`.
 3. **System** reports a validation failure.
 4. **Use case continues** after the invalid target is corrected.
 
@@ -1115,8 +1115,8 @@ No rule exists for learner-profile replacement.
 - Active compaction uses snapshot chaining.
 - Active document ingestion uses `grounding_collection`, `grounding_document`, and `grounding_chunk`.
 - Active document retrieval is scoped to group-class grounding data.
-- Active evaluation behavior uses `evaluation` and `evaluation_assignment`.
-- Student assignment progress is represented by updating `evaluation_assignment.status`.
+- Active evaluation behavior uses `training_activity` and `training_activity_assignment`.
+- Student assignment progress is represented by updating `training_activity_assignment.status`.
 - `evaluation_run` is not used by active runtime.
 - `client_id` is not used as the persisted domain identity.
 - Student-profile logic is isolated as legacy.
@@ -1169,13 +1169,13 @@ No rule exists for learner-profile replacement.
 | BR-22 | Evaluation must be scoped to a group class. |
 | BR-23 | Evaluation must be created by a valid group-class member. |
 | BR-24 | Evaluation assignment must target a valid group-class member. |
-| BR-25 | Student evaluation progress must be represented through `evaluation_assignment.status`. |
+| BR-25 | Student evaluation progress must be represented through `training_activity_assignment.status`. |
 | BR-26 | `evaluation_run` must not be used by active runtime. |
 | BR-27 | Students must not update another student's evaluation assignment. |
 | BR-28 | Students must not view another student's private conversation data unless a later use case explicitly allows it. |
 | BR-29 | Professors may only operate within group classes where they have valid membership and permissions. |
 | BR-30 | The old student-profile block must be isolated as legacy. |
-| BR-31 | Student profile must not determine identity, membership, authorization, conversation ownership, grounding scope, or evaluation assignment ownership. |
+| BR-31 | Student profile must not determine identity, membership, authorization, conversation ownership, grounding scope, or training activity assignment ownership. |
 | BR-32 | Guardrail logic should remain active when it does not depend on legacy persistence. |
 | BR-33 | AI advisors that depend on obsolete persistence must be adapted or isolated. |
 | BR-34 | Component scanning must not exclude active Vaadin UI packages. |
@@ -1217,8 +1217,8 @@ No rule exists for learner-profile replacement.
 - [ ] Stage 6 verifies active retrieval does not use old document ingestion tables.
 - [ ] Stage 7 verifies document ingestion UI uses grounding statuses.
 - [ ] Stage 7 verifies document ingestion UI blocks uploads with no group-class context.
-- [ ] Stage 8 adapts evaluation creation to target `evaluation`.
-- [ ] Stage 8 adapts student evaluation execution to `evaluation_assignment`.
+- [ ] Stage 8 adapts evaluation creation to target `training_activity`.
+- [ ] Stage 8 adapts student evaluation execution to `training_activity_assignment`.
 - [ ] Stage 8 verifies valid assignment lifecycle transitions.
 - [ ] Stage 8 verifies a student cannot update another student's assignment.
 - [ ] Stage 8 verifies active runtime does not use `evaluation_run`.
@@ -1338,8 +1338,8 @@ or a similarly precise legacy-only boundary.
 | `ingested_document` | `grounding_document` |
 | `document_segment` | `grounding_chunk` |
 | `vector_store` | `grounding_chunk.embedding` or target grounding retrieval implementation |
-| old global `evaluation` | group-class scoped `evaluation` |
-| `evaluation_run` | `evaluation_assignment` |
+| old global `evaluation` | group-class scoped `training_activity` |
+| `evaluation_run` | `training_activity_assignment` |
 | `student_profile` | legacy-only until redesigned |
 
 ---

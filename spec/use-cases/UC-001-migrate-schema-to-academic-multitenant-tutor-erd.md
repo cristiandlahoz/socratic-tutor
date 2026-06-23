@@ -2,7 +2,7 @@
 
 ---
 
-**Goal:** As the development team, I want to migrate the current database schema from the existing `client_id`-centered tutor model to the target academic multi-tenant ERD so that accounts, tenants, academic structures, memberships, conversations, snapshots, grounding, evaluations, roles, and permissions are represented correctly as the new architectural foundation.
+**Goal:** As the development team, I want to migrate the current database schema from the existing `client_id`-centered tutor model to the target academic multi-tenant ERD so that accounts, tenants, academic structures, memberships, conversations, snapshots, grounding, training activities, roles, and permissions are represented correctly as the new architectural foundation.
 
 **Status:** Pending  
 **Date:** 2026-06-20
@@ -29,7 +29,7 @@ This use case includes:
 - Introducing `conversation` as the new canonical replacement for `chat`.
 - Introducing `conversation_snapshot` as the new snapshot and compaction model.
 - Introducing `grounding_collection`, `grounding_document`, and `grounding_chunk`.
-- Replacing the current global evaluation/evaluation-run model with group-class evaluations and assignments.
+- Replacing the current global evaluation/evaluation-run model with group-class training activities and assignments.
 - Removing obsolete physical persistence from the baseline so only the target ERD is created.
 - Isolating obsolete domain code from active Spring/JPA startup so the new ERD is the only active persistence model.
 
@@ -118,8 +118,8 @@ grounding_collection
 grounding_document
 grounding_chunk
 
-evaluation
-evaluation_assignment
+training_activity
+training_activity_assignment
 ```
 
 ---
@@ -162,10 +162,10 @@ erDiagram
     GROUNDING_COLLECTION ||--o{ GROUNDING_DOCUMENT : contains
     GROUNDING_DOCUMENT ||--o{ GROUNDING_CHUNK : splits_into
 
-    GROUP_CLASS ||--o{ EVALUATION : has
-    GROUP_CLASS_MEMBER ||--o{ EVALUATION : creates
-    EVALUATION ||--o{ EVALUATION_ASSIGNMENT : assigns
-    GROUP_CLASS_MEMBER ||--o{ EVALUATION_ASSIGNMENT : receives
+    GROUP_CLASS ||--o{ TRAINING_ACTIVITY : has
+    GROUP_CLASS_MEMBER ||--o{ TRAINING_ACTIVITY : creates
+    TRAINING_ACTIVITY ||--o{ TRAINING_ACTIVITY_ASSIGNMENT : assigns
+    GROUP_CLASS_MEMBER ||--o{ TRAINING_ACTIVITY_ASSIGNMENT : receives
 
     GROUP_CLASS_MEMBER ||--o{ CONVERSATION : starts
     CONVERSATION ||--o{ CONVERSATION_SNAPSHOT : has
@@ -299,7 +299,7 @@ erDiagram
         uuid id PK
         uuid group_class_id FK
         uuid tenant_account_id FK
-        text role "PROFESSOR | STUDENT | ASSISTANT"
+        text role "PROFESSOR | STUDENT"
         boolean locked
         timestamptz joined_at
         timestamptz updated_at
@@ -349,7 +349,7 @@ erDiagram
         timestamptz created_at
     }
 
-    EVALUATION {
+    TRAINING_ACTIVITY {
         uuid id PK
         uuid group_class_id FK
         uuid created_by_group_class_member_id FK
@@ -362,9 +362,9 @@ erDiagram
         timestamptz updated_at
     }
 
-    EVALUATION_ASSIGNMENT {
+    TRAINING_ACTIVITY_ASSIGNMENT {
         uuid id PK
-        uuid evaluation_id FK
+        uuid training_activity_id FK
         uuid group_class_member_id FK
         text status "ASSIGNED | STARTED | SUBMITTED | SKIPPED | EXPIRED | EXCUSED"
         timestamptz assigned_at
@@ -420,8 +420,8 @@ academic_period.id
 group_class.id
 group_class_member.id
 group_class_join_code.id
-evaluation.id
-evaluation_assignment.id
+training_activity.id
+training_activity_assignment.id
 conversation.id
 ```
 
@@ -559,8 +559,8 @@ group_class
           -> grounding_chunk
 
 group_class
-  -> evaluation
-      -> evaluation_assignment
+  -> training_activity
+      -> training_activity_assignment
 ```
 
 The key identity chain becomes:
@@ -602,7 +602,7 @@ SYSTEM_ADMIN
           -> STUDENT
 ```
 
-`SYSTEM_ADMIN` is the top of the hierarchy. The system admin can see and operate across all tenants, academic structures, group classes, members, conversations, grounding, evaluations, and assignments.
+`SYSTEM_ADMIN` is the top of the hierarchy. The system admin can see and operate across all tenants, academic structures, group classes, members, conversations, grounding, training activities, and assignments.
 
 This hierarchy does not mean every role has all permissions from the role above. It means higher roles have broader administrative visibility and authority.
 
@@ -630,16 +630,16 @@ PROFESSOR:
 - Can invite students.
 - Can update or logically remove group-class members when allowed.
 - Can configure grounding documents.
-- Can create evaluations.
-- Can create evaluation assignments for students in their group class.
+- Can create training activities.
+- Can create training activity assignments for students in their group class.
 - Can view relevant student conversations according to future runtime rules.
 
 STUDENT:
 - Learner-level authority.
 - Can access their group-class context.
 - Can create and view their own conversations.
-- Can view their assigned evaluations.
-- Can update their own evaluation assignments as they start and submit them.
+- Can view their assigned training activities.
+- Can update their own training activity assignments as they start and submit them.
 ```
 
 Runtime enforcement, scoping checks, and ownership checks are deferred to later use cases, but this use case must seed the roles, resources, actions, and permission catalog so that the hierarchy can be implemented correctly.
@@ -662,8 +662,8 @@ Runtime enforcement, scoping checks, and ownership checks are deferred to later 
 - The team has agreed that `conversation` is the new canonical domain concept.
 - The team has agreed that `conversation_snapshot` stores compacted conversation state and messages.
 - The team has agreed that the new baseline creates only the target ERD and omits obsolete legacy tables.
-- The team has agreed that `evaluation_assignment` is part of the target ERD and can be directly interacted with by students.
-- The team has agreed that assignment progress is represented through `EVALUATION_ASSIGNMENT:UPDATE`, not through a separate action or table.
+- The team has agreed that `training_activity_assignment` is part of the target ERD and can be directly interacted with by students.
+- The team has agreed that assignment progress is represented through `TRAINING_ACTIVITY_ASSIGNMENT:UPDATE`, not through a separate action or table.
 - The team has agreed that only the initial system admin account may be seeded.
 - The team has agreed that tenants, subjects, academic periods, group classes, tenant admins, professors, and students must be created later through onboarding/admin workflows.
 - The application can accept a breaking schema migration.
@@ -755,7 +755,7 @@ The actual initial password must be configured through a safe development or dep
 ```text
 ACCOUNT becomes the root authenticated identity.
 client_id is no longer the target identity model.
-Students, professors, assistants, tenant admins, and system admins share the same identity root.
+Students, professors, tenant admins, and system admins share the same identity root.
 Only the initial platform system admin is seeded.
 ```
 
@@ -863,13 +863,13 @@ PROFESSOR can invite students.
 PROFESSOR can update or logically remove group-class members.
 PROFESSOR can generate join codes.
 PROFESSOR can configure grounding documents.
-PROFESSOR can create evaluations.
-PROFESSOR can assign evaluations to students.
+PROFESSOR can create training activities.
+PROFESSOR can assign training activities to students.
 PROFESSOR can view relevant conversations according to future runtime rules.
 
 STUDENT can view group-class context.
 STUDENT can create and view their own conversations.
-STUDENT can view and update their own evaluation assignments as they start and submit them.
+STUDENT can view and update their own training activity assignments as they start and submit them.
 ```
 
 ### Current State
@@ -1004,8 +1004,8 @@ GROUP_CLASS
 GROUP_CLASS_MEMBER
 GROUP_CLASS_JOIN_CODE
 GROUNDING
-EVALUATION
-EVALUATION_ASSIGNMENT
+TRAINING_ACTIVITY
+TRAINING_ACTIVITY_ASSIGNMENT
 CONVERSATION
 ```
 
@@ -1036,7 +1036,7 @@ SYSTEM_ADMIN
 
 `PROFESSOR` operates inside group classes where the professor is an active group-class member.
 
-`STUDENT` operates only inside group classes where the student is an active group-class member and only over the student's own conversations and evaluation assignments.
+`STUDENT` operates only inside group classes where the student is an active group-class member and only over the student's own conversations and training activity assignments.
 
 ### Resource Rationale
 
@@ -1052,11 +1052,11 @@ For this reason, the following resources are included:
 | `SUBJECT` | Academic legacySubject management inside a tenant. Used by `TENANT_ADMIN`. |
 | `ACADEMIC_PERIOD` | Academic period management inside a tenant. Used by `TENANT_ADMIN`. |
 | `GROUP_CLASS` | Concrete class section management. Used by `TENANT_ADMIN`, and partially by `PROFESSOR` depending on later rules. |
-| `GROUP_CLASS_MEMBER` | Membership and invitation management for professors, students, and assistants. Professors may update or logically remove members inside their own group classes. |
+| `GROUP_CLASS_MEMBER` | Membership and invitation management for professors and students. Professors may update or logically remove members inside their own group classes. |
 | `GROUP_CLASS_JOIN_CODE` | Access-code generation and control for students joining a group class. |
 | `GROUNDING` | Group-class grounding configuration, including uploaded/text documents and generated chunks. |
-| `EVALUATION` | Group-class evaluation creation, publishing, and management. |
-| `EVALUATION_ASSIGNMENT` | Student-facing assigned evaluation state. Students can view and update their own assignments as they start and submit them. |
+| `TRAINING_ACTIVITY` | Group-class training activity creation, publishing, and management. |
+| `TRAINING_ACTIVITY_ASSIGNMENT` | Student-facing assigned training activity state. Students can view and update their own assignments as they start and submit them. |
 | `CONVERSATION` | Tutor conversations owned by group-class members. |
 
 ### Internal Tables Excluded from Resources
@@ -1090,8 +1090,8 @@ TENANT controls tenant-level administration.
 GROUP_CLASS_MEMBER controls professor/student membership operations.
 CONVERSATION controls access to conversation snapshots.
 GROUNDING controls access to grounding collections, documents, and chunks.
-EVALUATION controls evaluation definitions.
-EVALUATION_ASSIGNMENT controls student-facing assigned evaluation progress.
+TRAINING_ACTIVITY controls training activity definitions.
+TRAINING_ACTIVITY_ASSIGNMENT controls student-facing assigned training activity progress.
 ```
 
 ### Action Rationale
@@ -1100,7 +1100,7 @@ EVALUATION_ASSIGNMENT controls student-facing assigned evaluation progress.
 |--------|---------|
 | `VIEW` | Read, list, or open the resource. |
 | `CREATE` | Create a new instance of the resource. |
-| `UPDATE` | Modify an existing resource or transition its state. For `EVALUATION_ASSIGNMENT`, this covers moving from `ASSIGNED` to `STARTED` or `SUBMITTED`. |
+| `UPDATE` | Modify an existing resource or transition its state. For `TRAINING_ACTIVITY_ASSIGNMENT`, this covers moving from `ASSIGNED` to `STARTED` or `SUBMITTED`. |
 | `DELETE` | Remove, archive, or logically disable a resource where allowed. For `GROUP_CLASS_MEMBER`, this means disabling/removing the member from active use, not necessarily physically deleting the row. |
 | `INVITE` | Invite or assign another person into a tenant or group-class context. |
 
@@ -1120,8 +1120,8 @@ SYSTEM_ADMIN
 - GROUP_CLASS_MEMBER:VIEW
 - GROUP_CLASS_JOIN_CODE:VIEW
 - GROUNDING:VIEW
-- EVALUATION:VIEW
-- EVALUATION_ASSIGNMENT:VIEW
+- TRAINING_ACTIVITY:VIEW
+- TRAINING_ACTIVITY_ASSIGNMENT:VIEW
 - CONVERSATION:VIEW
 ```
 
@@ -1170,15 +1170,15 @@ PROFESSOR
 - GROUNDING:UPDATE
 - GROUNDING:DELETE
 
-- EVALUATION:VIEW
-- EVALUATION:CREATE
-- EVALUATION:UPDATE
-- EVALUATION:DELETE
+- TRAINING_ACTIVITY:VIEW
+- TRAINING_ACTIVITY:CREATE
+- TRAINING_ACTIVITY:UPDATE
+- TRAINING_ACTIVITY:DELETE
 
-- EVALUATION_ASSIGNMENT:VIEW
-- EVALUATION_ASSIGNMENT:CREATE
-- EVALUATION_ASSIGNMENT:UPDATE
-- EVALUATION_ASSIGNMENT:DELETE
+- TRAINING_ACTIVITY_ASSIGNMENT:VIEW
+- TRAINING_ACTIVITY_ASSIGNMENT:CREATE
+- TRAINING_ACTIVITY_ASSIGNMENT:UPDATE
+- TRAINING_ACTIVITY_ASSIGNMENT:DELETE
 
 - CONVERSATION:VIEW
 ```
@@ -1192,19 +1192,19 @@ STUDENT
 - CONVERSATION:UPDATE
 - CONVERSATION:DELETE
 
-- EVALUATION:VIEW
+- TRAINING_ACTIVITY:VIEW
 
-- EVALUATION_ASSIGNMENT:VIEW
-- EVALUATION_ASSIGNMENT:UPDATE
+- TRAINING_ACTIVITY_ASSIGNMENT:VIEW
+- TRAINING_ACTIVITY_ASSIGNMENT:UPDATE
 ```
 
-### Important Clarification About `EVALUATION_ASSIGNMENT:UPDATE`
+### Important Clarification About `TRAINING_ACTIVITY_ASSIGNMENT:UPDATE`
 
 The target ERD does not include `evaluation_run`.
 
-When a professor assigns an evaluation to a group class, each student receives an `evaluation_assignment`.
+When a professor assigns a training activity to a group class, each student receives a `training_activity_assignment`.
 
-The student starts and completes the assigned evaluation by updating their own `evaluation_assignment` state.
+The student starts and completes the assigned training activity by updating their own `training_activity_assignment` state.
 
 Expected lifecycle:
 
@@ -1220,7 +1220,7 @@ EXPIRED
 EXCUSED
 ```
 
-The detailed behavior for starting, answering, submitting, expiring, or excusing an assignment belongs to a later evaluation runtime use case.
+The detailed behavior for starting, answering, submitting, expiring, or excusing an assignment belongs to a later training activity runtime use case.
 
 ### Important Clarification About `GROUP_CLASS_MEMBER:DELETE`
 
@@ -1243,8 +1243,8 @@ The schema can represent tenant-scoped roles and permissions.
 Resources represent real policy boundaries, not every database table.
 Actions remain explicit and minimal.
 SYSTEM_ADMIN is the top of the hierarchy and can see everything.
-EVALUATION_ASSIGNMENT is included because students directly interact with assignments.
-Students progress through evaluation assignments using UPDATE.
+TRAINING_ACTIVITY_ASSIGNMENT is included because students directly interact with assignments.
+Students progress through training activity assignments using UPDATE.
 Runtime authorization enforcement is outside this use case.
 ```
 
@@ -1390,7 +1390,7 @@ No academic domain data is hardcoded by this migration.
 
 ### Purpose
 
-Represent professors, students, and assistants inside concrete class groups.
+Represent professors and students inside concrete class groups.
 
 ### Current State
 
@@ -1428,7 +1428,6 @@ Allowed role values:
 ```text
 PROFESSOR
 STUDENT
-ASSISTANT
 ```
 
 ### Flow
@@ -1436,7 +1435,7 @@ ASSISTANT
 1. **Migration Runner** creates `group_class_member`.
 2. **Database** enforces that each member belongs to a valid group class.
 3. **Database** enforces that each member references a valid tenant account.
-4. **Database** enforces that the role is one of `PROFESSOR`, `STUDENT`, or `ASSISTANT`.
+4. **Database** enforces that the role is one of `PROFESSOR` or `STUDENT`.
 5. **Database** enforces uniqueness for group-class membership where appropriate.
 
 ### Result
@@ -1737,11 +1736,11 @@ Embeddings live directly on grounding chunks.
 
 ---
 
-## Stage 9: Replace Evaluation Run Model with Group-Class Evaluation Assignment Model
+## Stage 9: Replace Evaluation Run Model with Group-Class Training Activity Assignment Model
 
 ### Purpose
 
-Replace the current global evaluation/execution model with the ERD evaluation model.
+Replace the current global evaluation/execution model with the ERD training activity model.
 
 ### Current State
 
@@ -1780,14 +1779,14 @@ evaluation_run
 Create or redefine:
 
 ```text
-evaluation
-evaluation_assignment
+training_activity
+training_activity_assignment
 ```
 
-Target `evaluation`:
+Target `training_activity`:
 
 ```text
-evaluation
+training_activity
 - id
 - group_class_id
 - created_by_group_class_member_id
@@ -1800,7 +1799,7 @@ evaluation
 - updated_at
 ```
 
-Allowed `evaluation.status` values:
+Allowed `training_activity.status` values:
 
 ```text
 DRAFT
@@ -1809,12 +1808,12 @@ CLOSED
 ARCHIVED
 ```
 
-Target `evaluation_assignment`:
+Target `training_activity_assignment`:
 
 ```text
-evaluation_assignment
+training_activity_assignment
 - id
-- evaluation_id
+- training_activity_id
 - group_class_member_id
 - status
 - assigned_at
@@ -1823,7 +1822,7 @@ evaluation_assignment
 - updated_at
 ```
 
-Allowed `evaluation_assignment.status` values:
+Allowed `training_activity_assignment.status` values:
 
 ```text
 ASSIGNED
@@ -1839,33 +1838,33 @@ EXCUSED
 ```text
 evaluation.status PENDING/RUNNING/COMPLETED/FAILED -> replaced by DRAFT/PUBLISHED/CLOSED/ARCHIVED
 
-evaluation.instruction       -> evaluation.instructions
+evaluation.instruction       -> training_activity.instructions
 evaluation.questions_json    -> no target ERD equivalent
 evaluation.answers_json      -> no target ERD equivalent
 evaluation.report_markdown   -> no target ERD equivalent
 
-evaluation_run               -> legacy obsolete / conceptually replaced by evaluation_assignment
-evaluation_run.student_client_id -> evaluation_assignment.group_class_member_id
-evaluation_run.status        -> evaluation_assignment.status
+evaluation_run               -> legacy obsolete / conceptually replaced by training_activity_assignment
+evaluation_run.student_client_id -> training_activity_assignment.group_class_member_id
+evaluation_run.status        -> training_activity_assignment.status
 ```
 
 ### Flow
 
-1. **Migration Runner** replaces or recreates `evaluation` using the ERD structure.
-2. **Migration Runner** creates `evaluation_assignment`.
-3. **Database** enforces that each evaluation belongs to a group class.
-4. **Database** enforces that each evaluation was created by a group-class member.
-5. **Database** enforces that each evaluation assignment belongs to an evaluation.
-6. **Database** enforces that each evaluation assignment targets a group-class member.
+1. **Migration Runner** replaces or recreates `training_activity` using the ERD structure.
+2. **Migration Runner** creates `training_activity_assignment`.
+3. **Database** enforces that each training activity belongs to a group class.
+4. **Database** enforces that each training activity was created by a group-class member.
+5. **Database** enforces that each training activity assignment belongs to a training activity.
+6. **Database** enforces that each training activity assignment targets a group-class member.
 7. **Database** does not create `evaluation_run` because it is not part of the target ERD.
 
 ### Evaluation Assignment Meaning
 
-When a professor creates an evaluation for a group class, the system can assign that evaluation to students in the group class.
+When a professor creates a training activity for a group class, the system can assign that training activity to students in the group class.
 
-Each student receives an `evaluation_assignment`.
+Each student receives a `training_activity_assignment`.
 
-The student does not run an `evaluation_run` record. The student progresses through their own `evaluation_assignment`.
+The student does not run an `evaluation_run` record. The student progresses through their own `training_activity_assignment`.
 
 Expected assignment lifecycle:
 
@@ -1886,12 +1885,12 @@ EXCUSED
 ### Result
 
 ```text
-Evaluation is group-class scoped.
-Evaluation is created by a professor group-class member.
-Evaluation assignment targets a student group-class member.
-Evaluation assignment represents a student's assigned evaluation state.
+Training activity is group-class scoped.
+Training activity is created by a professor group-class member.
+Training activity assignment targets a student group-class member.
+Training activity assignment represents a student's assigned training activity state.
 evaluation_run is no longer part of the target schema.
-EVALUATION_ASSIGNMENT:UPDATE represents assignment progress, not a separate run table.
+TRAINING_ACTIVITY_ASSIGNMENT:UPDATE represents assignment progress, not a separate run table.
 ```
 
 ---
@@ -1930,14 +1929,14 @@ legacy_evaluation_run
 3. **Development team** excludes obsolete services, tools, and UI flows that still depend on obsolete persistence from active startup.
 4. **Development team** ensures new code uses `conversation` and `conversation_snapshot`.
 5. **Development team** ensures new code uses `grounding_*` instead of the old document ingestion model.
-6. **Development team** ensures new code uses `evaluation` and `evaluation_assignment` instead of `evaluation_run`.
+6. **Development team** ensures new code uses `training_activity` and `training_activity_assignment` instead of `evaluation_run`.
 
 ### Result
 
 ```text
 Old legacy tables are absent from the baseline.
 Legacy code is isolated from active Spring/JPA startup.
-New architecture uses account, tenant, group_class_member, conversation, grounding, evaluation, and evaluation_assignment.
+New architecture uses account, tenant, group_class_member, conversation, grounding, training_activity, and training_activity_assignment.
 ```
 
 ---
@@ -1978,7 +1977,7 @@ group_class_join_code.code unique
 
 grounding_chunk(document_id, chunk_index) unique
 
-evaluation_assignment(evaluation_id, group_class_member_id) unique
+training_activity_assignment(training_activity_id, group_class_member_id) unique
 
 conversation_snapshot(conversation_id, snapshot_no) unique
 
@@ -2025,10 +2024,10 @@ grounding_collection.group_class_id
 grounding_document.collection_id
 grounding_chunk.document_id
 
-evaluation.group_class_id
-evaluation.created_by_group_class_member_id
-evaluation_assignment.evaluation_id
-evaluation_assignment.group_class_member_id
+training_activity.group_class_id
+training_activity.created_by_group_class_member_id
+training_activity_assignment.training_activity_id
+training_activity_assignment.group_class_member_id
 ```
 
 ### Required Seed Data
@@ -2066,8 +2065,8 @@ GROUP_CLASS
 GROUP_CLASS_MEMBER
 GROUP_CLASS_JOIN_CODE
 GROUNDING
-EVALUATION
-EVALUATION_ASSIGNMENT
+TRAINING_ACTIVITY
+TRAINING_ACTIVITY_ASSIGNMENT
 CONVERSATION
 ```
 
@@ -2096,8 +2095,8 @@ student accounts
 professor memberships
 student memberships
 grounding collections
-evaluations
-evaluation assignments
+training activities
+training activity assignments
 conversations
 ```
 
@@ -2116,8 +2115,8 @@ Expected later workflow:
 8. Professor configures group class.
 9. Professor uploads grounding documents.
 10. Professor invites students.
-11. Professor creates evaluations.
-12. Students receive and update evaluation assignments as they start and submit them.
+11. Professor creates training activities.
+12. Students receive and update training activity assignments as they start and submit them.
 ```
 
 The following internal tables must not be seeded as authorization resources in this use case:
@@ -2205,7 +2204,7 @@ No academic tenant, legacySubject, period, group, professor, student, or thesis-
 
 ## Postconditions
 
-- **On success:** The database contains the target academic multi-tenant ERD. `account`, `tenant`, `tenant_account`, roles, permissions, `legacySubject`, `academic_period`, `group_class`, `group_class_member`, `group_class_join_code`, `conversation`, `conversation_snapshot`, `grounding_collection`, `grounding_document`, `grounding_chunk`, `evaluation`, and `evaluation_assignment` exist with required relationships, constraints, indexes, foundational RBAC data, and one initial system admin account.
+- **On success:** The database contains the target academic multi-tenant ERD. `account`, `tenant`, `tenant_account`, roles, permissions, `legacySubject`, `academic_period`, `group_class`, `group_class_member`, `group_class_join_code`, `conversation`, `conversation_snapshot`, `grounding_collection`, `grounding_document`, `grounding_chunk`, `training_activity`, and `training_activity_assignment` exist with required relationships, constraints, indexes, foundational RBAC data, and one initial system admin account.
 
 - **On failure:** The migration stops at the failing stage. The target schema must not be considered complete. The development team must resolve the schema conflict, dependency issue, or constraint violation before proceeding.
 
@@ -2235,7 +2234,7 @@ No academic tenant, legacySubject, period, group, professor, student, or thesis-
 | BR-18 | `academic_period` belongs to a tenant. |
 | BR-19 | `group_class` belongs to a tenant, legacySubject, and academic period. |
 | BR-20 | `group_class_member` connects a tenant account to a group class. |
-| BR-21 | Professor, student, and assistant are group-class member roles. |
+| BR-21 | Professor and student are group-class member roles. |
 | BR-22 | `group_class_join_code` belongs to a group class. |
 | BR-23 | `group_class_join_code` is created by a group-class member. |
 | BR-24 | `conversation` replaces `chat` as the canonical tutor conversation model. |
@@ -2250,10 +2249,10 @@ No academic tenant, legacySubject, period, group, professor, student, or thesis-
 | BR-33 | `grounding_document` belongs to a grounding collection. |
 | BR-34 | `grounding_chunk` belongs to a grounding document. |
 | BR-35 | Embeddings are stored on `grounding_chunk.embedding`. |
-| BR-36 | `evaluation` belongs to a group class. |
-| BR-37 | `evaluation` is created by a professor group-class member. |
-| BR-38 | `evaluation_assignment` belongs to an evaluation. |
-| BR-39 | `evaluation_assignment` targets a student group-class member. |
+| BR-36 | `training_activity` belongs to a group class. |
+| BR-37 | `training_activity` is created by a professor group-class member. |
+| BR-38 | `training_activity_assignment` belongs to a training activity. |
+| BR-39 | `training_activity_assignment` targets a student group-class member. |
 | BR-40 | `evaluation_run` is not part of the target ERD. |
 | BR-41 | `student_profile`, `student_misconception`, and `student_profile_signal` are obsolete and are not created by the UC-001 baseline. |
 | BR-42 | New code must not read or write the obsolete student profile block. |
@@ -2273,21 +2272,21 @@ No academic tenant, legacySubject, period, group, professor, student, or thesis-
 | BR-56 | `GROUP_CLASS_MEMBER` is a valid resource because tenant admins and professors need controlled membership and invitation operations. |
 | BR-57 | `GROUP_CLASS_JOIN_CODE` is a valid resource because professors need to generate and control student access codes. |
 | BR-58 | `GROUNDING` is a valid resource because professors need to configure group-class grounding, including documents and chunks. |
-| BR-59 | `EVALUATION` is a valid resource because professors need to create and manage group-class evaluations. |
+| BR-59 | `TRAINING_ACTIVITY` is a valid resource because professors need to create and manage group-class training activities. |
 | BR-60 | `CONVERSATION` is a valid resource because students need to create and view their own tutor conversations. |
 | BR-61 | `CONVERSATION_SNAPSHOT` must not be seeded as a resource in this use case because snapshots are internal conversation state. |
 | BR-62 | `GROUNDING_DOCUMENT` and `GROUNDING_CHUNK` must not be seeded as separate resources in this use case because they are controlled through `GROUNDING`. |
-| BR-63 | `EVALUATION_ASSIGNMENT` is a valid resource because students directly view and progress through their assigned evaluations. |
-| BR-64 | Assignment execution is represented by `EVALUATION_ASSIGNMENT:UPDATE`. |
-| BR-65 | `EVALUATION_ASSIGNMENT:UPDATE` means transitioning an assignment through allowed assignment states, not creating a separate run record. |
+| BR-63 | `TRAINING_ACTIVITY_ASSIGNMENT` is a valid resource because students directly view and progress through their assigned training activities. |
+| BR-64 | Assignment execution is represented by `TRAINING_ACTIVITY_ASSIGNMENT:UPDATE`. |
+| BR-65 | `TRAINING_ACTIVITY_ASSIGNMENT:UPDATE` means transitioning an assignment through allowed assignment states, not creating a separate run record. |
 | BR-66 | `evaluation_run` must not be reintroduced unless a later ERD revision explicitly adds it. |
 | BR-67 | A professor may update, remove, or disable group-class members only inside group classes where the professor has the required membership and permission. |
 | BR-68 | Removing a group-class member should be treated as logical removal, locking, or disabling unless a later use case explicitly allows physical deletion. |
-| BR-69 | A student may view and update only their own evaluation assignments unless a later use case explicitly expands visibility. |
+| BR-69 | A student may view and update only their own training activity assignments unless a later use case explicitly expands visibility. |
 | BR-70 | Authorization actions in this schema migration are limited to `VIEW`, `CREATE`, `UPDATE`, `DELETE`, and `INVITE`. |
-| BR-71 | Runtime ownership checks for conversations and evaluation assignments are deferred to later service-level use cases. |
+| BR-71 | Runtime ownership checks for conversations and training activity assignments are deferred to later service-level use cases. |
 | BR-72 | The migration may seed only the initial `admin@socratic-tutor.com` system admin account. |
-| BR-73 | The migration must not seed PUCMM, ICC-101, academic periods, group classes, tenant admins, professors, students, conversations, grounding data, evaluations, or assignments. |
+| BR-73 | The migration must not seed PUCMM, ICC-101, academic periods, group classes, tenant admins, professors, students, conversations, grounding data, training activities, or assignments. |
 | BR-74 | Business/domain boundary entities use UUID identifiers. |
 | BR-75 | Internal catalog, snapshot, and selected implementation-detail entities use `id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY` when they do not need public UUID identifiers. |
 | BR-76 | `role`, `resource`, `action`, `permission`, `grounding_collection`, `grounding_document`, `grounding_chunk`, and `conversation_snapshot` use BIGINT identity primary keys. |
@@ -2328,8 +2327,8 @@ The tests must validate the intended business rules, not just that tables exist.
 - [ ] Stage 8 creates `grounding_chunk`.
 - [ ] Stage 8 uses `BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY` for `grounding_collection.id`, `grounding_document.id`, and `grounding_chunk.id`.
 - [ ] Stage 8 stores embeddings on `grounding_chunk.embedding`.
-- [ ] Stage 9 creates target `evaluation`.
-- [ ] Stage 9 creates `evaluation_assignment`.
+- [ ] Stage 9 creates target `training_activity`.
+- [ ] Stage 9 creates `training_activity_assignment`.
 - [ ] Stage 9 does not create `evaluation_run`.
 - [ ] Stage 10 keeps `student_profile`, `student_misconception`, and `student_profile_signal` physically present.
 - [ ] Stage 10 marks student profile tables as obsolete in documentation or migration notes.
@@ -2340,12 +2339,12 @@ The tests must validate the intended business rules, not just that tables exist.
 ### RBAC Seed Tests
 
 - [ ] Stage 3 seeds roles: `SYSTEM_ADMIN`, `TENANT_ADMIN`, `PROFESSOR`, `STUDENT`, and `ASSISTANT`.
-- [ ] Stage 3 seeds resources: `TENANT`, `SUBJECT`, `ACADEMIC_PERIOD`, `GROUP_CLASS`, `GROUP_CLASS_MEMBER`, `GROUP_CLASS_JOIN_CODE`, `GROUNDING`, `EVALUATION`, `EVALUATION_ASSIGNMENT`, and `CONVERSATION`.
+- [ ] Stage 3 seeds resources: `TENANT`, `SUBJECT`, `ACADEMIC_PERIOD`, `GROUP_CLASS`, `GROUP_CLASS_MEMBER`, `GROUP_CLASS_JOIN_CODE`, `GROUNDING`, `TRAINING_ACTIVITY`, `TRAINING_ACTIVITY_ASSIGNMENT`, and `CONVERSATION`.
 - [ ] Stage 3 seeds actions: `VIEW`, `CREATE`, `UPDATE`, `DELETE`, and `INVITE`.
 - [ ] Stage 3 does not seed `CONVERSATION_SNAPSHOT` as an authorization resource.
 - [ ] Stage 3 does not seed `GROUNDING_DOCUMENT` or `GROUNDING_CHUNK` as separate authorization resources.
-- [ ] Stage 3 seeds `EVALUATION_ASSIGNMENT` as a resource because students directly interact with assigned evaluations.
-- [ ] Stage 3 documents that students progress through assigned evaluations using `EVALUATION_ASSIGNMENT:UPDATE`.
+- [ ] Stage 3 seeds `TRAINING_ACTIVITY_ASSIGNMENT` as a resource because students directly interact with assigned training activities.
+- [ ] Stage 3 documents that students progress through assigned training activities using `TRAINING_ACTIVITY_ASSIGNMENT:UPDATE`.
 - [ ] Stage 3 does not reintroduce `evaluation_run`.
 - [ ] Stage 3 documents that professor deletion of group-class members means logical removal, locking, or disabling unless a later use case allows physical deletion.
 - [ ] Stage 3 documents that resources are capability boundaries, not a mirror of database tables.
@@ -2373,14 +2372,14 @@ These tests may be implemented as repository/service integration tests once the 
 - [ ] `PROFESSOR` cannot update members from unrelated group classes.
 - [ ] `PROFESSOR` can create grounding only for group classes where the professor is an active professor member.
 - [ ] `PROFESSOR` cannot create grounding for unrelated group classes.
-- [ ] `PROFESSOR` can create evaluations only for group classes where the professor is an active professor member.
-- [ ] `EVALUATION` must be created by a professor group-class member.
-- [ ] `EVALUATION_ASSIGNMENT` must target a student group-class member.
-- [ ] `STUDENT` can view their own evaluation assignments.
-- [ ] `STUDENT` can update their own evaluation assignment from `ASSIGNED` to `STARTED`.
-- [ ] `STUDENT` can update their own evaluation assignment from `STARTED` to `SUBMITTED`.
-- [ ] `STUDENT` cannot update another student's evaluation assignment.
-- [ ] `STUDENT` cannot create subjects, academic periods, group classes, grounding collections, or evaluations.
+- [ ] `PROFESSOR` can create training activities only for group classes where the professor is an active professor member.
+- [ ] `TRAINING_ACTIVITY` must be created by a professor group-class member.
+- [ ] `TRAINING_ACTIVITY_ASSIGNMENT` must target a student group-class member.
+- [ ] `STUDENT` can view their own training activity assignments.
+- [ ] `STUDENT` can update their own training activity assignment from `ASSIGNED` to `STARTED`.
+- [ ] `STUDENT` can update their own training activity assignment from `STARTED` to `SUBMITTED`.
+- [ ] `STUDENT` cannot update another student's training activity assignment.
+- [ ] `STUDENT` cannot create subjects, academic periods, group classes, grounding collections, or training activities.
 - [ ] `STUDENT` can create and view their own conversations.
 - [ ] `STUDENT` cannot view another student's conversations unless a later use case explicitly allows it.
 - [ ] `SYSTEM_ADMIN` visibility bypasses tenant and group-class scoping for administrative viewing.
@@ -2428,7 +2427,7 @@ This use case is backend-only.
 | Authorization schema | `role`, `resource`, `action`, `permission`, `role_permission`, `tenant_account_role`. |
 | Authorization resources | Resources represent user-facing or policy-relevant capability boundaries, not every database table. |
 | Seeded actions | `VIEW`, `CREATE`, `UPDATE`, `DELETE`, and `INVITE`. |
-| Assignment progress semantics | Assignment progress uses `EVALUATION_ASSIGNMENT:UPDATE`. |
+| Assignment progress semantics | Assignment progress uses `TRAINING_ACTIVITY_ASSIGNMENT:UPDATE`. |
 | Group-class member deletion | `DELETE` on `GROUP_CLASS_MEMBER` means logical removal, locking, or disabling unless a later use case explicitly allows physical deletion. |
 | Academic structure | `legacySubject`, `academic_period`, `group_class`. |
 | Operational membership | `group_class_member`. |
@@ -2437,8 +2436,8 @@ This use case is backend-only.
 | Message storage | `conversation_snapshot.messages`. |
 | Context compaction | `conversation_snapshot.carry_context`. |
 | Grounding model | `grounding_collection`, `grounding_document`, `grounding_chunk`. |
-| Evaluation model | `evaluation`, `evaluation_assignment`. |
-| Evaluation creation | `evaluation` is created by a professor group-class member. |
-| Evaluation assignment target | `evaluation_assignment` targets a student group-class member. |
+| Training activity model | `training_activity`, `training_activity_assignment`. |
+| Training activity creation | `training_activity` is created by a professor group-class member. |
+| Training activity assignment target | `training_activity_assignment` targets a student group-class member. |
 | Excluded target tables | `conversation_message`, `evaluation_run`. |
 | Obsolete current tables | `student_profile`, `student_misconception`, `student_profile_signal`, `chat`, `chat_transcript`, `chat_message`, `ingested_document`, `document_ingestion_job`, `document_segment`, `vector_store`, `subject_config_revision`, `evaluation_run`. |

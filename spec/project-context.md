@@ -128,7 +128,7 @@ The current product scope includes:
 - Group-class membership.
 - Tutor conversations through `conversation` and `conversation_snapshot`.
 - Grounding material through `grounding_collection`, `grounding_document`, and `grounding_chunk`.
-- Formative activities through `evaluation` and `evaluation_assignment`.
+- Formative activities through `training_activity` and `training_activity_assignment`.
 - Role-based onboarding and workspace routing.
 - Service-layer permission, tenant, group-class, and ownership checks.
 - AI tutor orchestration with guardrails and authorized grounding retrieval.
@@ -196,8 +196,8 @@ The canonical formative activity chain is:
 
 ```text
 group_class
-  -> evaluation
-      -> evaluation_assignment
+  -> training_activity
+      -> training_activity_assignment
 ```
 
 ---
@@ -214,7 +214,7 @@ It does not represent a professor workspace.
 
 A `group_class` is the concrete class section where professors and students interact with tutor resources.
 
-Conversations, grounding material, evaluations, and assignments are scoped to group classes.
+Conversations, grounding material, training activities, and assignments are scoped to group classes.
 
 ### Account is the only authenticated identity root
 

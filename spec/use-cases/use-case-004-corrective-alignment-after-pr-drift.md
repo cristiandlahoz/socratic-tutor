@@ -432,7 +432,7 @@ Make the user-facing product language clearer without changing the schema unexpe
    - `Formative Activities`
    - `Activity`
    - `Assigned Activity`
-3. **Development team** preserves physical table names `evaluation` and `evaluation_assignment` unless a later migration explicitly renames them.
+3. **Development team** confirms physical table names have been renamed from `evaluation`/`evaluation_assignment` to `training_activity`/`training_activity_assignment` by UC-001.
 4. **Development team** preserves backend package names unless changing them is low-risk and covered by tests.
 5. **Development team** updates tests that assert labels or routes.
 

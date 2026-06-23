@@ -54,7 +54,7 @@ The application is organized around these active bounded areas:
 | `academic` | Subjects, academic periods, group classes, and group-class members. |
 | `conversation` | Tutor conversations and snapshots. |
 | `grounding` | Grounding collections, documents, chunks, embeddings, and retrieval. |
-| `evaluation` | Formative activity definitions and student assignments. |
+| `training_activity` | Formative activity definitions and student assignments. |
 | `onboarding` | Invitation acceptance, registration, role assignment, and workspace routing. |
 | `ai` | Tutor prompt composition, advisors, tools, guardrails, memory, and retrieval orchestration. |
 | `ui` | Vaadin views, layouts, navigation, and role/context-specific workspaces. |
@@ -104,8 +104,8 @@ Formative activities:
 
 ```text
 group_class
-  -> evaluation
-      -> evaluation_assignment
+  -> training_activity
+      -> training_activity_assignment
 ```
 
 ---
@@ -137,7 +137,7 @@ src/main/java/com/wornux/
   │   │   ├── academic/
   │   │   ├── conversation/
   │   │   ├── grounding/
-  │   │   └── evaluation/
+  │   │   └── training_activity/
   │   └── repositories/
   │       ├── account/
   │       ├── tenant/
@@ -145,16 +145,16 @@ src/main/java/com/wornux/
   │       ├── academic/
   │       ├── conversation/
   │       ├── grounding/
-  │       └── evaluation/
+│   └── training_activity/
   ├── services/
   │   ├── account/
   │   ├── tenant/
   │   ├── authorization/
   │   ├── academic/
   │   ├── conversation/
-  │   ├── grounding/
-  │   ├── evaluation/
-  │   └── onboarding/
+│   ├── grounding/
+│   ├── training_activity/
+│   └── onboarding/
   ├── ai/
   │   ├── advisor/
   │   ├── guard/
@@ -170,8 +170,8 @@ src/main/java/com/wornux/
   │   ├── professor/
   │   ├── student/
   │   ├── chat/
-  │   ├── grounding/
-  │   └── evaluation/
+│   ├── grounding/
+│   └── training_activity/
   ├── infrastructure/
   │   ├── document/
   │   ├── storage/
@@ -215,8 +215,8 @@ group_class
 group_class_member
 group_class_join_code
 conversation
-evaluation
-evaluation_assignment
+training_activity
+training_activity_assignment
 ```
 
 BIGINT identity for:
@@ -461,8 +461,8 @@ They must not query global chunks without scope constraints.
 Database model:
 
 ```text
-evaluation
-evaluation_assignment
+training_activity
+training_activity_assignment
 ```
 
 Product-facing name:
@@ -471,13 +471,13 @@ Product-facing name:
 formative activity
 ```
 
-`evaluation` is the definition.
+`training_activity` is the definition.
 
-`evaluation_assignment` is the student-facing assigned state.
+`training_activity_assignment` is the student-facing assigned state.
 
 `evaluation_run` is not part of the active target model.
 
-Assignment progress is represented by status transitions on `evaluation_assignment`.
+Assignment progress is represented by status transitions on `training_activity_assignment`.
 
 ---
 
