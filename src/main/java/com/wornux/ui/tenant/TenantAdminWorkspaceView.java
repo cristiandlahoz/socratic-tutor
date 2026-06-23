@@ -13,6 +13,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleTenant;
 import com.wornux.services.workspace.TenantAdminWorkspaceService;
@@ -21,6 +22,7 @@ import com.wornux.services.workspace.WorkspaceRoutingService;
 
 @Route(value = "tenant", autoLayout = false)
 @PageTitle("Tenant admin workspace")
+@PermitAll
 public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final AuthenticatedAccountService authenticatedAccountService;
@@ -127,7 +129,12 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         if (tenant == null) {
             return;
         }
-        workspaceRoutingService.switchTenant(authenticatedAccountService.requireCurrentAccount(), tenant.tenantAccountId());
+        var account = authenticatedAccountService.requireCurrentAccount();
+        if (account.getLastTenantAccount() != null
+                && account.getLastTenantAccount().getId().equals(tenant.tenantAccountId())) {
+            return;
+        }
+        workspaceRoutingService.switchTenant(account, tenant.tenantAccountId());
         refresh();
     }
 

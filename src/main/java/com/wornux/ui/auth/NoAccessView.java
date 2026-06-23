@@ -6,9 +6,11 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 
 @Route(value = "no-access", autoLayout = false)
 @PageTitle("No access")
+@PermitAll
 public class NoAccessView extends VerticalLayout {
 
     public NoAccessView() {

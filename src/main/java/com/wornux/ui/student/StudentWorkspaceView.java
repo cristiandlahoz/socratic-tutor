@@ -10,6 +10,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
@@ -19,6 +20,7 @@ import com.wornux.ui.chat.ChatView;
 
 @Route(value = "student", autoLayout = false)
 @PageTitle("Student workspace")
+@PermitAll
 public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final AuthenticatedAccountService authenticatedAccountService;
@@ -37,8 +39,12 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
 
         addClassName("workspace-view");
         classSelector.setItemLabelGenerator(value -> value.classCode() + " - " + value.className());
-        classSelector.addValueChangeListener(event -> switchClass(event.getValue()));
-        assignmentsGrid.addColumn(assignment -> assignment.getEvaluation().getTitle()).setHeader("Evaluation");
+        classSelector.addValueChangeListener(event -> {
+            if (event.isFromClient()) {
+                switchClass(event.getValue());
+            }
+        });
+        assignmentsGrid.addColumn(assignment -> assignment.getEvaluation().getTitle()).setHeader("Assigned Activity");
         assignmentsGrid.addColumn(assignment -> assignment.getStatus().name()).setHeader("Status");
 
         add(new H1("Student workspace"), classSelector, new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)), assignmentsGrid);

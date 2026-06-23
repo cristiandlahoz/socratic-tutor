@@ -13,6 +13,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
@@ -24,6 +25,7 @@ import com.wornux.ui.ingestion.DocumentIngestionView;
 
 @Route(value = "professor", autoLayout = false)
 @PageTitle("Professor workspace")
+@PermitAll
 public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final AuthenticatedAccountService authenticatedAccountService;
@@ -43,7 +45,11 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
 
         addClassName("workspace-view");
         classSelector.setItemLabelGenerator(value -> value.classCode() + " - " + value.className());
-        classSelector.addValueChangeListener(event -> switchClass(event.getValue()));
+        classSelector.addValueChangeListener(event -> {
+            if (event.isFromClient()) {
+                switchClass(event.getValue());
+            }
+        });
         studentsGrid.addColumn(member -> member.getTenantAccount().getAccount().getFirstName() + " " + member.getTenantAccount().getAccount().getLastName())
                 .setHeader("Student");
         studentsGrid.addColumn(member -> member.getTenantAccount().getAccount().getEmail()).setHeader("Email");
@@ -56,7 +62,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
                 new HorizontalLayout(
                         new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)),
                         new Button("Documents", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
-                        new Button("Evaluations", _ -> UI.getCurrent().navigate(EvaluationView.class))),
+                        new Button("Formative Activities", _ -> UI.getCurrent().navigate(EvaluationView.class))),
                 new HorizontalLayout(studentEmailField, new Button("Invite student", _ -> inviteStudent())),
                 studentsGrid);
     }

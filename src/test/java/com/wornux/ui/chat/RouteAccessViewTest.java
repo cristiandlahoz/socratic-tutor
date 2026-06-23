@@ -1,0 +1,127 @@
+package com.wornux.ui.chat;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.Location;
+import com.wornux.config.ChatProperties;
+import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.data.entities.academic.GroupClassMember;
+import com.wornux.data.entities.identity.Account;
+import com.wornux.services.crunner.CExamplePreparationService;
+import com.wornux.services.crunner.CProgramDebugService;
+import com.wornux.services.evaluation.EvaluationService;
+import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.workspace.WorkspaceDestination;
+import com.wornux.services.workspace.WorkspaceRoutingService;
+import com.wornux.ui.evaluation.EvaluationView;
+import com.wornux.ui.ingestion.DocumentIngestionState;
+import com.wornux.ui.ingestion.DocumentIngestionUiController;
+import com.wornux.ui.ingestion.DocumentIngestionView;
+import java.util.Optional;
+import java.util.concurrent.Executor;
+import org.junit.jupiter.api.Test;
+
+class RouteAccessViewTest {
+
+    @Test
+    void chatAllowsStudentAccess() {
+        var authenticatedAccountService = mock(AuthenticatedAccountService.class);
+        var workspaceRoutingService = mock(WorkspaceRoutingService.class);
+        var viewModel = mock(ChatViewModel.class);
+        var event = mock(BeforeEnterEvent.class);
+        var account = mock(Account.class);
+        when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
+        when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
+        when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)).thenReturn(true);
+        when(workspaceRoutingService.currentClassMembership(account, null)).thenReturn(Optional.of(mock(GroupClassMember.class)));
+        when(event.getLocation()).thenReturn(new Location("chat"));
+        when(viewModel.initializeFromRoute(null, false)).thenReturn(ChatViewModel.RouteInitialization.noReroute());
+
+        var view = new ChatView(
+                new ChatState(),
+                viewModel,
+                new ChatProperties(),
+                mock(CProgramDebugService.class),
+                mock(CExamplePreparationService.class),
+                mock(Executor.class),
+                authenticatedAccountService,
+                workspaceRoutingService);
+
+        assertDoesNotThrow(() -> view.beforeEnter(event));
+
+        verify(event, never()).forwardTo("no-access");
+    }
+
+    @Test
+    void chatAllowsProfessorAccess() {
+        var authenticatedAccountService = mock(AuthenticatedAccountService.class);
+        var workspaceRoutingService = mock(WorkspaceRoutingService.class);
+        var viewModel = mock(ChatViewModel.class);
+        var event = mock(BeforeEnterEvent.class);
+        var account = mock(Account.class);
+        when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
+        when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR)).thenReturn(true);
+        when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)).thenReturn(false);
+        when(workspaceRoutingService.currentClassMembership(account, null)).thenReturn(Optional.of(mock(GroupClassMember.class)));
+        when(event.getLocation()).thenReturn(new Location("chat"));
+        when(viewModel.initializeFromRoute(null, false)).thenReturn(ChatViewModel.RouteInitialization.noReroute());
+
+        var view = new ChatView(
+                new ChatState(),
+                viewModel,
+                new ChatProperties(),
+                mock(CProgramDebugService.class),
+                mock(CExamplePreparationService.class),
+                mock(Executor.class),
+                authenticatedAccountService,
+                workspaceRoutingService);
+
+        assertDoesNotThrow(() -> view.beforeEnter(event));
+
+        verify(event, never()).forwardTo("no-access");
+    }
+
+    @Test
+    void documentsDenyStudentAccess() {
+        var authenticatedAccountService = mock(AuthenticatedAccountService.class);
+        var workspaceRoutingService = mock(WorkspaceRoutingService.class);
+        var controller = mock(DocumentIngestionUiController.class);
+        var event = mock(BeforeEnterEvent.class);
+        var account = mock(Account.class);
+        when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
+        when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
+
+        var view = new DocumentIngestionView(
+                controller,
+                new DocumentIngestionState(),
+                new DocumentIngestionProperties(),
+                authenticatedAccountService,
+                workspaceRoutingService);
+
+        view.beforeEnter(event);
+
+        verify(event).forwardTo("no-access");
+    }
+
+    @Test
+    void evaluationsDenyStudentAccess() {
+        var authenticatedAccountService = mock(AuthenticatedAccountService.class);
+        var workspaceRoutingService = mock(WorkspaceRoutingService.class);
+        var evaluationService = mock(EvaluationService.class);
+        var event = mock(BeforeEnterEvent.class);
+        var account = mock(Account.class);
+        when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
+        when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
+
+        var view = new EvaluationView(evaluationService, workspaceRoutingService, authenticatedAccountService);
+
+        view.beforeEnter(event);
+
+        verify(event).forwardTo("no-access");
+    }
+}

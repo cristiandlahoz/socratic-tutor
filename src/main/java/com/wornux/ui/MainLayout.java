@@ -22,11 +22,15 @@ import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.shared.Tooltip;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
+import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.ConversationSummary;
+import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.workspace.WorkspaceDestination;
+import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.chat.ChatState;
 import com.wornux.ui.chat.ChatViewModel;
 import com.wornux.ui.components.ShellDrawerToggle;
@@ -37,6 +41,7 @@ import com.wornux.ui.ingestion.DocumentIngestionView;
 
 @Layout
 @PreserveOnRefresh
+@PermitAll
 public class MainLayout extends AppLayout {
 
     private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");
@@ -49,6 +54,13 @@ public class MainLayout extends AppLayout {
     private final Div emptyHistory;
     private final Span historyCount;
     private final ChatViewModel viewModel;
+
+    static record SidebarNavigationAccess(boolean showChat, boolean showDocuments, boolean showEvaluations) {
+
+        private static SidebarNavigationAccess noAccess() {
+            return new SidebarNavigationAccess(false, false, false);
+        }
+    }
 
     private sealed interface TimelineEntry permits TimelineDividerEntry, TimelineThreadEntry {
 
@@ -81,7 +93,9 @@ public class MainLayout extends AppLayout {
 
     public MainLayout(
             @RouteScopeOwner(MainLayout.class) ChatState state,
-            @RouteScopeOwner(MainLayout.class) ChatViewModel viewModel) {
+            @RouteScopeOwner(MainLayout.class) ChatViewModel viewModel,
+            AuthenticatedAccountService authenticatedAccountService,
+            WorkspaceRoutingService workspaceRoutingService) {
         setPrimarySection(Section.DRAWER);
         this.viewModel = viewModel;
         this.viewModel.initializeShellState();
@@ -106,6 +120,7 @@ public class MainLayout extends AppLayout {
         appHeader.addClassName("chat-sidebar-app-header");
 
         newChatButton = createActionButton();
+        newChatButton.setId("sidebar-chat-action");
         newChatButton.addClickListener(_ -> this.viewModel.onStartNewChat());
 
         var ingestDocumentButton =
@@ -116,7 +131,18 @@ public class MainLayout extends AppLayout {
             EvaluationView.class,
             "Actividades formativas",
             new SvgIcon("/icons/pencil.svg"));
-        var actionsRow = new Div(newChatButton, ingestDocumentButton, evaluationButton);
+        evaluationButton.setId("sidebar-evaluation-link");
+
+        var sidebarNavigationAccess = authenticatedAccountService.currentAccount()
+                .map(account -> buildSidebarNavigationAccess(
+                    workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR),
+                    workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)))
+                .orElseGet(SidebarNavigationAccess::noAccess);
+
+        var actionsRow = createActionsRow(
+            sidebarNavigationAccess,
+            ingestDocumentButton,
+            evaluationButton);
         actionsRow.addClassNames("chat-sidebar-actions", "sidebar-actions__list");
 
         var actionsSection = new Div(actionsRow);
@@ -233,6 +259,30 @@ public class MainLayout extends AppLayout {
         button.add(new SidebarItem(new Icon(VaadinIcon.PLUS), "Nueva conversación"));
         button.setAriaLabel("Nueva conversación");
         return button;
+    }
+
+    static SidebarNavigationAccess buildSidebarNavigationAccess(boolean professorCanAccess, boolean studentCanAccess) {
+        return new SidebarNavigationAccess(
+            professorCanAccess || studentCanAccess,
+            professorCanAccess,
+            professorCanAccess);
+    }
+
+    private Div createActionsRow(
+            SidebarNavigationAccess sidebarNavigationAccess,
+            RouterLink ingestDocumentButton,
+            RouterLink evaluationButton) {
+        var actionsRow = new Div();
+        if (sidebarNavigationAccess.showChat()) {
+            actionsRow.add(newChatButton);
+        }
+        if (sidebarNavigationAccess.showDocuments()) {
+            actionsRow.add(ingestDocumentButton);
+        }
+        if (sidebarNavigationAccess.showEvaluations()) {
+            actionsRow.add(evaluationButton);
+        }
+        return actionsRow;
     }
 
     private RouterLink createNavigationButton(
