@@ -27,7 +27,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Class context");
-    private final Grid<com.wornux.data.entities.evaluation.EvaluationAssignment> assignmentsGrid = new Grid<>(com.wornux.data.entities.evaluation.EvaluationAssignment.class, false);
+    private final Grid<com.wornux.data.entities.training_activity.TrainingActivityAssignment> assignmentsGrid = new Grid<>(com.wornux.data.entities.training_activity.TrainingActivityAssignment.class, false);
 
     public StudentWorkspaceView(
             AuthenticatedAccountService authenticatedAccountService,
@@ -44,7 +44,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
                 switchClass(event.getValue());
             }
         });
-        assignmentsGrid.addColumn(assignment -> assignment.getEvaluation().getTitle()).setHeader("Assigned Activity");
+        assignmentsGrid.addColumn(assignment -> assignment.getTrainingActivity().getTitle()).setHeader("Assigned Activity");
         assignmentsGrid.addColumn(assignment -> assignment.getStatus().name()).setHeader("Status");
 
         add(new H1("Student workspace"), classSelector, new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)), assignmentsGrid);

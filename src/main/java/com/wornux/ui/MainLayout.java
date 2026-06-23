@@ -36,7 +36,7 @@ import com.wornux.ui.chat.ChatViewModel;
 import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.SidebarItem;
 import com.wornux.ui.components.chat.WidthAwareLabel;
-import com.wornux.ui.evaluation.EvaluationView;
+import com.wornux.ui.training_activity.TrainingActivityView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 
 @Layout
@@ -128,7 +128,7 @@ public class MainLayout extends AppLayout {
         ingestDocumentButton.setId("sidebar-ingest-document-link");
 
         var evaluationButton = createNavigationButton(
-            EvaluationView.class,
+            TrainingActivityView.class,
             "Actividades formativas",
             new SvgIcon("/icons/pencil.svg"));
         evaluationButton.setId("sidebar-evaluation-link");

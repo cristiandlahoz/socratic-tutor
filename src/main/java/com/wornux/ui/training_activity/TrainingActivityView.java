@@ -1,4 +1,4 @@
-package com.wornux.ui.evaluation;
+package com.wornux.ui.training_activity;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -31,40 +31,40 @@ import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import com.wornux.data.entities.evaluation.Evaluation;
-import com.wornux.data.entities.evaluation.EvaluationLifecycleStatus;
+import com.wornux.data.entities.training_activity.TrainingActivity;
+import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.services.context.SetupRequiredException;
-import com.wornux.services.evaluation.EvaluationService;
+import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 
 @Route(value = "evaluations", layout = MainLayout.class)
-public class EvaluationView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
+public class TrainingActivityView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
 
     private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", SPANISH_LOCALE);
-    public static final String OPEN_EVALUATION_QUERY_PARAMETER = "evaluation";
+    public static final String OPEN_ACTIVITY_QUERY_PARAMETER = "evaluation";
 
     private final transient AuthenticatedAccountService authenticatedAccountService;
-    private final transient EvaluationService evaluationService;
+    private final transient TrainingActivityService trainingActivityService;
     private final transient WorkspaceRoutingService workspaceRoutingService;
     private final TextField titleField = new TextField("Title");
     private final TextArea instructionField = new TextArea("Instructions");
     private final Button saveButton = new Button("Save draft");
-    private final Grid<Evaluation> grid = new Grid<>(Evaluation.class, false);
+    private final Grid<TrainingActivity> grid = new Grid<>(TrainingActivity.class, false);
     private final Button deleteButton = new Button("Delete");
     private final Button launchButton = new Button("Execution blocked by UC-002 follow-up");
-    private UUID pendingDialogEvaluationId;
-    private EvaluationDialog openDialog;
+    private UUID pendingDialogActivityId;
+    private TrainingActivityDialog openDialog;
 
-    public EvaluationView(
-            EvaluationService evaluationService,
+    public TrainingActivityView(
+            TrainingActivityService trainingActivityService,
             WorkspaceRoutingService workspaceRoutingService,
             AuthenticatedAccountService authenticatedAccountService) {
-        this.evaluationService = evaluationService;
+        this.trainingActivityService = trainingActivityService;
         this.workspaceRoutingService = workspaceRoutingService;
         this.authenticatedAccountService = authenticatedAccountService;
 
@@ -104,16 +104,16 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
     }
 
     private Div buildGridCard() {
-        grid.addColumn(Evaluation::getTitle).setHeader("Title").setAutoWidth(true).setSortable(true);
-        grid.addColumn(Evaluation::getInstructions).setHeader("Instructions").setWidth("24rem").setFlexGrow(1);
+        grid.addColumn(TrainingActivity::getTitle).setHeader("Title").setAutoWidth(true).setSortable(true);
+        grid.addColumn(TrainingActivity::getInstructions).setHeader("Instructions").setWidth("24rem").setFlexGrow(1);
         grid.addColumn(new ComponentRenderer<>(this::renderStatusBadge)).setHeader("Status").setWidth("8rem");
-        grid.addColumn(eval -> eval.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_FORMATTER))
+        grid.addColumn(act -> act.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_FORMATTER))
                 .setHeader("Created")
                 .setWidth("12rem");
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
         grid.setWidthFull();
-        grid.addItemDoubleClickListener(event -> openEvaluationDialog(event.getItem(), false));
+        grid.addItemDoubleClickListener(event -> openActivityDialog(event.getItem(), false));
         grid.asSingleSelect().addValueChangeListener(event -> deleteButton.setEnabled(event.getValue() != null));
 
         deleteButton.setEnabled(false);
@@ -129,14 +129,14 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
         return card;
     }
 
-    private Span renderStatusBadge(Evaluation evaluation) {
-        var badge = new Span(switch (evaluation.getStatus()) {
+    private Span renderStatusBadge(TrainingActivity activity) {
+        var badge = new Span(switch (activity.getStatus()) {
             case DRAFT -> "Draft";
             case PUBLISHED -> "Published";
             case CLOSED -> "Closed";
             case ARCHIVED -> "Archived";
         });
-        badge.getElement().getThemeList().add(switch (evaluation.getStatus()) {
+        badge.getElement().getThemeList().add(switch (activity.getStatus()) {
             case DRAFT -> "badge";
             case PUBLISHED -> "badge primary";
             case CLOSED -> "badge contrast";
@@ -153,7 +153,7 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
             return;
         }
         try {
-            evaluationService.createPending(title, instruction);
+            trainingActivityService.createPending(title, instruction);
             Notification.show("Formative activity saved");
             titleField.clear();
             instructionField.clear();
@@ -165,16 +165,16 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
     }
 
     private void onDeleteSelected() {
-        var evaluation = grid.asSingleSelect().getValue();
-        if (evaluation == null) {
+        var activity = grid.asSingleSelect().getValue();
+        if (activity == null) {
             return;
         }
-        evaluationService.delete(evaluation.getId());
+        trainingActivityService.delete(activity.getId());
         Notification.show("Formative activity deleted");
         refreshGrid();
     }
 
-    public void onEvaluationUpdated(Evaluation evaluation) {
+    public void onActivityUpdated(TrainingActivity activity) {
         refreshGrid();
     }
 
@@ -185,23 +185,23 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
             event.forwardTo("no-access");
             return;
         }
-        pendingDialogEvaluationId = event.getLocation().getQueryParameters().getSingleParameter(OPEN_EVALUATION_QUERY_PARAMETER)
+        pendingDialogActivityId = event.getLocation().getQueryParameters().getSingleParameter(OPEN_ACTIVITY_QUERY_PARAMETER)
                 .map(this::parseUuid)
                 .orElse(null);
     }
 
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        if (pendingDialogEvaluationId == null) {
+        if (pendingDialogActivityId == null) {
             return;
         }
-        var evaluationId = pendingDialogEvaluationId;
-        pendingDialogEvaluationId = null;
-        openEvaluationDialogFromRoute(evaluationId);
+        var activityId = pendingDialogActivityId;
+        pendingDialogActivityId = null;
+        openActivityDialogFromRoute(activityId);
     }
 
     private void refreshGrid() {
-        grid.setItems(evaluationService.listAll());
+        grid.setItems(trainingActivityService.listAll());
     }
 
     private UUID parseUuid(String rawValue) {
@@ -213,25 +213,25 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
         }
     }
 
-    private void openEvaluationDialogFromRoute(UUID evaluationId) {
-        if (evaluationId == null || openDialog != null) {
+    private void openActivityDialogFromRoute(UUID activityId) {
+        if (activityId == null || openDialog != null) {
             clearDialogAddressBarState();
             return;
         }
         try {
-            openEvaluationDialog(evaluationService.get(evaluationId), true);
+            openActivityDialog(trainingActivityService.get(activityId), true);
         }
         catch (IllegalArgumentException ignored) {
             clearDialogAddressBarState();
         }
     }
 
-    private void openEvaluationDialog(Evaluation evaluation, boolean clearAddressBarOnClose) {
-        openDialog = new EvaluationDialog(evaluation, evaluationService, this::onEvaluationUpdated, () -> closeEvaluationDialog(clearAddressBarOnClose));
+    private void openActivityDialog(TrainingActivity activity, boolean clearAddressBarOnClose) {
+        openDialog = new TrainingActivityDialog(activity, trainingActivityService, this::onActivityUpdated, () -> closeActivityDialog(clearAddressBarOnClose));
         getContent().add(openDialog);
     }
 
-    private void closeEvaluationDialog(boolean clearAddressBarOnClose) {
+    private void closeActivityDialog(boolean clearAddressBarOnClose) {
         if (openDialog != null) {
             getContent().remove(openDialog);
             openDialog = null;

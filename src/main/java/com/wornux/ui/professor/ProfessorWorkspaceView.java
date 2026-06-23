@@ -20,7 +20,7 @@ import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.chat.ChatView;
-import com.wornux.ui.evaluation.EvaluationView;
+import com.wornux.ui.training_activity.TrainingActivityView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 
 @Route(value = "professor", autoLayout = false)
@@ -62,7 +62,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
                 new HorizontalLayout(
                         new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)),
                         new Button("Documents", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
-                        new Button("Formative Activities", _ -> UI.getCurrent().navigate(EvaluationView.class))),
+                        new Button("Formative Activities", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
                 new HorizontalLayout(studentEmailField, new Button("Invite student", _ -> inviteStudent())),
                 studentsGrid);
     }

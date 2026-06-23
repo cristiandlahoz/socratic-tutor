@@ -1,4 +1,4 @@
-package com.wornux.ui.evaluation;
+package com.wornux.ui.training_activity;
 
 import java.util.function.Consumer;
 
@@ -11,21 +11,21 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
-import com.wornux.data.entities.evaluation.Evaluation;
-import com.wornux.services.evaluation.EvaluationService;
+import com.wornux.data.entities.training_activity.TrainingActivity;
+import com.wornux.services.training_activity.TrainingActivityService;
 
-public class EvaluationDialog extends Div {
+public class TrainingActivityDialog extends Div {
 
-    private final Evaluation original;
-    private final EvaluationService evaluationService;
-    private final Consumer<Evaluation> onSave;
+    private final TrainingActivity original;
+    private final TrainingActivityService trainingActivityService;
+    private final Consumer<TrainingActivity> onSave;
     private final Runnable onClose;
     private final TextField titleField;
     private final TextArea instructionField;
 
-    public EvaluationDialog(Evaluation evaluation, EvaluationService evaluationService, Consumer<Evaluation> onSave, Runnable onClose) {
-        this.original = evaluation;
-        this.evaluationService = evaluationService;
+    public TrainingActivityDialog(TrainingActivity activity, TrainingActivityService trainingActivityService, Consumer<TrainingActivity> onSave, Runnable onClose) {
+        this.original = activity;
+        this.trainingActivityService = trainingActivityService;
         this.onSave = onSave;
         this.onClose = onClose;
 
@@ -38,18 +38,18 @@ public class EvaluationDialog extends Div {
         var panel = new Div();
         panel.addClassName("evaluation-overlay-panel");
 
-        var title = new H3("Activity: " + evaluation.getTitle());
+        var title = new H3("Activity: " + activity.getTitle());
         title.getStyle().set("margin", "0");
 
         titleField = new TextField("Title");
         titleField.setWidthFull();
-        titleField.setValue(evaluation.getTitle());
+        titleField.setValue(activity.getTitle());
 
         instructionField = new TextArea("Instructions");
         instructionField.setWidthFull();
         instructionField.setMinHeight("9rem");
         instructionField.setMaxHeight("14rem");
-        instructionField.setValue(evaluation.getInstructions());
+        instructionField.setValue(activity.getInstructions());
 
         var blocker = new Div();
         blocker.setText("UC-002 safe scope: formative activity definitions are active on the target ERD, but assignment execution and report payload persistence remain blocked until the target model is extended.");
@@ -87,7 +87,7 @@ public class EvaluationDialog extends Div {
             Notification.show("Title and instructions are required");
             return;
         }
-        var updated = evaluationService.update(original.getId(), title, instruction);
+        var updated = trainingActivityService.update(original.getId(), title, instruction);
         Notification.show("Formative activity updated");
         if (onSave != null) {
             onSave.accept(updated);
