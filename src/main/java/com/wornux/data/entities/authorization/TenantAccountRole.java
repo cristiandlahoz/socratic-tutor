@@ -5,6 +5,7 @@ import java.time.Instant;
 import com.wornux.data.entities.identity.TenantAccount;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
@@ -31,7 +32,7 @@ public class TenantAccountRole {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_by_tenant_account_id")
     private TenantAccount assignedByTenantAccount;
 
