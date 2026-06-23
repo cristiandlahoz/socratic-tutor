@@ -4,7 +4,6 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.Location;
@@ -12,8 +11,6 @@ import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
-import com.wornux.infrastructure.web.BrowserClientService;
-import com.wornux.services.chat.ConversationService;
 import com.wornux.services.document.ApproveDocumentCommand;
 import com.wornux.services.document.DocumentIngestionService;
 import com.wornux.services.document.StartIngestionCommand;
@@ -36,8 +33,6 @@ public class DocumentIngestionUiController implements Serializable {
     public static final String DOCUMENT_QUERY_PARAMETER = "d";
 
     private final DocumentIngestionService documentIngestionService;
-    private final BrowserClientService browserClientService;
-    private final ConversationService conversationService;
     private final ChatState chatUiState;
     private final DocumentIngestionState state;
     private transient Disposable activeTask;
@@ -45,13 +40,9 @@ public class DocumentIngestionUiController implements Serializable {
 
     public DocumentIngestionUiController(
             DocumentIngestionService documentIngestionService,
-            BrowserClientService browserClientService,
-            ConversationService conversationService,
             @RouteScopeOwner(MainLayout.class) ChatState chatUiState,
             @RouteScopeOwner(MainLayout.class) DocumentIngestionState state) {
         this.documentIngestionService = documentIngestionService;
-        this.browserClientService = browserClientService;
-        this.conversationService = conversationService;
         this.chatUiState = chatUiState;
         this.state = state;
     }
@@ -61,25 +52,23 @@ public class DocumentIngestionUiController implements Serializable {
     }
 
     public void initializeFromRoute(String documentIdParam) {
-        ensureClientContext();
         Optional<DocumentReviewViewModel> review = parseLong(documentIdParam)
-                .flatMap(documentId -> documentIngestionService.loadReview(chatUiState.clientId().peek(), documentId));
+                .flatMap(documentId -> documentIngestionService.loadReview(documentId));
         if (review.isEmpty()) {
-            review = documentIngestionService.loadLatestReview(chatUiState.clientId().peek());
+            review = documentIngestionService.loadLatestReview();
         }
         review.ifPresent(state::apply);
     }
 
     public void uploadPdf(String fileName, String mimeType, byte[] content, UI ui) {
         abortActiveTask();
-        ensureClientContext();
         lastUploadedFile = new UploadedFile(fileName, mimeType, content);
         state.startUploadProcessing(fileName, "Transformando y segmentando PDF con Docling.");
 
         activeTask = Mono
                 .fromCallable(
                     () -> documentIngestionService.startIngestion(
-                        new StartIngestionCommand(chatUiState.clientId().peek(), fileName, mimeType, content)))
+                        new StartIngestionCommand(fileName, mimeType, content)))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                     review -> runUi(ui, () -> applyReview(review)),
@@ -102,8 +91,7 @@ public class DocumentIngestionUiController implements Serializable {
         activeTask = Mono
                 .fromCallable(
                     () -> documentIngestionService.approve(
-                        new ApproveDocumentCommand(chatUiState.clientId().peek(),
-                                state.activeDocumentId().peek(),
+                        new ApproveDocumentCommand(state.activeDocumentId().peek(),
                                 state.reviewedMarkdown().peek(),
                                 state.segments().peek())))
                 .subscribeOn(Schedulers.boundedElastic())
@@ -120,7 +108,7 @@ public class DocumentIngestionUiController implements Serializable {
         Long documentId = state.activeDocumentId().peek();
         state.startProcessing(state.fileName().peek(), "Eliminando documento indexado.");
         activeTask = Mono.fromCallable(() -> {
-            documentIngestionService.delete(chatUiState.clientId().peek(), documentId);
+            documentIngestionService.delete(documentId);
             return true;
         })
                 .subscribeOn(Schedulers.boundedElastic())
@@ -177,13 +165,6 @@ public class DocumentIngestionUiController implements Serializable {
                 .replaceState(
                     null,
                     new Location("documents", QueryParameters.of(DOCUMENT_QUERY_PARAMETER, documentId.toString())));
-    }
-
-    private void ensureClientContext() {
-        if (chatUiState.clientId().peek() == null) {
-            chatUiState.clientId().set(browserClientService.resolveClientId());
-        }
-        chatUiState.replaceConversationHistory(conversationService.listConversations(chatUiState.clientId().peek()));
     }
 
     private void abortActiveTask() {

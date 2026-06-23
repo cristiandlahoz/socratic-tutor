@@ -147,7 +147,7 @@ public class DocumentIngestionService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.Optional<DocumentReviewViewModel> loadLatestReview(UUID ignoredClientId) {
+    public java.util.Optional<DocumentReviewViewModel> loadLatestReview() {
         return contextResolver.resolveCurrent()
                 .flatMap(context -> groundingDocumentRepository
                         .findFirstByCollection_GroupClass_IdOrderByUpdatedAtDescCreatedAtDesc(context.groupClassId())
@@ -159,7 +159,7 @@ public class DocumentIngestionService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.Optional<DocumentReviewViewModel> loadReview(UUID ignoredClientId, Long documentId) {
+    public java.util.Optional<DocumentReviewViewModel> loadReview(Long documentId) {
         return contextResolver.resolveCurrent()
                 .flatMap(context -> groundingDocumentRepository.findByIdAndCollection_GroupClass_Id(documentId, context.groupClassId())
                         .map(document -> toReviewVm(document,
@@ -170,7 +170,7 @@ public class DocumentIngestionService {
     }
 
     @Transactional
-    public void delete(UUID ignoredClientId, Long documentId) {
+    public void delete(Long documentId) {
         var context = requireProfessorContext();
         var document = groundingDocumentRepository.findByIdAndCollection_GroupClass_Id(documentId, context.groupClassId())
                 .orElseThrow(() -> new DocumentIngestionException("Could not find that grounding document in the active class."));

@@ -92,7 +92,7 @@ public class Document {
         var now = Instant.now();
         var entity = new Document();
         entity.id = UUID.randomUUID();
-        entity.clientId = command.clientId();
+        entity.clientId = null;
         entity.originalFilename = command.originalFilename();
         entity.mimeType = command.mimeType();
         entity.sourceType = "browser_upload";

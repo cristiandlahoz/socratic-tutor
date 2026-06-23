@@ -4,5 +4,5 @@ import java.util.List;
 
 import com.wornux.ui.ingestion.*;
 
-public record ApproveDocumentCommand(java.util.UUID clientId, Long documentId, String reviewedMarkdown,
+public record ApproveDocumentCommand(Long documentId, String reviewedMarkdown,
         List<EditableSegmentViewModel> segments) {}

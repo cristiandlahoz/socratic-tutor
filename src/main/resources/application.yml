@@ -54,8 +54,6 @@ arconia:
 app:
   security:
     disable-for-local-development: ${SECURITY_DISABLE:false}
-  browser:
-    id-cookie-name: ${BROWSER_ID_COOKIE_NAME:st_browser_id}
   chat:
     context-window-tokens: ${CHAT_CONTEXT_WINDOW_TOKENS:40960}
     compaction-threshold-ratio: ${CHAT_COMPACTION_THRESHOLD_RATIO:0.30}
