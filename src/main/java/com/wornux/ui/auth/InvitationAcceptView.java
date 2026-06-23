@@ -17,12 +17,12 @@ import com.vaadin.flow.router.Route;
 import com.wornux.services.onboarding.InvitationService;
 import com.wornux.services.onboarding.InvitationStateException;
 import com.wornux.services.security.AuthenticatedAccountService;
-import jakarta.annotation.security.PermitAll;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 import java.util.Optional;
 
 @Route(value = "invitations/accept", autoLayout = false)
 @PageTitle("Accept invitation")
-@PermitAll
+@AnonymousAllowed
 public class InvitationAcceptView extends VerticalLayout implements BeforeEnterObserver {
 
     private final InvitationService invitationService;
@@ -65,7 +65,12 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         try {
             var onboarding = invitationService.prepareOnboarding(token.get());
             emailField.setValue(onboarding.invitedEmail());
-            if (authenticatedAccountService.currentAccount().isPresent()) {
+            var currentAccount = authenticatedAccountService.currentAccount();
+            if (currentAccount.isPresent()) {
+                if (!currentAccount.get().getEmail().equalsIgnoreCase(onboarding.invitedEmail())) {
+                    renderAuthenticatedMismatch(currentAccount.get().getEmail(), onboarding.accountAlreadyExists());
+                    return;
+                }
                 var decision = invitationService.completePendingInvitationForCurrentAccount();
                 event.forwardTo(decision.route());
                 return;
@@ -76,6 +81,27 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
             content.removeAll();
             content.add(new H2("Invitation unavailable"), new Paragraph(exception.getMessage()));
         }
+    }
+
+    private void renderAuthenticatedMismatch(String currentEmail, boolean accountAlreadyExists) {
+        content.removeAll();
+
+        var title = new H2("Invitation ready for a different account");
+        var mismatch = new Paragraph(
+                "This invitation is for " + emailField.getValue() + ", but you are signed in as " + currentEmail + ".");
+        content.add(title, mismatch);
+
+        if (accountAlreadyExists) {
+            var loginButton = new Button("Continue to login", _ -> getUI().ifPresent(ui -> ui.navigate(LoginView.class)));
+            loginButton.addThemeVariants(ButtonVariant.PRIMARY);
+            content.add(
+                    new Paragraph("Sign in with the invited email address to continue accepting this invitation."),
+                    loginButton);
+            return;
+        }
+
+        content.add(new Paragraph(
+                "Sign out or open this invitation in a private window to create the invited account safely."));
     }
 
     private void render(boolean accountAlreadyExists) {
