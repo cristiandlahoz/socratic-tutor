@@ -1,10 +1,11 @@
 package com.wornux.data.entities.academic;
 
 import java.time.Instant;
-import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -20,7 +21,8 @@ import lombok.Setter;
 public class GroupClassJoinCode {
 
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "group_class_id", nullable = false)

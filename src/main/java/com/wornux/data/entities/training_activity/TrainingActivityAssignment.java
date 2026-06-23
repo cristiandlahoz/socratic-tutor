@@ -1,4 +1,4 @@
-package com.wornux.data.entities.evaluation;
+package com.wornux.data.entities.training_activity;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,17 +17,17 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "evaluation_assignment")
+@Table(name = "training_activity_assignment")
 @Getter
 @Setter
-public class EvaluationAssignment {
+public class TrainingActivityAssignment {
 
     @Id
     private UUID id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "evaluation_id", nullable = false)
-    private Evaluation evaluation;
+    @JoinColumn(name = "training_activity_id", nullable = false)
+    private TrainingActivity trainingActivity;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "group_class_member_id", nullable = false)
@@ -35,7 +35,7 @@ public class EvaluationAssignment {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EvaluationAssignmentStatus status;
+    private TrainingActivityAssignmentStatus status;
 
     @Column(name = "assigned_at", nullable = false)
     private Instant assignedAt;

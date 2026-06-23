@@ -1,4 +1,4 @@
-package com.wornux.data.entities.evaluation;
+package com.wornux.data.entities.training_activity;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,11 +17,11 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-@Entity(name = "AcademicEvaluation")
-@Table(name = "evaluation")
+@Entity(name = "TrainingActivity")
+@Table(name = "training_activity")
 @Getter
 @Setter
-public class Evaluation {
+public class TrainingActivity {
 
     @Id
     private UUID id;
@@ -42,7 +42,7 @@ public class Evaluation {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EvaluationLifecycleStatus status;
+    private TrainingActivityLifecycleStatus status;
 
     @Column(name = "opens_at")
     private Instant opensAt;
