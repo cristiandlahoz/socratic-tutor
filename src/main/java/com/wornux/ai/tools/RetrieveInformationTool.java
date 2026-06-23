@@ -30,7 +30,7 @@ public class RetrieveInformationTool {
     public DocumentContextResult searchUploadedDocuments(
             @ToolParam(description = "The user question or the fact to look up inside uploaded PDFs.") String query,
             @ToolParam(required = false,
-                    description = "Optional document UUID from the inventory.") String documentIdHint,
+                    description = "Optional grounding document ID from the inventory.") String documentIdHint,
             @ToolParam(required = false,
                     description = "Optional exact uploaded filename to narrow the search.") String filenameHint,
             @ToolParam(required = false, description = "Optional topic from the document inventory.") String topicHint,

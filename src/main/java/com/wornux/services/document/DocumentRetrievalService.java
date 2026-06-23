@@ -85,10 +85,10 @@ public class DocumentRetrievalService {
     }
 
     private DocumentSearchHit toSearchHit(Object[] row) {
-        var chunkId = String.valueOf(row[0]);
+        var chunkId = longValue(row[0]);
         var content = (String) row[1];
         var ordinal = row[2] instanceof Number n ? n.intValue() : null;
-        var documentId = String.valueOf(row[3]);
+        var documentId = longValue(row[3]);
         var filename = (String) row[4];
         var distance = row[5] instanceof Number n ? n.doubleValue() : 0.0;
         var score = 1.0 - distance;
@@ -107,6 +107,13 @@ public class DocumentRetrievalService {
                 null,
                 List.of(),
                 List.of());
+    }
+
+    private Long longValue(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        return value == null ? null : Long.parseLong(String.valueOf(value));
     }
 
     private String summarize(String content) {

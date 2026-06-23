@@ -1,22 +1,22 @@
 package com.wornux.services.chat;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.wornux.ai.profile.TurnProfileInferenceService;
 import com.wornux.ai.memory.PostgresChatMemory;
 import com.wornux.ai.tools.AskStudentQuestionTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.dtos.chat.*;
+import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -55,22 +55,14 @@ public class ChatService {
   public Flux<String> chatStream(
       UUID turnId,
       String userInput,
-      UUID clientId,
       UUID conversationId,
       AskStudentQuestionTool.QuestionHandler questionHandler) {
     var promptTokens = new AtomicReference<Integer>();
+    var academicCtx = contextResolver.resolveCurrent();
     var clientRequestSpec = chatClient.prompt()
+
         .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId.toString()))
-        .toolContext(
-          Map.of(
-            ToolUsageAuditService.CLIENT_ID,
-            clientId,
-            ToolUsageAuditService.GROUP_CLASS_ID,
-            contextResolver.resolveCurrent().map(context -> context.groupClassId().toString()).orElse(""),
-            ToolUsageAuditService.CONVERSATION_ID,
-            conversationId,
-            ToolUsageAuditService.TURN_ID,
-            turnId))
+        .toolContext(buildToolContext(academicCtx, conversationId, turnId))
         .user(userInput);
     if (questionHandler != null) {
       clientRequestSpec = clientRequestSpec.tools(new AskStudentQuestionTool(questionHandler));
@@ -88,7 +80,6 @@ public class ChatService {
 
   public TurnFinalizationResult finalizeTurn(
       UUID turnId,
-      UUID clientId,
       UUID conversationId,
       String userInput,
       String assistantResponse) {
@@ -145,6 +136,21 @@ public class ChatService {
 
     var text = response.getResult().getOutput().getText();
     return text == null ? "" : text;
+  }
+
+  static Map<String, Object> buildToolContext(
+      Optional<ActiveAcademicContext> academicCtx,
+      UUID conversationId,
+      UUID turnId) {
+    return Map.of(
+      ToolUsageAuditService.CLIENT_ID,
+      academicCtx.map(context -> context.groupClassMemberId().toString()).orElse(""),
+      ToolUsageAuditService.GROUP_CLASS_ID,
+      academicCtx.map(context -> context.groupClassId().toString()).orElse(""),
+      ToolUsageAuditService.CONVERSATION_ID,
+      conversationId,
+      ToolUsageAuditService.TURN_ID,
+      turnId);
   }
 
 }
