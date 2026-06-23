@@ -13,7 +13,6 @@ import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.StudentQuestionExchange;
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
-import com.wornux.infrastructure.web.BrowserClientService;
 import com.wornux.services.chat.ChatService;
 import com.wornux.services.chat.ChatUsageService;
 import com.wornux.services.chat.ConversationService;
@@ -39,7 +38,6 @@ public class ChatViewModel implements Serializable {
     private final ConversationService conversationService;
     private final ChatUsageService chatUsageService;
     private final ConversationTitleService conversationTitleService;
-    private final BrowserClientService browserClientService;
     private final ThemePreferenceService themePreferenceService;
     private final ActiveAcademicContextResolver contextResolver;
     private final ChatNavigationOrchestrator navigationOrchestrator;
@@ -53,7 +51,6 @@ public class ChatViewModel implements Serializable {
             ConversationService conversationService,
             ChatUsageService chatUsageService,
             ConversationTitleService conversationTitleService,
-            BrowserClientService browserClientService,
             ThemePreferenceService themePreferenceService,
             ActiveAcademicContextResolver contextResolver,
             ChatNavigationOrchestrator navigationOrchestrator,
@@ -64,7 +61,6 @@ public class ChatViewModel implements Serializable {
         this.conversationService = conversationService;
         this.chatUsageService = chatUsageService;
         this.conversationTitleService = conversationTitleService;
-        this.browserClientService = browserClientService;
         this.themePreferenceService = themePreferenceService;
         this.contextResolver = contextResolver;
         this.navigationOrchestrator = navigationOrchestrator;
@@ -79,13 +75,11 @@ public class ChatViewModel implements Serializable {
     }
 
     public void initializeShellState() {
-        ensureBrowserSessionId();
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
     }
 
     public void onThemePreferenceChanged(ThemePreference preference) {
-        ensureBrowserSessionId();
         var resolvedPreference = themePreferenceService.updateThemePreference(preference);
         state.themePreference().set(resolvedPreference);
         state.themePreferenceLoaded().set(true);
@@ -96,7 +90,6 @@ public class ChatViewModel implements Serializable {
         turnOrchestrator.abortActiveStream(questionExchange);
         state.responseInProgress().set(false);
         state.compactionInProgress().set(false);
-        ensureBrowserSessionId();
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
         state.setupRequired().set(contextResolver.resolveCurrent().isEmpty());
@@ -113,7 +106,7 @@ public class ChatViewModel implements Serializable {
 
         var requestedConversationId = parseUuid(requestedConversationParam).orElse(null);
         var resolvedConversation =
-                conversationService.resolveActiveConversation(state.clientId().peek(), requestedConversationId);
+                conversationService.resolveActiveConversation(requestedConversationId);
 
         state.activeConversationId().set(resolvedConversation.activeConversationId());
         state.replaceMessages(resolvedConversation.messages().stream().map(MessageState::fromStored).toList());
@@ -160,7 +153,6 @@ public class ChatViewModel implements Serializable {
             return false;
         }
 
-        ensureBrowserSessionId();
         EnsuredConversation ensuredConversation;
         try {
             ensuredConversation = ensureConversation(prompt);
@@ -173,7 +165,6 @@ public class ChatViewModel implements Serializable {
         }
         turnOrchestrator.startTurn(
             new ChatTurnOrchestrator.TurnContext(UUID.randomUUID(),
-                    state.clientId().peek(),
                     ensuredConversation.id(),
                     prompt,
                     ensuredConversation.newlyCreated(),
@@ -192,34 +183,29 @@ public class ChatViewModel implements Serializable {
     }
 
     public void refreshConversationHistory() {
-        if (state.clientId().peek() == null) {
-            return;
-        }
-        state.replaceConversationHistory(conversationService.listConversations(state.clientId().peek()));
+        state.replaceConversationHistory(conversationService.listConversations());
     }
 
     public void refreshTranscriptUsage() {
-        var clientId = state.clientId().peek();
         var conversationId = state.activeConversationId().peek();
-        if (clientId == null || conversationId == null) {
+        if (conversationId == null) {
             state.clearUsage();
             return;
         }
-        var usage = chatUsageService.getActiveTranscriptUsage(clientId, conversationId);
+        var usage = chatUsageService.getActiveTranscriptUsage(conversationId);
         state.usageInputTokens().set(usage.inputTokens());
         state.usagePercent().set(usage.usagePercent());
     }
 
     public void refreshCompactionStatus() {
-        var clientId = state.clientId().peek();
         var conversationId = state.activeConversationId().peek();
-        if (clientId == null || conversationId == null) {
+        if (conversationId == null) {
             state.conversationCompacted().set(false);
             state.compactionLevel().set(null);
             state.compactedFromTranscriptId().set(null);
             return;
         }
-        var status = conversationService.getCompactionStatus(clientId, conversationId);
+        var status = conversationService.getCompactionStatus(conversationId);
         state.conversationCompacted().set(status.compacted());
         state.compactionLevel().set(status.level());
         state.compactedFromTranscriptId().set(status.compactedFromTranscriptId());
@@ -231,12 +217,6 @@ public class ChatViewModel implements Serializable {
             return;
         }
         questionExchange.submit(response);
-    }
-
-    private void ensureBrowserSessionId() {
-        if (state.clientId().peek() == null) {
-            state.clientId().set(browserClientService.resolveClientId());
-        }
     }
 
     private void ensureThemePreferenceLoaded() {
@@ -253,7 +233,7 @@ public class ChatViewModel implements Serializable {
             return new EnsuredConversation(state.activeConversationId().peek(), false, null);
         }
 
-        var conversation = conversationService.createConversation(state.clientId().peek(), prompt);
+        var conversation = conversationService.createConversation(prompt);
         state.activeConversationId().set(conversation.id());
         state.clearUsage();
         state.clearCompactionStatus();

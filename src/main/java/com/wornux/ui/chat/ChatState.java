@@ -24,7 +24,6 @@ public class ChatState implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private final ValueSignal<UUID> clientId = new ValueSignal<>(null);
     private final ValueSignal<UUID> activeConversationId = new ValueSignal<>(null);
     private final ValueSignal<Boolean> responseInProgress = new ValueSignal<>(false);
     private final ValueSignal<Boolean> compactionInProgress = new ValueSignal<>(false);
@@ -57,10 +56,6 @@ public class ChatState implements Serializable {
                 && pendingQuestionSet.get() == null
                 && !questionSubmissionInProgress.get()
                 && !composerText.get().isBlank());
-
-    public ValueSignal<UUID> clientId() {
-        return clientId;
-    }
 
     public ValueSignal<UUID> activeConversationId() {
         return activeConversationId;

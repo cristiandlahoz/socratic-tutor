@@ -40,7 +40,7 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public List<ConversationSummary> listConversations(UUID ignoredClientId) {
+    public List<ConversationSummary> listConversations() {
         return contextResolver.resolveCurrent()
                 .map(context -> conversationRepository.findByGroupClassMember_IdOrderByUpdatedAtDesc(context.groupClassMemberId())
                         .stream()
@@ -50,7 +50,7 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public List<StoredChatMessage> loadConversation(UUID ignoredClientId, UUID conversationId) {
+    public List<StoredChatMessage> loadConversation(UUID conversationId) {
         var conversation = findOwnedConversation(conversationId).orElse(null);
         if (conversation == null || conversation.getCurrentSnapshot() == null) {
             return List.of();
@@ -59,7 +59,7 @@ public class ConversationService {
     }
 
     @Transactional
-    public ConversationSummary createConversation(UUID ignoredClientId, String firstUserPrompt) {
+    public ConversationSummary createConversation(String firstUserPrompt) {
         var context = contextResolver.requireCurrent();
         var conversation = new Conversation();
         conversation.setId(UUID.randomUUID());
@@ -73,8 +73,8 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public ResolvedConversation resolveActiveConversation(UUID ignoredClientId, UUID requestedConversationId) {
-        var conversations = listConversations(ignoredClientId);
+    public ResolvedConversation resolveActiveConversation(UUID requestedConversationId) {
+        var conversations = listConversations();
         var resolvedConversationId = requestedConversationId;
 
         if (resolvedConversationId != null) {
@@ -91,14 +91,13 @@ public class ConversationService {
 
         var messages = resolvedConversationId == null
                 ? List.<StoredChatMessage>of()
-                : loadConversation(ignoredClientId, resolvedConversationId);
+                : loadConversation(resolvedConversationId);
 
         return new ResolvedConversation(resolvedConversationId, conversations, messages);
     }
 
     @Transactional
     public void renameConversationIfTitleMatches(
-            UUID ignoredClientId,
             UUID conversationId,
             String expectedCurrentTitle,
             String candidateTitle) {
@@ -120,7 +119,7 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public ChatCompactionStatus getCompactionStatus(UUID ignoredClientId, UUID conversationId) {
+    public ChatCompactionStatus getCompactionStatus(UUID conversationId) {
         var conversation = findOwnedConversation(conversationId).orElse(null);
         var snapshot = conversation == null ? null : conversation.getCurrentSnapshot();
         if (snapshot == null || snapshot.getCompactedAt() == null) {

@@ -51,9 +51,8 @@ public class ChatTurnOrchestrator {
         var ui = UI.getCurrent();
 
         if (context.newConversation()) {
-            conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> {
+                conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> {
                 conversationService.renameConversationIfTitleMatches(
-                    context.clientId(),
                     context.conversationId(),
                     context.fallbackTitle(),
                     generatedTitle);
@@ -71,7 +70,6 @@ public class ChatTurnOrchestrator {
                         .chatStream(
                             context.turnId(),
                             context.prompt(),
-                            context.clientId(),
                             context.conversationId(),
                             questionExchange::ask)
                         .subscribe(token -> {
@@ -88,10 +86,9 @@ public class ChatTurnOrchestrator {
                                 return;
                             }
                             log.warn(
-                                "chat_ui_stream_failed turn_id={} client_id={} conversation_id={}"
+                                "chat_ui_stream_failed turn_id={} conversation_id={}"
                                         + " failure_kind={} error_type={} error_message={}",
                                 context.turnId(),
-                                context.clientId(),
                                 context.conversationId(),
                                 chatFailureKind(exception),
                                 exception.getClass().getSimpleName(),
@@ -140,7 +137,6 @@ public class ChatTurnOrchestrator {
                 .fromCallable(
                     () -> chatService.finalizeTurn(
                         context.turnId(),
-                        context.clientId(),
                         context.conversationId(),
                         context.prompt(),
                         assistantResponse))
@@ -202,6 +198,6 @@ public class ChatTurnOrchestrator {
         return "chat_stream_error";
     }
 
-    public record TurnContext(UUID turnId, UUID clientId, UUID conversationId, String prompt, boolean newConversation,
+    public record TurnContext(UUID turnId, UUID conversationId, String prompt, boolean newConversation,
             String fallbackTitle, ChatState state) {}
 }

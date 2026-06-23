@@ -106,7 +106,7 @@ class UC002RuntimeAdaptationTest {
         when(conversationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         var service = new ConversationService(conversationRepository, snapshotRepository, contextResolver);
-        var summary = service.createConversation(UUID.randomUUID(), "How do I analyze this algorithm?");
+        var summary = service.createConversation("How do I analyze this algorithm?");
 
         assertNotNull(summary.id());
         var captor = ArgumentCaptor.forClass(Conversation.class);
@@ -120,7 +120,7 @@ class UC002RuntimeAdaptationTest {
         when(contextResolver.resolveCurrent()).thenReturn(Optional.empty());
         var service = new ConversationService(conversationRepository, snapshotRepository, contextResolver);
 
-        assertEquals(List.of(), service.listConversations(UUID.randomUUID()));
+        assertEquals(List.of(), service.listConversations());
         verifyNoInteractions(conversationRepository);
     }
 

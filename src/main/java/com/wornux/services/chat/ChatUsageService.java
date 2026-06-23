@@ -35,7 +35,7 @@ public class ChatUsageService {
     }
 
     @Transactional(readOnly = true)
-    public ChatTranscriptUsage getActiveTranscriptUsage(UUID ignoredClientId, UUID conversationId) {
+    public ChatTranscriptUsage getActiveTranscriptUsage(UUID conversationId) {
         var conversation = conversationService.findOwnedConversation(conversationId).orElse(null);
         if (conversation == null || conversation.getCurrentSnapshot() == null) {
             return ChatTranscriptUsage.empty();
