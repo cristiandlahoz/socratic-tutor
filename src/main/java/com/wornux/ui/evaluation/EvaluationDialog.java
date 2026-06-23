@@ -38,7 +38,7 @@ public class EvaluationDialog extends Div {
         var panel = new Div();
         panel.addClassName("evaluation-overlay-panel");
 
-        var title = new H3("Evaluation: " + evaluation.getTitle());
+        var title = new H3("Activity: " + evaluation.getTitle());
         title.getStyle().set("margin", "0");
 
         titleField = new TextField("Title");
@@ -52,7 +52,7 @@ public class EvaluationDialog extends Div {
         instructionField.setValue(evaluation.getInstructions());
 
         var blocker = new Div();
-        blocker.setText("UC-002 safe scope: evaluation definitions are active on the target ERD, but assignment execution and report payload persistence remain blocked until the target model is extended.");
+        blocker.setText("UC-002 safe scope: formative activity definitions are active on the target ERD, but assignment execution and report payload persistence remain blocked until the target model is extended.");
         blocker.getStyle().set("padding", "1rem").set("border-radius", "0.75rem").set("background", "rgba(255,255,255,0.04)");
 
         var body = new VerticalLayout(title, titleField, instructionField, blocker);
@@ -88,7 +88,7 @@ public class EvaluationDialog extends Div {
             return;
         }
         var updated = evaluationService.update(original.getId(), title, instruction);
-        Notification.show("Evaluation updated");
+        Notification.show("Formative activity updated");
         if (onSave != null) {
             onSave.accept(updated);
         }

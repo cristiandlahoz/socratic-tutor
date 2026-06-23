@@ -78,10 +78,10 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
     }
 
     private Div buildHeader() {
-        var title = new H2("Evaluations");
+        var title = new H2("Formative Activities");
         title.addClassNames(LumoUtility.Margin.NONE);
         var description = new Span(
-                "Manage class-scoped evaluation definitions on the target ERD. Assignment execution remains blocked until the target model gains dedicated payload persistence.");
+                "Manage class-scoped formative activity definitions on the target ERD. Assignment execution remains blocked until the target model gains dedicated payload persistence.");
         description.addClassName("evaluation-description");
         var header = new Div(title, description);
         header.addClassName("evaluation-header");
@@ -154,7 +154,7 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
         }
         try {
             evaluationService.createPending(title, instruction);
-            Notification.show("Evaluation saved");
+            Notification.show("Formative activity saved");
             titleField.clear();
             instructionField.clear();
             refreshGrid();
@@ -170,7 +170,7 @@ public class EvaluationView extends Composite<Div> implements BeforeEnterObserve
             return;
         }
         evaluationService.delete(evaluation.getId());
-        Notification.show("Evaluation deleted");
+        Notification.show("Formative activity deleted");
         refreshGrid();
     }
 
