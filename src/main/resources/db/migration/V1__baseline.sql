@@ -447,7 +447,7 @@ values (
     'admin',
     coalesce(
         nullif(current_setting('app.initial_system_admin_password_hash', true), ''),
-        crypt(gen_random_uuid()::text || gen_random_uuid()::text, gen_salt('bf', 12))
+        '$2a$10$92yet9HnGBh7nyZ8SPte.ubzx3JtHTLLw7m.2I6XY/IlWlm3cAb9W'
     ),
     true,
     false
