@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -55,7 +56,7 @@ public class ChatService {
       UUID conversationId,
       AskStudentQuestionTool.QuestionHandler questionHandler) {
     var promptTokens = new AtomicReference<Integer>();
-    var promptSpec = chatClient.prompt()
+    var clientRequestSpec = chatClient.prompt()
         .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId.toString()))
         .toolContext(
           Map.of(
@@ -67,14 +68,14 @@ public class ChatService {
             turnId))
         .user(userInput);
     if (questionHandler != null) {
-      promptSpec = promptSpec.tools(new AskStudentQuestionTool(questionHandler));
+      clientRequestSpec = clientRequestSpec.tools(new AskStudentQuestionTool(questionHandler));
     }
 
-    return promptSpec.stream()
+    return clientRequestSpec.stream()
         .chatResponse()
         .doOnNext(response -> capturePromptTokens(response, promptTokens))
         .map(this::extractContentChunk)
-        .filter(token -> !token.isBlank())
+        .filter(token -> !token.isEmpty())
         .doOnComplete(() -> storePromptTokens(turnId, promptTokens.get()))
         .doOnCancel(() -> clearTurnState(turnId))
         .doOnError(_ -> clearTurnState(turnId));
