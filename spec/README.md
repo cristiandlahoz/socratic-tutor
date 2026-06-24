@@ -10,6 +10,7 @@ They are the single source of truth. Keep them up to date as the project evolves
 | `project-context.md` | Vision, problem, users, scope, risks | First — before anything else |
 | `architecture.md` | Technology stack and application structure | After project context is filled in |
 | `datamodel/datamodel.md` | Entity definitions and relationships | When adding data-driven features |
+| `use-cases/use-case-template.md` | Template for individual feature specs | Copy per feature as `use-case-NNN-short-name.md` |
 | `design-system.md` | Theme, component usage, and visual standards | When building or reviewing UI |
 
 ## Workflow
@@ -18,12 +19,12 @@ They are the single source of truth. Keep them up to date as the project evolves
 
 1. **Define context** — Fill in `project-context.md` with problem, vision, scope, and constraints.
 2. **Outline architecture** — Fill in `architecture.md` with tech stack and application structure.
-3. **Specify features** — Update the canonical context, architecture, data model, and product specification directly.
+3. **Specify features** — Copy `use-cases/use-case-template.md` once per feature and update canonical specs when the feature changes the foundation.
 
 ### Implement Specs
 
-1. Ask the AI to implement a scoped change from the current canonical specs.
-2. Verify the change against the affected architectural boundaries and acceptance checks.
+1. Ask the AI to implement a given use case according to the current canonical specs.
+2. Verify the use case against its flows, business rules, and affected architectural boundaries.
 
 If implementation is lacking, add more information to specs files and ask again.
 

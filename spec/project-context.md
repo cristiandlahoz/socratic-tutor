@@ -1,6 +1,6 @@
 # Project Context
 
-> High-level context for Socratic Tutor: the problem being solved, who it is for, what is in scope, and what constraints must guide future product work, architecture, data model work, and implementation.
+> High-level context for Socratic Tutor: the problem being solved, who it is for, what is in scope, and what constraints must guide future use cases, architecture, data model work, and implementation.
 
 ---
 
@@ -87,7 +87,7 @@ Responsibilities:
 - configure grounding material,
 - create and manage formative activities,
 - use tutor chat in the selected class context,
-- review class-related information only when an approved feature explicitly allows it.
+- review class-related information only when a use case explicitly allows it.
 
 A professor is not globally attached to all tenants or all group classes.
 
@@ -95,7 +95,7 @@ A professor is not globally attached to all tenants or all group classes.
 
 Reserved academic support role.
 
-The role is part of the foundation, but broad assistant capabilities should not be implemented until an approved feature defines what assistants can do.
+The role is part of the foundation, but broad assistant capabilities should not be implemented until a dedicated use case defines what assistants can do.
 
 ### Student
 
@@ -138,7 +138,7 @@ The current product scope includes:
 
 ## 5. Out of Scope
 
-Do not implement or imply these unless an approved feature adds them:
+Do not implement or imply these unless a future approved use case adds them:
 
 - anonymous browser identity as target persistence,
 - open public self-signup,
@@ -287,3 +287,4 @@ The tutor should:
 - [Architecture](architecture.md) — technology stack, internal boundaries, and runtime architecture.
 - [Design Context](design_context.md) — UX, navigation, layouts, and design intent for Socratic Tutor.
 - [Data Model](datamodel/datamodel.md) — detailed schema, relationships, constraints, and seed data.
+- [Use Case Template](use-cases/use-case-template.md) — template for feature-level use cases.

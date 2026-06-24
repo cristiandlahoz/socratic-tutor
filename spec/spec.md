@@ -65,7 +65,7 @@ This file is the top-level always-readable specification for Socratic Tutor.
 
 Use it to guide:
 
-- future product features,
+- future feature use cases,
 - implementation prompts,
 - schema migrations,
 - architecture decisions,
@@ -74,7 +74,7 @@ Use it to guide:
 - AI tutor behavior,
 - verification and acceptance checks.
 
-Scoped implementation plans must not contradict this file. If a change affects the project foundation, update this file and the related context documents in the same change.
+Use cases must not contradict this file. If a use case affects the project foundation, update this file and the related context documents in the same change.
 
 Corrections caused by implementation drift or PR mistakes must update the canonical specification instead of creating a parallel historical specification.
 
@@ -481,7 +481,7 @@ Seed these resources:
 | `TRAINING_ACTIVITY_ASSIGNMENT` | Student-facing assigned activity state. |
 | `CONVERSATION` | Tutor conversations owned by group-class members. |
 
-Do not seed implementation tables as standalone authorization resources unless an approved feature requires it.
+Do not seed implementation tables as standalone authorization resources unless a later use case requires it.
 
 Excluded as standalone resources in the baseline:
 
@@ -868,7 +868,7 @@ The system must:
 
 - create conversations only for a valid group-class member,
 - list conversations only within allowed context,
-- prevent students from reading other students' private conversations unless an approved feature allows it,
+- prevent students from reading other students' private conversations unless a future use case allows it,
 - persist new conversation state through snapshots,
 - avoid falling back to browser `client_id`,
 - fail safely if no active group-class context exists.
@@ -1161,7 +1161,7 @@ Legacy packages may remain for reference or later migration work, but they must 
 - A conversation snapshot must belong to one conversation.
 - Conversation messages must be stored in `conversation_snapshot.messages`.
 - Conversation carry context must be stored in `conversation_snapshot.carry_context`.
-- A student can access only their own conversations unless an approved feature explicitly expands access.
+- A student can access only their own conversations unless a later use case explicitly expands access.
 - Anonymous conversations are not part of the target model.
 - `conversation_message` must not be added unless a later ERD revision explicitly adds it.
 
@@ -1367,17 +1367,19 @@ Required verification coverage:
 
 ---
 
-## Change Management
+## Use Case Relationship
 
 This specification is the stable project baseline.
 
-Implementation work should be scoped into reviewable changes that update this baseline whenever product behavior, architecture, or persistence rules change.
+Future use cases are reviewable implementation slices of this specification. Completed pre-V1 use-case files are not retained as permanent architecture documentation.
+
+New use cases must remain atomic enough to implement and verify without overwhelming the project context.
 
 ---
 
 ## Non-Goals
 
-Do not implement or imply these unless an approved feature adds them:
+Do not implement or imply these unless a future approved use case adds them:
 
 - Keycloak-managed authorization as the tutor authority source.
 - Anonymous browser identity as target persistence.

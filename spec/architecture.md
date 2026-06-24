@@ -563,7 +563,7 @@ Active startup must not scan legacy entities or repositories.
 
 Active services must not inject legacy repositories.
 
-Legacy logic may only be reintroduced through an approved feature that maps it into the target account/tenant/group-class model.
+Legacy logic may only be reintroduced through a future use case that maps it into the target account/tenant/group-class model.
 
 ---
 
@@ -582,7 +582,7 @@ Legacy logic may only be reintroduced through an approved feature that maps it i
 
 ## 18. Testing Strategy
 
-Test by behavior and by architectural boundary.
+Test by use case and by architectural boundary.
 
 Required categories:
 
