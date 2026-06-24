@@ -23,9 +23,7 @@ This use case includes:
 - Adapting active conversation listing, loading, creation, message appending, snapshotting, token usage, and compaction behavior to the new conversation model.
 - Preserving the current chat UI where possible while changing the backing services to use `conversation` and `conversation_snapshot`.
 - Adapting document ingestion, document retrieval, and document-grounding logic from the obsolete document ingestion model to:
-  - `grounding_collection`
-  - `grounding_document`
-  - `grounding_chunk`
+  - `grounding_vector_store`
 - Adapting evaluation logic from the obsolete global evaluation/evaluation-run model to:
   - `training_activity`
   - `training_activity_assignment`
@@ -114,9 +112,7 @@ For documents:
 
 ```text
 group_class
-  -> grounding_collection
-      -> grounding_document
-          -> grounding_chunk
+  -> grounding_vector_store
 ```
 
 For evaluations:
@@ -163,10 +159,10 @@ DocumentCatalogPromptService reads legacy document catalog
 To this:
 
 ```text
-DocumentIngestionService creates grounding_document
-DocumentEmbeddingService creates grounding_chunk
-Document retrieval reads grounding chunks scoped to group class
-Document catalog reads grounding documents scoped to group class
+DocumentIngestionService prepares transient review material
+DocumentVectorIndexingService adds grounding_vector_store rows
+Document retrieval reads grounding rows scoped to group class
+Document catalog reads grounding rows scoped to group class
 ```
 
 The active application must move from this:
@@ -579,35 +575,31 @@ DoclingClientService
 The active grounding model uses:
 
 ```text
-grounding_collection
-grounding_document
-grounding_chunk
+grounding_vector_store
 ```
 
 ### Flow
 
 1. **Development team** reviews document ingestion services.
-2. **Development team** replaces old document entity persistence with `grounding_document`.
-3. **Development team** ensures each grounding document belongs to a `grounding_collection`.
-4. **Development team** ensures each grounding collection belongs to a `group_class`.
-5. **Development team** ensures each grounding collection has a `created_by_group_class_member_id`.
-6. **Development team** replaces old segment persistence with `grounding_chunk`.
-7. **Development team** stores chunk content in `grounding_chunk.content`.
-8. **Development team** stores embedding data in `grounding_chunk.embedding` when available.
-9. **Development team** updates document status using the target statuses:
+2. **Development team** indexes approved content into `grounding_vector_store`.
+3. **Development team** carries group-class scope in row metadata.
+4. **Development team** carries creator metadata in row metadata where available.
+5. **Development team** stores row content in `grounding_vector_store.content`.
+6. **Development team** stores embedding data in `grounding_vector_store.embedding`.
+7. **Development team** updates row status using the target statuses:
    - `PROCESSING`
    - `READY`
    - `FAILED`
    - `INACTIVE`
-10. **Development team** adapts document catalog queries to read grounding documents by group class.
-11. **Development team** adapts retrieval logic to retrieve grounding chunks scoped to the active group class.
-12. **System** does not read from old document ingestion tables.
-13. **System** does not require old `document_segment` or `vector_store` tables as active persistence.
+8. **Development team** adapts document catalog queries to read grounding rows by group class.
+9. **Development team** adapts retrieval logic to retrieve grounding rows scoped to the active group class.
+10. **System** does not read from old document ingestion tables.
+11. **System** does not require old `document_segment` or `vector_store` tables as active persistence.
 
 ### Result
 
 ```text
-Document ingestion and retrieval are backed by group-class grounding entities.
+Document ingestion and retrieval are backed by class-scoped grounding rows.
 ```
 
 ---
@@ -622,17 +614,17 @@ Keep the document ingestion UI operational where possible while changing its bac
 
 1. **Development team** reviews document ingestion UI classes.
 2. **Development team** keeps UI components that can work with grounding DTOs.
-3. **Development team** replaces old document identifiers with grounding document identifiers.
-4. **Development team** updates displayed statuses to match `grounding_document.status`.
+3. **Development team** replaces old document identifiers with grounding row identifiers.
+4. **Development team** updates displayed statuses to match the active grounding row state.
 5. **Development team** scopes document lists to the active group class.
-6. **System** shows uploaded or text grounding documents for the active group class.
+6. **System** shows uploaded or text grounding rows for the active group class.
 7. **System** shows an empty state if no group-class context exists.
 8. **System** prevents grounding uploads if the current user cannot resolve to a professor or authorized group-class member.
 
 ### Result
 
 ```text
-The document ingestion UI remains conceptually active but is backed by grounding_* persistence.
+The document ingestion UI remains conceptually active but is backed by `grounding_vector_store` persistence.
 ```
 
 ---
@@ -1113,7 +1105,7 @@ No rule exists for learner-profile replacement.
 - Active conversation listing and loading read from the target conversation model.
 - Active conversation message persistence stores messages in `conversation_snapshot.messages`.
 - Active compaction uses snapshot chaining.
-- Active document ingestion uses `grounding_collection`, `grounding_document`, and `grounding_chunk`.
+- Active document ingestion uses `grounding_vector_store`.
 - Active document retrieval is scoped to group-class grounding data.
 - Active evaluation behavior uses `training_activity` and `training_activity_assignment`.
 - Student assignment progress is represented by updating `training_activity_assignment.status`.
@@ -1161,11 +1153,9 @@ No rule exists for learner-profile replacement.
 | BR-14 | Active chat UI may remain, but its backing persistence must be the target conversation model. |
 | BR-15 | The system must not reintroduce `chat`, `chat_transcript`, or `chat_message` as active persistence. |
 | BR-16 | Grounding content must be scoped to a `group_class`. |
-| BR-17 | A `grounding_collection` must belong to a group class. |
-| BR-18 | A `grounding_document` must belong to a grounding collection. |
-| BR-19 | A `grounding_chunk` must belong to a grounding document. |
-| BR-20 | Active document retrieval must use target grounding data, not obsolete document ingestion tables. |
-| BR-21 | Active document ingestion must create target grounding entities. |
+| BR-17 | A grounding row must be scoped to a group class. |
+| BR-18 | Active document retrieval must use target grounding data, not obsolete document ingestion tables. |
+| BR-19 | Active document ingestion must create target grounding rows. |
 | BR-22 | Evaluation must be scoped to a group class. |
 | BR-23 | Evaluation must be created by a valid group-class member. |
 | BR-24 | Evaluation assignment must target a valid group-class member. |
@@ -1211,9 +1201,8 @@ No rule exists for learner-profile replacement.
 - [ ] Stage 5 verifies `ChatState` or equivalent active UI state is available as a Vaadin/Spring bean.
 - [ ] Stage 5 verifies `MainLayout` or equivalent active layout can be created.
 - [ ] Stage 5 verifies chat route navigation does not fail from missing beans.
-- [ ] Stage 6 adapts document ingestion to create `grounding_document`.
-- [ ] Stage 6 adapts chunk persistence to create `grounding_chunk`.
-- [ ] Stage 6 verifies grounding documents are scoped to group class.
+- [ ] Stage 6 adapts document ingestion to create `grounding_vector_store` rows.
+- [ ] Stage 6 verifies grounding rows are scoped to group class.
 - [ ] Stage 6 verifies active retrieval does not use old document ingestion tables.
 - [ ] Stage 7 verifies document ingestion UI uses grounding statuses.
 - [ ] Stage 7 verifies document ingestion UI blocks uploads with no group-class context.
@@ -1335,9 +1324,9 @@ or a similarly precise legacy-only boundary.
 | `chat_transcript.memory` | `conversation_snapshot.carry_context` |
 | `chat_transcript.input_tokens` | `conversation_snapshot.token_count` |
 | `chat.current_transcript_id` | `conversation.current_snapshot_id` |
-| `ingested_document` | `grounding_document` |
-| `document_segment` | `grounding_chunk` |
-| `vector_store` | `grounding_chunk.embedding` or target grounding retrieval implementation |
+| `ingested_document` | `grounding_vector_store` |
+| `document_segment` | `grounding_vector_store` |
+| `vector_store` | `grounding_vector_store.embedding` or target grounding retrieval implementation |
 | old global `evaluation` | group-class scoped `training_activity` |
 | `evaluation_run` | `training_activity_assignment` |
 | `student_profile` | legacy-only until redesigned |

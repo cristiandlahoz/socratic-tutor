@@ -23,7 +23,7 @@ This use case includes:
 - Reviewing the current branch before modifying security/config-heavy files.
 - Aligning `SecurityConfig` with the latest existing implementation instead of reintroducing obsolete helper logic.
 - Correcting the `Conversation` / `ConversationSnapshot` relationship mapping.
-- Correcting BIGINT identity Java types such as `grounding_document.id` and `conversation_snapshot.id`.
+- Correcting BIGINT identity Java types such as `conversation_snapshot.id` and the other internal bigint identifiers.
 - Aligning product-facing naming for evaluations as formative activities where appropriate.
 - Removing incorrect prompt vocabulary such as `legacySubject` from active prompts.
 - Restoring PostgreSQL/pgvector configuration required by grounding retrieval unless an explicit tested replacement exists.
@@ -137,7 +137,7 @@ Use "Formative Activities" for UI/navigation/copy where appropriate while preser
 
 ### Problem 7: `documentId` was typed incorrectly
 
-A DTO or search result used `UUID documentId` even though `grounding_document.id` is BIGINT identity.
+A DTO or search result used `UUID documentId` even though the referenced grounding row identifier was not a UUID.
 
 Expected correction:
 
@@ -172,7 +172,7 @@ Vector store or pgvector configuration was removed from `application.yml` withou
 Expected correction:
 
 ```text
-Restore required PostgreSQL/pgvector configuration for active grounding retrieval, while keeping target persistence on grounding_chunk.embedding.
+Restore required Spring AI PgVectorStore configuration for active grounding retrieval, while keeping target persistence on `grounding_vector_store.embedding`.
 ```
 
 ### Problem 11: Duplicate cookie configuration remained in application.yml
@@ -481,7 +481,7 @@ Avoid breaking grounding retrieval by removing vector configuration without repl
 1. **Development team** reviews `application.yml`.
 2. **Development team** restores required PostgreSQL/pgvector configuration if active grounding retrieval depends on it.
 3. **Development team** ensures configuration does not reintroduce obsolete `vector_store` table as active target persistence.
-4. **Development team** aligns vector settings with `grounding_chunk.embedding` or the currently approved scoped retrieval implementation.
+4. **Development team** aligns vector settings with `grounding_vector_store.embedding` or the currently approved scoped retrieval implementation.
 5. **Development team** verifies dimensions and index type match the embedding model and schema.
 6. **Development team** removes obsolete duplicated cookie config from the same file.
 
@@ -618,7 +618,7 @@ The application is realigned and verified after corrective changes.
 **Condition:** Existing vector-store configuration expects the old `vector_store` table.
 
 1. **Development team** does not blindly restore obsolete table usage.
-2. **Development team** adapts configuration toward `grounding_chunk.embedding` or the approved scoped vector retrieval path.
+2. **Development team** adapts configuration toward `grounding_vector_store.embedding` or the approved scoped vector retrieval path.
 3. **Development team** records any missing implementation as a blocker.
 4. **Use case continues**.
 

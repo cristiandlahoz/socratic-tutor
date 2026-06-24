@@ -44,9 +44,7 @@ The canonical grounding chain is:
 
 ```text
 group_class
-  -> grounding_collection
-      -> grounding_document
-          -> grounding_chunk
+  -> grounding_vector_store
 ```
 
 The canonical formative activity chain is:
@@ -99,13 +97,13 @@ The application must include:
 - Tenant-level academic setup.
 - Group-class-centered professor and student workflows.
 - Socratic tutor chat through `conversation` and `conversation_snapshot`.
-- Group-class grounding through `grounding_collection`, `grounding_document`, and `grounding_chunk`.
+- Group-class grounding through pgvector-backed `grounding_vector_store` rows scoped by metadata.
 - Formative activities through `training_activity` and `training_activity_assignment`.
 - Invitation-based access for tenant admins, professors, and students.
 - Service-layer authorization and scope checks.
 - Vaadin protected routes.
 - Flyway-managed schema.
-- PostgreSQL with pgvector support for grounding embeddings.
+- PostgreSQL with Spring AI PgVectorStore support for grounding embeddings.
 - AI tutor orchestration with guardrails, routing, grounding retrieval, and prompt composition.
 - Clean package organization.
 - Legacy isolation for obsolete persistence.
@@ -284,9 +282,7 @@ Most tutor activity is owned by or created through a `group_class_member`.
 | `group_class_join_code` | Controlled access code for group-class joining where applicable. |
 | `conversation` | Canonical tutor conversation root. Replaces old `chat`. |
 | `conversation_snapshot` | Versioned/compacted conversation state and messages. Replaces transcripts/messages. |
-| `grounding_collection` | Group-class collection of tutor grounding material. |
-| `grounding_document` | Uploaded or text source document inside a grounding collection. |
-| `grounding_chunk` | Chunked document content with optional vector embedding. |
+| `grounding_vector_store` | Flat pgvector-backed retrieval row for class-scoped grounding material. |
 | `training_activity` | Group-class formative activity definition. |
 | `training_activity_assignment` | Student-facing assigned formative activity state. |
 
@@ -343,9 +339,7 @@ group_class_member
 group_class_join_code
 conversation
 conversation_snapshot
-grounding_collection
-grounding_document
-grounding_chunk
+grounding_vector_store
 training_activity
 training_activity_assignment
 ```
@@ -391,7 +385,7 @@ group classes
 tenant admins
 professors
 students
-grounding documents
+grounding rows
 training activities
 training activity assignments
 conversations
@@ -422,7 +416,6 @@ Required constraints include:
 - `group_class(tenant_id, code)` unique.
 - `group_class_member(group_class_id, tenant_account_id, role)` unique.
 - `group_class_join_code.code` unique.
-- `grounding_chunk(document_id, chunk_index)` unique.
 - `training_activity_assignment(training_activity_id, group_class_member_id)` unique.
 - `conversation_snapshot(conversation_id, snapshot_no)` unique.
 
@@ -430,8 +423,6 @@ Allowed values must be constrained where appropriate:
 
 ```text
 group_class_member.role = PROFESSOR | STUDENT
-grounding_document.source_type = UPLOAD | TEXT
-grounding_document.status = PROCESSING | READY | FAILED | INACTIVE
 training_activity.status = DRAFT | PUBLISHED | CLOSED | ARCHIVED
 training_activity_assignment.status = ASSIGNED | STARTED | SUBMITTED | SKIPPED | EXPIRED | EXCUSED
 ```
@@ -501,9 +492,7 @@ PERMISSION
 RESOURCE
 ACTION
 CONVERSATION_SNAPSHOT
-GROUNDING_COLLECTION
-GROUNDING_DOCUMENT
-GROUNDING_CHUNK
+GROUNDING_VECTOR_STORE
 ```
 
 Access to those tables is controlled through higher-level resources.
@@ -747,7 +736,7 @@ The UI must never be the only enforcement layer.
 - Use protected routes for workspaces.
 - Show only actions relevant to the current role/context.
 - Provide safe empty states when the user has no tenant or group-class context.
-- Do not create conversations, grounding documents, or formative activity records if no valid context exists.
+- Do not create conversations, grounding rows, or formative activity records if no valid context exists.
 - Use local UI state only for UI concerns.
 - Use service-layer methods for all persisted actions.
 
@@ -893,9 +882,7 @@ Grounding is the mechanism that lets the tutor use class-specific learning mater
 The active grounding model is:
 
 ```text
-grounding_collection
-grounding_document
-grounding_chunk
+grounding_vector_store
 ```
 
 The old active model is obsolete:
@@ -909,16 +896,15 @@ vector_store
 
 ### Grounding Rules
 
-- A grounding collection belongs to a group class.
-- A grounding collection is created by a group-class member.
-- A grounding document belongs to a grounding collection.
-- A grounding chunk belongs to a grounding document.
-- A grounding chunk may store an embedding in `grounding_chunk.embedding`.
-- Retrieval must be scoped to the active group class.
-- Students must not manage grounding documents in the baseline.
+- A grounding vector-store row is scoped to one group class through metadata.
+- A grounding vector-store row is written by a group-class member.
+- A grounding vector-store row stores the indexed content payload.
+- A grounding vector-store row stores embeddings in `grounding_vector_store.embedding`.
+- Retrieval must be scoped to the active group class and approved row status.
+- Students must not manage grounding rows in the baseline.
 - Professors can manage grounding only inside group classes where they are active professor members.
 
-### Grounding Document Status
+### Grounding Row Status
 
 Allowed statuses:
 
@@ -929,7 +915,7 @@ FAILED
 INACTIVE
 ```
 
-The tutor may only retrieve from documents/chunks that are usable according to the current grounding service rules.
+The tutor may only retrieve from rows that are usable according to the current grounding service rules.
 
 ---
 
@@ -1069,7 +1055,7 @@ spring:
 
 AI/model configuration must remain explicit and centralized.
 
-PostgreSQL/pgvector configuration must remain available when grounding embeddings depend on vector retrieval.
+Spring AI PgVectorStore configuration must remain available when grounding embeddings depend on vector retrieval.
 
 Security configuration must remain centralized in the Spring Security/Vaadin security area.
 
@@ -1184,7 +1170,7 @@ Legacy packages may remain for reference or later migration work, but they must 
 - A grounding collection must belong to a group class.
 - A grounding document must belong to a grounding collection.
 - A grounding chunk must belong to a grounding document.
-- Embeddings belong on `grounding_chunk.embedding`.
+- Embeddings belong on `grounding_vector_store.embedding`.
 - Grounding retrieval must be group-class scoped.
 - Students do not manage grounding in the baseline.
 
@@ -1210,7 +1196,7 @@ This applies especially to:
 - tenant accounts,
 - group-class members,
 - conversations,
-- grounding documents,
+- grounding rows,
 - training activities,
 - training activity assignments,
 - roles,

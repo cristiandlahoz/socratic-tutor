@@ -127,7 +127,7 @@ The current product scope includes:
 - Academic structure: subjects, academic periods, group classes.
 - Group-class membership.
 - Tutor conversations through `conversation` and `conversation_snapshot`.
-- Grounding material through `grounding_collection`, `grounding_document`, and `grounding_chunk`.
+- Grounding material through pgvector-backed `grounding_vector_store` rows.
 - Formative activities through `training_activity` and `training_activity_assignment`.
 - Role-based onboarding and workspace routing.
 - Service-layer permission, tenant, group-class, and ownership checks.
@@ -187,9 +187,7 @@ The canonical grounding chain is:
 
 ```text
 group_class
-  -> grounding_collection
-      -> grounding_document
-          -> grounding_chunk
+  -> grounding_vector_store
 ```
 
 The canonical formative activity chain is:
@@ -276,7 +274,7 @@ The tutor should:
 - **Schema source of truth:** Flyway SQL migrations.
 - **ORM behavior:** Hibernate validates schema; it must not create the production-like schema.
 - **AI:** Spring AI/Ollama-style orchestration may be used, but it must remain downstream of authorization.
-- **Vector search:** pgvector-backed grounding may be used for embeddings and retrieval.
+- **Vector search:** pgvector-backed grounding rows may be used for embeddings and retrieval.
 - **UI:** Vaadin Flow protected routes and role-specific workspaces.
 - **Security:** Password hashes only; no raw passwords.
 - **Legacy:** Obsolete persistence must be isolated from active startup.
