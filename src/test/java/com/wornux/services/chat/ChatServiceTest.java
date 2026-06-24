@@ -2,11 +2,12 @@ package com.wornux.services.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.services.context.ActiveAcademicContext;
-import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class ChatServiceTest {
@@ -20,8 +21,7 @@ class ChatServiceTest {
         var conversationId = UUID.randomUUID();
         var turnId = UUID.randomUUID();
 
-        var context = new ActiveAcademicContext(
-                accountId,
+        var context = new ActiveAcademicContext(accountId,
                 tenantAccountId,
                 groupClassMemberId,
                 groupClassId,
@@ -29,8 +29,7 @@ class ChatServiceTest {
 
         var toolContext = ChatService.buildToolContext(Optional.of(context), conversationId, turnId);
 
-        assertThat(toolContext)
-                .hasSize(4)
+        assertThat(toolContext).hasSize(4)
                 .containsEntry(ToolUsageAuditService.CLIENT_ID, groupClassMemberId.toString())
                 .containsEntry(ToolUsageAuditService.GROUP_CLASS_ID, groupClassId.toString())
                 .containsEntry(ToolUsageAuditService.CONVERSATION_ID, conversationId)

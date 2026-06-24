@@ -21,8 +21,8 @@ import com.wornux.ui.ingestion.EditableSegmentViewModel;
 public class DocumentSegmentEditorList extends Composite<Div> {
 
     private final VerticalLayout list = new VerticalLayout();
-    private BiConsumer<Long, String> segmentChangeListener = (_, _) -> {};
-    private Consumer<Long> segmentDeleteListener = _ -> {};
+    private BiConsumer<String, String> segmentChangeListener = (_, _) -> {};
+    private Consumer<String> segmentDeleteListener = _ -> {};
 
     public DocumentSegmentEditorList() {
         list.setId("document-ingestion-segment-list");
@@ -37,11 +37,11 @@ public class DocumentSegmentEditorList extends Composite<Div> {
         root.add(list);
     }
 
-    public void setSegmentChangeListener(BiConsumer<Long, String> segmentChangeListener) {
+    public void setSegmentChangeListener(BiConsumer<String, String> segmentChangeListener) {
         this.segmentChangeListener = segmentChangeListener == null ? (_, _) -> {} : segmentChangeListener;
     }
 
-    public void setSegmentDeleteListener(Consumer<Long> segmentDeleteListener) {
+    public void setSegmentDeleteListener(Consumer<String> segmentDeleteListener) {
         this.segmentDeleteListener = segmentDeleteListener == null ? _ -> {} : segmentDeleteListener;
     }
 

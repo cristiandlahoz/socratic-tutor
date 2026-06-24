@@ -171,7 +171,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         Signal.effect(reviewStack, () -> reviewStack.setVisible(state.reviewVisible().get()));
         Signal.effect(approveButton, () -> approveButton.setEnabled(state.canApprove().get()));
         Signal.effect(retryButton, () -> retryButton.setVisible(state.retryAvailable().get()));
-        Signal.effect(deleteButton, () -> deleteButton.setVisible(state.activeDocumentId().get() != null));
+        Signal.effect(deleteButton, () -> deleteButton.setVisible(!state.indexedVectorIds().get().isEmpty()));
     }
 
     @Override
@@ -181,11 +181,6 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
             event.forwardTo("no-access");
             return;
         }
-        controller.initializeFromRoute(
-            event.getLocation()
-                    .getQueryParameters()
-                    .getSingleParameter(DocumentIngestionUiController.DOCUMENT_QUERY_PARAMETER)
-                    .orElse(null));
     }
 
     private Upload createUpload(DocumentIngestionProperties properties) {

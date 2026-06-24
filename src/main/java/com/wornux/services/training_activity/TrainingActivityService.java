@@ -21,7 +21,9 @@ public class TrainingActivityService {
     private final TrainingActivityRepository trainingActivityRepository;
     private final ActiveAcademicContextResolver contextResolver;
 
-    public TrainingActivityService(TrainingActivityRepository trainingActivityRepository, ActiveAcademicContextResolver contextResolver) {
+    public TrainingActivityService(
+            TrainingActivityRepository trainingActivityRepository,
+            ActiveAcademicContextResolver contextResolver) {
         this.trainingActivityRepository = trainingActivityRepository;
         this.contextResolver = contextResolver;
     }
@@ -46,7 +48,9 @@ public class TrainingActivityService {
     @Transactional(readOnly = true)
     public List<TrainingActivity> listAll() {
         return contextResolver.resolveCurrent()
-                .map(context -> trainingActivityRepository.findByGroupClass_IdOrderByUpdatedAtDesc(context.groupClassId()))
+                .map(
+                    context -> trainingActivityRepository
+                            .findByGroupClass_IdOrderByUpdatedAtDesc(context.groupClassId()))
                 .orElseGet(List::of);
     }
 
@@ -54,34 +58,40 @@ public class TrainingActivityService {
     public TrainingActivity get(UUID activityId) {
         var context = contextResolver.requireCurrent();
         return trainingActivityRepository.findById(activityId)
-                .filter(activity -> activity.getGroupClass() != null
-                        && context.groupClassId().equals(activity.getGroupClass().getId()))
+                .filter(
+                    activity -> activity.getGroupClass() != null
+                            && context.groupClassId().equals(activity.getGroupClass().getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Unknown training activity " + activityId));
     }
 
     @Transactional
     public TrainingActivity saveQuestions(UUID activityId, String questionsJson) {
-        throw new SetupRequiredException("UC-002 blocker: the target training activity model does not yet define question payload persistence.");
+        throw new SetupRequiredException(
+                "UC-002 blocker: the target training activity model does not yet define question payload persistence.");
     }
 
     @Transactional
     public TrainingActivity markRunning(UUID activityId) {
-        throw new SetupRequiredException("UC-002 blocker: training activity execution still requires a follow-up use case.");
+        throw new SetupRequiredException(
+                "UC-002 blocker: training activity execution still requires a follow-up use case.");
     }
 
     @Transactional
     public TrainingActivity saveAnswers(UUID activityId, String answersJson) {
-        throw new SetupRequiredException("UC-002 blocker: the target training activity assignment model does not yet define answer payload persistence.");
+        throw new SetupRequiredException(
+                "UC-002 blocker: the target training activity assignment model does not yet define answer payload persistence.");
     }
 
     @Transactional
     public TrainingActivity completeReport(UUID activityId, String reportMarkdown) {
-        throw new SetupRequiredException("UC-002 blocker: the target training activity model does not yet define report persistence.");
+        throw new SetupRequiredException(
+                "UC-002 blocker: the target training activity model does not yet define report persistence.");
     }
 
     @Transactional
     public TrainingActivity markFailed(UUID activityId) {
-        throw new SetupRequiredException("UC-002 blocker: the target training activity model does not yet define execution failure persistence.");
+        throw new SetupRequiredException(
+                "UC-002 blocker: the target training activity model does not yet define execution failure persistence.");
     }
 
     @Transactional
@@ -101,7 +111,8 @@ public class TrainingActivityService {
     private ActiveAcademicContext requireProfessorContext() {
         var context = contextResolver.requireCurrent();
         if (context.groupClassRole() != GroupClassMemberRole.PROFESSOR) {
-            throw new SetupRequiredException("An active professor class context is required before managing training activities.");
+            throw new SetupRequiredException(
+                    "An active professor class context is required before managing training activities.");
         }
         return context;
     }

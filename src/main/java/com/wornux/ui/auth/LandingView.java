@@ -5,12 +5,12 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import jakarta.annotation.security.PermitAll;
 import com.wornux.services.onboarding.InvitationService;
 import com.wornux.services.onboarding.InvitationStateException;
 import com.wornux.services.onboarding.OnboardingSessionContext;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
+import jakarta.annotation.security.PermitAll;
 
 @Route(value = "", autoLayout = false)
 @PageTitle("Workspace")

@@ -23,7 +23,11 @@ public class TrainingActivityDialog extends Div {
     private final TextField titleField;
     private final TextArea instructionField;
 
-    public TrainingActivityDialog(TrainingActivity activity, TrainingActivityService trainingActivityService, Consumer<TrainingActivity> onSave, Runnable onClose) {
+    public TrainingActivityDialog(
+            TrainingActivity activity,
+            TrainingActivityService trainingActivityService,
+            Consumer<TrainingActivity> onSave,
+            Runnable onClose) {
         this.original = activity;
         this.trainingActivityService = trainingActivityService;
         this.onSave = onSave;
@@ -52,8 +56,12 @@ public class TrainingActivityDialog extends Div {
         instructionField.setValue(activity.getInstructions());
 
         var blocker = new Div();
-        blocker.setText("UC-002 safe scope: formative activity definitions are active on the target ERD, but assignment execution and report payload persistence remain blocked until the target model is extended.");
-        blocker.getStyle().set("padding", "1rem").set("border-radius", "0.75rem").set("background", "rgba(255,255,255,0.04)");
+        blocker.setText(
+            "UC-002 safe scope: formative activity definitions are active on the target ERD, but assignment execution and report payload persistence remain blocked until the target model is extended.");
+        blocker.getStyle()
+                .set("padding", "1rem")
+                .set("border-radius", "0.75rem")
+                .set("background", "rgba(255,255,255,0.04)");
 
         var body = new VerticalLayout(title, titleField, instructionField, blocker);
         body.setPadding(false);

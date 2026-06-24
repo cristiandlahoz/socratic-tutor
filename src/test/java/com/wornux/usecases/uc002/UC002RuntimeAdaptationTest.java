@@ -8,9 +8,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import ai.docling.serve.api.DoclingServeApi;
 import com.wornux.config.ChatProperties;
 import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.data.entities.academic.GroupClass;
@@ -18,16 +20,16 @@ import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.data.entities.conversation.Conversation;
 import com.wornux.data.entities.conversation.ConversationSnapshot;
-import com.wornux.data.entities.evaluation.Evaluation;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.identity.Tenant;
 import com.wornux.data.entities.identity.TenantAccount;
+import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.conversation.ConversationRepository;
 import com.wornux.data.repositories.conversation.ConversationSnapshotRepository;
-import com.wornux.data.repositories.evaluation.EvaluationRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
+import com.wornux.data.repositories.training_activity.TrainingActivityRepository;
 import com.wornux.services.chat.ChatCompactionService;
 import com.wornux.services.chat.ChatUsageService;
 import com.wornux.services.chat.ConversationService;
@@ -35,24 +37,25 @@ import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.context.SetupRequiredException;
 import com.wornux.services.document.DocumentRetrievalService;
-import com.wornux.services.evaluation.EvaluationService;
-import jakarta.persistence.EntityManager;
+import com.wornux.services.document.DocumentVectorIndexingService;
+import com.wornux.services.training_activity.TrainingActivityService;
+import com.wornux.ui.ingestion.EditableSegmentViewModel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import ai.docling.serve.api.DoclingServeApi;
 
 @ExtendWith(MockitoExtension.class)
 class UC002RuntimeAdaptationTest {
@@ -73,19 +76,10 @@ class UC002RuntimeAdaptationTest {
     private GroupClassMemberRepository groupClassMemberRepository;
 
     @Mock
-    private EvaluationRepository evaluationRepository;
+    private TrainingActivityRepository trainingActivityRepository;
 
     @Mock
     private VectorStore vectorStore;
-
-    @Mock
-    private EmbeddingModel embeddingModel;
-
-    @Mock
-    private EntityManager entityManager;
-
-    @Mock
-    private com.wornux.data.repositories.grounding.GroundingChunkRepository groundingChunkRepository;
 
     @Mock
     private ChatModel chatModel;
@@ -101,7 +95,8 @@ class UC002RuntimeAdaptationTest {
     @Test
     void mainFlow_conversationCreationUsesValidatedGroupClassMemberOwnership() {
         var contextResolver = mock(ActiveAcademicContextResolver.class);
-        var context = new ActiveAcademicContext(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
+        var context = new ActiveAcademicContext(UUID
+                .randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
         when(contextResolver.requireCurrent()).thenReturn(context);
         when(conversationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -127,40 +122,47 @@ class UC002RuntimeAdaptationTest {
     @Test
     void af10_chatUsageRejectsConversationOutsideActiveOwnership() {
         var contextResolver = mock(ActiveAcademicContextResolver.class);
-        var context = new ActiveAcademicContext(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
+        var context = new ActiveAcademicContext(UUID
+                .randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
         when(contextResolver.resolveCurrent()).thenReturn(Optional.of(context));
         when(conversationRepository.findByIdAndGroupClassMember_Id(any(), any())).thenReturn(Optional.empty());
 
         var conversationService = new ConversationService(conversationRepository, snapshotRepository, contextResolver);
         var usageService = new ChatUsageService(conversationService, chatProperties());
 
-        assertThrows(SecurityException.class, () -> usageService.updateActiveTranscriptInputTokens(UUID.randomUUID(), 120));
+        assertThrows(
+            SecurityException.class,
+            () -> usageService.updateActiveTranscriptInputTokens(UUID.randomUUID(), 120));
     }
 
     @Test
     void af10_postgresChatMemoryRejectsConversationOutsideActiveOwnership() {
         var contextResolver = mock(ActiveAcademicContextResolver.class);
-        var context = new ActiveAcademicContext(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
+        var context = new ActiveAcademicContext(UUID
+                .randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
         when(contextResolver.resolveCurrent()).thenReturn(Optional.of(context));
         when(conversationRepository.findByIdAndGroupClassMember_Id(any(), any())).thenReturn(Optional.empty());
 
         var conversationService = new ConversationService(conversationRepository, snapshotRepository, contextResolver);
         var memory = new com.wornux.ai.memory.PostgresChatMemory(snapshotRepository, conversationService);
 
-        assertThrows(SecurityException.class,
-                () -> memory.add(UUID.randomUUID().toString(), List.of(new UserMessage("hi"))));
+        assertThrows(
+            SecurityException.class,
+            () -> memory.add(UUID.randomUUID().toString(), List.of(new UserMessage("hi"))));
     }
 
     @Test
     void af10_chatCompactionSkipsUnauthorizedConversationWithoutTouchingModel() {
         var contextResolver = mock(ActiveAcademicContextResolver.class);
-        var context = new ActiveAcademicContext(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
+        var context = new ActiveAcademicContext(UUID
+                .randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
         when(contextResolver.resolveCurrent()).thenReturn(Optional.of(context));
         when(conversationRepository.findByIdAndGroupClassMember_Id(any(), any())).thenReturn(Optional.empty());
 
         var conversationService = new ConversationService(conversationRepository, snapshotRepository, contextResolver);
         var usageService = new ChatUsageService(conversationService, chatProperties());
-        var compactionService = new ChatCompactionService(conversationService, snapshotRepository, usageService, chatModel);
+        var compactionService =
+                new ChatCompactionService(conversationService, snapshotRepository, usageService, chatModel);
 
         assertFalse(compactionService.compactIfNeeded(UUID.randomUUID()).compacted());
         verifyNoInteractions(chatModel, snapshotRepository);
@@ -168,7 +170,9 @@ class UC002RuntimeAdaptationTest {
 
     @Test
     void br06_activeAcademicContextResolverRejectsMismatchedLastLinks() {
-        var resolver = new ActiveAcademicContextResolver(accountRepository, tenantAccountRepository, groupClassMemberRepository);
+        var resolver = new ActiveAcademicContextResolver(accountRepository,
+                tenantAccountRepository,
+                groupClassMemberRepository);
         var account = linkedAccount();
 
         SecurityContextHolder.getContext()
@@ -176,7 +180,9 @@ class UC002RuntimeAdaptationTest {
         when(accountRepository.findByEmail(account.getEmail())).thenReturn(Optional.of(account));
         when(tenantAccountRepository.findByIdAndAccount_Id(account.getLastTenantAccount().getId(), account.getId()))
                 .thenReturn(Optional.of(account.getLastTenantAccount()));
-        when(groupClassMemberRepository.findByIdAndTenantAccount_Id(account.getLastGroupClassMember().getId(),
+        when(
+            groupClassMemberRepository.findByIdAndTenantAccount_Id(
+                account.getLastGroupClassMember().getId(),
                 account.getLastTenantAccount().getId())).thenReturn(Optional.empty());
 
         assertTrue(resolver.resolveCurrent().isEmpty());
@@ -185,39 +191,104 @@ class UC002RuntimeAdaptationTest {
     @Test
     void br16_documentRetrievalRequiresGroupClassContext() {
         var properties = new DocumentIngestionProperties();
-        var service = new DocumentRetrievalService(embeddingModel, entityManager, properties);
+        var service = new DocumentRetrievalService(vectorStore, properties);
 
         var result = service.search(null, "binary search", null, null, null, null);
 
         assertFalse(result.contextFound());
         assertTrue(result.hits().isEmpty());
-        verifyNoInteractions(embeddingModel, entityManager);
+        verifyNoInteractions(vectorStore);
+    }
+
+    @Test
+    void br16_documentRetrievalUsesVectorStoreMetadataFilter() {
+        var groupClassId = UUID.randomUUID();
+        var properties = new DocumentIngestionProperties();
+        var document = Document.builder()
+                .id(UUID.randomUUID().toString())
+                .text("Binary search halves the remaining interval.")
+                .metadata(
+                    Map.of("ingestionId", UUID.randomUUID().toString(), "title", "algorithms.pdf", "chunkIndex", 2))
+                .score(0.91)
+                .build();
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(document));
+        var service = new DocumentRetrievalService(vectorStore, properties);
+
+        var result = service.search(groupClassId, "binary search", null, "algorithms.pdf", null, null);
+
+        assertTrue(result.contextFound());
+        assertEquals(document.getId(), result.hits().getFirst().segmentId());
+        var request = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(vectorStore).similaritySearch(request.capture());
+        assertTrue(request.getValue().getFilterExpression().toString().contains("groupClassId"));
+        assertTrue(request.getValue().getFilterExpression().toString().contains("status"));
+        assertTrue(request.getValue().getFilterExpression().toString().contains("title"));
+    }
+
+    @Test
+    void br43_documentIndexingDelegatesEmbeddingsAndDeletionToVectorStore() {
+        var groupClassId = UUID.randomUUID();
+        var professorMemberId = UUID.randomUUID();
+        var ingestionId = UUID.randomUUID();
+        var segment = new EditableSegmentViewModel(UUID.randomUUID().toString(),
+                3,
+                "Algorithms",
+                "Binary search halves the remaining interval.",
+                true,
+                false,
+                45,
+                7,
+                2,
+                List.of(2),
+                List.of(),
+                List.of(),
+                "Binary search halves the remaining interval.",
+                "docling");
+        var service = new DocumentVectorIndexingService(vectorStore);
+
+        var ids = service.index(groupClassId, professorMemberId, ingestionId, "algorithms.pdf", List.of(segment));
+
+        var documents = ArgumentCaptor.forClass(List.class);
+        verify(vectorStore).add(documents.capture());
+        var indexed = (Document) documents.getValue().getFirst();
+        assertEquals(ids.getFirst(), indexed.getId());
+        assertEquals(segment.content(), indexed.getText());
+        assertEquals(groupClassId.toString(), indexed.getMetadata().get("groupClassId"));
+        assertEquals(professorMemberId.toString(), indexed.getMetadata().get("createdByGroupClassMemberId"));
+        assertEquals(ingestionId.toString(), indexed.getMetadata().get("ingestionId"));
+        assertEquals("READY", indexed.getMetadata().get("status"));
+        assertEquals(3, indexed.getMetadata().get("chunkIndex"));
+
+        service.delete(ids);
+        verify(vectorStore).delete(ids);
     }
 
     @Test
     void mainFlow_professorContextCreatesTargetEvaluationDefinition() {
         var contextResolver = mock(ActiveAcademicContextResolver.class);
-        var context = new ActiveAcademicContext(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.PROFESSOR);
+        var context = new ActiveAcademicContext(UUID
+                .randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.PROFESSOR);
         when(contextResolver.requireCurrent()).thenReturn(context);
-        when(evaluationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        var service = new EvaluationService(evaluationRepository, contextResolver);
+        when(trainingActivityRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var service = new TrainingActivityService(trainingActivityRepository, contextResolver);
 
-        Evaluation evaluation = service.createPending("Quiz 1", "Assess algorithm tracing");
+        TrainingActivity activity = service.createPending("Quiz 1", "Assess algorithm tracing");
 
-        assertEquals("Quiz 1", evaluation.getTitle());
-        assertEquals(context.groupClassId(), evaluation.getGroupClass().getId());
-        assertEquals(context.groupClassMemberId(), evaluation.getCreatedByGroupClassMember().getId());
+        assertEquals("Quiz 1", activity.getTitle());
+        assertEquals(context.groupClassId(), activity.getGroupClass().getId());
+        assertEquals(context.groupClassMemberId(), activity.getCreatedByGroupClassMember().getId());
     }
 
     @Test
     void br23_studentContextCannotCreateEvaluationDefinition() {
         var contextResolver = mock(ActiveAcademicContextResolver.class);
-        var context = new ActiveAcademicContext(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
+        var context = new ActiveAcademicContext(UUID
+                .randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
         when(contextResolver.requireCurrent()).thenReturn(context);
-        var service = new EvaluationService(evaluationRepository, contextResolver);
+        var service = new TrainingActivityService(trainingActivityRepository, contextResolver);
 
         assertThrows(SetupRequiredException.class, () -> service.createPending("Quiz 1", "Assess tracing"));
-        verifyNoInteractions(evaluationRepository);
+        verifyNoInteractions(trainingActivityRepository);
     }
 
     @Test
@@ -230,15 +301,13 @@ class UC002RuntimeAdaptationTest {
 
     @Test
     void br43_activeVectorStoreAndDoclingWiringLoadsWhenDependenciesArePresent() {
-        new ApplicationContextRunner()
-                .withUserConfiguration(DocumentWiringTestConfiguration.class)
-                .withBean(EmbeddingModel.class, () -> embeddingModel)
-                .withBean(EntityManager.class, () -> entityManager)
-                .withBean(com.wornux.data.repositories.grounding.GroundingChunkRepository.class, () -> groundingChunkRepository)
+        new ApplicationContextRunner().withUserConfiguration(DocumentWiringTestConfiguration.class)
+                .withBean(VectorStore.class, () -> vectorStore)
                 .withBean(DoclingServeApi.class, () -> doclingServeApi)
                 .run(context -> {
-                    assertNotNull(context.getBean(com.wornux.infrastructure.external.docling.DoclingClientService.class));
-                    assertNotNull(context.getBean(com.wornux.services.document.DocumentEmbeddingService.class));
+                    assertNotNull(
+                        context.getBean(com.wornux.infrastructure.external.docling.DoclingClientService.class));
+                    assertNotNull(context.getBean(com.wornux.services.document.DocumentVectorIndexingService.class));
                     assertNotNull(context.getBean(com.wornux.services.document.DocumentRetrievalService.class));
                 });
     }
@@ -298,18 +367,16 @@ class UC002RuntimeAdaptationTest {
         }
 
         @Bean
-        com.wornux.services.document.DocumentEmbeddingService documentEmbeddingService(
-                EmbeddingModel embeddingModel,
-                com.wornux.data.repositories.grounding.GroundingChunkRepository groundingChunkRepository) {
-            return new com.wornux.services.document.DocumentEmbeddingService(embeddingModel, groundingChunkRepository);
+        com.wornux.services.document.DocumentVectorIndexingService documentVectorIndexingService(
+                VectorStore vectorStore) {
+            return new com.wornux.services.document.DocumentVectorIndexingService(vectorStore);
         }
 
         @Bean
         com.wornux.services.document.DocumentRetrievalService documentRetrievalService(
-                EmbeddingModel embeddingModel,
-                EntityManager entityManager,
+                VectorStore vectorStore,
                 DocumentIngestionProperties properties) {
-            return new com.wornux.services.document.DocumentRetrievalService(embeddingModel, entityManager, properties);
+            return new com.wornux.services.document.DocumentRetrievalService(vectorStore, properties);
         }
     }
 }

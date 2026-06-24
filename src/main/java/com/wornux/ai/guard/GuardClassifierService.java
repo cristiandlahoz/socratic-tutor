@@ -41,19 +41,17 @@ public class GuardClassifierService {
 
         Prompt prompt = Prompt.builder()
                 .messages(classifierMessages(userMessages))
-                .chatOptions(OllamaChatOptions.builder()
-                        .model(guardModel)
-                        .temperature(0.0)
-                        .format(outputConverter.getJsonSchemaMap())
-                        .build())
+                .chatOptions(
+                    OllamaChatOptions.builder()
+                            .model(guardModel)
+                            .temperature(0.0)
+                            .format(outputConverter.getJsonSchemaMap())
+                            .build())
                 .build();
 
         String responseText = Objects.requireNonNull(
-                Objects.requireNonNull(chatModel.call(prompt).getResult())
-                        .getOutput()
-                        .getText(),
-                "Guard classifier returned an empty response"
-        );
+            Objects.requireNonNull(chatModel.call(prompt).getResult()).getOutput().getText(),
+            "Guard classifier returned an empty response");
 
         GuardCheck guardCheck = outputConverter.convert(responseText);
 

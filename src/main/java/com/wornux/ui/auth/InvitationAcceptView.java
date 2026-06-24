@@ -1,5 +1,7 @@
 package com.wornux.ui.auth;
 
+import java.util.Optional;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -14,11 +16,10 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.wornux.services.onboarding.InvitationService;
 import com.wornux.services.onboarding.InvitationStateException;
 import com.wornux.services.security.AuthenticatedAccountService;
-import com.vaadin.flow.server.auth.AnonymousAllowed;
-import java.util.Optional;
 
 @Route(value = "invitations/accept", autoLayout = false)
 @PageTitle("Accept invitation")
@@ -92,51 +93,55 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         content.add(title, mismatch);
 
         if (accountAlreadyExists) {
-            var loginButton = new Button("Continue to login", _ -> getUI().ifPresent(ui -> ui.navigate(LoginView.class)));
+            var loginButton =
+                    new Button("Continue to login", _ -> getUI().ifPresent(ui -> ui.navigate(LoginView.class)));
             loginButton.addThemeVariants(ButtonVariant.PRIMARY);
             content.add(
-                    new Paragraph("Sign in with the invited email address to continue accepting this invitation."),
-                    loginButton);
+                new Paragraph("Sign in with the invited email address to continue accepting this invitation."),
+                loginButton);
             return;
         }
 
-        content.add(new Paragraph(
-                "Sign out or open this invitation in a private window to create the invited account safely."));
+        content.add(
+            new Paragraph(
+                    "Sign out or open this invitation in a private window to create the invited account safely."));
     }
 
     private void render(boolean accountAlreadyExists) {
         content.removeAll();
         if (accountAlreadyExists) {
-            var loginButton = new Button("Continue to login", _ -> getUI().ifPresent(ui -> ui.navigate(LoginView.class)));
+            var loginButton =
+                    new Button("Continue to login", _ -> getUI().ifPresent(ui -> ui.navigate(LoginView.class)));
             loginButton.addThemeVariants(ButtonVariant.PRIMARY);
             content.add(
-                    new H2("Sign in to accept your invitation"),
-                    new Paragraph("This invited email already belongs to an account. Sign in with the same email address to continue."),
-                    emailField,
-                    loginButton);
+                new H2("Sign in to accept your invitation"),
+                new Paragraph(
+                        "This invited email already belongs to an account. Sign in with the same email address to continue."),
+                emailField,
+                loginButton);
             return;
         }
 
         var registerButton = new Button("Create account", _ -> onRegister());
         registerButton.addThemeVariants(ButtonVariant.PRIMARY);
         content.add(
-                new H2("Complete your invited registration"),
-                new Paragraph("Your invitation email becomes your account email. Create your password to continue."),
-                emailField,
-                firstNameField,
-                lastNameField,
-                passwordField,
-                confirmPasswordField,
-                registerButton);
+            new H2("Complete your invited registration"),
+            new Paragraph("Your invitation email becomes your account email. Create your password to continue."),
+            emailField,
+            firstNameField,
+            lastNameField,
+            passwordField,
+            confirmPasswordField,
+            registerButton);
     }
 
     private void onRegister() {
         try {
             invitationService.registerInvitedAccount(
-                    firstNameField.getValue(),
-                    lastNameField.getValue(),
-                    passwordField.getValue(),
-                    confirmPasswordField.getValue());
+                firstNameField.getValue(),
+                lastNameField.getValue(),
+                passwordField.getValue(),
+                confirmPasswordField.getValue());
             Notification.show("Account created. Sign in to finish accepting your invitation.");
             getUI().ifPresent(ui -> ui.navigate(LoginView.class));
         }

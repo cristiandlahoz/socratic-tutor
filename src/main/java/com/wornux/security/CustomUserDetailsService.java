@@ -1,7 +1,8 @@
 package com.wornux.security;
 
-import com.wornux.data.repositories.identity.AccountRepository;
 import java.util.List;
+
+import com.wornux.data.repositories.identity.AccountRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,8 +31,6 @@ public class CustomUserDetailsService implements UserDetailsService {
                 true,
                 true,
                 true,
-                account.isSystemAdmin()
-                        ? List.of(new SimpleGrantedAuthority("ROLE_SYSTEM_ADMIN"))
-                        : List.of());
+                account.isSystemAdmin() ? List.of(new SimpleGrantedAuthority("ROLE_SYSTEM_ADMIN")) : List.of());
     }
 }

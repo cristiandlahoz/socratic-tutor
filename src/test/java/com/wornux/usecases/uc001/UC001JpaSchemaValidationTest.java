@@ -2,6 +2,8 @@ package com.wornux.usecases.uc001;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import java.util.Map;
+
 import com.wornux.data.entities.academic.AcademicPeriod;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassJoinCode;
@@ -15,22 +17,17 @@ import com.wornux.data.entities.authorization.RolePermission;
 import com.wornux.data.entities.authorization.TenantAccountRole;
 import com.wornux.data.entities.conversation.Conversation;
 import com.wornux.data.entities.conversation.ConversationSnapshot;
-import com.wornux.data.entities.evaluation.Evaluation;
-import com.wornux.data.entities.evaluation.EvaluationAssignment;
-import com.wornux.data.entities.grounding.GroundingChunk;
-import com.wornux.data.entities.grounding.GroundingCollection;
-import com.wornux.data.entities.grounding.GroundingDocument;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.identity.Tenant;
 import com.wornux.data.entities.identity.TenantAccount;
-
-import java.util.Map;
+import com.wornux.data.entities.training_activity.TrainingActivity;
+import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import org.hibernate.SessionFactory;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Environment;
 import org.hibernate.service.ServiceRegistry;
-import org.hibernate.boot.MetadataSources;
-import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.junit.jupiter.api.Test;
 
 class UC001JpaSchemaValidationTest extends UC001MigrationTestSupport {
@@ -38,18 +35,28 @@ class UC001JpaSchemaValidationTest extends UC001MigrationTestSupport {
     @Test
     void mainFlow_jpaMappingsValidateAgainstFlywaySchema() {
         assertDoesNotThrow(() -> {
-            ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
-                    .applySettings(Map.of(
-                            AvailableSettings.JAKARTA_JDBC_URL, POSTGRES.getJdbcUrl(),
-                            AvailableSettings.JAKARTA_JDBC_USER, POSTGRES.getUsername(),
-                            AvailableSettings.JAKARTA_JDBC_PASSWORD, POSTGRES.getPassword(),
-                            AvailableSettings.HBM2DDL_AUTO, "validate",
-                            AvailableSettings.DIALECT, "org.hibernate.dialect.PostgreSQLDialect",
-                            AvailableSettings.SHOW_SQL, false,
-                            Environment.FORMAT_SQL, false))
-                    .build();
+            ServiceRegistry serviceRegistry =
+                    new StandardServiceRegistryBuilder()
+                            .applySettings(
+                                Map.of(
+                                    AvailableSettings.JAKARTA_JDBC_URL,
+                                    POSTGRES.getJdbcUrl(),
+                                    AvailableSettings.JAKARTA_JDBC_USER,
+                                    POSTGRES.getUsername(),
+                                    AvailableSettings.JAKARTA_JDBC_PASSWORD,
+                                    POSTGRES.getPassword(),
+                                    AvailableSettings.HBM2DDL_AUTO,
+                                    "validate",
+                                    AvailableSettings.DIALECT,
+                                    "org.hibernate.dialect.PostgreSQLDialect",
+                                    AvailableSettings.SHOW_SQL,
+                                    false,
+                                    Environment.FORMAT_SQL,
+                                    false))
+                            .build();
 
-            try (SessionFactory sessionFactory = metadataSources(serviceRegistry).buildMetadata().buildSessionFactory()) {
+            try (SessionFactory sessionFactory =
+                    metadataSources(serviceRegistry).buildMetadata().buildSessionFactory()) {
                 sessionFactory.inTransaction(session -> {});
             }
             finally {
@@ -59,8 +66,7 @@ class UC001JpaSchemaValidationTest extends UC001MigrationTestSupport {
     }
 
     private MetadataSources metadataSources(ServiceRegistry serviceRegistry) {
-        return new MetadataSources(serviceRegistry)
-                .addAnnotatedClass(Account.class)
+        return new MetadataSources(serviceRegistry).addAnnotatedClass(Account.class)
                 .addAnnotatedClass(Tenant.class)
                 .addAnnotatedClass(TenantAccount.class)
                 .addAnnotatedClass(Role.class)
@@ -76,10 +82,7 @@ class UC001JpaSchemaValidationTest extends UC001MigrationTestSupport {
                 .addAnnotatedClass(GroupClassJoinCode.class)
                 .addAnnotatedClass(Conversation.class)
                 .addAnnotatedClass(ConversationSnapshot.class)
-                .addAnnotatedClass(GroundingCollection.class)
-                .addAnnotatedClass(GroundingDocument.class)
-                .addAnnotatedClass(GroundingChunk.class)
-                .addAnnotatedClass(Evaluation.class)
-                .addAnnotatedClass(EvaluationAssignment.class);
+                .addAnnotatedClass(TrainingActivity.class)
+                .addAnnotatedClass(TrainingActivityAssignment.class);
     }
 }

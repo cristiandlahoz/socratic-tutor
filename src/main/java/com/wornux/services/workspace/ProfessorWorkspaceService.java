@@ -1,5 +1,9 @@
 package com.wornux.services.workspace;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.data.entities.identity.Account;
@@ -7,9 +11,6 @@ import com.wornux.data.entities.onboarding.InvitationTargetRole;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
 import com.wornux.services.onboarding.InvitationService;
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +47,8 @@ public class ProfessorWorkspaceService {
     @Transactional(readOnly = true)
     public List<GroupClassMember> listStudents(Account account) {
         var professorMembership = requireProfessorMembership(account);
-        return groupClassMemberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(professorMembership.getGroupClass().getId())
+        return groupClassMemberRepository
+                .findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(professorMembership.getGroupClass().getId())
                 .stream()
                 .filter(member -> member.getRole() == GroupClassMemberRole.STUDENT)
                 .toList();
@@ -56,13 +58,13 @@ public class ProfessorWorkspaceService {
     public void inviteStudent(Account account, String email) {
         var professorMembership = requireProfessorMembership(account);
         invitationService.createInvitation(
-                InvitationTargetRole.STUDENT,
-                professorMembership.getGroupClass().getTenant().getId(),
-                professorMembership.getGroupClass().getId(),
-                email,
-                account,
-                professorMembership.getTenantAccount(),
-                professorMembership);
+            InvitationTargetRole.STUDENT,
+            professorMembership.getGroupClass().getTenant().getId(),
+            professorMembership.getGroupClass().getId(),
+            email,
+            account,
+            professorMembership.getTenantAccount(),
+            professorMembership);
     }
 
     @Transactional

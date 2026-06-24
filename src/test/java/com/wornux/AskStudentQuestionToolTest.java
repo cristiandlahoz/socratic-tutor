@@ -1,32 +1,18 @@
 package com.wornux;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.wornux.ai.document.DocumentCatalogPromptService;
-import com.wornux.ai.guard.GuardClassifierService;
-import com.wornux.ai.profile.ProfileAwareResponseAdvisor;
-import com.wornux.ai.routing.PedagogicalRoutingMode;
-import com.wornux.ai.routing.PedagogicalRoutingService;
 import com.wornux.ai.tools.AskStudentQuestionTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
-import com.wornux.data.enums.GuardDecision;
 import com.wornux.dtos.chat.questions.StudentQuestion;
 import com.wornux.dtos.chat.questions.StudentQuestionAnswer;
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
-import com.wornux.dtos.profile.StudentProfileSnapshot;
 import com.wornux.services.document.DocumentRetrievalService;
-import com.wornux.services.profile.StudentProfileService;
-import com.wornux.services.subject.SubjectConfig;
-import com.wornux.services.subject.SubjectConfigService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -57,26 +43,6 @@ class AskStudentQuestionToolTest {
 
     @MockitoBean
     DocumentRetrievalService documentRetrievalService;
-    @MockitoBean
-    GuardClassifierService guardClassifierService;
-    @MockitoBean
-    PedagogicalRoutingService pedagogicalRoutingService;
-    @MockitoBean
-    SubjectConfigService subjectConfigService;
-    @MockitoBean
-    StudentProfileService studentProfileService;
-    @MockitoBean
-    DocumentCatalogPromptService documentCatalogPromptService;
-
-    @BeforeEach
-    void setUpAiConfigCollaborators() {
-        when(guardClassifierService.classify(any())).thenReturn(GuardDecision.SAFE);
-        when(pedagogicalRoutingService.classify(any())).thenReturn(PedagogicalRoutingMode.EXERCISE_GUIDANCE);
-        when(subjectConfigService.defaultSubjectSlug()).thenReturn("c-programming");
-        when(subjectConfigService.current(any())).thenReturn(subjectConfig());
-        when(studentProfileService.load(any())).thenReturn(StudentProfileSnapshot.anonymous());
-        when(documentCatalogPromptService.buildInventoryPrompt(any())).thenReturn("");
-    }
 
     @Test
     @Timeout(90)
@@ -87,8 +53,7 @@ class AskStudentQuestionToolTest {
         var response = chatClient.prompt()
                 .advisors(
                     advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId.toString())
-                            .param(ToolUsageAuditService.CLIENT_ID, clientId)
-                            .param(ProfileAwareResponseAdvisor.CLIENT_ID_CONTEXT_KEY, clientId))
+                            .param(ToolUsageAuditService.CLIENT_ID, clientId))
                 .tools(new AskStudentQuestionTool(questionHandler(capturedQuestionSet)))
                 .user("""
                       necesito ayuda para resolver un ejercicio de cajero
@@ -128,14 +93,4 @@ class AskStudentQuestionToolTest {
         });
     }
 
-    private SubjectConfig subjectConfig() {
-        return new SubjectConfig(1L,
-                "c-programming",
-                "C Programming",
-                1L,
-                1L,
-                Map.of("scope", "C pointers, memory, and control flow"),
-                Map.of("defaultHelpMode", "guided"),
-                Map.of("askBeforeAnswering", true));
-    }
 }

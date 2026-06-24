@@ -1,10 +1,11 @@
 package com.wornux.services.onboarding;
 
-import com.wornux.data.entities.onboarding.InvitationTargetRole;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.UUID;
+
+import com.wornux.data.entities.onboarding.InvitationTargetRole;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,7 @@ public class OnboardingSessionContext implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private UUID invitationId;
+    private Long invitationId;
     private String invitedEmail;
     private InvitationTargetRole targetRole;
     private UUID tenantId;

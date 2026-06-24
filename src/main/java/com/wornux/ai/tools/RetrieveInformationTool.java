@@ -23,14 +23,12 @@ public class RetrieveInformationTool {
 
     @Tool(name = "searchUploadedDocuments",
             description = "Searches approved text segments extracted from PDFs uploaded by the current user. The"
-                    + " chat prompt includes a live inventory of searchable document titles, topics,"
-                    + " tags, entities, and example questions. Use this when the user question overlaps"
-                    + " that inventory or refers to uploaded material, reports, PDFs, topics, entities,"
-                    + " or document-specific facts.")
+                    + " search is scoped to the active class. Use this when the user refers to uploaded"
+                    + " material, reports, PDFs, topics, entities, or document-specific facts.")
     public DocumentContextResult searchUploadedDocuments(
             @ToolParam(description = "The user question or the fact to look up inside uploaded PDFs.") String query,
             @ToolParam(required = false,
-                    description = "Optional grounding document ID from the inventory.") String documentIdHint,
+                    description = "Optional ingestion ID to narrow the search.") String ingestionIdHint,
             @ToolParam(required = false,
                     description = "Optional exact uploaded filename to narrow the search.") String filenameHint,
             @ToolParam(required = false, description = "Optional topic from the document inventory.") String topicHint,
@@ -39,9 +37,9 @@ public class RetrieveInformationTool {
         return toolUsageAuditService.audit(
             "searchUploadedDocuments",
             toolContext,
-            "query_len=%d document_id_hint=%s filename_hint=%s topic_hint=%s tag_hint=%s".formatted(
+            "query_len=%d ingestion_id_hint=%s filename_hint=%s topic_hint=%s tag_hint=%s".formatted(
                 query == null ? 0 : query.length(),
-                documentIdHint == null ? "none" : documentIdHint,
+                ingestionIdHint == null ? "none" : ingestionIdHint,
                 filenameHint == null ? "none" : filenameHint,
                 topicHint == null ? "none" : topicHint,
                 tagHint == null ? "none" : tagHint),
@@ -50,10 +48,11 @@ public class RetrieveInformationTool {
                 var groupClassId = rawGroupClassId == null || String.valueOf(rawGroupClassId).isBlank()
                         ? null
                         : java.util.UUID.fromString(String.valueOf(rawGroupClassId));
-                var result = documentRetrievalService.search(groupClassId, query, documentIdHint, filenameHint, topicHint, tagHint);
+                var result = documentRetrievalService
+                        .search(groupClassId, query, ingestionIdHint, filenameHint, topicHint, tagHint);
                 return new ToolUsageAuditService.ToolResult<>(result,
                         "hits=%d context_found=%s".formatted(result.hits().size(), result.contextFound()),
-                        new ToolLearningSignal("uploaded_documents", false, "retrieval_context"));
+                        new ToolLearningSignal("uploaded_documents", "retrieval_context"));
             });
     }
 }

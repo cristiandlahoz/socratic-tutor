@@ -21,45 +21,46 @@ class UC001SchemaMigrationTest extends UC001MigrationTestSupport {
         assertEquals(List.of("1"), appliedFlywayVersions());
 
         for (String table : List.of(
-                "account",
-                "tenant",
-                "tenant_account",
-                "role",
-                "resource",
-                "action",
-                "permission",
-                "role_permission",
-                "tenant_account_role",
-                "subject",
-                "academic_period",
-                "group_class",
-                "group_class_member",
-                "group_class_join_code",
-                "conversation",
-                "conversation_snapshot",
-                "grounding_collection",
-                "grounding_document",
-                "grounding_chunk",
-                "evaluation",
-                "evaluation_assignment")) {
+            "account",
+            "tenant",
+            "tenant_account",
+            "role",
+            "resource",
+            "action",
+            "permission",
+            "role_permission",
+            "tenant_account_role",
+            "subject",
+            "academic_period",
+            "group_class",
+            "group_class_member",
+            "group_class_join_code",
+            "conversation",
+            "conversation_snapshot",
+            "grounding_vector_store",
+            "training_activity",
+            "training_activity_assignment")) {
             assertTrue(tableExists(table), () -> "Expected table " + table);
         }
 
         for (String legacyTable : List.of(
-                "chat",
-                "chat_transcript",
-                "chat_message",
-                "student_profile",
-                "student_misconception",
-                "student_profile_signal",
-                "ingested_document",
-                "document_ingestion_job",
-                "document_segment",
-                "vector_store",
-                "legacy_subject",
-                "legacy_subject_config_revision",
-                "legacy_evaluation",
-                "legacy_evaluation_run")) {
+            "chat",
+            "chat_transcript",
+            "chat_message",
+            "student_profile",
+            "student_misconception",
+            "student_profile_signal",
+            "ingested_document",
+            "document_ingestion_job",
+            "document_segment",
+            "vector_store",
+            "grounding_collection",
+            "grounding_document",
+            "grounding_chunk",
+            "legacy_subject",
+            "legacy_subject_config_revision",
+            "legacy_evaluation",
+            "legacy_evaluation_run")) {
             assertFalse(tableExists(legacyTable), () -> "Did not expect legacy table " + legacyTable);
         }
 
@@ -68,32 +69,53 @@ class UC001SchemaMigrationTest extends UC001MigrationTestSupport {
         assertFalse(tableExists("subject_config_revision"));
         assertTrue(columnExists("conversation", "current_snapshot_id"));
         assertFalse(columnExists("conversation", "active_snapshot_id"));
-        assertTrue(columnExists("grounding_chunk", "embedding"));
+        assertTrue(columnExists("grounding_vector_store", "content"));
+        assertTrue(columnExists("grounding_vector_store", "metadata"));
+        assertTrue(columnExists("grounding_vector_store", "embedding"));
+        assertEquals(
+            List.of("vector(1024)"),
+            singleColumnList("""
+                             select format_type(attribute.atttypid, attribute.atttypmod)
+                             from pg_attribute attribute
+                             join pg_class relation on relation.oid = attribute.attrelid
+                             where relation.relname = 'grounding_vector_store'
+                               and attribute.attname = 'embedding'
+                             """));
 
         assertEquals(
-                Set.of("SYSTEM_ADMIN", "TENANT_ADMIN", "PROFESSOR", "STUDENT", "ASSISTANT"),
-                Set.copyOf(singleColumnList("select code from role")));
+            Set.of("SYSTEM_ADMIN", "TENANT_ADMIN", "PROFESSOR", "STUDENT"),
+            Set.copyOf(singleColumnList("select code from role")));
         assertEquals(
-                Set.of(
-                        "TENANT",
-                        "SUBJECT",
-                        "ACADEMIC_PERIOD",
-                        "GROUP_CLASS",
-                        "GROUP_CLASS_MEMBER",
-                        "GROUP_CLASS_JOIN_CODE",
-                        "GROUNDING",
-                        "EVALUATION",
-                        "EVALUATION_ASSIGNMENT",
-                        "CONVERSATION"),
-                Set.copyOf(singleColumnList("select code from resource")));
-        assertEquals(Set.of("VIEW", "CREATE", "UPDATE", "DELETE", "INVITE"), Set.copyOf(singleColumnList("select code from action")));
+            Set.of(
+                "TENANT",
+                "SUBJECT",
+                "ACADEMIC_PERIOD",
+                "GROUP_CLASS",
+                "GROUP_CLASS_MEMBER",
+                "GROUP_CLASS_JOIN_CODE",
+                "GROUNDING",
+                "TRAINING_ACTIVITY",
+                "TRAINING_ACTIVITY_ASSIGNMENT",
+                "CONVERSATION"),
+            Set.copyOf(singleColumnList("select code from resource")));
+        assertEquals(
+            Set.of("VIEW", "CREATE", "UPDATE", "DELETE", "INVITE"),
+            Set.copyOf(singleColumnList("select code from action")));
 
-        assertFalse(singleColumnList("select code from action where code in ('LOCK', 'RUN', 'JOIN', 'MANAGE', 'MONITOR')").size() > 0);
-        assertTrue(singleColumnList("select code from permission where code = 'EVALUATION_ASSIGNMENT:UPDATE'").size() == 1);
-        assertTrue(singleColumnList("select code from permission where code = 'GROUP_CLASS_MEMBER:DELETE'").size() == 1);
+        assertFalse(
+            singleColumnList("select code from action where code in ('LOCK', 'RUN', 'JOIN', 'MANAGE', 'MONITOR')")
+                    .size() > 0);
+        assertTrue(
+            singleColumnList("select code from permission where code = 'TRAINING_ACTIVITY_ASSIGNMENT:UPDATE'")
+                    .size() == 1);
+        assertTrue(
+            singleColumnList("select code from permission where code = 'GROUP_CLASS_MEMBER:DELETE'").size() == 1);
         assertTrue(singleColumnList("select code from permission where code = 'TENANT:CREATE'").size() == 1);
         assertTrue(singleColumnList("select code from permission where code = 'CONVERSATION:VIEW'").size() == 1);
-        assertTrue(singleColumnList("select code from resource where code in ('CONVERSATION_SNAPSHOT', 'GROUNDING_DOCUMENT', 'GROUNDING_CHUNK')").isEmpty());
+        assertTrue(
+            singleColumnList(
+                "select code from resource where code in ('CONVERSATION_SNAPSHOT', 'GROUNDING_DOCUMENT', 'GROUNDING_CHUNK')")
+                    .isEmpty());
         assertTrue(singleColumnList("select id::text from tenant").isEmpty());
         assertTrue(singleColumnList("select id::text from subject").isEmpty());
         assertTrue(singleColumnList("select id::text from academic_period").isEmpty());
@@ -102,9 +124,8 @@ class UC001SchemaMigrationTest extends UC001MigrationTestSupport {
 
     @Test
     void br01_br77_seededSystemAdminUsesSecureHashAndUniqueConstraintsHold() throws Exception {
-        try (Connection connection = connection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "select email, username, system_admin, password_hash from account order by email")) {
+        try (Connection connection = connection(); PreparedStatement statement = connection
+                .prepareStatement("select email, username, system_admin, password_hash from account order by email")) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 assertTrue(resultSet.next());
                 assertEquals("admin@socratic-tutor.com", resultSet.getString("email"));
@@ -121,22 +142,22 @@ class UC001SchemaMigrationTest extends UC001MigrationTestSupport {
         assertTrue(uniqueConstraintExists("account", "uk_account_username"));
         assertTrue(uniqueConstraintExists("tenant_account", "uk_tenant_account_tenant_account"));
         assertTrue(uniqueConstraintExists("group_class_join_code", "uk_group_class_join_code_code"));
-        assertTrue(uniqueConstraintExists("evaluation_assignment", "uk_evaluation_assignment_evaluation_member"));
+        assertTrue(
+            uniqueConstraintExists("training_activity_assignment", "uk_training_activity_assignment_activity_member"));
     }
 
     private boolean uniqueConstraintExists(String tableName, String constraintName) throws SQLException {
         try (Connection connection = connection();
-                PreparedStatement statement = connection.prepareStatement(
-                        """
-                        select exists (
-                            select 1
-                            from information_schema.table_constraints
-                            where table_schema = 'public'
-                              and table_name = ?
-                              and constraint_name = ?
-                              and constraint_type = 'UNIQUE'
-                        )
-                        """)) {
+                PreparedStatement statement = connection.prepareStatement("""
+                                                                          select exists (
+                                                                              select 1
+                                                                              from information_schema.table_constraints
+                                                                              where table_schema = 'public'
+                                                                                and table_name = ?
+                                                                                and constraint_name = ?
+                                                                                and constraint_type = 'UNIQUE'
+                                                                          )
+                                                                          """)) {
             statement.setString(1, tableName);
             statement.setString(2, constraintName);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -147,9 +168,8 @@ class UC001SchemaMigrationTest extends UC001MigrationTestSupport {
     }
 
     private List<String> appliedFlywayVersions() throws SQLException {
-        try (Connection connection = connection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "select version from flyway_schema_history where success = true order by installed_rank")) {
+        try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
+            "select version from flyway_schema_history where success = true order by installed_rank")) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 List<String> versions = new ArrayList<>();
                 while (resultSet.next()) {

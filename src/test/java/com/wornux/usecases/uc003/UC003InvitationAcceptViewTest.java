@@ -3,6 +3,11 @@ package com.wornux.usecases.uc003;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Stream;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.button.Button;
@@ -18,10 +23,6 @@ import com.wornux.services.onboarding.OnboardingStart;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.ui.auth.InvitationAcceptView;
 import com.wornux.ui.auth.LoginView;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class UC003InvitationAcceptViewTest {
@@ -33,15 +34,19 @@ class UC003InvitationAcceptViewTest {
         var view = new InvitationAcceptView(invitationService, authenticatedAccountService);
         var event = beforeEnterEvent("signup-token");
         when(invitationService.prepareOnboarding("signup-token"))
-                .thenReturn(new OnboardingStart(UUID.randomUUID(), "student@test.local", InvitationTargetRole.STUDENT, false));
+                .thenReturn(new OnboardingStart(1L, "student@test.local", InvitationTargetRole.STUDENT, false));
         when(authenticatedAccountService.currentAccount()).thenReturn(Optional.empty());
 
         view.beforeEnter(event);
 
         verify(invitationService, never()).completePendingInvitationForCurrentAccount();
         assertTrue(texts(view).contains("Complete your invited registration"));
-        assertTrue(texts(view).contains("Your invitation email becomes your account email. Create your password to continue."));
-        assertEquals(List.of("student@test.local"), descendantsOfType(view, EmailField.class).stream().map(EmailField::getValue).toList());
+        assertTrue(
+            texts(view)
+                    .contains("Your invitation email becomes your account email. Create your password to continue."));
+        assertEquals(
+            List.of("student@test.local"),
+            descendantsOfType(view, EmailField.class).stream().map(EmailField::getValue).toList());
         assertEquals(2, descendantsOfType(view, TextField.class).size());
         assertEquals(2, descendantsOfType(view, PasswordField.class).size());
         assertTrue(buttonTexts(view).contains("Create account"));
@@ -54,14 +59,16 @@ class UC003InvitationAcceptViewTest {
         var view = new InvitationAcceptView(invitationService, authenticatedAccountService);
         var event = beforeEnterEvent("login-token");
         when(invitationService.prepareOnboarding("login-token"))
-                .thenReturn(new OnboardingStart(UUID.randomUUID(), "professor@test.local", InvitationTargetRole.PROFESSOR, true));
+                .thenReturn(new OnboardingStart(1L, "professor@test.local", InvitationTargetRole.PROFESSOR, true));
         when(authenticatedAccountService.currentAccount()).thenReturn(Optional.empty());
 
         view.beforeEnter(event);
 
         verify(invitationService, never()).completePendingInvitationForCurrentAccount();
         assertTrue(texts(view).contains("Sign in to accept your invitation"));
-        assertTrue(texts(view).contains("This invited email already belongs to an account. Sign in with the same email address to continue."));
+        assertTrue(
+            texts(view).contains(
+                "This invited email already belongs to an account. Sign in with the same email address to continue."));
         assertTrue(buttonTexts(view).contains("Continue to login"));
     }
 
@@ -72,7 +79,7 @@ class UC003InvitationAcceptViewTest {
         var view = new InvitationAcceptView(invitationService, authenticatedAccountService);
         var event = beforeEnterEvent("mismatch-token");
         when(invitationService.prepareOnboarding("mismatch-token"))
-                .thenReturn(new OnboardingStart(UUID.randomUUID(), "invited@test.local", InvitationTargetRole.TENANT_ADMIN, true));
+                .thenReturn(new OnboardingStart(1L, "invited@test.local", InvitationTargetRole.TENANT_ADMIN, true));
         when(authenticatedAccountService.currentAccount()).thenReturn(Optional.of(account("other@test.local")));
 
         view.beforeEnter(event);
@@ -81,8 +88,11 @@ class UC003InvitationAcceptViewTest {
         verify(event, never()).forwardTo(any(Class.class));
         verify(event, never()).forwardTo(anyString());
         assertTrue(texts(view).contains("Invitation ready for a different account"));
-        assertTrue(texts(view).contains("This invitation is for invited@test.local, but you are signed in as other@test.local."));
-        assertTrue(texts(view).contains("Sign in with the invited email address to continue accepting this invitation."));
+        assertTrue(
+            texts(view)
+                    .contains("This invitation is for invited@test.local, but you are signed in as other@test.local."));
+        assertTrue(
+            texts(view).contains("Sign in with the invited email address to continue accepting this invitation."));
         assertFalse(texts(view).contains("Invitation unavailable"));
         assertTrue(buttonTexts(view).contains("Continue to login"));
     }
@@ -101,8 +111,7 @@ class UC003InvitationAcceptViewTest {
     }
 
     private static List<String> texts(Component component) {
-        return stream(component)
-                .filter(HasText.class::isInstance)
+        return stream(component).filter(HasText.class::isInstance)
                 .map(HasText.class::cast)
                 .map(HasText::getText)
                 .filter(text -> text != null && !text.isBlank())
@@ -118,6 +127,7 @@ class UC003InvitationAcceptViewTest {
     }
 
     private static Stream<Component> stream(Component component) {
-        return Stream.concat(Stream.of(component), component.getChildren().flatMap(UC003InvitationAcceptViewTest::stream));
+        return Stream
+                .concat(Stream.of(component), component.getChildren().flatMap(UC003InvitationAcceptViewTest::stream));
     }
 }

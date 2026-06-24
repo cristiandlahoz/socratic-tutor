@@ -58,13 +58,15 @@ public class ActiveAcademicContextResolver {
     }
 
     private Optional<ActiveAcademicContext> toContext(Account account) {
-        if (account.getLastGroupClassMember() == null || account.getLastTenantAccount() == null
+        if (account.getLastGroupClassMember() == null
+                || account.getLastTenantAccount() == null
                 || account.getLastGroupClassMember().getGroupClass() == null) {
             return Optional.empty();
         }
 
-        var tenantAccount = tenantAccountRepository.findByIdAndAccount_Id(account.getLastTenantAccount().getId(), account.getId())
-                .orElse(null);
+        var tenantAccount =
+                tenantAccountRepository.findByIdAndAccount_Id(account.getLastTenantAccount().getId(), account.getId())
+                        .orElse(null);
         if (tenantAccount == null || tenantAccount.isLocked()) {
             return Optional.empty();
         }
@@ -72,16 +74,19 @@ public class ActiveAcademicContextResolver {
         var groupClassMember = groupClassMemberRepository
                 .findByIdAndTenantAccount_Id(account.getLastGroupClassMember().getId(), tenantAccount.getId())
                 .orElse(null);
-        if (groupClassMember == null || groupClassMember.isLocked() || groupClassMember.getGroupClass() == null
+        if (groupClassMember == null
+                || groupClassMember.isLocked()
+                || groupClassMember.getGroupClass() == null
                 || groupClassMember.getGroupClass().getTenant() == null
                 || !groupClassMember.getGroupClass().getTenant().getId().equals(tenantAccount.getTenant().getId())) {
             return Optional.empty();
         }
 
-        return Optional.of(new ActiveAcademicContext(account.getId(),
-                tenantAccount.getId(),
-                groupClassMember.getId(),
-                groupClassMember.getGroupClass().getId(),
-                groupClassMember.getRole()));
+        return Optional.of(
+            new ActiveAcademicContext(account.getId(),
+                    tenantAccount.getId(),
+                    groupClassMember.getId(),
+                    groupClassMember.getGroupClass().getId(),
+                    groupClassMember.getRole()));
     }
 }

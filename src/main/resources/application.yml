@@ -32,6 +32,14 @@ spring:
       lifecycle-management: none
 
   ai:
+    vectorstore:
+      pgvector:
+        table-name: grounding_vector_store
+        dimensions: 1024
+        distance-type: COSINE_DISTANCE
+        index-type: HNSW
+        initialize-schema: false
+        schema-validation: true
     ollama:
       init:
         pull-model-strategy: when_missing
@@ -62,16 +70,10 @@ app:
   ai:
     guard:
       model: ${GUARD_MODEL:qwen3:4b-instruct}
-    profile:
-      enabled: ${AI_PROFILE_ENABLED:true}
-      shadow-mode: ${AI_PROFILE_SHADOW_MODE:false}
-      misconception-ttl-days: ${AI_PROFILE_MISCONCEPTION_TTL_DAYS:21}
     tutor:
       routing-model: ${ROUTING_MODEL:${spring.ai.ollama.chat.model}}
     title:
       model: ${TITLE_MODEL:${spring.ai.ollama.chat.model}}
-    document-catalog:
-      model: ${DOCUMENT_CATALOG_MODEL:${spring.ai.ollama.chat.model}}
     c-example-preparation:
       model: ${C_EXAMPLE_PREPARATION_MODEL:${spring.ai.ollama.chat.model}}
   document-ingest:
@@ -84,12 +86,6 @@ app:
         merge-peers: ${DOCUMENT_CHUNK_MERGE_PEERS:true}
         use-markdown-tables: ${DOCUMENT_CHUNK_USE_MARKDOWN_TABLES:true}
         include-raw-text: ${DOCUMENT_CHUNK_INCLUDE_RAW_TEXT:true}
-    catalog:
-      max-tags: ${DOCUMENT_CATALOG_MAX_TAGS:8}
-      max-question-examples: ${DOCUMENT_CATALOG_MAX_QUESTION_EXAMPLES:6}
-    inventory:
-      max-documents: ${DOCUMENT_INVENTORY_MAX_DOCUMENTS:8}
-      max-chars: ${DOCUMENT_INVENTORY_MAX_CHARS:2400}
   c-runner:
     compiler-image: ${C_RUNNER_COMPILER_IMAGE:cristiandelahooz/socratic-tutor-crunner:latest}
     debugger-image: ${C_RUNNER_DEBUGGER_IMAGE:cristiandelahooz/socratic-tutor-crunner:latest}

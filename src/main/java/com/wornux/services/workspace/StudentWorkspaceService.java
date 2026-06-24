@@ -1,11 +1,12 @@
 package com.wornux.services.workspace;
 
+import java.util.List;
+import java.util.UUID;
+
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
-import java.util.List;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

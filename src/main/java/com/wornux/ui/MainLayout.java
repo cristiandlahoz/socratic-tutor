@@ -22,7 +22,6 @@ import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.shared.Tooltip;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
-import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
@@ -36,8 +35,9 @@ import com.wornux.ui.chat.ChatViewModel;
 import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.SidebarItem;
 import com.wornux.ui.components.chat.WidthAwareLabel;
-import com.wornux.ui.training_activity.TrainingActivityView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
+import com.wornux.ui.training_activity.TrainingActivityView;
+import jakarta.annotation.security.PermitAll;
 
 @Layout
 @PreserveOnRefresh
@@ -134,15 +134,13 @@ public class MainLayout extends AppLayout {
         evaluationButton.setId("sidebar-evaluation-link");
 
         var sidebarNavigationAccess = authenticatedAccountService.currentAccount()
-                .map(account -> buildSidebarNavigationAccess(
-                    workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR),
-                    workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)))
+                .map(
+                    account -> buildSidebarNavigationAccess(
+                        workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR),
+                        workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)))
                 .orElseGet(SidebarNavigationAccess::noAccess);
 
-        var actionsRow = createActionsRow(
-            sidebarNavigationAccess,
-            ingestDocumentButton,
-            evaluationButton);
+        var actionsRow = createActionsRow(sidebarNavigationAccess, ingestDocumentButton, evaluationButton);
         actionsRow.addClassNames("chat-sidebar-actions", "sidebar-actions__list");
 
         var actionsSection = new Div(actionsRow);
@@ -166,7 +164,8 @@ public class MainLayout extends AppLayout {
         var emptyTitle = new Span("Sin conversaciones todavía");
         emptyTitle.addClassName("chat-sidebar-empty-title");
 
-        var emptyDescription = new Paragraph("Inicia una nueva conversación para empezar a construir tu historial del tutor.");
+        var emptyDescription =
+                new Paragraph("Inicia una nueva conversación para empezar a construir tu historial del tutor.");
         emptyDescription.addClassName("chat-sidebar-empty-description");
 
         emptyHistory = new Div(emptyTitle, emptyDescription);
@@ -262,10 +261,9 @@ public class MainLayout extends AppLayout {
     }
 
     static SidebarNavigationAccess buildSidebarNavigationAccess(boolean professorCanAccess, boolean studentCanAccess) {
-        return new SidebarNavigationAccess(
-            professorCanAccess || studentCanAccess,
-            professorCanAccess,
-            professorCanAccess);
+        return new SidebarNavigationAccess(professorCanAccess || studentCanAccess,
+                professorCanAccess,
+                professorCanAccess);
     }
 
     private Div createActionsRow(

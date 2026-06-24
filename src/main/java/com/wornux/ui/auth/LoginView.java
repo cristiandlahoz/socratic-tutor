@@ -49,11 +49,10 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var title = new H1("Socratic Tutor");
         title.addClassName("login-view__title");
 
-        var description =
-                new Paragraph("Explore ideas, ask better questions, and learn algorithms step by step.");
+        var description = new Paragraph("Explore ideas, ask better questions, and learn algorithms step by step.");
         description.addClassName("login-view__description");
 
-        var copy = new Div( title, description);
+        var copy = new Div(title, description);
         copy.addClassName("login-view__brand-copy");
 
         var panel = new Div(rail, copy);

@@ -8,6 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.UUID;
+
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.data.entities.identity.Account;
@@ -16,8 +19,6 @@ import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class ProfessorWorkspaceViewTest {
@@ -29,8 +30,7 @@ class ProfessorWorkspaceViewTest {
         var professorWorkspaceService = mock(ProfessorWorkspaceService.class);
         var beforeEnterEvent = mock(BeforeEnterEvent.class);
         var account = new Account();
-        var accessibleClass = new AccessibleClass(
-                UUID.randomUUID(),
+        var accessibleClass = new AccessibleClass(UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 "Tenant",
@@ -43,8 +43,7 @@ class ProfessorWorkspaceViewTest {
         when(professorWorkspaceService.listProfessorClasses(account)).thenReturn(List.of(accessibleClass));
         when(professorWorkspaceService.listStudents(account)).thenReturn(List.of());
 
-        var view = new ProfessorWorkspaceView(
-                authenticatedAccountService,
+        var view = new ProfessorWorkspaceView(authenticatedAccountService,
                 workspaceRoutingService,
                 professorWorkspaceService);
 

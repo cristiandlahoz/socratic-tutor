@@ -1,12 +1,13 @@
 package com.wornux.services.onboarding;
 
+import java.util.HashMap;
+
 import com.wornux.config.SocraticEmailProperties;
 import com.wornux.data.entities.onboarding.Invitation;
 import com.wornux.services.email.EmailMessage;
 import com.wornux.services.email.EmailService;
 import com.wornux.services.email.EmailTemplateService;
 import com.wornux.services.email.TemplatedEmailMessage;
-import java.util.HashMap;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -43,7 +44,8 @@ public class InvitationEmailService {
             case PROFESSOR -> "You have been invited as a professor";
             case STUDENT -> "You have been invited as a student";
         };
-        var html = emailTemplateService.render(new TemplatedEmailMessage(invitation.getInvitedEmail(), subject, templateName, model));
+        var html = emailTemplateService
+                .render(new TemplatedEmailMessage(invitation.getInvitedEmail(), subject, templateName, model));
         emailService.send(new EmailMessage(invitation.getInvitedEmail(), subject, html));
     }
 }

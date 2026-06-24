@@ -12,11 +12,11 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import jakarta.annotation.security.PermitAll;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.SystemAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
+import jakarta.annotation.security.PermitAll;
 
 @Route(value = "admin", autoLayout = false)
 @PageTitle("System admin workspace")
@@ -26,7 +26,8 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private final AuthenticatedAccountService authenticatedAccountService;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final SystemAdminWorkspaceService systemAdminWorkspaceService;
-    private final Grid<com.wornux.data.entities.identity.Tenant> tenantGrid = new Grid<>(com.wornux.data.entities.identity.Tenant.class, false);
+    private final Grid<com.wornux.data.entities.identity.Tenant> tenantGrid =
+            new Grid<>(com.wornux.data.entities.identity.Tenant.class, false);
     private final TextField tenantNameField = new TextField("Tenant name");
     private final EmailField inviteEmailField = new EmailField("Tenant admin email");
 
@@ -40,12 +41,13 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
         addClassName("workspace-view");
         tenantGrid.addColumn(com.wornux.data.entities.identity.Tenant::getName).setHeader("Tenant");
-        tenantGrid.addColumn(tenant -> tenant.getOwnerTenantAccount() == null ? "Unassigned" : "Assigned").setHeader("Owner status");
+        tenantGrid.addColumn(tenant -> tenant.getOwnerTenantAccount() == null ? "Unassigned" : "Assigned")
+                .setHeader("Owner status");
         add(
-                new H1("System admin workspace"),
-                new HorizontalLayout(tenantNameField, new Button("Create tenant", _ -> onCreateTenant())),
-                new HorizontalLayout(inviteEmailField, new Button("Invite tenant admin", _ -> onInviteTenantAdmin())),
-                tenantGrid);
+            new H1("System admin workspace"),
+            new HorizontalLayout(tenantNameField, new Button("Create tenant", _ -> onCreateTenant())),
+            new HorizontalLayout(inviteEmailField, new Button("Invite tenant admin", _ -> onInviteTenantAdmin())),
+            tenantGrid);
         refresh();
     }
 
@@ -59,7 +61,8 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private void onCreateTenant() {
         try {
-            systemAdminWorkspaceService.createTenant(authenticatedAccountService.requireCurrentAccount(), tenantNameField.getValue());
+            systemAdminWorkspaceService
+                    .createTenant(authenticatedAccountService.requireCurrentAccount(), tenantNameField.getValue());
             tenantNameField.clear();
             refresh();
         }
@@ -75,7 +78,10 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
             return;
         }
         try {
-            systemAdminWorkspaceService.inviteTenantAdmin(authenticatedAccountService.requireCurrentAccount(), tenant.getId(), inviteEmailField.getValue());
+            systemAdminWorkspaceService.inviteTenantAdmin(
+                authenticatedAccountService.requireCurrentAccount(),
+                tenant.getId(),
+                inviteEmailField.getValue());
             inviteEmailField.clear();
             Notification.show("Invitation sent.");
         }

@@ -13,15 +13,15 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import jakarta.annotation.security.PermitAll;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.chat.ChatView;
-import com.wornux.ui.training_activity.TrainingActivityView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
+import com.wornux.ui.training_activity.TrainingActivityView;
+import jakarta.annotation.security.PermitAll;
 
 @Route(value = "professor", autoLayout = false)
 @PageTitle("Professor workspace")
@@ -32,7 +32,8 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
     private final WorkspaceRoutingService workspaceRoutingService;
     private final ProfessorWorkspaceService professorWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Class context");
-    private final Grid<com.wornux.data.entities.academic.GroupClassMember> studentsGrid = new Grid<>(com.wornux.data.entities.academic.GroupClassMember.class, false);
+    private final Grid<com.wornux.data.entities.academic.GroupClassMember> studentsGrid =
+            new Grid<>(com.wornux.data.entities.academic.GroupClassMember.class, false);
     private final EmailField studentEmailField = new EmailField("Student email");
 
     public ProfessorWorkspaceView(
@@ -50,21 +51,24 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
                 switchClass(event.getValue());
             }
         });
-        studentsGrid.addColumn(member -> member.getTenantAccount().getAccount().getFirstName() + " " + member.getTenantAccount().getAccount().getLastName())
+        studentsGrid
+                .addColumn(
+                    member -> member.getTenantAccount().getAccount().getFirstName() + " "
+                            + member.getTenantAccount().getAccount().getLastName())
                 .setHeader("Student");
         studentsGrid.addColumn(member -> member.getTenantAccount().getAccount().getEmail()).setHeader("Email");
         studentsGrid.addColumn(member -> member.isLocked() ? "Disabled" : "Active").setHeader("Status");
-        studentsGrid.addComponentColumn(member -> new Button("Disable", _ -> disableStudent(member.getId()))).setHeader("Actions");
+        studentsGrid.addComponentColumn(member -> new Button("Disable", _ -> disableStudent(member.getId())))
+                .setHeader("Actions");
 
         add(
-                new H1("Professor workspace"),
-                classSelector,
-                new HorizontalLayout(
-                        new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)),
-                        new Button("Documents", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
-                        new Button("Formative Activities", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
-                new HorizontalLayout(studentEmailField, new Button("Invite student", _ -> inviteStudent())),
-                studentsGrid);
+            new H1("Professor workspace"),
+            classSelector,
+            new HorizontalLayout(new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)),
+                    new Button("Documents", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
+                    new Button("Formative Activities", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
+            new HorizontalLayout(studentEmailField, new Button("Invite student", _ -> inviteStudent())),
+            studentsGrid);
     }
 
     @Override
@@ -91,13 +95,15 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
         if (accessibleClass == null) {
             return;
         }
-        professorWorkspaceService.switchClass(authenticatedAccountService.requireCurrentAccount(), accessibleClass.groupClassMemberId());
+        professorWorkspaceService
+                .switchClass(authenticatedAccountService.requireCurrentAccount(), accessibleClass.groupClassMemberId());
         refresh();
     }
 
     private void inviteStudent() {
         try {
-            professorWorkspaceService.inviteStudent(authenticatedAccountService.requireCurrentAccount(), studentEmailField.getValue());
+            professorWorkspaceService
+                    .inviteStudent(authenticatedAccountService.requireCurrentAccount(), studentEmailField.getValue());
             studentEmailField.clear();
             Notification.show("Invitation sent.");
         }
@@ -108,7 +114,8 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
 
     private void disableStudent(java.util.UUID memberId) {
         try {
-            professorWorkspaceService.disableStudentMembership(authenticatedAccountService.requireCurrentAccount(), memberId);
+            professorWorkspaceService
+                    .disableStudentMembership(authenticatedAccountService.requireCurrentAccount(), memberId);
             refresh();
         }
         catch (RuntimeException exception) {

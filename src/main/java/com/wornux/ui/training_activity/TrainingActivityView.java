@@ -34,8 +34,8 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.services.context.SetupRequiredException;
-import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
@@ -107,7 +107,8 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         grid.addColumn(TrainingActivity::getTitle).setHeader("Title").setAutoWidth(true).setSortable(true);
         grid.addColumn(TrainingActivity::getInstructions).setHeader("Instructions").setWidth("24rem").setFlexGrow(1);
         grid.addColumn(new ComponentRenderer<>(this::renderStatusBadge)).setHeader("Status").setWidth("8rem");
-        grid.addColumn(act -> act.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_FORMATTER))
+        grid.addColumn(
+            act -> act.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_FORMATTER))
                 .setHeader("Created")
                 .setWidth("12rem");
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
@@ -185,7 +186,9 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
             event.forwardTo("no-access");
             return;
         }
-        pendingDialogActivityId = event.getLocation().getQueryParameters().getSingleParameter(OPEN_ACTIVITY_QUERY_PARAMETER)
+        pendingDialogActivityId = event.getLocation()
+                .getQueryParameters()
+                .getSingleParameter(OPEN_ACTIVITY_QUERY_PARAMETER)
                 .map(this::parseUuid)
                 .orElse(null);
     }
@@ -227,7 +230,10 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     }
 
     private void openActivityDialog(TrainingActivity activity, boolean clearAddressBarOnClose) {
-        openDialog = new TrainingActivityDialog(activity, trainingActivityService, this::onActivityUpdated, () -> closeActivityDialog(clearAddressBarOnClose));
+        openDialog = new TrainingActivityDialog(activity,
+                trainingActivityService,
+                this::onActivityUpdated,
+                () -> closeActivityDialog(clearAddressBarOnClose));
         getContent().add(openDialog);
     }
 
@@ -242,6 +248,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     }
 
     private void clearDialogAddressBarState() {
-        getUI().ifPresent(ui -> ui.getPage().getHistory().replaceState(null, new Location("evaluations", QueryParameters.empty())));
+        getUI().ifPresent(
+            ui -> ui.getPage().getHistory().replaceState(null, new Location("evaluations", QueryParameters.empty())));
     }
 }

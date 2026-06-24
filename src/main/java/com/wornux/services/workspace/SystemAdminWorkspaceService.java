@@ -1,15 +1,16 @@
 package com.wornux.services.workspace;
 
-import com.wornux.data.entities.identity.Account;
-import com.wornux.data.entities.identity.Tenant;
-import com.wornux.data.entities.identity.TenantAccount;
-import com.wornux.data.repositories.identity.TenantAccountRepository;
-import com.wornux.data.repositories.identity.TenantRepository;
-import com.wornux.data.entities.onboarding.InvitationTargetRole;
-import com.wornux.services.onboarding.InvitationService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
+import com.wornux.data.entities.identity.Account;
+import com.wornux.data.entities.identity.Tenant;
+import com.wornux.data.entities.identity.TenantAccount;
+import com.wornux.data.entities.onboarding.InvitationTargetRole;
+import com.wornux.data.repositories.identity.TenantAccountRepository;
+import com.wornux.data.repositories.identity.TenantRepository;
+import com.wornux.services.onboarding.InvitationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,16 +49,18 @@ public class SystemAdminWorkspaceService {
         tenant = tenantRepository.save(tenant);
         var persistedTenant = tenant;
 
-        var tenantAccount = tenantAccountRepository.findByTenant_IdAndAccount_Id(persistedTenant.getId(), account.getId()).orElseGet(() -> {
-            var created = new TenantAccount();
-            created.setId(UUID.randomUUID());
-            created.setTenant(persistedTenant);
-            created.setAccount(account);
-            created.setLocked(false);
-            created.setJoinedAt(Instant.now());
-            created.setUpdatedAt(Instant.now());
-            return tenantAccountRepository.save(created);
-        });
+        var tenantAccount =
+                tenantAccountRepository.findByTenant_IdAndAccount_Id(persistedTenant.getId(), account.getId())
+                        .orElseGet(() -> {
+                            var created = new TenantAccount();
+                            created.setId(UUID.randomUUID());
+                            created.setTenant(persistedTenant);
+                            created.setAccount(account);
+                            created.setLocked(false);
+                            created.setJoinedAt(Instant.now());
+                            created.setUpdatedAt(Instant.now());
+                            return tenantAccountRepository.save(created);
+                        });
         tenant.setOwnerTenantAccount(tenantAccount);
         tenant.setUpdatedAt(Instant.now());
         return tenantRepository.save(tenant);
@@ -68,6 +71,7 @@ public class SystemAdminWorkspaceService {
         if (!account.isSystemAdmin()) {
             throw new SecurityException("Only a system admin can invite tenant admins.");
         }
-        invitationService.createInvitation(InvitationTargetRole.TENANT_ADMIN, tenantId, null, email, account, null, null);
+        invitationService
+                .createInvitation(InvitationTargetRole.TENANT_ADMIN, tenantId, null, email, account, null, null);
     }
 }

@@ -6,8 +6,7 @@ import java.util.UUID;
 
 public record ToolExecutionAudit(UUID conversationId, UUID clientId, UUID turnId, String toolName, String status,
         long latencyMs, String inputSummary, String outputSummary, String toolReturnJson, String toolReturnPreview,
-        boolean payloadCaptured, boolean modelRequested, boolean usefulForProfile, long profileSnapshotVersion,
-        String failureCode) {
+        boolean payloadCaptured, boolean modelRequested, String failureCode) {
 
     public Map<String, Object> toMap() {
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -20,8 +19,6 @@ public record ToolExecutionAudit(UUID conversationId, UUID clientId, UUID turnId
         payload.put("toolReturnPreview", toolReturnPreview);
         payload.put("payloadCaptured", payloadCaptured);
         payload.put("modelRequested", modelRequested);
-        payload.put("usefulForProfile", usefulForProfile);
-        payload.put("profileSnapshotVersion", profileSnapshotVersion);
         payload.put("failureCode", failureCode);
         return payload;
     }

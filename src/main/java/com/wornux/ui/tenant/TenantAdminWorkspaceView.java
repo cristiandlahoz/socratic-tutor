@@ -13,12 +13,12 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import jakarta.annotation.security.PermitAll;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleTenant;
 import com.wornux.services.workspace.TenantAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
+import jakarta.annotation.security.PermitAll;
 
 @Route(value = "tenant", autoLayout = false)
 @PageTitle("Tenant admin workspace")
@@ -29,17 +29,23 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private final WorkspaceRoutingService workspaceRoutingService;
     private final TenantAdminWorkspaceService tenantAdminWorkspaceService;
     private final ComboBox<AccessibleTenant> tenantSelector = new ComboBox<>("Tenant context");
-    private final Grid<com.wornux.data.entities.academic.AcademicPeriod> periodGrid = new Grid<>(com.wornux.data.entities.academic.AcademicPeriod.class, false);
-    private final Grid<com.wornux.data.entities.academic.Subject> subjectGrid = new Grid<>(com.wornux.data.entities.academic.Subject.class, false);
-    private final Grid<com.wornux.data.entities.academic.GroupClass> groupClassGrid = new Grid<>(com.wornux.data.entities.academic.GroupClass.class, false);
+    private final Grid<com.wornux.data.entities.academic.AcademicPeriod> periodGrid =
+            new Grid<>(com.wornux.data.entities.academic.AcademicPeriod.class, false);
+    private final Grid<com.wornux.data.entities.academic.Subject> subjectGrid =
+            new Grid<>(com.wornux.data.entities.academic.Subject.class, false);
+    private final Grid<com.wornux.data.entities.academic.GroupClass> groupClassGrid =
+            new Grid<>(com.wornux.data.entities.academic.GroupClass.class, false);
     private final TextField periodCodeField = new TextField("Period code");
     private final TextField periodNameField = new TextField("Period name");
-    private final com.vaadin.flow.component.datepicker.DatePicker startDateField = new com.vaadin.flow.component.datepicker.DatePicker("Start date");
-    private final com.vaadin.flow.component.datepicker.DatePicker endDateField = new com.vaadin.flow.component.datepicker.DatePicker("End date");
+    private final com.vaadin.flow.component.datepicker.DatePicker startDateField =
+            new com.vaadin.flow.component.datepicker.DatePicker("Start date");
+    private final com.vaadin.flow.component.datepicker.DatePicker endDateField =
+            new com.vaadin.flow.component.datepicker.DatePicker("End date");
     private final TextField subjectCodeField = new TextField("Subject code");
     private final TextField subjectNameField = new TextField("Subject name");
     private final ComboBox<com.wornux.data.entities.academic.Subject> groupSubjectSelector = new ComboBox<>("Subject");
-    private final ComboBox<com.wornux.data.entities.academic.AcademicPeriod> groupPeriodSelector = new ComboBox<>("Academic period");
+    private final ComboBox<com.wornux.data.entities.academic.AcademicPeriod> groupPeriodSelector =
+            new ComboBox<>("Academic period");
     private final TextField groupCodeField = new TextField("Class code");
     private final TextField groupNameField = new TextField("Class name");
     private final EmailField professorEmailField = new EmailField("Professor email");
@@ -65,15 +71,25 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         groupPeriodSelector.setItemLabelGenerator(period -> period.getCode() + " - " + period.getName());
 
         add(
-                new H1("Tenant admin workspace"),
-                tenantSelector,
-                new HorizontalLayout(periodCodeField, periodNameField, startDateField, endDateField, new Button("Create period", _ -> onCreatePeriod())),
-                periodGrid,
-                new HorizontalLayout(subjectCodeField, subjectNameField, new Button("Create subject", _ -> onCreateSubject())),
-                subjectGrid,
-                new HorizontalLayout(groupSubjectSelector, groupPeriodSelector, groupCodeField, groupNameField, new Button("Create class", _ -> onCreateClass())),
-                groupClassGrid,
-                new HorizontalLayout(professorEmailField, new Button("Invite professor", _ -> onInviteProfessor())));
+            new H1("Tenant admin workspace"),
+            tenantSelector,
+            new HorizontalLayout(periodCodeField,
+                    periodNameField,
+                    startDateField,
+                    endDateField,
+                    new Button("Create period", _ -> onCreatePeriod())),
+            periodGrid,
+            new HorizontalLayout(subjectCodeField,
+                    subjectNameField,
+                    new Button("Create subject", _ -> onCreateSubject())),
+            subjectGrid,
+            new HorizontalLayout(groupSubjectSelector,
+                    groupPeriodSelector,
+                    groupCodeField,
+                    groupNameField,
+                    new Button("Create class", _ -> onCreateClass())),
+            groupClassGrid,
+            new HorizontalLayout(professorEmailField, new Button("Invite professor", _ -> onInviteProfessor())));
     }
 
     @Override
@@ -113,7 +129,9 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         if (tenants == null || tenants.isEmpty()) {
             return null;
         }
-        if (currentValue != null && tenants.stream().anyMatch(tenant -> tenant.tenantAccountId().equals(currentValue.tenantAccountId()))) {
+        if (currentValue != null
+                && tenants.stream()
+                        .anyMatch(tenant -> tenant.tenantAccountId().equals(currentValue.tenantAccountId()))) {
             return currentValue;
         }
         if (account.getLastTenantAccount() != null) {
@@ -141,11 +159,11 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onCreatePeriod() {
         try {
             tenantAdminWorkspaceService.createPeriod(
-                    authenticatedAccountService.requireCurrentAccount(),
-                    periodCodeField.getValue(),
-                    periodNameField.getValue(),
-                    startDateField.getValue(),
-                    endDateField.getValue());
+                authenticatedAccountService.requireCurrentAccount(),
+                periodCodeField.getValue(),
+                periodNameField.getValue(),
+                startDateField.getValue(),
+                endDateField.getValue());
             refresh();
         }
         catch (RuntimeException exception) {
@@ -156,7 +174,9 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onCreateSubject() {
         try {
             tenantAdminWorkspaceService.createSubject(
-                    authenticatedAccountService.requireCurrentAccount(), subjectCodeField.getValue(), subjectNameField.getValue());
+                authenticatedAccountService.requireCurrentAccount(),
+                subjectCodeField.getValue(),
+                subjectNameField.getValue());
             refresh();
         }
         catch (RuntimeException exception) {
@@ -167,11 +187,11 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onCreateClass() {
         try {
             tenantAdminWorkspaceService.createGroupClass(
-                    authenticatedAccountService.requireCurrentAccount(),
-                    groupSubjectSelector.getValue().getId(),
-                    groupPeriodSelector.getValue().getId(),
-                    groupCodeField.getValue(),
-                    groupNameField.getValue());
+                authenticatedAccountService.requireCurrentAccount(),
+                groupSubjectSelector.getValue().getId(),
+                groupPeriodSelector.getValue().getId(),
+                groupCodeField.getValue(),
+                groupNameField.getValue());
             refresh();
         }
         catch (RuntimeException exception) {
@@ -187,7 +207,9 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         }
         try {
             tenantAdminWorkspaceService.inviteProfessor(
-                    authenticatedAccountService.requireCurrentAccount(), selectedClass.getId(), professorEmailField.getValue());
+                authenticatedAccountService.requireCurrentAccount(),
+                selectedClass.getId(),
+                professorEmailField.getValue());
             professorEmailField.clear();
             Notification.show("Invitation sent.");
         }

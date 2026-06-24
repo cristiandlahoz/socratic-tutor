@@ -42,10 +42,12 @@ public class ConversationService {
     @Transactional(readOnly = true)
     public List<ConversationSummary> listConversations() {
         return contextResolver.resolveCurrent()
-                .map(context -> conversationRepository.findByGroupClassMember_IdOrderByUpdatedAtDesc(context.groupClassMemberId())
-                        .stream()
-                        .map(this::toConversationSummary)
-                        .toList())
+                .map(
+                    context -> conversationRepository
+                            .findByGroupClassMember_IdOrderByUpdatedAtDesc(context.groupClassMemberId())
+                            .stream()
+                            .map(this::toConversationSummary)
+                            .toList())
                 .orElseGet(List::of);
     }
 
@@ -134,7 +136,8 @@ public class ConversationService {
     public void appendTurn(UUID conversationId, String userInput, String assistantResponse) {
         var conversation = requireOwnedConversation(conversationId);
         var previousSnapshot = conversation.getCurrentSnapshot();
-        var nextMessages = new ArrayList<>(previousSnapshot == null ? List.<Map<String, Object>>of() : previousSnapshot.getMessages());
+        var nextMessages = new ArrayList<>(
+                previousSnapshot == null ? List.<Map<String, Object>>of() : previousSnapshot.getMessages());
         nextMessages.add(messageMap(MessageType.USER, userInput));
         nextMessages.add(messageMap(MessageType.ASSISTANT, assistantResponse));
 
@@ -142,7 +145,8 @@ public class ConversationService {
         snapshot.setConversation(conversation);
         snapshot.setPreviousSnapshot(previousSnapshot);
         snapshot.setSnapshotNo(previousSnapshot == null ? 1L : previousSnapshot.getSnapshotNo() + 1L);
-        snapshot.setCarryContext(previousSnapshot == null ? new LinkedHashMap<>() : new LinkedHashMap<>(previousSnapshot.getCarryContext()));
+        snapshot.setCarryContext(
+            previousSnapshot == null ? new LinkedHashMap<>() : new LinkedHashMap<>(previousSnapshot.getCarryContext()));
         snapshot.setMessages(List.copyOf(nextMessages));
         snapshot.setMessageCount(nextMessages.size());
         snapshot.setTokenCount(previousSnapshot == null ? 0 : previousSnapshot.getTokenCount());
@@ -201,6 +205,8 @@ public class ConversationService {
 
     public java.util.Optional<Conversation> findOwnedConversation(UUID conversationId) {
         return contextResolver.resolveCurrent()
-                .flatMap(context -> conversationRepository.findByIdAndGroupClassMember_Id(conversationId, context.groupClassMemberId()));
+                .flatMap(
+                    context -> conversationRepository
+                            .findByIdAndGroupClassMember_Id(conversationId, context.groupClassMemberId()));
     }
 }

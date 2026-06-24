@@ -53,7 +53,8 @@ public class PostgresChatMemory implements ChatMemory {
         snapshot.setConversation(conversation);
         snapshot.setPreviousSnapshot(previousSnapshot);
         snapshot.setSnapshotNo(previousSnapshot == null ? 1L : previousSnapshot.getSnapshotNo() + 1L);
-        snapshot.setCarryContext(previousSnapshot == null ? new LinkedHashMap<>() : new LinkedHashMap<>(previousSnapshot.getCarryContext()));
+        snapshot.setCarryContext(
+            previousSnapshot == null ? new LinkedHashMap<>() : new LinkedHashMap<>(previousSnapshot.getCarryContext()));
         snapshot.setMessages(List.copyOf(nextMessages));
         snapshot.setMessageCount(nextMessages.size());
         snapshot.setTokenCount(previousSnapshot == null ? 0 : previousSnapshot.getTokenCount());
@@ -78,9 +79,11 @@ public class PostgresChatMemory implements ChatMemory {
         var messages = new ArrayList<Message>();
         var carryContextText = String.valueOf(snapshot.getCarryContext().getOrDefault("text", ""));
         if (!carryContextText.isBlank()) {
-            messages.add(AssistantMessage.builder().content(carryContextText).properties(Map.of("memory", true)).build());
+            messages.add(
+                AssistantMessage.builder().content(carryContextText).properties(Map.of("memory", true)).build());
         }
-        conversationService.toStoredMessages(snapshot.getMessages()).forEach(message -> messages.add(toSpringMessage(message)));
+        conversationService.toStoredMessages(snapshot.getMessages())
+                .forEach(message -> messages.add(toSpringMessage(message)));
         return List.copyOf(messages);
     }
 

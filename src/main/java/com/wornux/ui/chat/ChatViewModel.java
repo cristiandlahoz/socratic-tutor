@@ -105,8 +105,7 @@ public class ChatViewModel implements Serializable {
         }
 
         var requestedConversationId = parseUuid(requestedConversationParam).orElse(null);
-        var resolvedConversation =
-                conversationService.resolveActiveConversation(requestedConversationId);
+        var resolvedConversation = conversationService.resolveActiveConversation(requestedConversationId);
 
         state.activeConversationId().set(resolvedConversation.activeConversationId());
         state.replaceMessages(resolvedConversation.messages().stream().map(MessageState::fromStored).toList());

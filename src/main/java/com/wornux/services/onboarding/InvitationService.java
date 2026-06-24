@@ -1,5 +1,9 @@
 package com.wornux.services.onboarding;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
 import com.wornux.config.SocraticEmailProperties;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
@@ -23,9 +27,6 @@ import com.wornux.services.email.EmailSendException;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDecision;
 import com.wornux.services.workspace.WorkspaceRoutingService;
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,12 +97,13 @@ public class InvitationService {
             GroupClassMember invitedByGroupClassMember) {
         var rawToken = invitationTokenService.generateRawToken();
         var invitation = new Invitation();
-        invitation.setId(UUID.randomUUID());
-        invitation.setTenant(tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("The target tenant was not found.")));
+        invitation.setTenant(
+            tenantRepository.findById(tenantId)
+                    .orElseThrow(() -> new IllegalArgumentException("The target tenant was not found.")));
         if (groupClassId != null) {
-            invitation.setGroupClass(groupClassRepository.findById(groupClassId)
-                    .orElseThrow(() -> new IllegalArgumentException("The target class was not found.")));
+            invitation.setGroupClass(
+                groupClassRepository.findById(groupClassId)
+                        .orElseThrow(() -> new IllegalArgumentException("The target class was not found.")));
         }
         invitation.setInvitedEmail(invitedEmail.trim().toLowerCase(java.util.Locale.ROOT));
         invitation.setTargetRole(targetRole);
@@ -134,12 +136,13 @@ public class InvitationService {
         onboardingSessionContext.setInvitedEmail(invitation.getInvitedEmail());
         onboardingSessionContext.setTargetRole(invitation.getTargetRole());
         onboardingSessionContext.setTenantId(invitation.getTenant().getId());
-        onboardingSessionContext.setGroupClassId(invitation.getGroupClass() == null ? null : invitation.getGroupClass().getId());
+        onboardingSessionContext
+                .setGroupClassId(invitation.getGroupClass() == null ? null : invitation.getGroupClass().getId());
         onboardingSessionContext.setPostAcceptRedirect(defaultRedirect(invitation.getTargetRole()));
         onboardingSessionContext.setValidatedAt(Instant.now());
-        onboardingSessionContext.setAccountAlreadyExists(accountRepository.findByEmail(invitation.getInvitedEmail()).isPresent());
-        return new OnboardingStart(
-                invitation.getId(),
+        onboardingSessionContext
+                .setAccountAlreadyExists(accountRepository.findByEmail(invitation.getInvitedEmail()).isPresent());
+        return new OnboardingStart(invitation.getId(),
                 invitation.getInvitedEmail(),
                 invitation.getTargetRole(),
                 onboardingSessionContext.isAccountAlreadyExists());
@@ -157,7 +160,8 @@ public class InvitationService {
             throw new InvitationStateException("The invitation email no longer matches the active onboarding state.");
         }
         if (onboardingSessionContext.isAccountAlreadyExists()) {
-            throw new InvitationStateException("This invitation already belongs to an existing account. Please sign in.");
+            throw new InvitationStateException(
+                    "This invitation already belongs to an existing account. Please sign in.");
         }
         if (firstName == null || firstName.isBlank() || lastName == null || lastName.isBlank()) {
             throw new InvitationStateException("First name and last name are required.");
@@ -166,7 +170,8 @@ public class InvitationService {
             throw new InvitationStateException("Password and confirmation must match.");
         }
         if (accountRepository.findByEmail(invitation.getInvitedEmail()).isPresent()) {
-            throw new InvitationStateException("This invited email already belongs to an existing account. Please sign in.");
+            throw new InvitationStateException(
+                    "This invited email already belongs to an existing account. Please sign in.");
         }
 
         var account = new Account();
@@ -191,19 +196,22 @@ public class InvitationService {
             return workspaceRoutingService.resolveForAccount(account);
         }
         if (!account.getEmail().equalsIgnoreCase(onboardingSessionContext.getInvitedEmail())) {
-            throw new InvitationStateException("Please sign in with the invited email address to accept this invitation.");
+            throw new InvitationStateException(
+                    "Please sign in with the invited email address to accept this invitation.");
         }
 
         var invitation = invitationRepository.findById(onboardingSessionContext.getInvitationId())
                 .orElseThrow(() -> new InvitationStateException("The invitation could not be found."));
         validateInvitationState(invitation);
 
-        var tenantAccount = tenantAccountRepository.findByTenant_IdAndAccount_Id(invitation.getTenant().getId(), account.getId())
-                .orElseGet(() -> createTenantAccount(account, invitation.getTenant().getId()));
+        var tenantAccount =
+                tenantAccountRepository.findByTenant_IdAndAccount_Id(invitation.getTenant().getId(), account.getId())
+                        .orElseGet(() -> createTenantAccount(account, invitation.getTenant().getId()));
         assignTenantRoleIfNeeded(tenantAccount, invitation.getTargetRole(), invitation.getInvitedByTenantAccount());
 
         GroupClassMember groupClassMember = null;
-        if (invitation.getTargetRole() == InvitationTargetRole.PROFESSOR || invitation.getTargetRole() == InvitationTargetRole.STUDENT) {
+        if (invitation.getTargetRole() == InvitationTargetRole.PROFESSOR
+                || invitation.getTargetRole() == InvitationTargetRole.STUDENT) {
             groupClassMember = createOrReuseMembership(tenantAccount, invitation);
             account.setLastGroupClassMember(groupClassMember);
         }
@@ -263,11 +271,15 @@ public class InvitationService {
         return tenantAccountRepository.save(tenantAccount);
     }
 
-    private void assignTenantRoleIfNeeded(TenantAccount tenantAccount, InvitationTargetRole targetRole, TenantAccount assignedBy) {
+    private void assignTenantRoleIfNeeded(
+            TenantAccount tenantAccount,
+            InvitationTargetRole targetRole,
+            TenantAccount assignedBy) {
         var roleCode = targetRole.name();
         var role = roleRepository.findByCode(roleCode)
                 .orElseThrow(() -> new IllegalStateException("Missing role " + roleCode));
-        if (tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(tenantAccount.getId(), roleCode).isPresent()) {
+        if (tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(tenantAccount.getId(), roleCode)
+                .isPresent()) {
             return;
         }
         var tenantAccountRole = new TenantAccountRole();
@@ -289,7 +301,8 @@ public class InvitationService {
         var memberRole = invitation.getTargetRole() == InvitationTargetRole.PROFESSOR
                 ? GroupClassMemberRole.PROFESSOR
                 : GroupClassMemberRole.STUDENT;
-        return groupClassMemberRepository.findByGroupClass_IdAndTenantAccount_Id(invitation.getGroupClass().getId(), tenantAccount.getId())
+        return groupClassMemberRepository
+                .findByGroupClass_IdAndTenantAccount_Id(invitation.getGroupClass().getId(), tenantAccount.getId())
                 .filter(existing -> existing.getRole() == memberRole)
                 .map(existing -> {
                     existing.setLocked(false);
@@ -299,7 +312,10 @@ public class InvitationService {
                 .orElseGet(() -> createMembership(tenantAccount, invitation.getGroupClass().getId(), memberRole));
     }
 
-    private GroupClassMember createMembership(TenantAccount tenantAccount, UUID groupClassId, GroupClassMemberRole memberRole) {
+    private GroupClassMember createMembership(
+            TenantAccount tenantAccount,
+            UUID groupClassId,
+            GroupClassMemberRole memberRole) {
         var membership = new GroupClassMember();
         membership.setId(UUID.randomUUID());
         membership.setGroupClass(new com.wornux.data.entities.academic.GroupClass());

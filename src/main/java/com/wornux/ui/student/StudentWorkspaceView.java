@@ -10,13 +10,13 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import jakarta.annotation.security.PermitAll;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.chat.ChatView;
+import jakarta.annotation.security.PermitAll;
 
 @Route(value = "student", autoLayout = false)
 @PageTitle("Student workspace")
@@ -27,7 +27,8 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Class context");
-    private final Grid<com.wornux.data.entities.training_activity.TrainingActivityAssignment> assignmentsGrid = new Grid<>(com.wornux.data.entities.training_activity.TrainingActivityAssignment.class, false);
+    private final Grid<com.wornux.data.entities.training_activity.TrainingActivityAssignment> assignmentsGrid =
+            new Grid<>(com.wornux.data.entities.training_activity.TrainingActivityAssignment.class, false);
 
     public StudentWorkspaceView(
             AuthenticatedAccountService authenticatedAccountService,
@@ -44,10 +45,15 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
                 switchClass(event.getValue());
             }
         });
-        assignmentsGrid.addColumn(assignment -> assignment.getTrainingActivity().getTitle()).setHeader("Assigned Activity");
+        assignmentsGrid.addColumn(assignment -> assignment.getTrainingActivity().getTitle())
+                .setHeader("Assigned Activity");
         assignmentsGrid.addColumn(assignment -> assignment.getStatus().name()).setHeader("Status");
 
-        add(new H1("Student workspace"), classSelector, new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)), assignmentsGrid);
+        add(
+            new H1("Student workspace"),
+            classSelector,
+            new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)),
+            assignmentsGrid);
     }
 
     @Override
@@ -74,7 +80,8 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         if (accessibleClass == null) {
             return;
         }
-        studentWorkspaceService.switchClass(authenticatedAccountService.requireCurrentAccount(), accessibleClass.groupClassMemberId());
+        studentWorkspaceService
+                .switchClass(authenticatedAccountService.requireCurrentAccount(), accessibleClass.groupClassMemberId());
         refresh();
     }
 }

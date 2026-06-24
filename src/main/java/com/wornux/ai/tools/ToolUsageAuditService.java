@@ -26,7 +26,6 @@ public class ToolUsageAuditService {
     public static final String GROUP_CLASS_ID = "groupClassId";
     public static final String CONVERSATION_ID = "conversationId";
     public static final String TURN_ID = "turnId";
-    public static final String PROFILE_VERSION = "profileVersion";
 
     private final MeterRegistry meterRegistry;
     private final ObservationRegistry observationRegistry;
@@ -68,16 +67,10 @@ public class ToolUsageAuditService {
                     returnPayload.preview(),
                     returnPayload.captured(),
                     true,
-                    result.learningSignal().usefulForProfile(),
-                    ids.profileSnapshotVersion(),
                     null);
             register(audit);
             meterRegistry.counter("tool.calls.total", "tool.name", toolName, "tool.status", "success").increment();
             meterRegistry.counter("tool.calls.success", "tool.name", toolName).increment();
-            if (result.learningSignal().usefulForProfile()) {
-                meterRegistry.counter("tool.profile_signal.total", "tool.name", toolName).increment();
-                meterRegistry.counter("tool.profile_signal.useful", "tool.name", toolName).increment();
-            }
             Timer.builder("tool.latency")
                     .tag("tool.name", toolName)
                     .register(meterRegistry)
@@ -85,9 +78,8 @@ public class ToolUsageAuditService {
             log.info(
                 """
                 tool_execution tool.name={} tool.status={} tool.latency_ms={} client_id={}\
-                 conversation_id={} turn_id={} model_requested_tool={} profile_snapshot_version={}\
-                 input_summary={} output_summary={} payload_captured={} tool_return_preview={}\
-                 useful_for_profile={} failure_code={}\
+                 conversation_id={} turn_id={} model_requested_tool={} input_summary={}\
+                 output_summary={} payload_captured={} tool_return_preview={} failure_code={}\
                 """,
                 audit.toolName(),
                 audit.status(),
@@ -96,12 +88,10 @@ public class ToolUsageAuditService {
                 audit.conversationId(),
                 audit.turnId(),
                 audit.modelRequested(),
-                audit.profileSnapshotVersion(),
                 audit.inputSummary(),
                 audit.outputSummary(),
                 audit.payloadCaptured(),
                 audit.toolReturnPreview(),
-                audit.usefulForProfile(),
                 audit.failureCode());
             return result.value();
         }
@@ -118,8 +108,6 @@ public class ToolUsageAuditService {
                     null,
                     false,
                     true,
-                    false,
-                    ids.profileSnapshotVersion(),
                     exception.getClass().getSimpleName());
             register(audit);
             meterRegistry.counter("tool.calls.total", "tool.name", toolName, "tool.status", "failure").increment();
@@ -130,9 +118,9 @@ public class ToolUsageAuditService {
                     .record(audit.latencyMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
             log.warn(
                 "tool_execution tool.name={} tool.status={} tool.latency_ms={} client_id={}"
-                        + " conversation_id={} turn_id={} model_requested_tool={} profile_snapshot_version={}"
+                        + " conversation_id={} turn_id={} model_requested_tool={}"
                         + " input_summary={} output_summary={} payload_captured={} tool_return_preview={}"
-                        + " useful_for_profile={} failure_code={}",
+                        + " failure_code={}",
                 audit.toolName(),
                 audit.status(),
                 audit.latencyMs(),
@@ -140,12 +128,10 @@ public class ToolUsageAuditService {
                 audit.conversationId(),
                 audit.turnId(),
                 audit.modelRequested(),
-                audit.profileSnapshotVersion(),
                 audit.inputSummary(),
                 audit.outputSummary(),
                 audit.payloadCaptured(),
                 audit.toolReturnPreview(),
-                audit.usefulForProfile(),
                 audit.failureCode());
             throw exception;
         }
@@ -195,8 +181,7 @@ public class ToolUsageAuditService {
         var context = toolContext.getContext();
         return new ToolInvocationIds(UUID.fromString(String.valueOf(context.get(CLIENT_ID))),
                 UUID.fromString(String.valueOf(context.get(CONVERSATION_ID))),
-                UUID.fromString(String.valueOf(context.get(TURN_ID))),
-                Long.parseLong(String.valueOf(context.getOrDefault(PROFILE_VERSION, 0L))));
+                UUID.fromString(String.valueOf(context.get(TURN_ID))));
     }
 
     public record ToolResult<T>(T value, String outputSummary, ToolLearningSignal learningSignal) {}
@@ -208,5 +193,5 @@ public class ToolUsageAuditService {
         }
     }
 
-    private record ToolInvocationIds(UUID clientId, UUID conversationId, UUID turnId, long profileSnapshotVersion) {}
+    private record ToolInvocationIds(UUID clientId, UUID conversationId, UUID turnId) {}
 }

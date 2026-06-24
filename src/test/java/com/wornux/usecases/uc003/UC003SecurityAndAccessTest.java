@@ -3,9 +3,15 @@ package com.wornux.usecases.uc003;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.router.BeforeEnterEvent;
-import com.wornux.config.SecurityConfig;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.data.entities.authorization.Role;
 import com.wornux.data.entities.authorization.TenantAccountRole;
@@ -16,25 +22,23 @@ import com.wornux.services.workspace.AccessibleTenant;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import jakarta.annotation.security.PermitAll;
-import java.lang.reflect.Field;
-import java.time.Instant;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class UC003SecurityAndAccessTest {
 
     @Test
-    void br01_securityStaysEnabledByDefault() {
-        assertFalse(SecurityConfig.isSecurityDisabled(false));
-        assertTrue(SecurityConfig.isSecurityDisabled(true));
+    void br01_securityStaysEnabledByDefault() throws Exception {
+        var source = Files.readString(Path.of("src/main/java/com/wornux/config/SecurityConfig.java"));
+
+        assertTrue(source.contains("${app.security.disable-for-local-development:false}"));
+        assertTrue(source.contains("if (isProduction && disableSecurity)"));
     }
 
     @Test
     void br01_br51_onlyInvitationAcceptanceRemainsPublicAmongWorkspaceEntryRoutes() {
-        assertTrue(com.wornux.ui.auth.InvitationAcceptView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class));
+        assertTrue(
+            com.wornux.ui.auth.InvitationAcceptView.class
+                    .isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class));
         assertTrue(com.wornux.ui.auth.LandingView.class.isAnnotationPresent(PermitAll.class));
         assertTrue(com.wornux.ui.auth.NoAccessView.class.isAnnotationPresent(PermitAll.class));
         assertTrue(com.wornux.ui.MainLayout.class.isAnnotationPresent(PermitAll.class));
@@ -43,7 +47,7 @@ class UC003SecurityAndAccessTest {
         assertTrue(com.wornux.ui.professor.ProfessorWorkspaceView.class.isAnnotationPresent(PermitAll.class));
         assertTrue(com.wornux.ui.student.StudentWorkspaceView.class.isAnnotationPresent(PermitAll.class));
         assertFalse(com.wornux.ui.chat.ChatView.class.isAnnotationPresent(PermitAll.class));
-        assertFalse(com.wornux.ui.evaluation.EvaluationView.class.isAnnotationPresent(PermitAll.class));
+        assertFalse(com.wornux.ui.training_activity.TrainingActivityView.class.isAnnotationPresent(PermitAll.class));
     }
 
     @Test
@@ -57,9 +61,13 @@ class UC003SecurityAndAccessTest {
 
     @Test
     void br01_loginFirstContractIsProtectedAsFarAsRepoStackAllows() {
-        assertTrue(com.wornux.ui.auth.LoginView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class));
-        assertFalse(com.wornux.ui.auth.LandingView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class));
-        assertFalse(com.wornux.ui.MainLayout.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class));
+        assertTrue(
+            com.wornux.ui.auth.LoginView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class));
+        assertFalse(
+            com.wornux.ui.auth.LandingView.class
+                    .isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class));
+        assertFalse(
+            com.wornux.ui.MainLayout.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class));
     }
 
     @Test
@@ -67,7 +75,8 @@ class UC003SecurityAndAccessTest {
         var authenticatedAccountService = mock(com.wornux.services.security.AuthenticatedAccountService.class);
         var accountRepository = mock(com.wornux.data.repositories.identity.AccountRepository.class);
         var tenantAccountRepository = mock(com.wornux.data.repositories.identity.TenantAccountRepository.class);
-        var tenantAccountRoleRepository = mock(com.wornux.data.repositories.authorization.TenantAccountRoleRepository.class);
+        var tenantAccountRoleRepository =
+                mock(com.wornux.data.repositories.authorization.TenantAccountRoleRepository.class);
         var groupClassMemberRepository = mock(com.wornux.data.repositories.academic.GroupClassMemberRepository.class);
 
         var account = account("multirole@test.local");
@@ -82,11 +91,11 @@ class UC003SecurityAndAccessTest {
         var professorMembership = membership(account, tenantAccount.getTenant(), GroupClassMemberRole.PROFESSOR);
         when(groupClassMemberRepository.findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId()))
                 .thenReturn(List.of(professorMembership));
-        when(groupClassMemberRepository.findById(professorMembership.getId())).thenReturn(java.util.Optional.of(professorMembership));
+        when(groupClassMemberRepository.findById(professorMembership.getId()))
+                .thenReturn(java.util.Optional.of(professorMembership));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var routingService = new WorkspaceRoutingService(
-                authenticatedAccountService,
+        var routingService = new WorkspaceRoutingService(authenticatedAccountService,
                 accountRepository,
                 tenantAccountRepository,
                 tenantAccountRoleRepository,
@@ -99,17 +108,17 @@ class UC003SecurityAndAccessTest {
 
     @Test
     void br04_firstRenderPreservesBackendSelectedTenantAdminContext() {
-        var preferredTenant = new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Zulu Tenant", List.of("TENANT_ADMIN"));
-        var alphabeticTenant = new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Alpha Tenant", List.of("TENANT_ADMIN"));
+        var preferredTenant =
+                new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Zulu Tenant", List.of("TENANT_ADMIN"));
+        var alphabeticTenant =
+                new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Alpha Tenant", List.of("TENANT_ADMIN"));
         var account = account("tenant-admin@test.local");
         var lastTenantAccount = tenantAccount(account, tenant("Zulu Tenant"));
         lastTenantAccount.setId(preferredTenant.tenantAccountId());
         account.setLastTenantAccount(lastTenantAccount);
 
-        var selected = com.wornux.ui.tenant.TenantAdminWorkspaceView.determineSelectedTenant(
-                List.of(alphabeticTenant, preferredTenant),
-                null,
-                account);
+        var selected = com.wornux.ui.tenant.TenantAdminWorkspaceView
+                .determineSelectedTenant(List.of(alphabeticTenant, preferredTenant), null, account);
 
         assertEquals(preferredTenant, selected);
     }
@@ -121,20 +130,23 @@ class UC003SecurityAndAccessTest {
         var tenantAdminWorkspaceService = mock(com.wornux.services.workspace.TenantAdminWorkspaceService.class);
         var event = mock(BeforeEnterEvent.class);
         var account = account("tenant-admin@test.local");
-        var preferredTenant = new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Zulu Tenant", List.of("TENANT_ADMIN"));
-        var otherTenant = new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Alpha Tenant", List.of("TENANT_ADMIN"));
+        var preferredTenant =
+                new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Zulu Tenant", List.of("TENANT_ADMIN"));
+        var otherTenant =
+                new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Alpha Tenant", List.of("TENANT_ADMIN"));
         var currentTenantAccount = tenantAccount(account, tenant(preferredTenant.tenantName()));
         currentTenantAccount.setId(preferredTenant.tenantAccountId());
         account.setLastTenantAccount(currentTenantAccount);
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
-        when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.TENANT_ADMIN)).thenReturn(true);
-        when(tenantAdminWorkspaceService.listAccessibleTenants(account)).thenReturn(List.of(otherTenant, preferredTenant));
+        when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.TENANT_ADMIN))
+                .thenReturn(true);
+        when(tenantAdminWorkspaceService.listAccessibleTenants(account))
+                .thenReturn(List.of(otherTenant, preferredTenant));
         when(tenantAdminWorkspaceService.listPeriods(preferredTenant.tenantId())).thenReturn(List.of());
         when(tenantAdminWorkspaceService.listSubjects(preferredTenant.tenantId())).thenReturn(List.of());
         when(tenantAdminWorkspaceService.listGroupClasses(preferredTenant.tenantId())).thenReturn(List.of());
 
-        var view = new com.wornux.ui.tenant.TenantAdminWorkspaceView(
-                authenticatedAccountService,
+        var view = new com.wornux.ui.tenant.TenantAdminWorkspaceView(authenticatedAccountService,
                 workspaceRoutingService,
                 tenantAdminWorkspaceService);
 
@@ -151,13 +163,16 @@ class UC003SecurityAndAccessTest {
         var tenantAdminWorkspaceService = mock(com.wornux.services.workspace.TenantAdminWorkspaceService.class);
         var event = mock(BeforeEnterEvent.class);
         var account = account("tenant-admin@test.local");
-        var tenantA = new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Alpha Tenant", List.of("TENANT_ADMIN"));
-        var tenantB = new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Zulu Tenant", List.of("TENANT_ADMIN"));
+        var tenantA =
+                new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Alpha Tenant", List.of("TENANT_ADMIN"));
+        var tenantB =
+                new AccessibleTenant(UUID.randomUUID(), UUID.randomUUID(), "Zulu Tenant", List.of("TENANT_ADMIN"));
         var currentTenantAccount = tenantAccount(account, tenant(tenantA.tenantName()));
         currentTenantAccount.setId(tenantA.tenantAccountId());
         account.setLastTenantAccount(currentTenantAccount);
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
-        when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.TENANT_ADMIN)).thenReturn(true);
+        when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.TENANT_ADMIN))
+                .thenReturn(true);
         when(tenantAdminWorkspaceService.listAccessibleTenants(account)).thenReturn(List.of(tenantA, tenantB));
         when(tenantAdminWorkspaceService.listPeriods(any(UUID.class))).thenReturn(List.of());
         when(tenantAdminWorkspaceService.listSubjects(any(UUID.class))).thenReturn(List.of());
@@ -169,8 +184,7 @@ class UC003SecurityAndAccessTest {
             return null;
         }).when(workspaceRoutingService).switchTenant(account, tenantB.tenantAccountId());
 
-        var view = new com.wornux.ui.tenant.TenantAdminWorkspaceView(
-                authenticatedAccountService,
+        var view = new com.wornux.ui.tenant.TenantAdminWorkspaceView(authenticatedAccountService,
                 workspaceRoutingService,
                 tenantAdminWorkspaceService);
         view.beforeEnter(event);
@@ -182,7 +196,8 @@ class UC003SecurityAndAccessTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static ComboBox<AccessibleTenant> tenantSelector(com.wornux.ui.tenant.TenantAdminWorkspaceView view) throws Exception {
+    private static ComboBox<AccessibleTenant> tenantSelector(com.wornux.ui.tenant.TenantAdminWorkspaceView view)
+            throws Exception {
         Field field = com.wornux.ui.tenant.TenantAdminWorkspaceView.class.getDeclaredField("tenantSelector");
         field.setAccessible(true);
         return (ComboBox<AccessibleTenant>) field.get(view);

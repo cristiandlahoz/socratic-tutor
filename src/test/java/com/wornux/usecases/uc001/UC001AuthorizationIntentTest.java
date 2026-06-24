@@ -51,10 +51,13 @@ class UC001AuthorizationIntentTest extends UC001MigrationTestSupport {
 
         assertTrue(policy.canViewAssignment(fixture.studentOneAccountId(), fixture.studentOneAssignmentId()));
         assertFalse(policy.canViewAssignment(fixture.studentOneAccountId(), fixture.studentTwoAssignmentId()));
-        assertTrue(policy.canUpdateAssignment(fixture.studentOneAccountId(), fixture.studentOneAssignmentId(), "STARTED"));
+        assertTrue(
+            policy.canUpdateAssignment(fixture.studentOneAccountId(), fixture.studentOneAssignmentId(), "STARTED"));
         transitionAssignment(fixture.studentOneAssignmentId(), "STARTED");
-        assertTrue(policy.canUpdateAssignment(fixture.studentOneAccountId(), fixture.studentOneAssignmentId(), "SUBMITTED"));
-        assertFalse(policy.canUpdateAssignment(fixture.studentOneAccountId(), fixture.studentTwoAssignmentId(), "STARTED"));
+        assertTrue(
+            policy.canUpdateAssignment(fixture.studentOneAccountId(), fixture.studentOneAssignmentId(), "SUBMITTED"));
+        assertFalse(
+            policy.canUpdateAssignment(fixture.studentOneAccountId(), fixture.studentTwoAssignmentId(), "STARTED"));
 
         assertTrue(policy.canCreateConversation(fixture.studentOneAccountId(), fixture.groupClassId()));
         assertTrue(policy.canViewConversation(fixture.studentOneAccountId(), fixture.studentOneConversationId()));
@@ -65,9 +68,8 @@ class UC001AuthorizationIntentTest extends UC001MigrationTestSupport {
     }
 
     private void transitionAssignment(java.util.UUID assignmentId, String status) throws Exception {
-        try (Connection connection = connection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "update evaluation_assignment set status = ? where id = ?")) {
+        try (Connection connection = connection(); PreparedStatement statement =
+                connection.prepareStatement("update training_activity_assignment set status = ? where id = ?")) {
             statement.setString(1, status);
             statement.setObject(2, assignmentId);
             statement.executeUpdate();

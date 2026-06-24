@@ -1,33 +1,35 @@
 package com.wornux.services.document;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.dtos.document.DocumentContextResult;
 import com.wornux.dtos.document.DocumentSearchHit;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
-import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class DocumentRetrievalService {
 
-    private final EmbeddingModel embeddingModel;
-    private final EntityManager entityManager;
+    private final VectorStore vectorStore;
     private final DocumentIngestionProperties properties;
 
-    public DocumentRetrievalService(EmbeddingModel embeddingModel, EntityManager entityManager, DocumentIngestionProperties properties) {
-        this.embeddingModel = embeddingModel;
-        this.entityManager = entityManager;
+    public DocumentRetrievalService(VectorStore vectorStore, DocumentIngestionProperties properties) {
+        this.vectorStore = vectorStore;
         this.properties = properties;
     }
 
     public DocumentContextResult search(
             UUID groupClassId,
             String query,
-            String documentIdHint,
+            String ingestionIdHint,
             String filenameHint,
             String topicHint,
             String tagHint) {
@@ -35,85 +37,63 @@ public class DocumentRetrievalService {
             return new DocumentContextResult(List.of(), false);
         }
 
-        var queryEmbedding = embeddingModel.embed(composeQuery(query, topicHint, tagHint));
+        var request = SearchRequest.builder()
+                .query(composeQuery(query, topicHint, tagHint))
+                .topK(properties.getRetrievalTopK())
+                .similarityThreshold(properties.getRetrievalSimilarityThreshold())
+                .filterExpression(filter(groupClassId, ingestionIdHint, filenameHint))
+                .build();
 
-        var sql = new StringBuilder("""
-            SELECT c.id, c.content, c.chunk_index, d.id, d.title,
-                   c.embedding <=> CAST(:queryVec AS vector) AS distance
-            FROM grounding_chunk c
-            JOIN grounding_document d ON d.id = c.document_id
-            JOIN grounding_collection col ON col.id = d.collection_id
-            WHERE col.group_class_id = CAST(:groupClassId AS uuid)
-              AND c.active = true
-              AND c.embedding IS NOT NULL
-            """);
-
-        if (documentIdHint != null && !documentIdHint.isBlank()) {
-            sql.append(" AND d.id = :documentId");
-        }
-        if (filenameHint != null && !filenameHint.isBlank()) {
-            sql.append(" AND d.title = :filename");
-        }
-
-        sql.append("""
-             AND c.embedding <=> CAST(:queryVec AS vector) <= :maxDistance
-             ORDER BY distance
-             LIMIT :topK
-            """);
-
-        Query nativeQuery = entityManager.createNativeQuery(sql.toString());
-        var vectorStr = vectorToString(queryEmbedding);
-        nativeQuery.setParameter("queryVec", vectorStr);
-        nativeQuery.setParameter("groupClassId", groupClassId.toString());
-        nativeQuery.setParameter("maxDistance", 1.0 - properties.getRetrievalSimilarityThreshold());
-        nativeQuery.setParameter("topK", properties.getRetrievalTopK());
-
-        if (documentIdHint != null && !documentIdHint.isBlank()) {
-            nativeQuery.setParameter("documentId", Long.parseLong(documentIdHint));
-        }
-        if (filenameHint != null && !filenameHint.isBlank()) {
-            nativeQuery.setParameter("filename", filenameHint);
-        }
-
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = nativeQuery.getResultList();
-
-        List<DocumentSearchHit> hits = rows.stream()
-                .map(this::toSearchHit)
-                .toList();
+        List<DocumentSearchHit> hits = vectorStore.similaritySearch(request).stream().map(this::toSearchHit).toList();
         return new DocumentContextResult(hits, !hits.isEmpty());
     }
 
-    private DocumentSearchHit toSearchHit(Object[] row) {
-        var chunkId = longValue(row[0]);
-        var content = (String) row[1];
-        var ordinal = row[2] instanceof Number n ? n.intValue() : null;
-        var documentId = longValue(row[3]);
-        var filename = (String) row[4];
-        var distance = row[5] instanceof Number n ? n.doubleValue() : 0.0;
-        var score = 1.0 - distance;
+    private Filter.Expression filter(UUID groupClassId, String ingestionIdHint, String filenameHint) {
+        var builder = new FilterExpressionBuilder();
+        List<FilterExpressionBuilder.Op> filters = new ArrayList<>();
+        filters.add(builder.eq("groupClassId", groupClassId.toString()));
+        filters.add(builder.eq("status", "READY"));
+        if (ingestionIdHint != null && !ingestionIdHint.isBlank()) {
+            filters.add(builder.eq("ingestionId", ingestionIdHint));
+        }
+        if (filenameHint != null && !filenameHint.isBlank()) {
+            filters.add(builder.eq("title", filenameHint));
+        }
 
-        return new DocumentSearchHit(
-                chunkId,
-                documentId,
-                filename,
-                filename,
+        var combined = filters.getFirst();
+        for (int index = 1; index < filters.size(); index++) {
+            combined = builder.and(combined, filters.get(index));
+        }
+        return combined.build();
+    }
+
+    private DocumentSearchHit toSearchHit(Document document) {
+        Map<String, Object> metadata = document.getMetadata();
+        String title = stringValue(metadata.get("title"));
+        return new DocumentSearchHit(document.getId(),
+                stringValue(metadata.get("ingestionId")),
+                title,
+                title,
                 "",
                 List.of(),
                 "Document",
-                summarize(content),
-                score,
-                ordinal,
+                summarize(document.getText()),
+                document.getScore(),
+                integerValue(metadata.get("chunkIndex")),
                 null,
                 List.of(),
                 List.of());
     }
 
-    private Long longValue(Object value) {
+    private String stringValue(Object value) {
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private Integer integerValue(Object value) {
         if (value instanceof Number number) {
-            return number.longValue();
+            return number.intValue();
         }
-        return value == null ? null : Long.parseLong(String.valueOf(value));
+        return value == null ? null : Integer.valueOf(String.valueOf(value));
     }
 
     private String summarize(String content) {
@@ -133,15 +113,5 @@ public class DocumentRetrievalService {
             builder.append(" tag:").append(tagHint);
         }
         return builder.toString().trim();
-    }
-
-    private String vectorToString(float[] vector) {
-        var sb = new StringBuilder("[");
-        for (int i = 0; i < vector.length; i++) {
-            if (i > 0) sb.append(",");
-            sb.append(vector[i]);
-        }
-        sb.append("]");
-        return sb.toString();
     }
 }

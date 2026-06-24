@@ -1,5 +1,10 @@
 package com.wornux.services.workspace;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
 import com.wornux.data.entities.academic.AcademicPeriod;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.Subject;
@@ -10,10 +15,6 @@ import com.wornux.data.repositories.academic.GroupClassRepository;
 import com.wornux.data.repositories.academic.SubjectRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
 import com.wornux.services.onboarding.InvitationService;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +45,8 @@ public class TenantAdminWorkspaceService {
 
     @Transactional(readOnly = true)
     public List<AccessibleTenant> listAccessibleTenants(Account account) {
-        return workspaceRoutingService.listAccessibleTenants(account).stream()
+        return workspaceRoutingService.listAccessibleTenants(account)
+                .stream()
                 .filter(tenant -> tenant.roleCodes().contains("TENANT_ADMIN"))
                 .toList();
     }
@@ -76,10 +78,17 @@ public class TenantAdminWorkspaceService {
     }
 
     @Transactional
-    public AcademicPeriod createPeriod(Account account, String code, String name, LocalDate startsAt, LocalDate endsAt) {
-        var tenantAccount = tenantAccountRepository.findByIdAndAccount_Id(requireActiveTenantAccount(account), account.getId())
-                .orElseThrow(() -> new SecurityException("A tenant admin tenant context is required."));
-        if (academicPeriodRepository.findByTenant_IdAndCode(tenantAccount.getTenant().getId(), code.trim()).isPresent()) {
+    public AcademicPeriod createPeriod(
+            Account account,
+            String code,
+            String name,
+            LocalDate startsAt,
+            LocalDate endsAt) {
+        var tenantAccount =
+                tenantAccountRepository.findByIdAndAccount_Id(requireActiveTenantAccount(account), account.getId())
+                        .orElseThrow(() -> new SecurityException("A tenant admin tenant context is required."));
+        if (academicPeriodRepository.findByTenant_IdAndCode(tenantAccount.getTenant().getId(), code.trim())
+                .isPresent()) {
             throw new IllegalArgumentException("An academic period with that code already exists in this tenant.");
         }
         var period = new AcademicPeriod();
@@ -97,8 +106,9 @@ public class TenantAdminWorkspaceService {
 
     @Transactional
     public Subject createSubject(Account account, String code, String name) {
-        var tenantAccount = tenantAccountRepository.findByIdAndAccount_Id(requireActiveTenantAccount(account), account.getId())
-                .orElseThrow(() -> new SecurityException("A tenant admin tenant context is required."));
+        var tenantAccount =
+                tenantAccountRepository.findByIdAndAccount_Id(requireActiveTenantAccount(account), account.getId())
+                        .orElseThrow(() -> new SecurityException("A tenant admin tenant context is required."));
         if (subjectRepository.findByTenant_IdAndCode(tenantAccount.getTenant().getId(), code.trim()).isPresent()) {
             throw new IllegalArgumentException("A subject with that code already exists in this tenant.");
         }
@@ -114,9 +124,15 @@ public class TenantAdminWorkspaceService {
     }
 
     @Transactional
-    public GroupClass createGroupClass(Account account, UUID subjectId, UUID academicPeriodId, String code, String name) {
-        var tenantAccount = tenantAccountRepository.findByIdAndAccount_Id(requireActiveTenantAccount(account), account.getId())
-                .orElseThrow(() -> new SecurityException("A tenant admin tenant context is required."));
+    public GroupClass createGroupClass(
+            Account account,
+            UUID subjectId,
+            UUID academicPeriodId,
+            String code,
+            String name) {
+        var tenantAccount =
+                tenantAccountRepository.findByIdAndAccount_Id(requireActiveTenantAccount(account), account.getId())
+                        .orElseThrow(() -> new SecurityException("A tenant admin tenant context is required."));
         if (groupClassRepository.findByTenant_IdAndCode(tenantAccount.getTenant().getId(), code.trim()).isPresent()) {
             throw new IllegalArgumentException("A group class with that code already exists in this tenant.");
         }
@@ -142,18 +158,19 @@ public class TenantAdminWorkspaceService {
 
     @Transactional
     public void inviteProfessor(Account account, UUID groupClassId, String email) {
-        var tenantAccount = tenantAccountRepository.findByIdAndAccount_Id(requireActiveTenantAccount(account), account.getId())
-                .orElseThrow(() -> new SecurityException("A tenant admin tenant context is required."));
+        var tenantAccount =
+                tenantAccountRepository.findByIdAndAccount_Id(requireActiveTenantAccount(account), account.getId())
+                        .orElseThrow(() -> new SecurityException("A tenant admin tenant context is required."));
         var groupClass = groupClassRepository.findById(groupClassId)
                 .filter(value -> value.getTenant().getId().equals(tenantAccount.getTenant().getId()))
                 .orElseThrow(() -> new SecurityException("You cannot invite a professor to that class."));
         invitationService.createInvitation(
-                InvitationTargetRole.PROFESSOR,
-                tenantAccount.getTenant().getId(),
-                groupClass.getId(),
-                email,
-                account,
-                tenantAccount,
-                null);
+            InvitationTargetRole.PROFESSOR,
+            tenantAccount.getTenant().getId(),
+            groupClass.getId(),
+            email,
+            account,
+            tenantAccount,
+            null);
     }
 }

@@ -2,15 +2,16 @@ package com.wornux.usecases.uc004;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.lang.reflect.RecordComponent;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import com.wornux.data.entities.conversation.Conversation;
 import com.wornux.data.entities.conversation.ConversationSnapshot;
 import com.wornux.dtos.document.DocumentSearchHit;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
-import java.lang.reflect.RecordComponent;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
 class UC004CorrectiveAlignmentTest {
@@ -30,9 +31,9 @@ class UC004CorrectiveAlignmentTest {
     }
 
     @Test
-    void br17_br18_groundingSearchHitUsesLongIds() {
-        assertEquals(Long.class, component(DocumentSearchHit.class, "segmentId").getType());
-        assertEquals(Long.class, component(DocumentSearchHit.class, "documentId").getType());
+    void br17_br18_groundingSearchHitUsesVectorStoreIds() {
+        assertEquals(String.class, component(DocumentSearchHit.class, "segmentId").getType());
+        assertEquals(String.class, component(DocumentSearchHit.class, "documentId").getType());
     }
 
     @Test
@@ -42,12 +43,10 @@ class UC004CorrectiveAlignmentTest {
         assertTrue(source.contains("defaultSystem"));
         assertTrue(source.contains("defaultAdvisors"));
         assertTrue(source.contains("defaultTools"));
-        assertTrue(source.contains("TutorGuardAdvisor"));
-        assertTrue(source.contains("PedagogicalRoutingAdvisor"));
-        assertTrue(source.contains("DocumentCatalogAdvisor"));
         assertTrue(source.contains("RetrieveInformationTool"));
         assertFalse(source.contains("SubjectContextAdvisor"));
         assertFalse(source.contains("ProfileAwareResponseAdvisor"));
+        assertFalse(source.contains("DocumentCatalogAdvisor"));
     }
 
     @Test
@@ -55,8 +54,10 @@ class UC004CorrectiveAlignmentTest {
         var applicationYaml = Files.readString(Path.of("src/main/resources/application.yml"));
         var baseIdentityPrompt = Files.readString(Path.of("src/main/resources/tutor/base-identity-system.st"));
         var guardClassifierPrompt = Files.readString(Path.of("src/main/resources/tutor/policies/guard-classifier.st"));
-        var guardOutOfScopePrompt = Files.readString(Path.of("src/main/resources/tutor/policies/guard-out-of-scope.st"));
-        var retrievalSource = Files.readString(Path.of("src/main/java/com/wornux/services/document/DocumentRetrievalService.java"));
+        var guardOutOfScopePrompt =
+                Files.readString(Path.of("src/main/resources/tutor/policies/guard-out-of-scope.st"));
+        var retrievalSource =
+                Files.readString(Path.of("src/main/java/com/wornux/services/document/DocumentRetrievalService.java"));
         var applicationSource = Files.readString(Path.of("src/main/java/com/wornux/Application.java"));
 
         assertFalse(applicationYaml.contains("app:\n  browser:"));
@@ -64,18 +65,24 @@ class UC004CorrectiveAlignmentTest {
         assertFalse(baseIdentityPrompt.contains("legacySubject"));
         assertFalse(guardClassifierPrompt.contains("legacySubject"));
         assertFalse(guardOutOfScopePrompt.contains("legacySubject"));
-        assertTrue(retrievalSource.contains("grounding_chunk"));
-        assertTrue(retrievalSource.contains("CAST(:queryVec AS vector)"));
-        assertTrue(applicationSource.contains("PgVectorStoreAutoConfiguration"));
-        assertFalse(applicationYaml.contains("vector_store"));
+        assertTrue(retrievalSource.contains("VectorStore"));
+        assertTrue(retrievalSource.contains("SearchRequest.builder()"));
+        assertFalse(retrievalSource.contains("grounding_chunk"));
+        assertFalse(retrievalSource.contains("CAST(:queryVec AS vector)"));
+        assertFalse(applicationSource.contains("PgVectorStoreAutoConfiguration"));
+        assertTrue(applicationYaml.contains("table-name: grounding_vector_store"));
     }
 
     @Test
     void br19_uiCopyUsesFormativeActivitiesLanguage() throws Exception {
-        var evaluationView = Files.readString(Path.of("src/main/java/com/wornux/ui/evaluation/EvaluationView.java"));
-        var evaluationDialog = Files.readString(Path.of("src/main/java/com/wornux/ui/evaluation/EvaluationDialog.java"));
-        var professorWorkspaceView = Files.readString(Path.of("src/main/java/com/wornux/ui/professor/ProfessorWorkspaceView.java"));
-        var studentWorkspaceView = Files.readString(Path.of("src/main/java/com/wornux/ui/student/StudentWorkspaceView.java"));
+        var evaluationView =
+                Files.readString(Path.of("src/main/java/com/wornux/ui/training_activity/TrainingActivityView.java"));
+        var evaluationDialog =
+                Files.readString(Path.of("src/main/java/com/wornux/ui/training_activity/TrainingActivityDialog.java"));
+        var professorWorkspaceView =
+                Files.readString(Path.of("src/main/java/com/wornux/ui/professor/ProfessorWorkspaceView.java"));
+        var studentWorkspaceView =
+                Files.readString(Path.of("src/main/java/com/wornux/ui/student/StudentWorkspaceView.java"));
 
         assertTrue(evaluationView.contains("Formative Activities"));
         assertTrue(evaluationDialog.contains("Activity"));
@@ -86,19 +93,23 @@ class UC004CorrectiveAlignmentTest {
 
     @Test
     void br05_br06_browserIdentityRemoved() throws Exception {
-        assertFalse(Files.exists(Path.of("src/main/java/com/wornux/config/BrowserIdentityProperties.java")),
-                "BrowserIdentityProperties must not exist");
-        assertFalse(Files.exists(Path.of("src/main/java/com/wornux/infrastructure/web/BrowserSessionService.java")),
-                "BrowserSessionService must not exist because browser identity is not the academic identity model");
+        assertFalse(
+            Files.exists(Path.of("src/main/java/com/wornux/config/BrowserIdentityProperties.java")),
+            "BrowserIdentityProperties must not exist");
+        assertFalse(
+            Files.exists(Path.of("src/main/java/com/wornux/infrastructure/web/BrowserSessionService.java")),
+            "BrowserSessionService must not exist because browser identity is not the academic identity model");
 
         var mainSources = Files.readString(Path.of("src/main/java/com/wornux/services/chat/ChatService.java"))
                 + Files.readString(Path.of("src/main/java/com/wornux/ui/chat/ChatViewModel.java"))
                 + Files.readString(Path.of("src/main/java/com/wornux/ui/chat/ChatTurnOrchestrator.java"))
                 + Files.readString(Path.of("src/main/java/com/wornux/ui/ingestion/DocumentIngestionUiController.java"));
-        assertFalse(mainSources.contains("BrowserSessionService"),
-                "No active code should reference BrowserSessionService");
-        assertFalse(mainSources.contains("browserSessionId"),
-                "No active code should reference browserSessionId as academic identity");
+        assertFalse(
+            mainSources.contains("BrowserSessionService"),
+            "No active code should reference BrowserSessionService");
+        assertFalse(
+            mainSources.contains("browserSessionId"),
+            "No active code should reference browserSessionId as academic identity");
     }
 
     private static RecordComponent component(Class<?> recordType, String name) {

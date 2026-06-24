@@ -28,9 +28,9 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.ChatProperties;
-import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
+import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
@@ -201,10 +201,15 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var description = new Paragraph(
                 "Write a prompt and the tutor will help you reason step by step, clarify concepts, and practice with examples.");
         description.addClassName("chat-empty-description");
-        com.vaadin.flow.signals.Signal.effect(title, () -> title.setText(Boolean.TRUE.equals(chatState.setupRequired().get())
-                ? "Academic setup required"
-                : "Ask your first question"));
-        com.vaadin.flow.signals.Signal.effect(description, () -> description.setText(
+        com.vaadin.flow.signals.Signal.effect(
+            title,
+            () -> title.setText(
+                Boolean.TRUE.equals(chatState.setupRequired().get())
+                        ? "Academic setup required"
+                        : "Ask your first question"));
+        com.vaadin.flow.signals.Signal.effect(
+            description,
+            () -> description.setText(
                 Boolean.TRUE.equals(chatState.setupRequired().get())
                         ? chatState.setupMessage().get()
                         : "Write a prompt and the tutor will help you reason step by step, clarify concepts, and practice with examples."));

@@ -1,6 +1,7 @@
 package com.wornux.config;
 
 import java.util.Properties;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -20,7 +21,8 @@ public class EmailConfiguration {
         Properties properties = sender.getJavaMailProperties();
         properties.put("mail.smtp.auth", Boolean.toString(emailProperties.getSmtp().isAuth()));
         properties.put("mail.smtp.starttls.enable", Boolean.toString(emailProperties.getSmtp().isStarttlsEnabled()));
-        properties.put("mail.smtp.connectiontimeout", Integer.toString(emailProperties.getSmtp().getConnectionTimeout()));
+        properties
+                .put("mail.smtp.connectiontimeout", Integer.toString(emailProperties.getSmtp().getConnectionTimeout()));
         properties.put("mail.smtp.timeout", Integer.toString(emailProperties.getSmtp().getTimeout()));
         properties.put("mail.smtp.writetimeout", Integer.toString(emailProperties.getSmtp().getWriteTimeout()));
         return sender;

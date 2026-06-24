@@ -8,6 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.UUID;
+
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.data.entities.identity.Account;
@@ -16,8 +19,6 @@ import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class StudentWorkspaceViewTest {
@@ -29,8 +30,7 @@ class StudentWorkspaceViewTest {
         var studentWorkspaceService = mock(StudentWorkspaceService.class);
         var beforeEnterEvent = mock(BeforeEnterEvent.class);
         var account = new Account();
-        var accessibleClass = new AccessibleClass(
-                UUID.randomUUID(),
+        var accessibleClass = new AccessibleClass(UUID.randomUUID(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 "Tenant",
@@ -43,10 +43,8 @@ class StudentWorkspaceViewTest {
         when(studentWorkspaceService.listStudentClasses(account)).thenReturn(List.of(accessibleClass));
         when(studentWorkspaceService.listAssignments(account)).thenReturn(List.of());
 
-        var view = new StudentWorkspaceView(
-                authenticatedAccountService,
-                workspaceRoutingService,
-                studentWorkspaceService);
+        var view =
+                new StudentWorkspaceView(authenticatedAccountService, workspaceRoutingService, studentWorkspaceService);
 
         assertDoesNotThrow(() -> view.beforeEnter(beforeEnterEvent));
 

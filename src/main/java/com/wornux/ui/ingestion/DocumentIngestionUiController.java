@@ -3,10 +3,8 @@ package com.wornux.ui.ingestion;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Optional;
 
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
@@ -30,8 +28,6 @@ public class DocumentIngestionUiController implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    public static final String DOCUMENT_QUERY_PARAMETER = "d";
-
     private final DocumentIngestionService documentIngestionService;
     private final ChatState chatUiState;
     private final DocumentIngestionState state;
@@ -51,24 +47,13 @@ public class DocumentIngestionUiController implements Serializable {
         return state;
     }
 
-    public void initializeFromRoute(String documentIdParam) {
-        Optional<DocumentReviewViewModel> review = parseLong(documentIdParam)
-                .flatMap(documentId -> documentIngestionService.loadReview(documentId));
-        if (review.isEmpty()) {
-            review = documentIngestionService.loadLatestReview();
-        }
-        review.ifPresent(state::apply);
-    }
-
     public void uploadPdf(String fileName, String mimeType, byte[] content, UI ui) {
         abortActiveTask();
         lastUploadedFile = new UploadedFile(fileName, mimeType, content);
         state.startUploadProcessing(fileName, "Transformando y segmentando PDF con Docling.");
 
-        activeTask = Mono
-                .fromCallable(
-                    () -> documentIngestionService.startIngestion(
-                        new StartIngestionCommand(fileName, mimeType, content)))
+        activeTask = Mono.fromCallable(
+            () -> documentIngestionService.startIngestion(new StartIngestionCommand(fileName, mimeType, content)))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                     review -> runUi(ui, () -> applyReview(review)),
@@ -91,7 +76,8 @@ public class DocumentIngestionUiController implements Serializable {
         activeTask = Mono
                 .fromCallable(
                     () -> documentIngestionService.approve(
-                        new ApproveDocumentCommand(state.activeDocumentId().peek(),
+                        new ApproveDocumentCommand(state.activeIngestionId().peek(),
+                                state.fileName().peek(),
                                 state.reviewedMarkdown().peek(),
                                 state.segments().peek())))
                 .subscribeOn(Schedulers.boundedElastic())
@@ -101,14 +87,14 @@ public class DocumentIngestionUiController implements Serializable {
     }
 
     public void deleteCurrentDocument(UI ui) {
-        if (state.activeDocumentId().peek() == null) {
+        if (state.indexedVectorIds().peek().isEmpty()) {
             return;
         }
         abortActiveTask();
-        Long documentId = state.activeDocumentId().peek();
+        List<String> vectorIds = state.indexedVectorIds().peek();
         state.startProcessing(state.fileName().peek(), "Eliminando documento indexado.");
         activeTask = Mono.fromCallable(() -> {
-            documentIngestionService.delete(documentId);
+            documentIngestionService.delete(vectorIds);
             return true;
         })
                 .subscribeOn(Schedulers.boundedElastic())
@@ -122,7 +108,7 @@ public class DocumentIngestionUiController implements Serializable {
         state.dirty().set(true);
     }
 
-    public void updateSegment(Long segmentId, String content) {
+    public void updateSegment(String segmentId, String content) {
         List<EditableSegmentViewModel> nextSegments = state.segments()
                 .peek()
                 .stream()
@@ -132,7 +118,7 @@ public class DocumentIngestionUiController implements Serializable {
         state.dirty().set(true);
     }
 
-    public void deleteSegment(Long segmentId) {
+    public void deleteSegment(String segmentId) {
         if (segmentId == null) {
             return;
         }
@@ -147,7 +133,10 @@ public class DocumentIngestionUiController implements Serializable {
 
     public void returnToChat() {
         if (chatUiState.activeConversationId().peek() != null) {
-            UI.getCurrent().navigate(com.wornux.ui.chat.ChatView.class, QueryParameters.of("c", chatUiState.activeConversationId().peek().toString()));
+            UI.getCurrent()
+                    .navigate(
+                        com.wornux.ui.chat.ChatView.class,
+                        QueryParameters.of("c", chatUiState.activeConversationId().peek().toString()));
             return;
         }
         UI.getCurrent().navigate(com.wornux.ui.chat.ChatView.class);
@@ -155,16 +144,6 @@ public class DocumentIngestionUiController implements Serializable {
 
     private void applyReview(DocumentReviewViewModel review) {
         state.apply(review);
-        synchronizeAddressBar(review.documentId());
-    }
-
-    private void synchronizeAddressBar(Long documentId) {
-        UI.getCurrent()
-                .getPage()
-                .getHistory()
-                .replaceState(
-                    null,
-                    new Location("documents", QueryParameters.of(DOCUMENT_QUERY_PARAMETER, documentId.toString())));
     }
 
     private void abortActiveTask() {
@@ -188,18 +167,6 @@ public class DocumentIngestionUiController implements Serializable {
         }
         log.error(throwable.getMessage());
         return throwable.getMessage();
-    }
-
-    private Optional<Long> parseLong(String value) {
-        if (value == null || value.isBlank()) {
-            return Optional.empty();
-        }
-        try {
-            return Optional.of(Long.parseLong(value));
-        }
-        catch (NumberFormatException exception) {
-            return Optional.empty();
-        }
     }
 
     private record UploadedFile(String fileName, String mimeType, byte[] content) {}

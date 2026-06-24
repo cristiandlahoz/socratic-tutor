@@ -13,8 +13,6 @@ public class DocumentIngestionProperties {
     private int retrievalTopK = 4;
     private double retrievalSimilarityThreshold = 0.55;
     private Chunking chunking = new Chunking();
-    private Catalog catalog = new Catalog();
-    private Inventory inventory = new Inventory();
 
     @Getter
     @Setter
@@ -33,19 +31,4 @@ public class DocumentIngestionProperties {
         }
     }
 
-    @Getter
-    @Setter
-    public static class Catalog {
-
-        private int maxTags = 8;
-        private int maxQuestionExamples = 6;
-    }
-
-    @Getter
-    @Setter
-    public static class Inventory {
-
-        private int maxDocuments = 8;
-        private int maxChars = 2_400;
-    }
 }

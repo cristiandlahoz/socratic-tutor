@@ -96,14 +96,14 @@ public class ChatCompactionService {
         conversation.setVersion(conversation.getVersion() + 1L);
         conversation.setUpdatedAt(Instant.now());
         conversation.setCurrentSnapshot(persistedSnapshot);
-        return new ChatCompactionStatus(true, Math.toIntExact(persistedSnapshot.getSnapshotNo()), activeSnapshot.getId());
+        return new ChatCompactionStatus(true,
+                Math.toIntExact(persistedSnapshot.getSnapshotNo()),
+                activeSnapshot.getId());
     }
 
     private String summarize(ConversationSnapshot snapshot) {
         var prompt = Prompt.builder()
-                .messages(
-                    new SystemMessage(COMPACTION_SYSTEM_PROMPT),
-                    new UserMessage(buildCompactionInput(snapshot)))
+                .messages(new SystemMessage(COMPACTION_SYSTEM_PROMPT), new UserMessage(buildCompactionInput(snapshot)))
                 .chatOptions(
                     OllamaChatOptions.builder()
                             .model(compactionModel)
@@ -120,7 +120,8 @@ public class ChatCompactionService {
 
     private String buildCompactionInput(ConversationSnapshot snapshot) {
         String existingMemory = String.valueOf(snapshot.getCarryContext().getOrDefault("text", "(none)"));
-        String transcriptBody = snapshot.getMessages().stream()
+        String transcriptBody = snapshot.getMessages()
+                .stream()
                 .map(message -> "%s: %s".formatted(message.get("role"), message.get("content")))
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("(empty)");
@@ -140,7 +141,8 @@ public class ChatCompactionService {
         if (messages.size() <= RETAINED_MESSAGE_COUNT) {
             return List.copyOf(messages);
         }
-        return List.copyOf(new ArrayList<>(messages.subList(messages.size() - RETAINED_MESSAGE_COUNT, messages.size())));
+        return List
+                .copyOf(new ArrayList<>(messages.subList(messages.size() - RETAINED_MESSAGE_COUNT, messages.size())));
     }
 
     private record CompactedMemory(String text) {}

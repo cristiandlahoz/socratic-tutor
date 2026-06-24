@@ -1,8 +1,9 @@
 package com.wornux.services.onboarding;
 
-import com.wornux.data.repositories.identity.AccountRepository;
 import java.text.Normalizer;
 import java.util.Locale;
+
+import com.wornux.data.repositories.identity.AccountRepository;
 import org.springframework.stereotype.Component;
 
 @Component

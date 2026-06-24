@@ -60,7 +60,8 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private List<UserMessage> lastUserMessages(Prompt prompt) {
-        List<UserMessage> userMessages = prompt.getInstructions().stream()
+        List<UserMessage> userMessages = prompt.getInstructions()
+                .stream()
                 .filter(UserMessage.class::isInstance)
                 .map(UserMessage.class::cast)
                 .filter(message -> message.getText() != null && !message.getText().isBlank())
@@ -78,8 +79,10 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
         return switch (decision) {
             case SAFE -> request;
             case NOT_SAFE -> applyGuardPolicy(request, promptResources.guardNotSafe(), "not_safe_guard");
-            case IMPERSONATION -> applyGuardPolicy(request, promptResources.guardImpersonation(), "impersonation_handling_mode");
-            case OUT_OF_SCOPE -> applyGuardPolicy(request, promptResources.guardOutOfScope(), "out_of_scope_handling_mode");
+            case IMPERSONATION ->
+                    applyGuardPolicy(request, promptResources.guardImpersonation(), "impersonation_handling_mode");
+            case OUT_OF_SCOPE ->
+                    applyGuardPolicy(request, promptResources.guardOutOfScope(), "out_of_scope_handling_mode");
         };
     }
 
@@ -89,26 +92,22 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
             String updatedText = existing == null || existing.isBlank()
                     ? """
-                    <guard-policy mode="%s">
-                    %s
-                    </guard-policy>
-                    """.formatted(policyMode, policyText)
+                      <guard-policy mode="%s">
+                      %s
+                      </guard-policy>
+                      """.formatted(policyMode, policyText)
                     : """
-                    %s
+                      %s
 
-                    <guard-policy mode="%s">
-                    %s
-                    </guard-policy>
-                    """.formatted(existing, policyMode, policyText);
+                      <guard-policy mode="%s">
+                      %s
+                      </guard-policy>
+                      """.formatted(existing, policyMode, policyText);
 
-            return system.mutate()
-                    .text(updatedText)
-                    .build();
+            return system.mutate().text(updatedText).build();
         });
 
-        return request.mutate()
-                .prompt(guardedPrompt)
-                .build();
+        return request.mutate().prompt(guardedPrompt).build();
     }
 
     @Override

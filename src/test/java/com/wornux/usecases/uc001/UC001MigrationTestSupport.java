@@ -51,15 +51,14 @@ abstract class UC001MigrationTestSupport {
     }
 
     protected boolean tableExists(String tableName) throws SQLException {
-        try (Connection connection = connection();
-                PreparedStatement statement = connection.prepareStatement(
-                        """
-                        select exists (
-                            select 1
-                            from information_schema.tables
-                            where table_schema = 'public' and table_name = ?
-                        )
-                        """)) {
+        try (Connection connection = connection(); PreparedStatement statement =
+                connection.prepareStatement("""
+                                            select exists (
+                                                select 1
+                                                from information_schema.tables
+                                                where table_schema = 'public' and table_name = ?
+                                            )
+                                            """)) {
             statement.setString(1, tableName);
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
@@ -70,16 +69,15 @@ abstract class UC001MigrationTestSupport {
 
     protected boolean columnExists(String tableName, String columnName) throws SQLException {
         try (Connection connection = connection();
-                PreparedStatement statement = connection.prepareStatement(
-                        """
-                        select exists (
-                            select 1
-                            from information_schema.columns
-                            where table_schema = 'public'
-                              and table_name = ?
-                              and column_name = ?
-                        )
-                        """)) {
+                PreparedStatement statement = connection.prepareStatement("""
+                                                                          select exists (
+                                                                              select 1
+                                                                              from information_schema.columns
+                                                                              where table_schema = 'public'
+                                                                                and table_name = ?
+                                                                                and column_name = ?
+                                                                          )
+                                                                          """)) {
             statement.setString(1, tableName);
             statement.setString(2, columnName);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -90,8 +88,7 @@ abstract class UC001MigrationTestSupport {
     }
 
     protected List<String> singleColumnList(String sql) throws SQLException {
-        try (Connection connection = connection();
-                Statement statement = connection.createStatement();
+        try (Connection connection = connection(); Statement statement = connection.createStatement();
                 ResultSet resultSet = statement.executeQuery(sql)) {
             List<String> values = new ArrayList<>();
             while (resultSet.next()) {
@@ -101,31 +98,13 @@ abstract class UC001MigrationTestSupport {
         }
     }
 
-    protected record Fixture(
-            UUID tenantId,
-            UUID otherTenantId,
-            UUID adminAccountId,
-            UUID tenantAdminAccountId,
-            UUID professorAccountId,
-            UUID outsiderProfessorAccountId,
-            UUID studentOneAccountId,
-            UUID studentTwoAccountId,
-            UUID tenantAdminTenantAccountId,
-            UUID professorTenantAccountId,
-            UUID outsiderProfessorTenantAccountId,
-            UUID studentOneTenantAccountId,
-            UUID studentTwoTenantAccountId,
-            UUID groupClassId,
-            UUID otherGroupClassId,
-            UUID professorMemberId,
-            UUID outsiderProfessorMemberId,
-            UUID studentOneMemberId,
-            UUID studentTwoMemberId,
-            UUID evaluationId,
-            UUID studentOneAssignmentId,
-            UUID studentTwoAssignmentId,
-            UUID studentOneConversationId,
-            UUID studentTwoConversationId) {}
+    protected record Fixture(UUID tenantId, UUID otherTenantId, UUID adminAccountId, UUID tenantAdminAccountId,
+            UUID professorAccountId, UUID outsiderProfessorAccountId, UUID studentOneAccountId,
+            UUID studentTwoAccountId, UUID tenantAdminTenantAccountId, UUID professorTenantAccountId,
+            UUID outsiderProfessorTenantAccountId, UUID studentOneTenantAccountId, UUID studentTwoTenantAccountId,
+            UUID groupClassId, UUID otherGroupClassId, UUID professorMemberId, UUID outsiderProfessorMemberId,
+            UUID studentOneMemberId, UUID studentTwoMemberId, UUID evaluationId, UUID studentOneAssignmentId,
+            UUID studentTwoAssignmentId, UUID studentOneConversationId, UUID studentTwoConversationId) {}
 
     protected Fixture insertAuthorizationFixture() throws SQLException {
         UUID tenantId = UUID.randomUUID();
@@ -142,7 +121,8 @@ abstract class UC001MigrationTestSupport {
 
         UUID tenantAdminTenantAccountId = tenantAccount(UUID.randomUUID(), tenantId, tenantAdminAccountId);
         UUID professorTenantAccountId = tenantAccount(UUID.randomUUID(), tenantId, professorAccountId);
-        UUID outsiderProfessorTenantAccountId = tenantAccount(UUID.randomUUID(), otherTenantId, outsiderProfessorAccountId);
+        UUID outsiderProfessorTenantAccountId =
+                tenantAccount(UUID.randomUUID(), otherTenantId, outsiderProfessorAccountId);
         UUID studentOneTenantAccountId = tenantAccount(UUID.randomUUID(), tenantId, studentOneAccountId);
         UUID studentTwoTenantAccountId = tenantAccount(UUID.randomUUID(), tenantId, studentTwoAccountId);
 
@@ -160,24 +140,34 @@ abstract class UC001MigrationTestSupport {
         UUID otherSubjectId = subject(UUID.randomUUID(), otherTenantId, "MTH-101", "Math");
         UUID otherPeriodId = academicPeriod(UUID.randomUUID(), otherTenantId, "2026-Q3", "2026 Q3");
 
-        UUID groupClassId = groupClass(UUID.randomUUID(), tenantId, subjectId, periodId, tenantAdminTenantAccountId, "ICC-101-A");
-        UUID otherGroupClassId =
-                groupClass(UUID.randomUUID(), otherTenantId, otherSubjectId, otherPeriodId, outsiderProfessorTenantAccountId, "MTH-101-A");
+        UUID groupClassId =
+                groupClass(UUID.randomUUID(), tenantId, subjectId, periodId, tenantAdminTenantAccountId, "ICC-101-A");
+        UUID otherGroupClassId = groupClass(
+            UUID.randomUUID(),
+            otherTenantId,
+            otherSubjectId,
+            otherPeriodId,
+            outsiderProfessorTenantAccountId,
+            "MTH-101-A");
 
-        UUID professorMemberId = groupClassMember(UUID.randomUUID(), groupClassId, professorTenantAccountId, "PROFESSOR");
+        UUID professorMemberId =
+                groupClassMember(UUID.randomUUID(), groupClassId, professorTenantAccountId, "PROFESSOR");
         UUID outsiderProfessorMemberId =
                 groupClassMember(UUID.randomUUID(), otherGroupClassId, outsiderProfessorTenantAccountId, "PROFESSOR");
-        UUID studentOneMemberId = groupClassMember(UUID.randomUUID(), groupClassId, studentOneTenantAccountId, "STUDENT");
-        UUID studentTwoMemberId = groupClassMember(UUID.randomUUID(), groupClassId, studentTwoTenantAccountId, "STUDENT");
+        UUID studentOneMemberId =
+                groupClassMember(UUID.randomUUID(), groupClassId, studentOneTenantAccountId, "STUDENT");
+        UUID studentTwoMemberId =
+                groupClassMember(UUID.randomUUID(), groupClassId, studentTwoTenantAccountId, "STUDENT");
 
         UUID evaluationId = evaluation(UUID.randomUUID(), groupClassId, professorMemberId, "Midterm");
-        UUID studentOneAssignmentId = evaluationAssignment(UUID.randomUUID(), evaluationId, studentOneMemberId, "ASSIGNED");
-        UUID studentTwoAssignmentId = evaluationAssignment(UUID.randomUUID(), evaluationId, studentTwoMemberId, "ASSIGNED");
+        UUID studentOneAssignmentId =
+                evaluationAssignment(UUID.randomUUID(), evaluationId, studentOneMemberId, "ASSIGNED");
+        UUID studentTwoAssignmentId =
+                evaluationAssignment(UUID.randomUUID(), evaluationId, studentTwoMemberId, "ASSIGNED");
         UUID studentOneConversationId = conversation(UUID.randomUUID(), studentOneMemberId, "Student One Conversation");
         UUID studentTwoConversationId = conversation(UUID.randomUUID(), studentTwoMemberId, "Student Two Conversation");
 
-        return new Fixture(
-                tenantId,
+        return new Fixture(tenantId,
                 otherTenantId,
                 adminAccountId,
                 tenantAdminAccountId,
@@ -231,7 +221,8 @@ abstract class UC001MigrationTestSupport {
         }
 
         boolean canInviteStudent(UUID accountId, UUID groupClassId) throws SQLException {
-            return isProfessorMember(accountId, groupClassId) && hasRolePermission("PROFESSOR", "GROUP_CLASS_MEMBER:INVITE");
+            return isProfessorMember(accountId, groupClassId)
+                    && hasRolePermission("PROFESSOR", "GROUP_CLASS_MEMBER:INVITE");
         }
 
         boolean canUpdateGroupClass(UUID accountId, UUID groupClassId) throws SQLException {
@@ -239,7 +230,8 @@ abstract class UC001MigrationTestSupport {
         }
 
         boolean canManageGroupClassMembers(UUID accountId, UUID groupClassId) throws SQLException {
-            return isProfessorMember(accountId, groupClassId) && hasRolePermission("PROFESSOR", "GROUP_CLASS_MEMBER:UPDATE");
+            return isProfessorMember(accountId, groupClassId)
+                    && hasRolePermission("PROFESSOR", "GROUP_CLASS_MEMBER:UPDATE");
         }
 
         boolean canCreateGrounding(UUID accountId, UUID groupClassId) throws SQLException {
@@ -247,21 +239,24 @@ abstract class UC001MigrationTestSupport {
         }
 
         boolean canCreateEvaluation(UUID accountId, UUID groupClassId) throws SQLException {
-            return isProfessorMember(accountId, groupClassId) && hasRolePermission("PROFESSOR", "EVALUATION:CREATE");
+            return isProfessorMember(accountId, groupClassId)
+                    && hasRolePermission("PROFESSOR", "TRAINING_ACTIVITY:CREATE");
         }
 
         boolean canViewAssignment(UUID accountId, UUID assignmentId) throws SQLException {
             if (isSystemAdmin(accountId)) {
-                return hasRolePermission("SYSTEM_ADMIN", "EVALUATION_ASSIGNMENT:VIEW");
+                return hasRolePermission("SYSTEM_ADMIN", "TRAINING_ACTIVITY_ASSIGNMENT:VIEW");
             }
-            return ownsAssignment(accountId, assignmentId) && hasRolePermission("STUDENT", "EVALUATION_ASSIGNMENT:VIEW");
+            return ownsAssignment(accountId, assignmentId)
+                    && hasRolePermission("STUDENT", "TRAINING_ACTIVITY_ASSIGNMENT:VIEW");
         }
 
         boolean canUpdateAssignment(UUID accountId, UUID assignmentId, String targetStatus) throws SQLException {
             if (!List.of("STARTED", "SUBMITTED").contains(targetStatus)) {
                 return false;
             }
-            if (!ownsAssignment(accountId, assignmentId) || !hasRolePermission("STUDENT", "EVALUATION_ASSIGNMENT:UPDATE")) {
+            if (!ownsAssignment(accountId, assignmentId)
+                    || !hasRolePermission("STUDENT", "TRAINING_ACTIVITY_ASSIGNMENT:UPDATE")) {
                 return false;
             }
             String currentStatus = assignmentStatus(assignmentId);
@@ -284,13 +279,13 @@ abstract class UC001MigrationTestSupport {
             if (isSystemAdmin(accountId)) {
                 return true;
             }
-            return hasTenantRole(accountId, tenantId, "TENANT_ADMIN") && hasRolePermission("TENANT_ADMIN", permissionCode);
+            return hasTenantRole(accountId, tenantId, "TENANT_ADMIN")
+                    && hasRolePermission("TENANT_ADMIN", permissionCode);
         }
 
         private boolean isSystemAdmin(UUID accountId) throws SQLException {
-            try (Connection connection = connection();
-                    PreparedStatement statement = connection.prepareStatement(
-                            "select system_admin from account where id = ?")) {
+            try (Connection connection = connection(); PreparedStatement statement =
+                    connection.prepareStatement("select system_admin from account where id = ?")) {
                 statement.setObject(1, accountId);
                 try (ResultSet resultSet = statement.executeQuery()) {
                     resultSet.next();
@@ -300,17 +295,16 @@ abstract class UC001MigrationTestSupport {
         }
 
         private boolean hasRolePermission(String roleCode, String permissionCode) throws SQLException {
-            try (Connection connection = connection();
-                    PreparedStatement statement = connection.prepareStatement(
-                            """
-                            select exists (
-                                select 1
-                                from role_permission rp
-                                join role r on r.id = rp.role_id
-                                join permission p on p.id = rp.permission_id
-                                where r.code = ? and p.code = ?
-                            )
-                            """)) {
+            try (Connection connection = connection(); PreparedStatement statement =
+                    connection.prepareStatement("""
+                                                select exists (
+                                                    select 1
+                                                    from role_permission rp
+                                                    join role r on r.id = rp.role_id
+                                                    join permission p on p.id = rp.permission_id
+                                                    where r.code = ? and p.code = ?
+                                                )
+                                                """)) {
                 statement.setString(1, roleCode);
                 statement.setString(2, permissionCode);
                 try (ResultSet resultSet = statement.executeQuery()) {
@@ -321,17 +315,16 @@ abstract class UC001MigrationTestSupport {
         }
 
         private boolean hasTenantRole(UUID accountId, UUID tenantId, String roleCode) throws SQLException {
-            try (Connection connection = connection();
-                    PreparedStatement statement = connection.prepareStatement(
-                            """
-                            select exists (
-                                select 1
-                                from tenant_account ta
-                                join tenant_account_role tar on tar.tenant_account_id = ta.id
-                                join role r on r.id = tar.role_id
-                                where ta.account_id = ? and ta.tenant_id = ? and r.code = ? and ta.locked = false
-                            )
-                            """)) {
+            try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
+                """
+                select exists (
+                    select 1
+                    from tenant_account ta
+                    join tenant_account_role tar on tar.tenant_account_id = ta.id
+                    join role r on r.id = tar.role_id
+                    where ta.account_id = ? and ta.tenant_id = ? and r.code = ? and ta.locked = false
+                )
+                """)) {
                 statement.setObject(1, accountId);
                 statement.setObject(2, tenantId);
                 statement.setString(3, roleCode);
@@ -343,24 +336,26 @@ abstract class UC001MigrationTestSupport {
         }
 
         private boolean isProfessorMember(UUID accountId, UUID groupClassId) throws SQLException {
-            return hasGroupClassMembership(accountId, groupClassId, "PROFESSOR") && hasTenantRole(accountId, tenantIdForGroupClass(groupClassId), "PROFESSOR");
+            return hasGroupClassMembership(accountId, groupClassId, "PROFESSOR")
+                    && hasTenantRole(accountId, tenantIdForGroupClass(groupClassId), "PROFESSOR");
         }
 
         private boolean isStudentMember(UUID accountId, UUID groupClassId) throws SQLException {
-            return hasGroupClassMembership(accountId, groupClassId, "STUDENT") && hasTenantRole(accountId, tenantIdForGroupClass(groupClassId), "STUDENT");
+            return hasGroupClassMembership(accountId, groupClassId, "STUDENT")
+                    && hasTenantRole(accountId, tenantIdForGroupClass(groupClassId), "STUDENT");
         }
 
-        private boolean hasGroupClassMembership(UUID accountId, UUID groupClassId, String membershipRole) throws SQLException {
-            try (Connection connection = connection();
-                    PreparedStatement statement = connection.prepareStatement(
-                            """
-                            select exists (
-                                select 1
-                                from group_class_member gcm
-                                join tenant_account ta on ta.id = gcm.tenant_account_id
-                                where ta.account_id = ? and gcm.group_class_id = ? and gcm.role = ? and gcm.locked = false
-                            )
-                            """)) {
+        private boolean hasGroupClassMembership(UUID accountId, UUID groupClassId, String membershipRole)
+                throws SQLException {
+            try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
+                """
+                select exists (
+                    select 1
+                    from group_class_member gcm
+                    join tenant_account ta on ta.id = gcm.tenant_account_id
+                    where ta.account_id = ? and gcm.group_class_id = ? and gcm.role = ? and gcm.locked = false
+                )
+                """)) {
                 statement.setObject(1, accountId);
                 statement.setObject(2, groupClassId);
                 statement.setString(3, membershipRole);
@@ -372,17 +367,16 @@ abstract class UC001MigrationTestSupport {
         }
 
         private boolean ownsAssignment(UUID accountId, UUID assignmentId) throws SQLException {
-            try (Connection connection = connection();
-                    PreparedStatement statement = connection.prepareStatement(
-                            """
-                            select exists (
-                                select 1
-                                from evaluation_assignment ea
-                                join group_class_member gcm on gcm.id = ea.group_class_member_id
-                                join tenant_account ta on ta.id = gcm.tenant_account_id
-                                where ea.id = ? and ta.account_id = ? and gcm.role = 'STUDENT' and gcm.locked = false
-                            )
-                            """)) {
+            try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
+                """
+                select exists (
+                    select 1
+                    from training_activity_assignment ea
+                    join group_class_member gcm on gcm.id = ea.group_class_member_id
+                    join tenant_account ta on ta.id = gcm.tenant_account_id
+                    where ea.id = ? and ta.account_id = ? and gcm.role = 'STUDENT' and gcm.locked = false
+                )
+                """)) {
                 statement.setObject(1, assignmentId);
                 statement.setObject(2, accountId);
                 try (ResultSet resultSet = statement.executeQuery()) {
@@ -393,9 +387,8 @@ abstract class UC001MigrationTestSupport {
         }
 
         private String assignmentStatus(UUID assignmentId) throws SQLException {
-            try (Connection connection = connection();
-                    PreparedStatement statement = connection.prepareStatement(
-                            "select status from evaluation_assignment where id = ?")) {
+            try (Connection connection = connection(); PreparedStatement statement =
+                    connection.prepareStatement("select status from training_activity_assignment where id = ?")) {
                 statement.setObject(1, assignmentId);
                 try (ResultSet resultSet = statement.executeQuery()) {
                     resultSet.next();
@@ -405,17 +398,16 @@ abstract class UC001MigrationTestSupport {
         }
 
         private boolean ownsConversation(UUID accountId, UUID conversationId) throws SQLException {
-            try (Connection connection = connection();
-                    PreparedStatement statement = connection.prepareStatement(
-                            """
-                            select exists (
-                                select 1
-                                from conversation c
-                                join group_class_member gcm on gcm.id = c.group_class_member_id
-                                join tenant_account ta on ta.id = gcm.tenant_account_id
-                                where c.id = ? and ta.account_id = ? and gcm.role = 'STUDENT' and gcm.locked = false
-                            )
-                            """)) {
+            try (Connection connection = connection(); PreparedStatement statement = connection.prepareStatement(
+                """
+                select exists (
+                    select 1
+                    from conversation c
+                    join group_class_member gcm on gcm.id = c.group_class_member_id
+                    join tenant_account ta on ta.id = gcm.tenant_account_id
+                    where c.id = ? and ta.account_id = ? and gcm.role = 'STUDENT' and gcm.locked = false
+                )
+                """)) {
                 statement.setObject(1, conversationId);
                 statement.setObject(2, accountId);
                 try (ResultSet resultSet = statement.executeQuery()) {
@@ -426,9 +418,8 @@ abstract class UC001MigrationTestSupport {
         }
 
         private UUID tenantIdForGroupClass(UUID groupClassId) throws SQLException {
-            try (Connection connection = connection();
-                    PreparedStatement statement = connection.prepareStatement(
-                            "select tenant_id from group_class where id = ?")) {
+            try (Connection connection = connection(); PreparedStatement statement =
+                    connection.prepareStatement("select tenant_id from group_class where id = ?")) {
                 statement.setObject(1, groupClassId);
                 try (ResultSet resultSet = statement.executeQuery()) {
                     resultSet.next();
@@ -440,56 +431,53 @@ abstract class UC001MigrationTestSupport {
 
     private UUID account(UUID id, String email, String username, boolean systemAdmin) throws SQLException {
         executeInsert(
-                "insert into account (id, email, username, password_hash, system_admin, locked) values (?, ?, ?, ?, ?, false)",
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setString(2, email);
-                    statement.setString(3, username);
-                    statement.setString(4, "fixture-hash");
-                    statement.setBoolean(5, systemAdmin);
-                });
+            "insert into account (id, email, username, password_hash, system_admin, locked) values (?, ?, ?, ?, ?, false)",
+            statement -> {
+                statement.setObject(1, id);
+                statement.setString(2, email);
+                statement.setString(3, username);
+                statement.setString(4, "fixture-hash");
+                statement.setBoolean(5, systemAdmin);
+            });
         return id;
     }
 
     private void tenant(UUID id, UUID ownerTenantAccountId, String name) throws SQLException {
         executeInsert(
-                "insert into tenant (id, owner_tenant_account_id, name, locked) values (?, ?, ?, false)",
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setObject(2, ownerTenantAccountId);
-                    statement.setString(3, name);
-                });
+            "insert into tenant (id, owner_tenant_account_id, name, locked) values (?, ?, ?, false)",
+            statement -> {
+                statement.setObject(1, id);
+                statement.setObject(2, ownerTenantAccountId);
+                statement.setString(3, name);
+            });
     }
 
     private void updateTenantOwner(UUID tenantId, UUID ownerTenantAccountId) throws SQLException {
-        executeInsert(
-                "update tenant set owner_tenant_account_id = ? where id = ?",
-                statement -> {
-                    statement.setObject(1, ownerTenantAccountId);
-                    statement.setObject(2, tenantId);
-                });
+        executeInsert("update tenant set owner_tenant_account_id = ? where id = ?", statement -> {
+            statement.setObject(1, ownerTenantAccountId);
+            statement.setObject(2, tenantId);
+        });
     }
 
     private UUID tenantAccount(UUID id, UUID tenantId, UUID accountId) throws SQLException {
         executeInsert(
-                "insert into tenant_account (id, tenant_id, account_id, locked) values (?, ?, ?, false)",
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setObject(2, tenantId);
-                    statement.setObject(3, accountId);
-                });
+            "insert into tenant_account (id, tenant_id, account_id, locked) values (?, ?, ?, false)",
+            statement -> {
+                statement.setObject(1, id);
+                statement.setObject(2, tenantId);
+                statement.setObject(3, accountId);
+            });
         return id;
     }
 
     private void assignRole(UUID tenantAccountId, String roleCode) throws SQLException {
-        try (Connection connection = connection();
-                PreparedStatement statement = connection.prepareStatement(
-                        """
-                        insert into tenant_account_role (tenant_account_id, role_id)
-                        select ?, r.id
-                        from role r
-                        where r.code = ?
-                        """)) {
+        try (Connection connection = connection(); PreparedStatement statement =
+                connection.prepareStatement("""
+                                            insert into tenant_account_role (tenant_account_id, role_id)
+                                            select ?, r.id
+                                            from role r
+                                            where r.code = ?
+                                            """)) {
             statement.setObject(1, tenantAccountId);
             statement.setString(2, roleCode);
             statement.executeUpdate();
@@ -498,97 +486,103 @@ abstract class UC001MigrationTestSupport {
 
     private UUID subject(UUID id, UUID tenantId, String code, String name) throws SQLException {
         executeInsert(
-                "insert into subject (id, tenant_id, code, name, active) values (?, ?, ?, ?, true)",
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setObject(2, tenantId);
-                    statement.setString(3, code);
-                    statement.setString(4, name);
-                });
+            "insert into subject (id, tenant_id, code, name, active) values (?, ?, ?, ?, true)",
+            statement -> {
+                statement.setObject(1, id);
+                statement.setObject(2, tenantId);
+                statement.setString(3, code);
+                statement.setString(4, name);
+            });
         return id;
     }
 
     private UUID academicPeriod(UUID id, UUID tenantId, String code, String name) throws SQLException {
         executeInsert(
-                "insert into academic_period (id, tenant_id, code, name, starts_at, ends_at, active) values (?, ?, ?, ?, ?, ?, true)",
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setObject(2, tenantId);
-                    statement.setString(3, code);
-                    statement.setString(4, name);
-                    statement.setDate(5, Date.valueOf(LocalDate.of(2026, 8, 1)));
-                    statement.setDate(6, Date.valueOf(LocalDate.of(2026, 12, 1)));
-                });
+            "insert into academic_period (id, tenant_id, code, name, starts_at, ends_at, active) values (?, ?, ?, ?, ?, ?, true)",
+            statement -> {
+                statement.setObject(1, id);
+                statement.setObject(2, tenantId);
+                statement.setString(3, code);
+                statement.setString(4, name);
+                statement.setDate(5, Date.valueOf(LocalDate.of(2026, 8, 1)));
+                statement.setDate(6, Date.valueOf(LocalDate.of(2026, 12, 1)));
+            });
         return id;
     }
 
-    private UUID groupClass(UUID id, UUID tenantId, UUID subjectId, UUID periodId, UUID creatorTenantAccountId, String code)
-            throws SQLException {
+    private UUID groupClass(
+            UUID id,
+            UUID tenantId,
+            UUID subjectId,
+            UUID periodId,
+            UUID creatorTenantAccountId,
+            String code) throws SQLException {
         executeInsert(
-                """
-                insert into group_class (id, tenant_id, subject_id, academic_period_id, created_by_tenant_account_id, code, name, active)
-                values (?, ?, ?, ?, ?, ?, ?, true)
-                """,
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setObject(2, tenantId);
-                    statement.setObject(3, subjectId);
-                    statement.setObject(4, periodId);
-                    statement.setObject(5, creatorTenantAccountId);
-                    statement.setString(6, code);
-                    statement.setString(7, code);
-                });
+            """
+            insert into group_class (id, tenant_id, subject_id, academic_period_id, created_by_tenant_account_id, code, name, active)
+            values (?, ?, ?, ?, ?, ?, ?, true)
+            """,
+            statement -> {
+                statement.setObject(1, id);
+                statement.setObject(2, tenantId);
+                statement.setObject(3, subjectId);
+                statement.setObject(4, periodId);
+                statement.setObject(5, creatorTenantAccountId);
+                statement.setString(6, code);
+                statement.setString(7, code);
+            });
         return id;
     }
 
     private UUID groupClassMember(UUID id, UUID groupClassId, UUID tenantAccountId, String role) throws SQLException {
         executeInsert(
-                "insert into group_class_member (id, group_class_id, tenant_account_id, role, locked) values (?, ?, ?, ?, false)",
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setObject(2, groupClassId);
-                    statement.setObject(3, tenantAccountId);
-                    statement.setString(4, role);
-                });
+            "insert into group_class_member (id, group_class_id, tenant_account_id, role, locked) values (?, ?, ?, ?, false)",
+            statement -> {
+                statement.setObject(1, id);
+                statement.setObject(2, groupClassId);
+                statement.setObject(3, tenantAccountId);
+                statement.setString(4, role);
+            });
         return id;
     }
 
     private UUID evaluation(UUID id, UUID groupClassId, UUID professorMemberId, String title) throws SQLException {
         executeInsert(
-                """
-                insert into evaluation (id, group_class_id, created_by_group_class_member_id, title, instructions, status)
-                values (?, ?, ?, ?, ?, 'DRAFT')
-                """,
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setObject(2, groupClassId);
-                    statement.setObject(3, professorMemberId);
-                    statement.setString(4, title);
-                    statement.setString(5, title + " instructions");
-                });
+            """
+            insert into training_activity (id, group_class_id, created_by_group_class_member_id, title, instructions, status)
+            values (?, ?, ?, ?, ?, 'DRAFT')
+            """,
+            statement -> {
+                statement.setObject(1, id);
+                statement.setObject(2, groupClassId);
+                statement.setObject(3, professorMemberId);
+                statement.setString(4, title);
+                statement.setString(5, title + " instructions");
+            });
         return id;
     }
 
-    private UUID evaluationAssignment(UUID id, UUID evaluationId, UUID studentMemberId, String status) throws SQLException {
+    private UUID evaluationAssignment(UUID id, UUID evaluationId, UUID studentMemberId, String status)
+            throws SQLException {
         executeInsert(
-                "insert into evaluation_assignment (id, evaluation_id, group_class_member_id, status) values (?, ?, ?, ?)",
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setObject(2, evaluationId);
-                    statement.setObject(3, studentMemberId);
-                    statement.setString(4, status);
-                });
+            "insert into training_activity_assignment (id, training_activity_id, group_class_member_id, status) values (?, ?, ?, ?)",
+            statement -> {
+                statement.setObject(1, id);
+                statement.setObject(2, evaluationId);
+                statement.setObject(3, studentMemberId);
+                statement.setString(4, status);
+            });
         return id;
     }
 
     private UUID conversation(UUID id, UUID groupClassMemberId, String title) throws SQLException {
         executeInsert(
-                "insert into conversation (id, group_class_member_id, title, version) values (?, ?, ?, 0)",
-                statement -> {
-                    statement.setObject(1, id);
-                    statement.setObject(2, groupClassMemberId);
-                    statement.setString(3, title);
-                });
+            "insert into conversation (id, group_class_member_id, title, version) values (?, ?, ?, 0)",
+            statement -> {
+                statement.setObject(1, id);
+                statement.setObject(2, groupClassMemberId);
+                statement.setString(3, title);
+            });
         return id;
     }
 

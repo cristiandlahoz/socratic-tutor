@@ -2,11 +2,12 @@ package com.wornux.usecases.uc003;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.wornux.services.email.TemplatedEmailMessage;
-import com.wornux.infrastructure.email.ThymeleafEmailTemplateService;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+
+import com.wornux.infrastructure.email.ThymeleafEmailTemplateService;
+import com.wornux.services.email.TemplatedEmailMessage;
 import org.junit.jupiter.api.Test;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
@@ -43,15 +44,19 @@ class UC003ConfigAndTemplateTest {
         templateEngine.setTemplateResolver(resolver);
 
         var service = new ThymeleafEmailTemplateService(templateEngine);
-        var html = service.render(new TemplatedEmailMessage(
-                "professor@test.local",
-                "Professor invitation",
-                "professor-invitation",
-                Map.of(
-                        "tenantName", "Algorithms University",
-                        "groupClassName", "Algorithms 101",
-                        "invitedEmail", "professor@test.local",
-                        "acceptUrl", "http://localhost:8080/invitations/accept?token=test-token")));
+        var html = service.render(
+            new TemplatedEmailMessage("professor@test.local",
+                    "Professor invitation",
+                    "professor-invitation",
+                    Map.of(
+                        "tenantName",
+                        "Algorithms University",
+                        "groupClassName",
+                        "Algorithms 101",
+                        "invitedEmail",
+                        "professor@test.local",
+                        "acceptUrl",
+                        "http://localhost:8080/invitations/accept?token=test-token")));
 
         assertTrue(html.contains("You have been invited as a professor"));
         assertTrue(html.contains("Algorithms University"));

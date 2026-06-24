@@ -1,11 +1,9 @@
 package com.wornux;
 
-import com.wornux.ai.profile.StudentProfilePromptMapper;
 import com.wornux.ai.prompt.TutorPromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.config.AIConfig;
-import com.wornux.config.ProfileProperties;
 import com.wornux.config.TutorAiProperties;
 import com.wornux.services.document.DocumentRetrievalService;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -27,7 +25,7 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootConfiguration
-@EnableConfigurationProperties({ ProfileProperties.class, TutorAiProperties.class })
+@EnableConfigurationProperties(TutorAiProperties.class)
 @Import({ AIConfig.class })
 @ImportAutoConfiguration({
         OllamaApiAutoConfiguration.class,
@@ -40,11 +38,6 @@ class AiConfigToolTestSupport {
     @Bean
     TutorPromptResources tutorPromptResources(ResourceLoader resourceLoader) {
         return new TutorPromptResources(resourceLoader);
-    }
-
-    @Bean
-    StudentProfilePromptMapper studentProfilePromptMapper() {
-        return new StudentProfilePromptMapper();
     }
 
     @Bean

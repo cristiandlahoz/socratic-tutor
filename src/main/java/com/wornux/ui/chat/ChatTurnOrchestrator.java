@@ -51,7 +51,7 @@ public class ChatTurnOrchestrator {
         var ui = UI.getCurrent();
 
         if (context.newConversation()) {
-                conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> {
+            conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> {
                 conversationService.renameConversationIfTitleMatches(
                     context.conversationId(),
                     context.fallbackTitle(),
@@ -65,63 +65,58 @@ public class ChatTurnOrchestrator {
         context.state().composerText().set("");
         var responseMessage = context.state().messages().insertLast(MessageState.assistantLoading(Instant.now()));
 
-        activeStream =
-                chatService
-                        .chatStream(
-                            context.turnId(),
-                            context.prompt(),
-                            context.conversationId(),
-                            questionExchange::ask)
-                        .subscribe(token -> {
-                            if (streamGeneration.get() != streamId) {
-                                return;
-                            }
-                            if (firstTokenReceived.compareAndSet(false, true)) {
-                                responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
-                            }
-                            responseMessage.update(message -> Objects.requireNonNull(message).append(token));
-                            runUiSideEffect(ui, onResponseUpdated);
-                        }, exception -> {
-                            if (streamGeneration.get() != streamId) {
-                                return;
-                            }
-                            log.warn(
-                                "chat_ui_stream_failed turn_id={} conversation_id={}"
-                                        + " failure_kind={} error_type={} error_message={}",
-                                context.turnId(),
-                                context.conversationId(),
-                                chatFailureKind(exception),
-                                exception.getClass().getSimpleName(),
-                                exception.getMessage(),
-                                exception);
-                            responseMessage.update(
-                                message -> Objects.requireNonNull(message)
-                                        .fallback(
-                                            "Lo siento, ocurrió un problema al generar la respuesta. Intenta"
-                                                    + " nuevamente."));
-                            finishResponse(
-                                context.state(),
-                                ui,
-                                onResponseFinished,
-                                refreshConversationHistory,
-                                refreshTranscriptUsage,
-                                refreshCompactionStatus);
-                        }, () -> {
-                            if (streamGeneration.get() != streamId) {
-                                return;
-                            }
-                            responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
-                            startCompactionPhase(context.state());
-                            finalizeTurn(
-                                context,
-                                responseMessage.peek().content(),
-                                chatService,
-                                onResponseFinished,
-                                refreshConversationHistory,
-                                refreshTranscriptUsage,
-                                refreshCompactionStatus,
-                                ui);
-                        });
+        activeStream = chatService
+                .chatStream(context.turnId(), context.prompt(), context.conversationId(), questionExchange::ask)
+                .subscribe(token -> {
+                    if (streamGeneration.get() != streamId) {
+                        return;
+                    }
+                    if (firstTokenReceived.compareAndSet(false, true)) {
+                        responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
+                    }
+                    responseMessage.update(message -> Objects.requireNonNull(message).append(token));
+                    runUiSideEffect(ui, onResponseUpdated);
+                }, exception -> {
+                    if (streamGeneration.get() != streamId) {
+                        return;
+                    }
+                    log.warn(
+                        "chat_ui_stream_failed turn_id={} conversation_id={}"
+                                + " failure_kind={} error_type={} error_message={}",
+                        context.turnId(),
+                        context.conversationId(),
+                        chatFailureKind(exception),
+                        exception.getClass().getSimpleName(),
+                        exception.getMessage(),
+                        exception);
+                    responseMessage.update(
+                        message -> Objects.requireNonNull(message)
+                                .fallback(
+                                    "Lo siento, ocurrió un problema al generar la respuesta. Intenta"
+                                            + " nuevamente."));
+                    finishResponse(
+                        context.state(),
+                        ui,
+                        onResponseFinished,
+                        refreshConversationHistory,
+                        refreshTranscriptUsage,
+                        refreshCompactionStatus);
+                }, () -> {
+                    if (streamGeneration.get() != streamId) {
+                        return;
+                    }
+                    responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
+                    startCompactionPhase(context.state());
+                    finalizeTurn(
+                        context,
+                        responseMessage.peek().content(),
+                        chatService,
+                        onResponseFinished,
+                        refreshConversationHistory,
+                        refreshTranscriptUsage,
+                        refreshCompactionStatus,
+                        ui);
+                });
     }
 
     private void finalizeTurn(
@@ -133,13 +128,9 @@ public class ChatTurnOrchestrator {
             Runnable refreshTranscriptUsage,
             Runnable refreshCompactionStatus,
             UI ui) {
-        activeStream = Mono
-                .fromCallable(
-                    () -> chatService.finalizeTurn(
-                        context.turnId(),
-                        context.conversationId(),
-                        context.prompt(),
-                        assistantResponse))
+        activeStream = Mono.fromCallable(
+            () -> chatService
+                    .finalizeTurn(context.turnId(), context.conversationId(), context.prompt(), assistantResponse))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                     _ -> finishResponse(

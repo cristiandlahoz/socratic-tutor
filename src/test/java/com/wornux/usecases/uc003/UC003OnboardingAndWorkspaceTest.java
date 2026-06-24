@@ -4,6 +4,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import com.wornux.config.SocraticEmailProperties;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
@@ -35,11 +41,6 @@ import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDecision;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,17 +52,28 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 @ExtendWith(MockitoExtension.class)
 class UC003OnboardingAndWorkspaceTest {
 
-    @Mock private InvitationRepository invitationRepository;
-    @Mock private AccountRepository accountRepository;
-    @Mock private TenantRepository tenantRepository;
-    @Mock private TenantAccountRepository tenantAccountRepository;
-    @Mock private GroupClassRepository groupClassRepository;
-    @Mock private RoleRepository roleRepository;
-    @Mock private TenantAccountRoleRepository tenantAccountRoleRepository;
-    @Mock private GroupClassMemberRepository groupClassMemberRepository;
-    @Mock private InvitationEmailService invitationEmailService;
-    @Mock private AuthenticatedAccountService authenticatedAccountService;
-    @Mock private WorkspaceRoutingService workspaceRoutingService;
+    @Mock
+    private InvitationRepository invitationRepository;
+    @Mock
+    private AccountRepository accountRepository;
+    @Mock
+    private TenantRepository tenantRepository;
+    @Mock
+    private TenantAccountRepository tenantAccountRepository;
+    @Mock
+    private GroupClassRepository groupClassRepository;
+    @Mock
+    private RoleRepository roleRepository;
+    @Mock
+    private TenantAccountRoleRepository tenantAccountRoleRepository;
+    @Mock
+    private GroupClassMemberRepository groupClassMemberRepository;
+    @Mock
+    private InvitationEmailService invitationEmailService;
+    @Mock
+    private AuthenticatedAccountService authenticatedAccountService;
+    @Mock
+    private WorkspaceRoutingService workspaceRoutingService;
 
     private InvitationTokenService invitationTokenService;
     private OnboardingSessionContext onboardingSessionContext;
@@ -76,8 +88,7 @@ class UC003OnboardingAndWorkspaceTest {
         var emailProperties = new SocraticEmailProperties();
         emailProperties.setInvitationExpiration(Duration.ofHours(72));
         emailProperties.setInvitationBaseUrl("http://localhost:8080");
-        invitationService = new InvitationService(
-                emailProperties,
+        invitationService = new InvitationService(emailProperties,
                 invitationRepository,
                 accountRepository,
                 tenantRepository,
@@ -103,7 +114,14 @@ class UC003OnboardingAndWorkspaceTest {
         doReturn("raw-token").when(invitationTokenService).generateRawToken();
         doReturn("hashed-token").when(invitationTokenService).hash("raw-token");
 
-        invitationService.createInvitation(InvitationTargetRole.TENANT_ADMIN, tenant.getId(), null, "tenant-admin@test.local", account("admin@test.local"), null, null);
+        invitationService.createInvitation(
+            InvitationTargetRole.TENANT_ADMIN,
+            tenant.getId(),
+            null,
+            "tenant-admin@test.local",
+            account("admin@test.local"),
+            null,
+            null);
 
         var captor = ArgumentCaptor.forClass(Invitation.class);
         verify(invitationRepository).save(captor.capture());
@@ -133,7 +151,7 @@ class UC003OnboardingAndWorkspaceTest {
     void br57_br58_br59_br60_br61_invitedRegistrationUsesReadOnlyEmailPasswordEncoderAndUniqueUsername() {
         var invitation = pendingInvitation(InvitationTargetRole.STUDENT, InvitationStatus.PENDING);
         when(invitationRepository.findById(invitation.getId())).thenReturn(Optional.of(invitation));
-        onboardingSessionContext.setInvitationId(UUID.randomUUID());
+        onboardingSessionContext.setInvitationId(1L);
         onboardingSessionContext.setInvitationId(invitation.getId());
         invitation.setInvitedEmail("manu.el@test.local");
         onboardingSessionContext.setInvitedEmail("manu.el@test.local");
@@ -160,8 +178,8 @@ class UC003OnboardingAndWorkspaceTest {
         when(invitationRepository.findById(invitation.getId())).thenReturn(Optional.of(invitation));
 
         assertThrows(
-                InvitationStateException.class,
-                () -> invitationService.registerInvitedAccount("Manuel", "Perez", "secret-123", "secret-123"));
+            InvitationStateException.class,
+            () -> invitationService.registerInvitedAccount("Manuel", "Perez", "secret-123", "secret-123"));
         verify(accountRepository, never()).save(any(Account.class));
     }
 
@@ -174,7 +192,9 @@ class UC003OnboardingAndWorkspaceTest {
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
         when(invitationRepository.findById(invitation.getId())).thenReturn(Optional.of(invitation));
 
-        assertThrows(InvitationStateException.class, () -> invitationService.completePendingInvitationForCurrentAccount());
+        assertThrows(
+            InvitationStateException.class,
+            () -> invitationService.completePendingInvitationForCurrentAccount());
         verify(tenantAccountRepository, never()).save(any(TenantAccount.class));
         verify(groupClassMemberRepository, never()).save(any(GroupClassMember.class));
     }
@@ -183,7 +203,8 @@ class UC003OnboardingAndWorkspaceTest {
     void br62_prepareOnboardingMarksExistingAccountAsLoginOnly() {
         var invitation = pendingInvitation(InvitationTargetRole.PROFESSOR, InvitationStatus.PENDING);
         when(invitationRepository.findByTokenHash("existing-hash")).thenReturn(Optional.of(invitation));
-        when(accountRepository.findByEmail(invitation.getInvitedEmail())).thenReturn(Optional.of(account(invitation.getInvitedEmail())));
+        when(accountRepository.findByEmail(invitation.getInvitedEmail()))
+                .thenReturn(Optional.of(account(invitation.getInvitedEmail())));
         doReturn("existing-hash").when(invitationTokenService).hash("existing-token");
 
         var onboarding = invitationService.prepareOnboarding("existing-token");
@@ -194,11 +215,13 @@ class UC003OnboardingAndWorkspaceTest {
 
     @Test
     void br63_existingAccountAcceptanceRequiresMatchingEmail() {
-        onboardingSessionContext.setInvitationId(UUID.randomUUID());
+        onboardingSessionContext.setInvitationId(1L);
         onboardingSessionContext.setInvitedEmail("invited@test.local");
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account("other@test.local"));
 
-        assertThrows(InvitationStateException.class, () -> invitationService.completePendingInvitationForCurrentAccount());
+        assertThrows(
+            InvitationStateException.class,
+            () -> invitationService.completePendingInvitationForCurrentAccount());
     }
 
     @Test
@@ -209,14 +232,19 @@ class UC003OnboardingAndWorkspaceTest {
         onboardingSessionContext.setInvitedEmail(invitation.getInvitedEmail());
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
         when(invitationRepository.findById(invitation.getId())).thenReturn(Optional.of(invitation));
-        when(tenantAccountRepository.findByTenant_IdAndAccount_Id(invitation.getTenant().getId(), account.getId())).thenReturn(Optional.empty());
-        when(tenantAccountRepository.save(any(TenantAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tenantAccountRepository.findByTenant_IdAndAccount_Id(invitation.getTenant().getId(), account.getId()))
+                .thenReturn(Optional.empty());
+        when(tenantAccountRepository.save(any(TenantAccount.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         when(roleRepository.findByCode("TENANT_ADMIN")).thenReturn(Optional.of(role("TENANT_ADMIN")));
-        when(tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(any(), eq("TENANT_ADMIN"))).thenReturn(Optional.empty());
-        when(tenantAccountRoleRepository.save(any(TenantAccountRole.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(any(), eq("TENANT_ADMIN")))
+                .thenReturn(Optional.empty());
+        when(tenantAccountRoleRepository.save(any(TenantAccountRole.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(invitationRepository.save(any(Invitation.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(workspaceRoutingService.resolveForAccount(account)).thenReturn(new WorkspaceDecision(WorkspaceDestination.TENANT_ADMIN, UUID.randomUUID(), null));
+        when(workspaceRoutingService.resolveForAccount(account))
+                .thenReturn(new WorkspaceDecision(WorkspaceDestination.TENANT_ADMIN, UUID.randomUUID(), null));
 
         var decision = invitationService.completePendingInvitationForCurrentAccount();
 
@@ -228,8 +256,14 @@ class UC003OnboardingAndWorkspaceTest {
 
     @Test
     void mainFlow_professorAndStudentAcceptanceCreateMembershipsForEachRolePath() {
-        assertMembershipAcceptance(InvitationTargetRole.PROFESSOR, GroupClassMemberRole.PROFESSOR, WorkspaceDestination.PROFESSOR);
-        assertMembershipAcceptance(InvitationTargetRole.STUDENT, GroupClassMemberRole.STUDENT, WorkspaceDestination.STUDENT);
+        assertMembershipAcceptance(
+            InvitationTargetRole.PROFESSOR,
+            GroupClassMemberRole.PROFESSOR,
+            WorkspaceDestination.PROFESSOR);
+        assertMembershipAcceptance(
+            InvitationTargetRole.STUDENT,
+            GroupClassMemberRole.STUDENT,
+            WorkspaceDestination.STUDENT);
     }
 
     @Test
@@ -241,10 +275,15 @@ class UC003OnboardingAndWorkspaceTest {
         tenantAdminRole.setRole(role("TENANT_ADMIN"));
         tenantAdminRole.setTenantAccount(tenantAccount(account, tenant("Tenant A")));
         tenantAdminRole.getTenantAccount().setJoinedAt(Instant.now());
-        when(tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId())).thenReturn(List.of(tenantAdminRole));
+        when(tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId()))
+                .thenReturn(List.of(tenantAdminRole));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var routingService = new WorkspaceRoutingService(authenticatedAccountService, accountRepository, tenantAccountRepository, tenantAccountRoleRepository, groupClassMemberRepository);
+        var routingService = new WorkspaceRoutingService(authenticatedAccountService,
+                accountRepository,
+                tenantAccountRepository,
+                tenantAccountRoleRepository,
+                groupClassMemberRepository);
         assertEquals(WorkspaceDestination.TENANT_ADMIN, routingService.resolveForAccount(account).destination());
 
         account.setSystemAdmin(true);
@@ -258,7 +297,8 @@ class UC003OnboardingAndWorkspaceTest {
         tenantAdminRole.setRole(role("TENANT_ADMIN"));
         tenantAdminRole.setTenantAccount(tenantAccount(account, tenant("Tenant A")));
         tenantAdminRole.setAssignedAt(Instant.now());
-        var professorMembership = membership(account, tenantAdminRole.getTenantAccount().getTenant(), GroupClassMemberRole.PROFESSOR);
+        var professorMembership =
+                membership(account, tenantAdminRole.getTenantAccount().getTenant(), GroupClassMemberRole.PROFESSOR);
 
         when(tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId()))
                 .thenReturn(List.of(tenantAdminRole));
@@ -266,7 +306,11 @@ class UC003OnboardingAndWorkspaceTest {
                 .thenReturn(List.of(professorMembership));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var routingService = new WorkspaceRoutingService(authenticatedAccountService, accountRepository, tenantAccountRepository, tenantAccountRoleRepository, groupClassMemberRepository);
+        var routingService = new WorkspaceRoutingService(authenticatedAccountService,
+                accountRepository,
+                tenantAccountRepository,
+                tenantAccountRoleRepository,
+                groupClassMemberRepository);
 
         assertEquals(WorkspaceDestination.TENANT_ADMIN, routingService.resolveForAccount(account).destination());
         assertTrue(routingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR));
@@ -280,12 +324,20 @@ class UC003OnboardingAndWorkspaceTest {
         var professorMembership = membership(professorAccount, tenant, GroupClassMemberRole.PROFESSOR);
         var studentMembership = membership(account("student@test.local"), tenant, GroupClassMemberRole.STUDENT);
         studentMembership.setGroupClass(professorMembership.getGroupClass());
-        when(workspaceRoutingService.currentClassMembership(professorAccount, GroupClassMemberRole.PROFESSOR)).thenReturn(Optional.of(professorMembership));
-        when(groupClassMemberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(professorMembership.getGroupClass().getId())).thenReturn(List.of(studentMembership));
+        when(workspaceRoutingService.currentClassMembership(professorAccount, GroupClassMemberRole.PROFESSOR))
+                .thenReturn(Optional.of(professorMembership));
+        when(
+            groupClassMemberRepository
+                    .findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(professorMembership.getGroupClass().getId()))
+                .thenReturn(List.of(studentMembership));
         when(groupClassMemberRepository.findById(studentMembership.getId())).thenReturn(Optional.of(studentMembership));
-        when(groupClassMemberRepository.save(any(GroupClassMember.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(groupClassMemberRepository.save(any(GroupClassMember.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        var service = new ProfessorWorkspaceService(workspaceRoutingService, tenantAccountRepository, groupClassMemberRepository, invitationService);
+        var service = new ProfessorWorkspaceService(workspaceRoutingService,
+                tenantAccountRepository,
+                groupClassMemberRepository,
+                invitationService);
 
         assertEquals(1, service.listStudents(professorAccount).size());
         service.disableStudentMembership(professorAccount, studentMembership.getId());
@@ -296,30 +348,46 @@ class UC003OnboardingAndWorkspaceTest {
     @Test
     void br23_br54_studentWithoutMembershipGetsNoAccessRoute() {
         var account = account("student@test.local");
-        when(tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId())).thenReturn(List.of());
-        when(groupClassMemberRepository.findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId())).thenReturn(List.of());
+        when(tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId()))
+                .thenReturn(List.of());
+        when(groupClassMemberRepository.findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId()))
+                .thenReturn(List.of());
 
-        var routingService = new WorkspaceRoutingService(authenticatedAccountService, accountRepository, tenantAccountRepository, tenantAccountRoleRepository, groupClassMemberRepository);
+        var routingService = new WorkspaceRoutingService(authenticatedAccountService,
+                accountRepository,
+                tenantAccountRepository,
+                tenantAccountRoleRepository,
+                groupClassMemberRepository);
         assertEquals(WorkspaceDestination.NO_ACCESS, routingService.resolveForAccount(account).destination());
     }
 
-    private void assertMembershipAcceptance(InvitationTargetRole targetRole, GroupClassMemberRole expectedRole, WorkspaceDestination destination) {
+    private void assertMembershipAcceptance(
+            InvitationTargetRole targetRole,
+            GroupClassMemberRole expectedRole,
+            WorkspaceDestination destination) {
         var account = account(targetRole.name().toLowerCase() + "@test.local");
         var invitation = pendingInvitation(targetRole, InvitationStatus.PENDING);
         onboardingSessionContext.setInvitationId(invitation.getId());
         onboardingSessionContext.setInvitedEmail(invitation.getInvitedEmail());
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
         when(invitationRepository.findById(invitation.getId())).thenReturn(Optional.of(invitation));
-        when(tenantAccountRepository.findByTenant_IdAndAccount_Id(invitation.getTenant().getId(), account.getId())).thenReturn(Optional.empty());
-        when(tenantAccountRepository.save(any(TenantAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tenantAccountRepository.findByTenant_IdAndAccount_Id(invitation.getTenant().getId(), account.getId()))
+                .thenReturn(Optional.empty());
+        when(tenantAccountRepository.save(any(TenantAccount.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         when(roleRepository.findByCode(targetRole.name())).thenReturn(Optional.of(role(targetRole.name())));
-        when(tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(any(), eq(targetRole.name()))).thenReturn(Optional.empty());
-        when(tenantAccountRoleRepository.save(any(TenantAccountRole.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(groupClassMemberRepository.findByGroupClass_IdAndTenantAccount_Id(any(), any())).thenReturn(Optional.empty());
-        when(groupClassMemberRepository.save(any(GroupClassMember.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(any(), eq(targetRole.name())))
+                .thenReturn(Optional.empty());
+        when(tenantAccountRoleRepository.save(any(TenantAccountRole.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(groupClassMemberRepository.findByGroupClass_IdAndTenantAccount_Id(any(), any()))
+                .thenReturn(Optional.empty());
+        when(groupClassMemberRepository.save(any(GroupClassMember.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(invitationRepository.save(any(Invitation.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(workspaceRoutingService.resolveForAccount(account)).thenReturn(new WorkspaceDecision(destination, UUID.randomUUID(), UUID.randomUUID()));
+        when(workspaceRoutingService.resolveForAccount(account))
+                .thenReturn(new WorkspaceDecision(destination, UUID.randomUUID(), UUID.randomUUID()));
 
         var decision = invitationService.completePendingInvitationForCurrentAccount();
 
@@ -345,7 +413,7 @@ class UC003OnboardingAndWorkspaceTest {
 
     private static Invitation pendingInvitation(InvitationTargetRole targetRole, InvitationStatus status) {
         var invitation = new Invitation();
-        invitation.setId(UUID.randomUUID());
+        invitation.setId(1L);
         invitation.setTenant(tenant("Algorithms University"));
         invitation.setGroupClass(groupClass(invitation.getTenant()));
         invitation.setInvitedEmail(targetRole.name().toLowerCase() + "@test.local");
