@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.session.advisor.SessionMemoryAdvisor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -33,6 +33,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
                 "spring.ai.ollama.chat.model=${CHAT_MODEL:qwen3:4b-instruct}",
                 "spring.ai.ollama.base-url=${OLLAMA_BASE_URL:http://localhost:11434}",
                 "spring.ai.tools.throw-exception-on-error=true",
+                "app.chat.context-window-tokens=40960",
+                "app.chat.compaction-threshold-ratio=0.30",
                 "test.ollama.transcript-name=ask-student-question-tool-test" })
 class AskStudentQuestionToolTest {
 
@@ -52,7 +54,9 @@ class AskStudentQuestionToolTest {
         var conversationId = UUID.randomUUID();
         var response = chatClient.prompt()
                 .advisors(
-                    advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId.toString())
+                    advisorSpec -> advisorSpec
+                            .param(SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY, conversationId.toString())
+                            .param(SessionMemoryAdvisor.USER_ID_CONTEXT_KEY, groupClassMemberId.toString())
                             .param(ToolContextKeys.GROUP_CLASS_MEMBER_ID, groupClassMemberId))
                 .tools(new AskStudentQuestionTool(questionHandler(capturedQuestionSet)))
                 .user("""

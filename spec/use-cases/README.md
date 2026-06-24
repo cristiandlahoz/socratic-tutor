@@ -14,6 +14,7 @@ Each use case should describe the actor, trigger, main flow, alternative flows, 
 
 | ID | Title | Status | Primary Actor | Notes |
 |----|-------|--------|---------------|-------|
+| UC-001 | Persist Tutor Conversation History with Spring AI Session | Implemented | Authenticated group-class member | Keeps domain conversation ownership separate from advisor-managed Session events. |
 
 Implemented use cases from the pre-V1 foundation reset are intentionally not retained here. Add the next planned use case when it is drafted.
 

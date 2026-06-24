@@ -26,16 +26,12 @@ public class ChatState implements Serializable {
 
     private final ValueSignal<UUID> activeConversationId = new ValueSignal<>(null);
     private final ValueSignal<Boolean> responseInProgress = new ValueSignal<>(false);
-    private final ValueSignal<Boolean> compactionInProgress = new ValueSignal<>(false);
-    private final ValueSignal<String> compactionLabel = new ValueSignal<>("");
     private final ValueSignal<String> composerText = new ValueSignal<>("");
     private final ValueSignal<StudentQuestionSet> pendingQuestionSet = new ValueSignal<>(null);
     private final ValueSignal<Boolean> questionSubmissionInProgress = new ValueSignal<>(false);
     private final ValueSignal<Integer> usageInputTokens = new ValueSignal<>(null);
     private final ValueSignal<Integer> usagePercent = new ValueSignal<>(null);
     private final ValueSignal<Boolean> conversationCompacted = new ValueSignal<>(false);
-    private final ValueSignal<Integer> compactionGeneration = new ValueSignal<>(null);
-    private final ValueSignal<Long> compactedFromConversationStateId = new ValueSignal<>(null);
     private final ValueSignal<Boolean> setupRequired = new ValueSignal<>(false);
     private final ValueSignal<String> setupMessage =
             new ValueSignal<>("Academic setup is required before persisted tutor features can be used.");
@@ -46,13 +42,9 @@ public class ChatState implements Serializable {
     private final Signal<Boolean> emptyStateVisible = Signal.computed(() -> messages.get().isEmpty());
     private final Signal<Boolean> questionPanelVisible = Signal.computed(() -> pendingQuestionSet.get() != null);
     private final Signal<Boolean> composerEnabled = Signal.computed(
-        () -> !responseInProgress.get()
-                && !compactionInProgress.get()
-                && pendingQuestionSet.get() == null
-                && !questionSubmissionInProgress.get());
+        () -> !responseInProgress.get() && pendingQuestionSet.get() == null && !questionSubmissionInProgress.get());
     private final Signal<Boolean> sendEnabled = Signal.computed(
         () -> !responseInProgress.get()
-                && !compactionInProgress.get()
                 && pendingQuestionSet.get() == null
                 && !questionSubmissionInProgress.get()
                 && !composerText.get().isBlank());
@@ -63,14 +55,6 @@ public class ChatState implements Serializable {
 
     public ValueSignal<Boolean> responseInProgress() {
         return responseInProgress;
-    }
-
-    public ValueSignal<Boolean> compactionInProgress() {
-        return compactionInProgress;
-    }
-
-    public ValueSignal<String> compactionLabel() {
-        return compactionLabel;
     }
 
     public ValueSignal<String> composerText() {
@@ -95,14 +79,6 @@ public class ChatState implements Serializable {
 
     public ValueSignal<Boolean> conversationCompacted() {
         return conversationCompacted;
-    }
-
-    public ValueSignal<Integer> compactionGeneration() {
-        return compactionGeneration;
-    }
-
-    public ValueSignal<Long> compactedFromConversationStateId() {
-        return compactedFromConversationStateId;
     }
 
     public ValueSignal<Boolean> setupRequired() {
@@ -161,11 +137,7 @@ public class ChatState implements Serializable {
     }
 
     public void clearCompactionStatus() {
-        compactionInProgress.set(false);
-        compactionLabel.set("");
         conversationCompacted.set(false);
-        compactionGeneration.set(null);
-        compactedFromConversationStateId.set(null);
     }
 
     public void clearPendingQuestionState() {

@@ -107,10 +107,8 @@ public class ChatTurnOrchestrator {
                         return;
                     }
                     responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
-                    startCompactionPhase(context.state());
                     finalizeTurn(
                         context,
-                        responseMessage.peek().content(),
                         chatService,
                         onResponseFinished,
                         refreshConversationHistory,
@@ -122,18 +120,16 @@ public class ChatTurnOrchestrator {
 
     private void finalizeTurn(
             TurnContext context,
-            String assistantResponse,
             ChatService chatService,
             Runnable onResponseFinished,
             Runnable refreshConversationHistory,
             Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus,
             UI ui) {
-        activeStream = Mono.fromCallable(
-            () -> chatService
-                    .finalizeTurn(context.turnId(), context.conversationId(), context.prompt(), assistantResponse))
+        activeStream = Mono.fromRunnable(() -> chatService.finalizeTurn(context.turnId(), context.conversationId()))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
+                    _ -> {},
                     _ -> finishResponse(
                         context.state(),
                         ui,
@@ -141,7 +137,7 @@ public class ChatTurnOrchestrator {
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
                         refreshCompactionStatus),
-                    _ -> finishResponse(
+                    () -> finishResponse(
                         context.state(),
                         ui,
                         onResponseFinished,
@@ -158,19 +154,11 @@ public class ChatTurnOrchestrator {
             Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus) {
         state.responseInProgress().set(false);
-        state.compactionInProgress().set(false);
-        state.compactionLabel().set("");
         refreshConversationHistory.run();
         refreshConversationTokenUsage.run();
         refreshCompactionStatus.run();
         activeStream = null;
         runUiSideEffect(ui, onResponseFinished);
-    }
-
-    private void startCompactionPhase(ChatState state) {
-        state.responseInProgress().set(false);
-        state.compactionInProgress().set(true);
-        state.compactionLabel().set("Compactando, no debería tardar...");
     }
 
     private void runUiSideEffect(UI ui, Runnable callback) {

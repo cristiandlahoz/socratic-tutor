@@ -25,48 +25,25 @@ public class ChatUsageService {
             return;
         }
         var conversation = conversationService.requireOwnedConversation(conversationId);
-        var snapshot = conversation.getCurrentSnapshot();
-        if (snapshot == null) {
-            return;
-        }
-        snapshot.setTokenCount(inputTokens);
+        conversation.setLastPromptTokens(inputTokens);
         conversation.setUpdatedAt(Instant.now());
-        conversation.setCurrentSnapshot(snapshot);
     }
 
     @Transactional(readOnly = true)
     public ConversationTokenUsage getConversationTokenUsage(UUID conversationId) {
         var conversation = conversationService.findOwnedConversation(conversationId).orElse(null);
-        if (conversation == null || conversation.getCurrentSnapshot() == null) {
+        if (conversation == null || conversation.getLastPromptTokens() == null) {
             return ConversationTokenUsage.empty();
         }
-        var inputTokens = conversation.getCurrentSnapshot().getTokenCount();
+        var inputTokens = conversation.getLastPromptTokens();
         if (inputTokens <= 0) {
             return ConversationTokenUsage.empty();
         }
         return new ConversationTokenUsage(inputTokens, usagePercent(inputTokens));
     }
 
-    @Transactional(readOnly = true)
-    public boolean exceedsCompactionThreshold(UUID conversationId) {
-        var conversation = conversationService.findOwnedConversation(conversationId).orElse(null);
-        if (conversation == null || conversation.getCurrentSnapshot() == null) {
-            return false;
-        }
-        return exceedsCompactionThreshold(conversation.getCurrentSnapshot().getTokenCount());
-    }
-
-    boolean exceedsCompactionThreshold(int inputTokens) {
-        return inputTokens > thresholdTokens();
-    }
-
     int thresholdTokens() {
-        int threshold = (int) Math
-                .floor(chatProperties.getContextWindowTokens() * chatProperties.getCompactionThresholdRatio());
-        if (threshold <= 0) {
-            throw new IllegalStateException("Chat compaction threshold must be greater than zero");
-        }
-        return threshold;
+        return chatProperties.compactionThresholdTokens();
     }
 
     int usagePercent(int inputTokens) {

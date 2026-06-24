@@ -4,16 +4,19 @@ import com.wornux.ai.prompt.TutorPromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.config.AIConfig;
+import com.wornux.config.ChatProperties;
 import com.wornux.config.TutorAiProperties;
 import com.wornux.services.document.DocumentRetrievalService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration;
-import org.springframework.ai.model.chat.memory.autoconfigure.ChatMemoryAutoConfiguration;
 import org.springframework.ai.model.ollama.autoconfigure.OllamaApiAutoConfiguration;
 import org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration;
 import org.springframework.ai.model.tool.autoconfigure.ToolCallingAutoConfiguration;
+import org.springframework.ai.session.DefaultSessionService;
+import org.springframework.ai.session.InMemorySessionRepository;
+import org.springframework.ai.session.SessionService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -25,15 +28,19 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootConfiguration
-@EnableConfigurationProperties(TutorAiProperties.class)
+@EnableConfigurationProperties({ TutorAiProperties.class, ChatProperties.class })
 @Import({ AIConfig.class })
 @ImportAutoConfiguration({
         OllamaApiAutoConfiguration.class,
         OllamaChatAutoConfiguration.class,
         ToolCallingAutoConfiguration.class,
-        ChatClientAutoConfiguration.class,
-        ChatMemoryAutoConfiguration.class })
+        ChatClientAutoConfiguration.class })
 class AiConfigToolTestSupport {
+
+    @Bean
+    SessionService sessionService() {
+        return DefaultSessionService.builder().sessionRepository(InMemorySessionRepository.builder().build()).build();
+    }
 
     @Bean
     TutorPromptResources tutorPromptResources(ResourceLoader resourceLoader) {

@@ -38,6 +38,7 @@ The architecture must optimize for:
 - **Validation:** Jakarta Bean Validation and Vaadin Binder.
 - **Password Hashing:** Spring Security password encoder, normally BCrypt unless changed deliberately.
 - **AI:** Spring AI / ChatClient-oriented orchestration with guardrails, routing, retrieval, and prompt composition.
+- **Conversation Session:** Spring AI Session JDBC `0.6.0-SNAPSHOT` until its archived-event API is released; `pom.xml` remains authoritative for the exact version and snapshot repository.
 - **Testing:** JUnit 5, Spring Boot tests, repository/service integration tests, Vaadin route/view tests where applicable.
 
 ---
@@ -52,11 +53,11 @@ The application is organized around these active bounded areas:
 | `tenant` | Institution boundary and tenant membership. |
 | `authorization` | Roles, resources, actions, permissions, and authorization helpers. |
 | `academic` | Subjects, academic periods, group classes, and group-class members. |
-| `conversation` | Tutor conversations and snapshots. |
+| `conversation` | Tutor conversation ownership, listing, titles, access control, and domain metadata. |
 | `grounding` | PgVectorStore-backed grounding rows, embeddings, and retrieval. |
 | `training_activity` | Formative activity definitions and student assignments. |
 | `onboarding` | Invitation acceptance, registration, role assignment, and workspace routing. |
-| `ai` | Tutor prompt composition, advisors, tools, guardrails, memory, and retrieval orchestration. |
+| `ai` | Tutor prompt composition, advisors, tools, guardrails, Spring AI Session memory, compaction, and retrieval orchestration. |
 | `ui` | Vaadin views, layouts, navigation, and role/context-specific workspaces. |
 | `legacy` | Isolated obsolete code that must not participate in active runtime. |
 
@@ -87,8 +88,9 @@ Tutor conversation:
 
 ```text
 group_class_member
-  -> conversation
-      -> conversation_snapshot
+  -> conversation (domain root)
+      -> Spring AI Session (same id)
+          -> session events
 ```
 
 Grounding:
@@ -225,10 +227,11 @@ resource
 action
 permission
 group_class_join_code
-conversation_snapshot
 ```
 
 This split keeps business/security boundary identifiers non-sequential while allowing internal implementation records to remain simple and efficient.
+
+Spring AI Session identifiers are library-managed strings. The application maps `conversation.id` to the Session id without introducing a second domain identifier.
 
 ---
 
@@ -373,8 +376,9 @@ Missing context must not fall back to browser cookies or create academic records
 Target model:
 
 ```text
-conversation
-conversation_snapshot
+conversation (domain ownership and metadata)
+ai_session (Spring AI Session lifecycle metadata)
+ai_session_event (Spring AI Session message event log)
 ```
 
 Old model:
@@ -387,32 +391,16 @@ chat_message
 
 The old model is obsolete as active persistence.
 
-### Relationship Shape
+### Responsibility Split
 
-```text
-GroupClassMember 1 -> * Conversation
-Conversation 1 -> * ConversationSnapshot
-Conversation 1 -> 0..1 currentSnapshot
-ConversationSnapshot 0..1 -> previous ConversationSnapshot
-```
-
-A conversation's `current_snapshot_id` points to the currently active snapshot.
-
-The full snapshot list is separate from the current snapshot relationship.
-
-### Snapshot Strategy
-
-A snapshot stores:
-
-- message list,
-- compacted carry context,
-- message count,
-- token count,
-- version,
-- creation timestamp,
-- optional compaction timestamp.
-
-Compaction should create a new snapshot and move the conversation pointer forward instead of mutating old transcript rows.
+- `conversation` belongs to one `group_class_member` and remains authoritative for ownership, access checks, listing, title, and domain metadata.
+- `conversation.id` is passed as `SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY` on every model request.
+- `group_class_member.id` is passed as `SessionMemoryAdvisor.USER_ID_CONTEXT_KEY` so Session ownership is enforced in addition to service-layer authorization.
+- `SessionMemoryAdvisor` loads active history and appends user and assistant events. Application services must not append those events manually.
+- Spring AI Session recursive summarization archives compacted events and keeps its synthetic summary in the active context window.
+- Full display history is read from Session events, including archived real events, after domain ownership is verified.
+- Normal chat history excludes synthetic, tool, branched, blank, and tool-call assistant events.
+- Provider-reported prompt tokens may be stored as domain conversation metadata; missing metadata must not be estimated.
 
 ---
 
@@ -487,7 +475,7 @@ AI orchestration may include:
 - pedagogical routing advisors,
 - grounding retrieval tools,
 - document/catalog context backed by target grounding data,
-- memory/conversation context backed by target snapshots,
+- memory and compaction backed by the Spring AI Session advisor and JDBC event repository,
 - logging/observability advisors.
 
 AI must not:
@@ -592,7 +580,7 @@ Required categories:
 - tenant scope tests,
 - group-class membership tests,
 - ownership tests,
-- conversation snapshot tests,
+- Spring AI Session advisor, event filtering, compaction, and conversation ownership tests,
 - grounding retrieval tests,
 - formative assignment tests,
 - Vaadin route startup tests,

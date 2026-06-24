@@ -20,6 +20,7 @@
 
         <vaadin.version>25.1.0</vaadin.version>
         <spring-ai.version>2.0.0</spring-ai.version>
+        <spring-ai-session.version>0.6.0-SNAPSHOT</spring-ai-session.version>
         <lombok.version>1.18.38</lombok.version>
         <version.spotless>3.6.0</version.spotless>
         <version.checkstyle.maven>3.6.0</version.checkstyle.maven>
@@ -42,6 +43,13 @@
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
                 <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springaicommunity</groupId>
+                <artifactId>spring-ai-session-bom</artifactId>
+                <version>${spring-ai-session.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -125,6 +133,10 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-rag</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>spring-ai-starter-session-jdbc</artifactId>
         </dependency>
 
         <dependency>
@@ -278,6 +290,13 @@
         <repository>
             <id>vaadin-directory</id>
             <url>https://maven.vaadin.com/vaadin-addons</url>
+        </repository>
+        <repository>
+            <id>central-portal-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
         </repository>
     </repositories>
 

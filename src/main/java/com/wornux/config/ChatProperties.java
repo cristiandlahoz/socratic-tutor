@@ -25,6 +25,14 @@ public class ChatProperties {
         this.compactionThresholdRatio = compactionThresholdRatio;
     }
 
+    public int compactionThresholdTokens() {
+        int threshold = (int) Math.floor(contextWindowTokens * compactionThresholdRatio);
+        if (threshold <= 0) {
+            throw new IllegalStateException("Chat compaction threshold must be greater than zero");
+        }
+        return threshold;
+    }
+
     public Ui getUi() {
         return ui;
     }

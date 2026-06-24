@@ -2,18 +2,20 @@ package com.wornux.services.chat;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import com.wornux.data.entities.conversation.Conversation;
 import com.wornux.data.repositories.conversation.ConversationRepository;
-import com.wornux.dtos.chat.ChatCompactionStatus;
 import com.wornux.dtos.chat.ConversationMessage;
 import com.wornux.dtos.chat.ConversationSummary;
 import com.wornux.dtos.chat.ResolvedConversation;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.context.SetupRequiredException;
 import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.ai.session.EventFilter;
+import org.springframework.ai.session.SessionEvent;
+import org.springframework.ai.session.SessionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,15 +23,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class ConversationService {
 
     private static final int TITLE_MAX_LENGTH = 72;
+    private static final EventFilter DISPLAY_HISTORY_FILTER = EventFilter.builder()
+            .messageTypes(Set.of(MessageType.USER, MessageType.ASSISTANT))
+            .excludeSynthetic(true)
+            .build();
 
     private final ConversationRepository conversationRepository;
     private final ActiveAcademicContextResolver contextResolver;
+    private final SessionService sessionService;
 
     public ConversationService(
             ConversationRepository conversationRepository,
-            ActiveAcademicContextResolver contextResolver) {
+            ActiveAcademicContextResolver contextResolver,
+            SessionService sessionService) {
         this.conversationRepository = conversationRepository;
         this.contextResolver = contextResolver;
+        this.sessionService = sessionService;
     }
 
     @Transactional(readOnly = true)
@@ -47,10 +56,20 @@ public class ConversationService {
     @Transactional(readOnly = true)
     public List<ConversationMessage> loadConversation(UUID conversationId) {
         var conversation = findOwnedConversation(conversationId).orElse(null);
-        if (conversation == null || conversation.getCurrentSnapshot() == null) {
+        if (conversation == null || sessionService.findById(conversationId.toString()) == null) {
             return List.of();
         }
-        return toConversationMessages(conversation.getCurrentSnapshot().getMessages());
+        return sessionService.getEvents(conversationId.toString(), DISPLAY_HISTORY_FILTER)
+                .stream()
+                .filter(SessionEvent::isRootEvent)
+                .filter(event -> !event.isSynthetic())
+                .filter(
+                    event -> event.getMessageType() == MessageType.USER
+                            || event.getMessageType() == MessageType.ASSISTANT)
+                .filter(event -> !event.hasToolCalls())
+                .filter(event -> event.getMessage().getText() != null && !event.getMessage().getText().isBlank())
+                .map(this::toConversationMessage)
+                .toList();
     }
 
     @Transactional
@@ -114,33 +133,22 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public ChatCompactionStatus getCompactionStatus(UUID conversationId) {
-        var conversation = findOwnedConversation(conversationId).orElse(null);
-        var snapshot = conversation == null ? null : conversation.getCurrentSnapshot();
-        if (snapshot == null || snapshot.getCompactedAt() == null) {
-            return ChatCompactionStatus.none();
+    public boolean isConversationCompacted(UUID conversationId) {
+        if (findOwnedConversation(conversationId).isEmpty()
+                || sessionService.findById(conversationId.toString()) == null) {
+            return false;
         }
-        return new ChatCompactionStatus(true,
-                Math.toIntExact(snapshot.getSnapshotNo()),
-                snapshot.getPreviousSnapshot() == null ? null : snapshot.getPreviousSnapshot().getId());
+        return sessionService.getEvents(conversationId.toString(), EventFilter.all())
+                .stream()
+                .anyMatch(SessionEvent::isArchived);
     }
 
     ConversationSummary toConversationSummary(Conversation conversation) {
         return new ConversationSummary(conversation.getId(), conversation.getTitle(), conversation.getUpdatedAt());
     }
 
-    public List<ConversationMessage> toConversationMessages(List<Map<String, Object>> rawMessages) {
-        return rawMessages.stream()
-                .map(this::toConversationMessage)
-                .filter(message -> message.role() != MessageType.TOOL)
-                .toList();
-    }
-
-    public ConversationMessage toConversationMessage(Map<String, Object> rawMessage) {
-        var roleValue = String.valueOf(rawMessage.getOrDefault("role", MessageType.ASSISTANT.name()));
-        var contentValue = String.valueOf(rawMessage.getOrDefault("content", ""));
-        var createdAtValue = String.valueOf(rawMessage.getOrDefault("createdAt", Instant.now().toString()));
-        return new ConversationMessage(MessageType.valueOf(roleValue), contentValue, Instant.parse(createdAtValue));
+    private ConversationMessage toConversationMessage(SessionEvent event) {
+        return new ConversationMessage(event.getMessageType(), event.getMessage().getText(), event.getTimestamp());
     }
 
     String toConversationTitle(String prompt) {

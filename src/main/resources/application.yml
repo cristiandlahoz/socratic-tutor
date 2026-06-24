@@ -32,6 +32,10 @@ spring:
       lifecycle-management: none
 
   ai:
+    session:
+      repository:
+        jdbc:
+          initialize-schema: never
     vectorstore:
       pgvector:
         table-name: grounding_vector_store

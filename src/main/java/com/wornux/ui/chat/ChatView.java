@@ -237,14 +237,12 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     }
 
     private Div createInputShell(ChatState state) {
-        var compactionStatus = createCompactionStatus(state);
-
         var composer = new Div(composerField, sendButton);
         composer.addClassName("chat-composer-wrap");
         Signal.effect(composer, () -> composer.setVisible(!state.questionPanelVisible().get()));
         Signal.effect(questionPanel, () -> questionPanel.setVisible(state.questionPanelVisible().get()));
 
-        var inputShell = new Div(compactionStatus, questionPanel, composer);
+        var inputShell = new Div(questionPanel, composer);
         inputShell.addClassName("chat-composer-shell");
         return inputShell;
     }
@@ -285,8 +283,6 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
             var inputTokens = state.usageInputTokens().get();
             var usagePercent = state.usagePercent().get();
             var compacted = Boolean.TRUE.equals(state.conversationCompacted().get());
-            var generation = state.compactionGeneration().get();
-            var sourceConversationStateId = state.compactedFromConversationStateId().get();
             var visible = (inputTokens != null && usagePercent != null) || compacted;
             usageBadge.setVisible(visible);
             if (inputTokens != null && usagePercent != null) {
@@ -296,11 +292,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
                 usageText.setText("Contexto compactado");
             }
 
-            if (compacted && generation != null) {
-                var sourceLabel = sourceConversationStateId == null
-                        ? ""
-                        : " · desde %s".formatted(shortId(sourceConversationStateId));
-                lineageText.setText("Compactado · generación %d%s".formatted(generation, sourceLabel));
+            if (compacted) {
+                lineageText.setText("Historial resumido para el contexto activo");
                 lineageText.setVisible(true);
             }
             else {
@@ -310,27 +303,6 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         });
 
         return usageBadge;
-    }
-
-    private Div createCompactionStatus(ChatState state) {
-        var spinner = new BrailleSpinner();
-        spinner.addClassName("chat-compaction-spinner");
-        spinner.setSpinner("fillsweep");
-
-        var label = new Span();
-        label.addClassName("chat-compaction-label");
-
-        var status = new Div(spinner, label);
-        status.addClassName("chat-compaction-status");
-        status.setVisible(false);
-
-        Signal.effect(status, () -> {
-            var compacting = Boolean.TRUE.equals(state.compactionInProgress().get());
-            status.setVisible(compacting);
-            label.setText(state.compactionLabel().get());
-        });
-
-        return status;
     }
 
     private String formatTokenCount(int tokens) {
@@ -349,10 +321,6 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
             return Integer.toString((int) rounded);
         }
         return String.format(Locale.US, "%.1f", rounded);
-    }
-
-    private String shortId(Long id) {
-        return id == null ? "" : "#" + id;
     }
 
     private void submitPrompt() {

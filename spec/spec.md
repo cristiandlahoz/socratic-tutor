@@ -36,8 +36,9 @@ The canonical tutor activity chain is:
 
 ```text
 group_class_member
-  -> conversation
-      -> conversation_snapshot
+  -> conversation (domain ownership and metadata)
+      -> Spring AI Session (same id)
+          -> session events
 ```
 
 The canonical grounding chain is:
@@ -96,7 +97,7 @@ The application must include:
 - Role-based workspace routing.
 - Tenant-level academic setup.
 - Group-class-centered professor and student workflows.
-- Socratic tutor chat through `conversation` and `conversation_snapshot`.
+- Socratic tutor chat through domain `conversation` records and Spring AI Session JDBC history events.
 - Group-class grounding through pgvector-backed `grounding_vector_store` rows scoped by metadata.
 - Formative activities through `training_activity` and `training_activity_assignment`.
 - Invitation-based access for tenant admins, professors, and students.
@@ -281,7 +282,7 @@ Most tutor activity is owned by or created through a `group_class_member`.
 | `group_class_member` | Tenant account participating inside a group class. |
 | `group_class_join_code` | Controlled access code for group-class joining where applicable. |
 | `conversation` | Canonical tutor conversation root. Replaces old `chat`. |
-| `conversation_snapshot` | Versioned/compacted conversation state and messages. Replaces transcripts/messages. |
+| `ai_session` / `ai_session_event` | Spring AI Session-owned lifecycle metadata, message history, synthetic summaries, and compaction archive. |
 | `grounding_vector_store` | Flat pgvector-backed retrieval row for class-scoped grounding material. |
 | `training_activity` | Group-class formative activity definition. |
 | `training_activity_assignment` | Student-facing assigned formative activity state. |
@@ -338,7 +339,8 @@ group_class
 group_class_member
 group_class_join_code
 conversation
-conversation_snapshot
+ai_session
+ai_session_event
 grounding_vector_store
 training_activity
 training_activity_assignment
@@ -417,7 +419,8 @@ Required constraints include:
 - `group_class_member(group_class_id, tenant_account_id, role)` unique.
 - `group_class_join_code.code` unique.
 - `training_activity_assignment(training_activity_id, group_class_member_id)` unique.
-- `conversation_snapshot(conversation_id, snapshot_no)` unique.
+
+Spring AI Session table constraints and indexes must match its official JDBC PostgreSQL schema rather than an application approximation.
 
 Allowed values must be constrained where appropriate:
 
@@ -825,8 +828,9 @@ Students must not manage tenants, subjects, periods, group classes, professors, 
 The active conversation model is:
 
 ```text
-conversation
-conversation_snapshot
+conversation (domain ownership, title, listing, access control, metadata)
+ai_session (Spring AI Session lifecycle metadata)
+ai_session_event (Spring AI Session event log and compaction archive)
 ```
 
 The old active model is obsolete:
@@ -840,14 +844,13 @@ chat_message
 ### Conversation Rules
 
 - A conversation belongs to exactly one `group_class_member`.
-- A conversation has zero or one current snapshot.
-- A conversation can have many snapshots.
-- A current snapshot is referenced by `conversation.current_snapshot_id`.
-- Snapshot history is linked by `conversation_snapshot.previous_snapshot_id`.
-- Messages are stored in `conversation_snapshot.messages`.
-- Compacted context is stored in `conversation_snapshot.carry_context`.
-- Token count is stored in `conversation_snapshot.token_count`.
-- Message count is stored in `conversation_snapshot.message_count`.
+- A conversation owns the title, listing order, access rules, and domain metadata.
+- `conversation.id` is passed as the Spring AI Session id.
+- `group_class_member.id` is passed as the Spring AI Session user id on every model request.
+- Spring AI Session owns user, assistant, tool, synthetic summary, and archived events.
+- `SessionMemoryAdvisor` is the only normal user/assistant persistence path.
+- Spring AI Session recursive summarization owns context compaction; application services must not implement a parallel compaction flow.
+- `conversation.last_prompt_tokens` is nullable and updated only from actual provider metadata.
 
 ### Expected Relationship Shape
 
@@ -855,12 +858,11 @@ The target relationship shape is conceptually:
 
 ```text
 GroupClassMember 1 -> * Conversation
-Conversation 1 -> * ConversationSnapshot
-Conversation 1 -> 0..1 currentSnapshot
-ConversationSnapshot 0..1 -> previous ConversationSnapshot
+Conversation 1 -> 0..1 SpringAiSession
+SpringAiSession 1 -> * SessionEvent
 ```
 
-A conversation's current snapshot is not the same as the collection of all snapshots.
+The conversation-to-Session mapping uses the same identifier value without a database foreign key because the domain UUID and library string identifier types remain separate.
 
 ### Conversation Behavior
 
@@ -869,7 +871,9 @@ The system must:
 - create conversations only for a valid group-class member,
 - list conversations only within allowed context,
 - prevent students from reading other students' private conversations unless a future use case allows it,
-- persist new conversation state through snapshots,
+- verify domain ownership before reading or mutating Session data,
+- load display history from the full Session event log, including archived real events,
+- exclude synthetic, tool, branched, blank, and tool-call assistant events from normal user-visible history,
 - avoid falling back to browser `client_id`,
 - fail safely if no active group-class context exists.
 
@@ -1008,7 +1012,7 @@ AI configuration belongs to application configuration and AI orchestration packa
 It should compose:
 
 - ChatClient or equivalent chat model client,
-- message memory or conversation context adapter,
+- Spring AI Session's advisor-based memory and compaction flow,
 - tutor guard advisors,
 - pedagogical routing advisors,
 - grounding/retrieval tools,
@@ -1158,9 +1162,9 @@ Legacy packages may remain for reference or later migration work, but they must 
 ### Conversation
 
 - A conversation must belong to one group-class member.
-- A conversation snapshot must belong to one conversation.
-- Conversation messages must be stored in `conversation_snapshot.messages`.
-- Conversation carry context must be stored in `conversation_snapshot.carry_context`.
+- Conversation messages and compaction state must be stored as Spring AI Session events.
+- The domain conversation and Session must share the conversation id value.
+- Domain ownership must be checked before Session history access.
 - A student can access only their own conversations unless a later use case explicitly expands access.
 - Anonymous conversations are not part of the target model.
 - `conversation_message` must not be added unless a later ERD revision explicitly adds it.
@@ -1299,7 +1303,7 @@ Use these criteria to evaluate whether an implementation is acceptable.
 - Legacy repositories are not active.
 - Vaadin routes instantiate correctly.
 - AI tutor response flow runs without legacy persistence dependencies.
-- Conversation persistence uses `conversation` and `conversation_snapshot`.
+- Conversation ownership uses `conversation`; history and compaction use Spring AI Session JDBC tables.
 - Grounding persistence uses `grounding_*`.
 - Formative activity persistence uses `training_activity` and `training_activity_assignment`.
 
@@ -1358,7 +1362,7 @@ Required verification coverage:
 - tenant scope checks,
 - group-class scope checks,
 - ownership checks,
-- conversation snapshot persistence,
+- Spring AI Session advisor persistence, event filtering, and compaction,
 - grounding persistence,
 - training activity assignment persistence,
 - legacy exclusion,
@@ -1404,7 +1408,7 @@ Generate and maintain a complete Spring Boot + Vaadin Flow Socratic Tutor applic
 </p>
 
 <p>
-The final application must preserve Socratic learning behavior while operating on the target model centered on `account`, `tenant_account`, `group_class_member`, `conversation`, `conversation_snapshot`, `grounding`, `training_activity`, and `training_activity_assignment`.
+The final application must preserve Socratic learning behavior while operating on the target model centered on `account`, `tenant_account`, `group_class_member`, domain `conversation`, Spring AI Session history, `grounding`, `training_activity`, and `training_activity_assignment`.
 </p>
 
 <p>

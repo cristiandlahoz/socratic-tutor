@@ -126,7 +126,7 @@ The current product scope includes:
 - Tenant-scoped roles and permissions.
 - Academic structure: subjects, academic periods, group classes.
 - Group-class membership.
-- Tutor conversations through `conversation` and `conversation_snapshot`.
+- Tutor conversation ownership and metadata through `conversation`, with message history and compaction owned by Spring AI Session JDBC events.
 - Grounding material through pgvector-backed `grounding_vector_store` rows.
 - Formative activities through `training_activity` and `training_activity_assignment`.
 - Role-based onboarding and workspace routing.
@@ -179,8 +179,9 @@ The canonical tutor activity chain is:
 
 ```text
 group_class_member
-  -> conversation
-      -> conversation_snapshot
+  -> conversation (ownership, title, listing, domain metadata)
+      -> Spring AI Session (same id)
+          -> session events (message history and compaction archive)
 ```
 
 The canonical grounding chain is:
@@ -274,6 +275,8 @@ The tutor should:
 - **Schema source of truth:** Flyway SQL migrations.
 - **ORM behavior:** Hibernate validates schema; it must not create the production-like schema.
 - **AI:** Spring AI/Ollama-style orchestration may be used, but it must remain downstream of authorization.
+- **Conversation history:** Spring AI Session owns conversation events and context compaction; domain `conversation` owns access, listing, titles, and application metadata.
+- **Dependency maturity:** The required archived-event schema and APIs currently come from Spring AI Session `0.6.0-SNAPSHOT`; upgrades must re-verify the official schema and advisor contracts before changing that version.
 - **Vector search:** pgvector-backed grounding rows may be used for embeddings and retrieval.
 - **UI:** Vaadin Flow protected routes and role-specific workspaces.
 - **Security:** Password hashes only; no raw passwords.

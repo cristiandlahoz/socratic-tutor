@@ -89,7 +89,6 @@ public class ChatViewModel implements Serializable {
     RouteInitialization initializeFromRoute(String requestedConversationParam, boolean draftRequested) {
         turnOrchestrator.abortActiveStream(questionExchange);
         state.responseInProgress().set(false);
-        state.compactionInProgress().set(false);
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
         state.setupRequired().set(contextResolver.resolveCurrent().isEmpty());
@@ -129,7 +128,6 @@ public class ChatViewModel implements Serializable {
 
     public void onOpenConversation(UUID conversationId) {
         if (state.responseInProgress().peek()
-                || state.compactionInProgress().peek()
                 || state.questionSubmissionInProgress().peek()
                 || conversationId.equals(state.activeConversationId().peek())) {
             return;
@@ -138,9 +136,7 @@ public class ChatViewModel implements Serializable {
     }
 
     public void onStartNewChat() {
-        if (state.responseInProgress().peek()
-                || state.compactionInProgress().peek()
-                || state.questionSubmissionInProgress().peek()) {
+        if (state.responseInProgress().peek() || state.questionSubmissionInProgress().peek()) {
             return;
         }
         navigationOrchestrator.openDraft(DRAFT_QUERY_PARAMETER, DRAFT_QUERY_VALUE);
@@ -200,14 +196,9 @@ public class ChatViewModel implements Serializable {
         var conversationId = state.activeConversationId().peek();
         if (conversationId == null) {
             state.conversationCompacted().set(false);
-            state.compactionGeneration().set(null);
-            state.compactedFromConversationStateId().set(null);
             return;
         }
-        var status = conversationService.getCompactionStatus(conversationId);
-        state.conversationCompacted().set(status.compacted());
-        state.compactionGeneration().set(status.generation());
-        state.compactedFromConversationStateId().set(status.compactedFromConversationStateId());
+        state.conversationCompacted().set(conversationService.isConversationCompacted(conversationId));
     }
 
     public void onSubmitInteractiveQuestionResponse(StudentQuestionResponse response) {
