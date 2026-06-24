@@ -61,37 +61,36 @@ public class TrainingActivityService {
                 .filter(
                     activity -> activity.getGroupClass() != null
                             && context.groupClassId().equals(activity.getGroupClass().getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Unknown training activity " + activityId));
+                .orElseThrow(() -> new IllegalArgumentException("Unknown training activity %s".formatted(activityId)));
     }
 
     @Transactional
     public TrainingActivity saveQuestions(UUID activityId, String questionsJson) {
         throw new SetupRequiredException(
-                "UC-002 blocker: the target training activity model does not yet define question payload persistence.");
+                "Question persistence is not supported because the training activity model does not define it yet.");
     }
 
     @Transactional
     public TrainingActivity markRunning(UUID activityId) {
-        throw new SetupRequiredException(
-                "UC-002 blocker: training activity execution still requires a follow-up use case.");
+        throw new SetupRequiredException("Training activity execution is not supported yet.");
     }
 
     @Transactional
     public TrainingActivity saveAnswers(UUID activityId, String answersJson) {
         throw new SetupRequiredException(
-                "UC-002 blocker: the target training activity assignment model does not yet define answer payload persistence.");
+                "Answer persistence is not supported because the training activity assignment model does not define it yet.");
     }
 
     @Transactional
     public TrainingActivity completeReport(UUID activityId, String reportMarkdown) {
         throw new SetupRequiredException(
-                "UC-002 blocker: the target training activity model does not yet define report persistence.");
+                "Report persistence is not supported because the training activity model does not define it yet.");
     }
 
     @Transactional
     public TrainingActivity markFailed(UUID activityId) {
         throw new SetupRequiredException(
-                "UC-002 blocker: the target training activity model does not yet define execution failure persistence.");
+                "Execution failure persistence is not supported because the training activity model does not define it yet.");
     }
 
     @Transactional

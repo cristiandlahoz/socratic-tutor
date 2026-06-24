@@ -32,23 +32,23 @@ public class TutorAiProperties {
     @Setter
     public static class ToolObservability {
 
-        private boolean capturePayloads;
-        private int maxPayloadChars = 4000;
+        private boolean captureToolReturns;
+        private int maxToolReturnChars = 4000;
 
-        public boolean isCapturePayloads() {
-            return capturePayloads;
+        public boolean isCaptureToolReturns() {
+            return captureToolReturns;
         }
 
-        public void setCapturePayloads(boolean capturePayloads) {
-            this.capturePayloads = capturePayloads;
+        public void setCaptureToolReturns(boolean captureToolReturns) {
+            this.captureToolReturns = captureToolReturns;
         }
 
-        public int getMaxPayloadChars() {
-            return maxPayloadChars;
+        public int getMaxToolReturnChars() {
+            return maxToolReturnChars;
         }
 
-        public void setMaxPayloadChars(int maxPayloadChars) {
-            this.maxPayloadChars = maxPayloadChars;
+        public void setMaxToolReturnChars(int maxToolReturnChars) {
+            this.maxToolReturnChars = maxToolReturnChars;
         }
     }
 }

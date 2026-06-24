@@ -24,7 +24,7 @@ public class AskStudentQuestionTool {
             description = """
                             Use this tool when you need to ask the student short structured questions during
                             execution. This tool is for collecting student input, context, observable progress,
-                            or concise pedagogical signals.
+                            or concise pedagogical cues.
 
                             Default behavior:
                              - Ask direct questions.

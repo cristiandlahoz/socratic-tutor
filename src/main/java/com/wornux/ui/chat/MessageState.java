@@ -7,7 +7,7 @@ import org.springframework.ai.chat.messages.MessageType;
 
 public record MessageState(MessageType role, String content, Instant createdAt, boolean loading) {
 
-    public static MessageState fromStored(StoredChatMessage message) {
+    public static MessageState fromConversation(ConversationMessage message) {
         return new MessageState(message.role(), message.content(), message.createdAt(), false);
     }
 

@@ -51,8 +51,10 @@ public class DoclingClientService {
         this.properties = properties;
         var hybrid = properties.getChunking().getHybrid();
         log.info(
-            "docling_chunking_config provider=arconia max_tokens={} merge_peers={}"
-                    + " use_markdown_tables={} include_raw_text={}",
+            """
+            docling_chunking_config provider=arconia max_tokens={} merge_peers={}\
+             use_markdown_tables={} include_raw_text={}\
+            """,
             hybrid.getMaxTokens(),
             hybrid.getMergePeers(),
             hybrid.isUseMarkdownTables(),
@@ -85,8 +87,7 @@ public class DoclingClientService {
         }
         catch (RuntimeException ex) {
             throw new DocumentIngestionException(
-                    "Docling no pudo crear segmentos para este PDF. Revisa que Docling Serve este disponible"
-                            + " e intenta de nuevo.",
+                    "Docling no pudo crear segmentos para este PDF. Revisa que Docling Serve este disponible e intenta de nuevo.",
                     ex);
         }
     }

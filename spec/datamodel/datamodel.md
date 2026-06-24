@@ -1,6 +1,6 @@
 # Data Model
 
-> Entity definitions, relationships, identifiers, constraints, and authorization boundaries for Socratic Tutor.
+> Current entity definitions, relationships, identifiers, constraints, and authorization boundaries for Socratic Tutor. Update this document directly when the persistence baseline changes.
 
 ---
 
@@ -226,7 +226,7 @@ erDiagram
     CONVERSATION {
         uuid id PK
         uuid group_class_member_id FK
-        uuid current_snapshot_id FK
+        bigint current_snapshot_id FK
         text title
         bigint version
         timestamptz created_at
@@ -236,7 +236,7 @@ erDiagram
     CONVERSATION_SNAPSHOT {
         bigint id PK
         uuid conversation_id FK
-        uuid previous_snapshot_id FK
+        bigint previous_snapshot_id FK
         bigint snapshot_no
         jsonb carry_context
         jsonb messages

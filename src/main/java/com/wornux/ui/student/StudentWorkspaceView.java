@@ -39,7 +39,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         this.studentWorkspaceService = studentWorkspaceService;
 
         addClassName("workspace-view");
-        classSelector.setItemLabelGenerator(value -> value.classCode() + " - " + value.className());
+        classSelector.setItemLabelGenerator(value -> "%s - %s".formatted(value.classCode(), value.className()));
         classSelector.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 switchClass(event.getValue());

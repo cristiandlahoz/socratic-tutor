@@ -53,8 +53,8 @@ class AiConfigToolTestSupport {
             ObservationRegistry observationRegistry,
             ObjectMapper objectMapper,
             TutorAiProperties tutorAiProperties) {
-        tutorAiProperties.getToolObservability().setCapturePayloads(true);
-        tutorAiProperties.getToolObservability().setMaxPayloadChars(1_000);
+        tutorAiProperties.getToolObservability().setCaptureToolReturns(true);
+        tutorAiProperties.getToolObservability().setMaxToolReturnChars(1_000);
         return new ToolUsageAuditService(meterRegistry, observationRegistry, objectMapper, tutorAiProperties);
     }
 

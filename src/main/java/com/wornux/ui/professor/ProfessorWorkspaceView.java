@@ -45,17 +45,16 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
         this.professorWorkspaceService = professorWorkspaceService;
 
         addClassName("workspace-view");
-        classSelector.setItemLabelGenerator(value -> value.classCode() + " - " + value.className());
+        classSelector.setItemLabelGenerator(value -> "%s - %s".formatted(value.classCode(), value.className()));
         classSelector.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 switchClass(event.getValue());
             }
         });
-        studentsGrid
-                .addColumn(
-                    member -> member.getTenantAccount().getAccount().getFirstName() + " "
-                            + member.getTenantAccount().getAccount().getLastName())
-                .setHeader("Student");
+        studentsGrid.addColumn(
+            member -> "%s %s".formatted(
+                member.getTenantAccount().getAccount().getFirstName(),
+                member.getTenantAccount().getAccount().getLastName())).setHeader("Student");
         studentsGrid.addColumn(member -> member.getTenantAccount().getAccount().getEmail()).setHeader("Email");
         studentsGrid.addColumn(member -> member.isLocked() ? "Disabled" : "Active").setHeader("Status");
         studentsGrid.addComponentColumn(member -> new Button("Disable", _ -> disableStudent(member.getId())))

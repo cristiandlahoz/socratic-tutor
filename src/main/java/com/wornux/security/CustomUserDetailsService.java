@@ -23,7 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         var account = accountRepository.findByEmail(username)
                 .or(() -> accountRepository.findByUsername(username))
-                .orElseThrow(() -> new UsernameNotFoundException("Unknown account " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("Unknown account %s".formatted(username)));
 
         return new User(account.getEmail(),
                 account.getPasswordHash(),

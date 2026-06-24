@@ -464,7 +464,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         valueText.getElement().setAttribute("title", value == null ? "" : value);
         valueText.getElement().setAttribute("tabindex", "0");
         valueText.getElement().setAttribute("role", "button");
-        valueText.getElement().setAttribute("aria-label", "Ver valor completo de " + name);
+        valueText.getElement().setAttribute("aria-label", "Ver valor completo de %s".formatted(name));
         attachValuePopover(name, value, valueText);
 
         return new HtmlContainer("tr",

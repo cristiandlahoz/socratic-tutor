@@ -242,8 +242,8 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         var title = new Span("PDF de entrada");
         title.addClassName("document-ingest-upload-title");
 
-        var hint = new Paragraph("Solo PDF por ahora. Validamos tipo, tamaño y firma básica del archivo antes de llamar"
-                + " a Docling.");
+        var hint = new Paragraph(
+                "Solo PDF por ahora. Validamos tipo, tamaño y firma básica del archivo antes de llamar a Docling.");
         hint.addClassName("document-ingest-upload-hint");
 
         var wrapper = new Div(title, hint);

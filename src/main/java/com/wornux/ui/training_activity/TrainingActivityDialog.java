@@ -42,7 +42,7 @@ public class TrainingActivityDialog extends Div {
         var panel = new Div();
         panel.addClassName("evaluation-overlay-panel");
 
-        var title = new H3("Activity: " + activity.getTitle());
+        var title = new H3("Activity: %s".formatted(activity.getTitle()));
         title.getStyle().set("margin", "0");
 
         titleField = new TextField("Title");
@@ -57,7 +57,7 @@ public class TrainingActivityDialog extends Div {
 
         var blocker = new Div();
         blocker.setText(
-            "UC-002 safe scope: formative activity definitions are active on the target ERD, but assignment execution and report payload persistence remain blocked until the target model is extended.");
+            "Formative activity definitions are available, but assignment execution and report persistence require an extended data model.");
         blocker.getStyle()
                 .set("padding", "1rem")
                 .set("border-radius", "0.75rem")

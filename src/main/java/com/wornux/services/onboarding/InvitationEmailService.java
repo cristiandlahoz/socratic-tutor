@@ -32,7 +32,9 @@ public class InvitationEmailService {
         model.put("groupClassName", invitation.getGroupClass() == null ? null : invitation.getGroupClass().getName());
         model.put("invitedEmail", invitation.getInvitedEmail());
         model.put("targetRole", invitation.getTargetRole().name());
-        model.put("acceptUrl", emailProperties.getInvitationBaseUrl() + "/invitations/accept?token=" + rawToken);
+        model.put(
+            "acceptUrl",
+            "%s/invitations/accept?token=%s".formatted(emailProperties.getInvitationBaseUrl(), rawToken));
 
         var templateName = switch (invitation.getTargetRole()) {
             case TENANT_ADMIN -> "tenant-admin-invitation";

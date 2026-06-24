@@ -4,22 +4,22 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public record ToolExecutionAudit(UUID conversationId, UUID clientId, UUID turnId, String toolName, String status,
-        long latencyMs, String inputSummary, String outputSummary, String toolReturnJson, String toolReturnPreview,
-        boolean payloadCaptured, boolean modelRequested, String failureCode) {
+public record ToolExecutionAudit(UUID conversationId, UUID groupClassMemberId, UUID turnId, String toolName,
+        String status, long latencyMs, String inputSummary, String outputSummary, String toolReturnJson,
+        String toolReturnPreview, boolean returnCaptured, boolean modelRequested, String failureCode) {
 
     public Map<String, Object> toMap() {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("toolName", toolName);
-        payload.put("status", status);
-        payload.put("latencyMs", latencyMs);
-        payload.put("inputSummary", inputSummary);
-        payload.put("outputSummary", outputSummary);
-        payload.put("toolReturnJson", toolReturnJson);
-        payload.put("toolReturnPreview", toolReturnPreview);
-        payload.put("payloadCaptured", payloadCaptured);
-        payload.put("modelRequested", modelRequested);
-        payload.put("failureCode", failureCode);
-        return payload;
+        Map<String, Object> auditFields = new LinkedHashMap<>();
+        auditFields.put("toolName", toolName);
+        auditFields.put("status", status);
+        auditFields.put("latencyMs", latencyMs);
+        auditFields.put("inputSummary", inputSummary);
+        auditFields.put("outputSummary", outputSummary);
+        auditFields.put("toolReturnJson", toolReturnJson);
+        auditFields.put("toolReturnPreview", toolReturnPreview);
+        auditFields.put("returnCaptured", returnCaptured);
+        auditFields.put("modelRequested", modelRequested);
+        auditFields.put("failureCode", failureCode);
+        return auditFields;
     }
 }

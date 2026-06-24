@@ -175,7 +175,7 @@ public class StudentQuestionPanel extends Composite<Div> {
         var infoButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
         infoButton.addThemeVariants(ButtonVariant.TERTIARY);
         infoButton.addClassName("chat-question-option-info");
-        infoButton.setAriaLabel("Ver detalle de " + option.label());
+        infoButton.setAriaLabel("Ver detalle de %s".formatted(option.label()));
 
         var infoPopover = new Popover();
         infoPopover.setTarget(infoButton);
@@ -362,8 +362,8 @@ public class StudentQuestionPanel extends Composite<Div> {
     }
 
     private Set<String> selectedOptions(String questionId) {
-        var signal = selectedOptionsByQuestion.get(questionId);
-        return signal == null ? Set.of() : signal.peek();
+        var selectedOptionsSignal = selectedOptionsByQuestion.get(questionId);
+        return selectedOptionsSignal == null ? Set.of() : selectedOptionsSignal.peek();
     }
 
     private static String questionKey(int questionIndex) {

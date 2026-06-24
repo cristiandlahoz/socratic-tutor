@@ -56,7 +56,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     private final Button saveButton = new Button("Save draft");
     private final Grid<TrainingActivity> grid = new Grid<>(TrainingActivity.class, false);
     private final Button deleteButton = new Button("Delete");
-    private final Button launchButton = new Button("Execution blocked by UC-002 follow-up");
+    private final Button launchButton = new Button("Execution is not supported yet");
     private UUID pendingDialogActivityId;
     private TrainingActivityDialog openDialog;
 
@@ -81,7 +81,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         var title = new H2("Formative Activities");
         title.addClassNames(LumoUtility.Margin.NONE);
         var description = new Span(
-                "Manage class-scoped formative activity definitions on the target ERD. Assignment execution remains blocked until the target model gains dedicated payload persistence.");
+                "Manage class-scoped formative activity definitions on the target ERD. Assignment execution remains blocked until the target model can persist its data.");
         description.addClassName("evaluation-description");
         var header = new Div(title, description);
         header.addClassName("evaluation-header");

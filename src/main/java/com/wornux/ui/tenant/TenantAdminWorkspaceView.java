@@ -67,8 +67,9 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         subjectGrid.addColumn(com.wornux.data.entities.academic.Subject::getName).setHeader("Name");
         groupClassGrid.addColumn(com.wornux.data.entities.academic.GroupClass::getCode).setHeader("Code");
         groupClassGrid.addColumn(com.wornux.data.entities.academic.GroupClass::getName).setHeader("Name");
-        groupSubjectSelector.setItemLabelGenerator(subject -> subject.getCode() + " - " + subject.getName());
-        groupPeriodSelector.setItemLabelGenerator(period -> period.getCode() + " - " + period.getName());
+        groupSubjectSelector
+                .setItemLabelGenerator(subject -> "%s - %s".formatted(subject.getCode(), subject.getName()));
+        groupPeriodSelector.setItemLabelGenerator(period -> "%s - %s".formatted(period.getCode(), period.getName()));
 
         add(
             new H1("Tenant admin workspace"),

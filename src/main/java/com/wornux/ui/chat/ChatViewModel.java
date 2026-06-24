@@ -108,9 +108,9 @@ public class ChatViewModel implements Serializable {
         var resolvedConversation = conversationService.resolveActiveConversation(requestedConversationId);
 
         state.activeConversationId().set(resolvedConversation.activeConversationId());
-        state.replaceMessages(resolvedConversation.messages().stream().map(MessageState::fromStored).toList());
+        state.replaceMessages(resolvedConversation.messages().stream().map(MessageState::fromConversation).toList());
         state.replaceConversationHistory(resolvedConversation.conversations());
-        refreshTranscriptUsage();
+        refreshConversationTokenUsage();
         refreshCompactionStatus();
 
         if (requestedConversationParam != null
@@ -176,7 +176,7 @@ public class ChatViewModel implements Serializable {
             onResponseUpdated,
             onResponseFinished,
             this::refreshConversationHistory,
-            this::refreshTranscriptUsage,
+            this::refreshConversationTokenUsage,
             this::refreshCompactionStatus);
         return true;
     }
@@ -185,13 +185,13 @@ public class ChatViewModel implements Serializable {
         state.replaceConversationHistory(conversationService.listConversations());
     }
 
-    public void refreshTranscriptUsage() {
+    public void refreshConversationTokenUsage() {
         var conversationId = state.activeConversationId().peek();
         if (conversationId == null) {
             state.clearUsage();
             return;
         }
-        var usage = chatUsageService.getActiveTranscriptUsage(conversationId);
+        var usage = chatUsageService.getConversationTokenUsage(conversationId);
         state.usageInputTokens().set(usage.inputTokens());
         state.usagePercent().set(usage.usagePercent());
     }
@@ -200,14 +200,14 @@ public class ChatViewModel implements Serializable {
         var conversationId = state.activeConversationId().peek();
         if (conversationId == null) {
             state.conversationCompacted().set(false);
-            state.compactionLevel().set(null);
-            state.compactedFromTranscriptId().set(null);
+            state.compactionGeneration().set(null);
+            state.compactedFromConversationStateId().set(null);
             return;
         }
         var status = conversationService.getCompactionStatus(conversationId);
         state.conversationCompacted().set(status.compacted());
-        state.compactionLevel().set(status.level());
-        state.compactedFromTranscriptId().set(status.compactedFromTranscriptId());
+        state.compactionGeneration().set(status.generation());
+        state.compactedFromConversationStateId().set(status.compactedFromConversationStateId());
     }
 
     public void onSubmitInteractiveQuestionResponse(StudentQuestionResponse response) {

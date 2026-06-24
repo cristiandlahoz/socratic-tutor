@@ -88,8 +88,8 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         content.removeAll();
 
         var title = new H2("Invitation ready for a different account");
-        var mismatch = new Paragraph(
-                "This invitation is for " + emailField.getValue() + ", but you are signed in as " + currentEmail + ".");
+        var mismatch = new Paragraph("This invitation is for %s, but you are signed in as %s."
+                .formatted(emailField.getValue(), currentEmail));
         content.add(title, mismatch);
 
         if (accountAlreadyExists) {

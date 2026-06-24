@@ -277,7 +277,7 @@ public class InvitationService {
             TenantAccount assignedBy) {
         var roleCode = targetRole.name();
         var role = roleRepository.findByCode(roleCode)
-                .orElseThrow(() -> new IllegalStateException("Missing role " + roleCode));
+                .orElseThrow(() -> new IllegalStateException("Missing role %s".formatted(roleCode)));
         if (tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(tenantAccount.getId(), roleCode)
                 .isPresent()) {
             return;

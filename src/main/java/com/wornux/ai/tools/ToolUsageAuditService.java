@@ -22,11 +22,6 @@ import tools.jackson.databind.ObjectMapper;
 public class ToolUsageAuditService {
 
     private static final Logger log = LoggerFactory.getLogger(ToolUsageAuditService.class);
-    public static final String CLIENT_ID = "clientId";
-    public static final String GROUP_CLASS_ID = "groupClassId";
-    public static final String CONVERSATION_ID = "conversationId";
-    public static final String TURN_ID = "turnId";
-
     private final MeterRegistry meterRegistry;
     private final ObservationRegistry observationRegistry;
     private final ObjectMapper objectMapper;
@@ -54,18 +49,18 @@ public class ToolUsageAuditService {
         Observation observation = Observation.start("tool." + toolName, observationRegistry);
         try (Observation.Scope ignored = observation.openScope()) {
             ToolResult<T> result = execution.get();
-            var returnPayload = captureReturnPayload(result.value());
+            var capturedReturn = captureToolReturn(result.value());
             var audit = new ToolExecutionAudit(ids.conversationId(),
-                    ids.clientId(),
+                    ids.groupClassMemberId(),
                     ids.turnId(),
                     toolName,
                     "success",
                     nanosToMillis(startedAt),
                     inputSummary,
                     result.outputSummary(),
-                    returnPayload.json(),
-                    returnPayload.preview(),
-                    returnPayload.captured(),
+                    capturedReturn.json(),
+                    capturedReturn.preview(),
+                    capturedReturn.captured(),
                     true,
                     null);
             register(audit);
@@ -77,27 +72,27 @@ public class ToolUsageAuditService {
                     .record(audit.latencyMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
             log.info(
                 """
-                tool_execution tool.name={} tool.status={} tool.latency_ms={} client_id={}\
+                tool_execution tool.name={} tool.status={} tool.latency_ms={} group_class_member_id={}\
                  conversation_id={} turn_id={} model_requested_tool={} input_summary={}\
-                 output_summary={} payload_captured={} tool_return_preview={} failure_code={}\
+                 output_summary={} return_captured={} tool_return_preview={} failure_code={}\
                 """,
                 audit.toolName(),
                 audit.status(),
                 audit.latencyMs(),
-                audit.clientId(),
+                audit.groupClassMemberId(),
                 audit.conversationId(),
                 audit.turnId(),
                 audit.modelRequested(),
                 audit.inputSummary(),
                 audit.outputSummary(),
-                audit.payloadCaptured(),
+                audit.returnCaptured(),
                 audit.toolReturnPreview(),
                 audit.failureCode());
             return result.value();
         }
         catch (RuntimeException exception) {
             var audit = new ToolExecutionAudit(ids.conversationId(),
-                    ids.clientId(),
+                    ids.groupClassMemberId(),
                     ids.turnId(),
                     toolName,
                     "failure",
@@ -117,20 +112,21 @@ public class ToolUsageAuditService {
                     .register(meterRegistry)
                     .record(audit.latencyMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
             log.warn(
-                "tool_execution tool.name={} tool.status={} tool.latency_ms={} client_id={}"
-                        + " conversation_id={} turn_id={} model_requested_tool={}"
-                        + " input_summary={} output_summary={} payload_captured={} tool_return_preview={}"
-                        + " failure_code={}",
+                """
+                tool_execution tool.name={} tool.status={} tool.latency_ms={} group_class_member_id={}\
+                 conversation_id={} turn_id={} model_requested_tool={} input_summary={}\
+                 output_summary={} return_captured={} tool_return_preview={} failure_code={}\
+                """,
                 audit.toolName(),
                 audit.status(),
                 audit.latencyMs(),
-                audit.clientId(),
+                audit.groupClassMemberId(),
                 audit.conversationId(),
                 audit.turnId(),
                 audit.modelRequested(),
                 audit.inputSummary(),
                 audit.outputSummary(),
-                audit.payloadCaptured(),
+                audit.returnCaptured(),
                 audit.toolReturnPreview(),
                 audit.failureCode());
             throw exception;
@@ -157,41 +153,44 @@ public class ToolUsageAuditService {
         return (System.nanoTime() - startedAt) / 1_000_000;
     }
 
-    private ToolReturnPayload captureReturnPayload(Object value) {
+    private CapturedToolReturn captureToolReturn(Object value) {
         var observability = tutorAiProperties.getToolObservability();
-        if (observability == null || !observability.isCapturePayloads()) {
-            return ToolReturnPayload.disabled();
+        if (observability == null || !observability.isCaptureToolReturns()) {
+            return CapturedToolReturn.disabled();
         }
         try {
             var json = objectMapper.writeValueAsString(value);
-            return new ToolReturnPayload(true, json, preview(json, observability.getMaxPayloadChars()));
+            return new CapturedToolReturn(true, json, preview(json, observability.getMaxToolReturnChars()));
         }
         catch (JacksonException ex) {
-            return new ToolReturnPayload(true, null, "serialization_error=" + ex.getClass().getSimpleName());
+            return new CapturedToolReturn(true,
+                    null,
+                    "serialization_error=%s".formatted(ex.getClass().getSimpleName()));
         }
     }
 
-    private String preview(String json, int maxPayloadChars) {
-        var maxLength = Math.max(0, maxPayloadChars);
+    private String preview(String json, int maxToolReturnChars) {
+        var maxLength = Math.max(0, maxToolReturnChars);
         var oneLine = json.replaceAll("\\s+", " ");
         return oneLine.length() <= maxLength ? oneLine : oneLine.substring(0, maxLength);
     }
 
     private ToolInvocationIds ids(ToolContext toolContext) {
         var context = toolContext.getContext();
-        return new ToolInvocationIds(UUID.fromString(String.valueOf(context.get(CLIENT_ID))),
-                UUID.fromString(String.valueOf(context.get(CONVERSATION_ID))),
-                UUID.fromString(String.valueOf(context.get(TURN_ID))));
+        return new ToolInvocationIds(
+                UUID.fromString(String.valueOf(context.get(ToolContextKeys.GROUP_CLASS_MEMBER_ID))),
+                UUID.fromString(String.valueOf(context.get(ToolContextKeys.CONVERSATION_ID))),
+                UUID.fromString(String.valueOf(context.get(ToolContextKeys.TURN_ID))));
     }
 
-    public record ToolResult<T>(T value, String outputSummary, ToolLearningSignal learningSignal) {}
+    public record ToolResult<T>(T value, String outputSummary) {}
 
-    private record ToolReturnPayload(boolean captured, String json, String preview) {
+    private record CapturedToolReturn(boolean captured, String json, String preview) {
 
-        static ToolReturnPayload disabled() {
-            return new ToolReturnPayload(false, null, null);
+        static CapturedToolReturn disabled() {
+            return new CapturedToolReturn(false, null, null);
         }
     }
 
-    private record ToolInvocationIds(UUID clientId, UUID conversationId, UUID turnId) {}
+    private record ToolInvocationIds(UUID groupClassMemberId, UUID conversationId, UUID turnId) {}
 }

@@ -93,7 +93,7 @@ public class TutorPromptResources {
             return StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
         }
         catch (IOException exception) {
-            throw new UncheckedIOException("Failed to read prompt resource " + location, exception);
+            throw new UncheckedIOException("Failed to read prompt resource %s".formatted(location), exception);
         }
     }
 

@@ -82,7 +82,7 @@ public class PostgresChatMemory implements ChatMemory {
             messages.add(
                 AssistantMessage.builder().content(carryContextText).properties(Map.of("memory", true)).build());
         }
-        conversationService.toStoredMessages(snapshot.getMessages())
+        conversationService.toConversationMessages(snapshot.getMessages())
                 .forEach(message -> messages.add(toSpringMessage(message)));
         return List.copyOf(messages);
     }
@@ -117,7 +117,7 @@ public class PostgresChatMemory implements ChatMemory {
         return value;
     }
 
-    private Message toSpringMessage(com.wornux.dtos.chat.StoredChatMessage message) {
+    private Message toSpringMessage(com.wornux.dtos.chat.ConversationMessage message) {
         return switch (message.role()) {
             case USER -> new UserMessage(message.content());
             case ASSISTANT -> new AssistantMessage(message.content());

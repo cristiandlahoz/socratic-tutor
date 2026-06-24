@@ -235,7 +235,7 @@ public class MainLayout extends AppLayout {
         button.addThemeVariants(ButtonVariant.TERTIARY);
         button.addClassName("chat-sidebar-theme-button");
         button.getThemeNames().remove("icon");
-        button.getElement().setAttribute("aria-label", "Cambiar tema a " + button.getText());
+        button.getElement().setAttribute("aria-label", "Cambiar tema a %s".formatted(button.getText()));
         button.addClickListener(_ -> viewModel.onThemePreferenceChanged(preference));
 
         Signal.effect(button, () -> {
@@ -611,10 +611,14 @@ public class MainLayout extends AppLayout {
     }
 
     private void redrawTimelineGraph() {
-        timelineRoot.getElement()
-                .executeJs(
-                    "requestAnimationFrame(() => { if (!this.__timelineGraphDraw) { this.dispatchEvent(new"
-                            + " Event('timeline-graph-missing')); } this.__timelineGraphDraw?.(); });");
+        timelineRoot.getElement().executeJs("""
+                                            requestAnimationFrame(() => {
+                                              if (!this.__timelineGraphDraw) {
+                                                this.dispatchEvent(new Event('timeline-graph-missing'));
+                                              }
+                                              this.__timelineGraphDraw?.();
+                                            });
+                                            """);
     }
 
     @Override

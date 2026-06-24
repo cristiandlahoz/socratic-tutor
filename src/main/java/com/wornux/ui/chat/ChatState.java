@@ -34,8 +34,8 @@ public class ChatState implements Serializable {
     private final ValueSignal<Integer> usageInputTokens = new ValueSignal<>(null);
     private final ValueSignal<Integer> usagePercent = new ValueSignal<>(null);
     private final ValueSignal<Boolean> conversationCompacted = new ValueSignal<>(false);
-    private final ValueSignal<Integer> compactionLevel = new ValueSignal<>(null);
-    private final ValueSignal<Long> compactedFromTranscriptId = new ValueSignal<>(null);
+    private final ValueSignal<Integer> compactionGeneration = new ValueSignal<>(null);
+    private final ValueSignal<Long> compactedFromConversationStateId = new ValueSignal<>(null);
     private final ValueSignal<Boolean> setupRequired = new ValueSignal<>(false);
     private final ValueSignal<String> setupMessage =
             new ValueSignal<>("Academic setup is required before persisted tutor features can be used.");
@@ -97,12 +97,12 @@ public class ChatState implements Serializable {
         return conversationCompacted;
     }
 
-    public ValueSignal<Integer> compactionLevel() {
-        return compactionLevel;
+    public ValueSignal<Integer> compactionGeneration() {
+        return compactionGeneration;
     }
 
-    public ValueSignal<Long> compactedFromTranscriptId() {
-        return compactedFromTranscriptId;
+    public ValueSignal<Long> compactedFromConversationStateId() {
+        return compactedFromConversationStateId;
     }
 
     public ValueSignal<Boolean> setupRequired() {
@@ -164,8 +164,8 @@ public class ChatState implements Serializable {
         compactionInProgress.set(false);
         compactionLabel.set("");
         conversationCompacted.set(false);
-        compactionLevel.set(null);
-        compactedFromTranscriptId.set(null);
+        compactionGeneration.set(null);
+        compactedFromConversationStateId.set(null);
     }
 
     public void clearPendingQuestionState() {

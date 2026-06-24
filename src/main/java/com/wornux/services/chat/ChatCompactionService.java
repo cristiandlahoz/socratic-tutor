@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.wornux.data.entities.conversation.ConversationSnapshot;
 import com.wornux.data.repositories.conversation.ConversationSnapshotRepository;
@@ -120,21 +121,23 @@ public class ChatCompactionService {
 
     private String buildCompactionInput(ConversationSnapshot snapshot) {
         String existingMemory = String.valueOf(snapshot.getCarryContext().getOrDefault("text", "(none)"));
-        String transcriptBody = snapshot.getMessages()
+        String conversationBody = snapshot.getMessages()
                 .stream()
                 .map(message -> "%s: %s".formatted(message.get("role"), message.get("content")))
-                .reduce((left, right) -> left + "\n" + right)
-                .orElse("(empty)");
+                .collect(Collectors.joining("\n"));
+        if (conversationBody.isEmpty()) {
+            conversationBody = "(empty)";
+        }
 
         return """
                Existing memory:
                %s
 
-               Full active transcript:
+               Full active conversation:
                %s
 
                Return JSON only with the fields required by this schema.
-               """.formatted(existingMemory, transcriptBody);
+               """.formatted(existingMemory, conversationBody);
     }
 
     private List<Map<String, Object>> retainRecentMessages(List<Map<String, Object>> messages) {

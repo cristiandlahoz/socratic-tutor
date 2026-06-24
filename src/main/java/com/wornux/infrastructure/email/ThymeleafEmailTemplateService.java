@@ -21,10 +21,11 @@ public class ThymeleafEmailTemplateService implements EmailTemplateService {
         try {
             var context = new Context();
             context.setVariables(message.model());
-            return templateEngine.process("email/" + message.templateName(), context);
+            return templateEngine.process("email/%s".formatted(message.templateName()), context);
         }
         catch (RuntimeException exception) {
-            throw new EmailSendException("Failed to render email template " + message.templateName(), exception);
+            throw new EmailSendException("Failed to render email template %s".formatted(message.templateName()),
+                    exception);
         }
     }
 }

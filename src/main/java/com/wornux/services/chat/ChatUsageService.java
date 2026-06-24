@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.wornux.config.ChatProperties;
-import com.wornux.dtos.chat.ChatTranscriptUsage;
+import com.wornux.dtos.chat.ConversationTokenUsage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +20,7 @@ public class ChatUsageService {
     }
 
     @Transactional
-    public void updateActiveTranscriptInputTokens(UUID conversationId, Integer inputTokens) {
+    public void updateConversationInputTokens(UUID conversationId, Integer inputTokens) {
         if (inputTokens == null) {
             return;
         }
@@ -35,16 +35,16 @@ public class ChatUsageService {
     }
 
     @Transactional(readOnly = true)
-    public ChatTranscriptUsage getActiveTranscriptUsage(UUID conversationId) {
+    public ConversationTokenUsage getConversationTokenUsage(UUID conversationId) {
         var conversation = conversationService.findOwnedConversation(conversationId).orElse(null);
         if (conversation == null || conversation.getCurrentSnapshot() == null) {
-            return ChatTranscriptUsage.empty();
+            return ConversationTokenUsage.empty();
         }
         var inputTokens = conversation.getCurrentSnapshot().getTokenCount();
         if (inputTokens <= 0) {
-            return ChatTranscriptUsage.empty();
+            return ConversationTokenUsage.empty();
         }
-        return new ChatTranscriptUsage(inputTokens, usagePercent(inputTokens));
+        return new ConversationTokenUsage(inputTokens, usagePercent(inputTokens));
     }
 
     @Transactional(readOnly = true)

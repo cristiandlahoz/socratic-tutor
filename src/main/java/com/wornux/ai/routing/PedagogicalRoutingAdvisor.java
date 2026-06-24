@@ -67,13 +67,21 @@ public class PedagogicalRoutingAdvisor implements CallAdvisor, StreamAdvisor {
     private String instructionFor(PedagogicalRoutingMode mode) {
         return switch (mode) {
             case DIRECT_REFERENCE ->
-                    promptResources.routingDirectReference() + "\n\n" + promptResources.directReferenceExamples();
+                    combine(promptResources.routingDirectReference(), promptResources.directReferenceExamples());
             case EXERCISE_GUIDANCE ->
-                    promptResources.routingExerciseGuidance() + "\n\n" + promptResources.exerciseGuidanceExamples();
+                    combine(promptResources.routingExerciseGuidance(), promptResources.exerciseGuidanceExamples());
             case DEBUG_MY_ATTEMPT ->
-                    promptResources.routingDebugMyAttempt() + "\n\n" + promptResources.exerciseGuidanceExamples();
+                    combine(promptResources.routingDebugMyAttempt(), promptResources.exerciseGuidanceExamples());
             case CONCEPT_EXPLANATION -> promptResources.routingConceptExplanation();
         };
+    }
+
+    private String combine(String instruction, String examples) {
+        return """
+               %s
+
+               %s
+               """.formatted(instruction, examples).strip();
     }
 
     @Override

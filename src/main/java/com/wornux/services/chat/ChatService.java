@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.wornux.ai.memory.PostgresChatMemory;
 import com.wornux.ai.tools.AskStudentQuestionTool;
+import com.wornux.ai.tools.ToolContextKeys;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.dtos.chat.*;
 import com.wornux.services.context.ActiveAcademicContext;
@@ -89,7 +90,7 @@ public class ChatService {
                 java.util.List.of(
                     new org.springframework.ai.chat.messages.UserMessage(userInput),
                     new org.springframework.ai.chat.messages.AssistantMessage(assistantResponse)));
-            chatUsageService.updateActiveTranscriptInputTokens(conversationId, turnPromptTokens.remove(turnId));
+            chatUsageService.updateConversationInputTokens(conversationId, turnPromptTokens.remove(turnId));
             return new TurnFinalizationResult(compactConversationIfNeeded(conversationId));
         }
         finally {
@@ -143,13 +144,13 @@ public class ChatService {
             UUID conversationId,
             UUID turnId) {
         return Map.of(
-            ToolUsageAuditService.CLIENT_ID,
+            ToolContextKeys.GROUP_CLASS_MEMBER_ID,
             academicCtx.map(context -> context.groupClassMemberId().toString()).orElse(""),
-            ToolUsageAuditService.GROUP_CLASS_ID,
+            ToolContextKeys.GROUP_CLASS_ID,
             academicCtx.map(context -> context.groupClassId().toString()).orElse(""),
-            ToolUsageAuditService.CONVERSATION_ID,
+            ToolContextKeys.CONVERSATION_ID,
             conversationId,
-            ToolUsageAuditService.TURN_ID,
+            ToolContextKeys.TURN_ID,
             turnId);
     }
 

@@ -36,7 +36,7 @@ public class SmtpEmailService implements EmailService {
             mailSender.send(mimeMessage);
         }
         catch (MessagingException | java.io.UnsupportedEncodingException exception) {
-            throw new EmailSendException("Failed to send email to " + message.toAddress(), exception);
+            throw new EmailSendException("Failed to send email to %s".formatted(message.toAddress()), exception);
         }
     }
 }

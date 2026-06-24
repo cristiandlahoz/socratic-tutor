@@ -43,7 +43,7 @@ public class ChatTurnOrchestrator {
             Runnable onResponseUpdated,
             Runnable onResponseFinished,
             Runnable refreshConversationHistory,
-            Runnable refreshTranscriptUsage,
+            Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus) {
 
         var streamId = streamGeneration.incrementAndGet();
@@ -81,8 +81,10 @@ public class ChatTurnOrchestrator {
                         return;
                     }
                     log.warn(
-                        "chat_ui_stream_failed turn_id={} conversation_id={}"
-                                + " failure_kind={} error_type={} error_message={}",
+                        """
+                        chat_ui_stream_failed turn_id={} conversation_id={} failure_kind={}\
+                         error_type={} error_message={}\
+                        """,
                         context.turnId(),
                         context.conversationId(),
                         chatFailureKind(exception),
@@ -92,14 +94,13 @@ public class ChatTurnOrchestrator {
                     responseMessage.update(
                         message -> Objects.requireNonNull(message)
                                 .fallback(
-                                    "Lo siento, ocurrió un problema al generar la respuesta. Intenta"
-                                            + " nuevamente."));
+                                    "Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente."));
                     finishResponse(
                         context.state(),
                         ui,
                         onResponseFinished,
                         refreshConversationHistory,
-                        refreshTranscriptUsage,
+                        refreshConversationTokenUsage,
                         refreshCompactionStatus);
                 }, () -> {
                     if (streamGeneration.get() != streamId) {
@@ -113,7 +114,7 @@ public class ChatTurnOrchestrator {
                         chatService,
                         onResponseFinished,
                         refreshConversationHistory,
-                        refreshTranscriptUsage,
+                        refreshConversationTokenUsage,
                         refreshCompactionStatus,
                         ui);
                 });
@@ -125,7 +126,7 @@ public class ChatTurnOrchestrator {
             ChatService chatService,
             Runnable onResponseFinished,
             Runnable refreshConversationHistory,
-            Runnable refreshTranscriptUsage,
+            Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus,
             UI ui) {
         activeStream = Mono.fromCallable(
@@ -138,14 +139,14 @@ public class ChatTurnOrchestrator {
                         ui,
                         onResponseFinished,
                         refreshConversationHistory,
-                        refreshTranscriptUsage,
+                        refreshConversationTokenUsage,
                         refreshCompactionStatus),
                     _ -> finishResponse(
                         context.state(),
                         ui,
                         onResponseFinished,
                         refreshConversationHistory,
-                        refreshTranscriptUsage,
+                        refreshConversationTokenUsage,
                         refreshCompactionStatus));
     }
 
@@ -154,13 +155,13 @@ public class ChatTurnOrchestrator {
             UI ui,
             Runnable onResponseFinished,
             Runnable refreshConversationHistory,
-            Runnable refreshTranscriptUsage,
+            Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus) {
         state.responseInProgress().set(false);
         state.compactionInProgress().set(false);
         state.compactionLabel().set("");
         refreshConversationHistory.run();
-        refreshTranscriptUsage.run();
+        refreshConversationTokenUsage.run();
         refreshCompactionStatus.run();
         activeStream = null;
         runUiSideEffect(ui, onResponseFinished);

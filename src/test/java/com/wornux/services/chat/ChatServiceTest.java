@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.wornux.ai.tools.ToolUsageAuditService;
+import com.wornux.ai.tools.ToolContextKeys;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.services.context.ActiveAcademicContext;
 import org.junit.jupiter.api.Test;
@@ -30,9 +30,9 @@ class ChatServiceTest {
         var toolContext = ChatService.buildToolContext(Optional.of(context), conversationId, turnId);
 
         assertThat(toolContext).hasSize(4)
-                .containsEntry(ToolUsageAuditService.CLIENT_ID, groupClassMemberId.toString())
-                .containsEntry(ToolUsageAuditService.GROUP_CLASS_ID, groupClassId.toString())
-                .containsEntry(ToolUsageAuditService.CONVERSATION_ID, conversationId)
-                .containsEntry(ToolUsageAuditService.TURN_ID, turnId);
+                .containsEntry(ToolContextKeys.GROUP_CLASS_MEMBER_ID, groupClassMemberId.toString())
+                .containsEntry(ToolContextKeys.GROUP_CLASS_ID, groupClassId.toString())
+                .containsEntry(ToolContextKeys.CONVERSATION_ID, conversationId)
+                .containsEntry(ToolContextKeys.TURN_ID, turnId);
     }
 }

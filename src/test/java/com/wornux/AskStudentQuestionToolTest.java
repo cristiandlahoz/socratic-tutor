@@ -7,7 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wornux.ai.tools.AskStudentQuestionTool;
-import com.wornux.ai.tools.ToolUsageAuditService;
+import com.wornux.ai.tools.ToolContextKeys;
 import com.wornux.dtos.chat.questions.StudentQuestion;
 import com.wornux.dtos.chat.questions.StudentQuestionAnswer;
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
@@ -48,12 +48,12 @@ class AskStudentQuestionToolTest {
     @Timeout(90)
     void chatClientConvertsModelToolCallToStudentQuestionSet() {
         var capturedQuestionSet = new AtomicReference<StudentQuestionSet>();
-        var clientId = UUID.randomUUID();
+        var groupClassMemberId = UUID.randomUUID();
         var conversationId = UUID.randomUUID();
         var response = chatClient.prompt()
                 .advisors(
                     advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId.toString())
-                            .param(ToolUsageAuditService.CLIENT_ID, clientId))
+                            .param(ToolContextKeys.GROUP_CLASS_MEMBER_ID, groupClassMemberId))
                 .tools(new AskStudentQuestionTool(questionHandler(capturedQuestionSet)))
                 .user("""
                       necesito ayuda para resolver un ejercicio de cajero

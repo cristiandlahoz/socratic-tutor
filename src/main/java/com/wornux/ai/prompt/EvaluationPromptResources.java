@@ -52,7 +52,8 @@ public class EvaluationPromptResources {
             return StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
         }
         catch (IOException exception) {
-            throw new UncheckedIOException("Failed to read evaluation prompt resource " + location, exception);
+            throw new UncheckedIOException("Failed to read evaluation prompt resource %s".formatted(location),
+                    exception);
         }
     }
 }

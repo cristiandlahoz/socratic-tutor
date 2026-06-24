@@ -22,9 +22,11 @@ public class RetrieveInformationTool {
     }
 
     @Tool(name = "searchUploadedDocuments",
-            description = "Searches approved text segments extracted from PDFs uploaded by the current user. The"
-                    + " search is scoped to the active class. Use this when the user refers to uploaded"
-                    + " material, reports, PDFs, topics, entities, or document-specific facts.")
+            description = """
+                          Searches approved text segments extracted from PDFs uploaded by the current user.
+                          The search is scoped to the active class. Use this when the user refers to uploaded
+                          material, reports, PDFs, topics, entities, or document-specific facts.
+                          """)
     public DocumentContextResult searchUploadedDocuments(
             @ToolParam(description = "The user question or the fact to look up inside uploaded PDFs.") String query,
             @ToolParam(required = false,
@@ -44,15 +46,14 @@ public class RetrieveInformationTool {
                 topicHint == null ? "none" : topicHint,
                 tagHint == null ? "none" : tagHint),
             () -> {
-                var rawGroupClassId = toolContext.getContext().get(ToolUsageAuditService.GROUP_CLASS_ID);
+                var rawGroupClassId = toolContext.getContext().get(ToolContextKeys.GROUP_CLASS_ID);
                 var groupClassId = rawGroupClassId == null || String.valueOf(rawGroupClassId).isBlank()
                         ? null
                         : java.util.UUID.fromString(String.valueOf(rawGroupClassId));
                 var result = documentRetrievalService
                         .search(groupClassId, query, ingestionIdHint, filenameHint, topicHint, tagHint);
                 return new ToolUsageAuditService.ToolResult<>(result,
-                        "hits=%d context_found=%s".formatted(result.hits().size(), result.contextFound()),
-                        new ToolLearningSignal("uploaded_documents", "retrieval_context"));
+                        "hits=%d context_found=%s".formatted(result.hits().size(), result.contextFound()));
             });
     }
 }

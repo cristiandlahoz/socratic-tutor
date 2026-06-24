@@ -82,10 +82,10 @@ public class DocumentSegmentEditorList extends Composite<Div> {
         var provenance = new Div();
         provenance.addClassName("document-ingest-segment-provenance");
         if (segment.captions() != null && !segment.captions().isEmpty()) {
-            provenance.add(new Span("captions: " + String.join(" · ", segment.captions())));
+            provenance.add(new Span("captions: %s".formatted(String.join(" · ", segment.captions()))));
         }
         if (segment.docItems() != null && !segment.docItems().isEmpty()) {
-            provenance.add(new Span("refs: " + String.join(" · ", segment.docItems())));
+            provenance.add(new Span("refs: %s".formatted(String.join(" · ", segment.docItems()))));
         }
         provenance.setVisible(provenance.getComponentCount() > 0);
 
@@ -110,10 +110,10 @@ public class DocumentSegmentEditorList extends Composite<Div> {
 
     private String pageSummary(EditableSegmentViewModel segment) {
         if (segment.pageNumbers() != null && !segment.pageNumbers().isEmpty()) {
-            return " · paginas " + segment.pageNumbers();
+            return " · paginas %s".formatted(segment.pageNumbers());
         }
         if (segment.pageNumber() != null) {
-            return " · pagina " + segment.pageNumber();
+            return " · pagina %s".formatted(segment.pageNumber());
         }
         return "";
     }

@@ -40,7 +40,7 @@ public class CProgramDebugService {
         if (!SUPPORTED_STANDARD.equals(normalizedRequest.standard())) {
             return rejected(
                 sourceHash,
-                "Unsupported C standard: " + normalizedRequest.standard(),
+                "Unsupported C standard: %s".formatted(normalizedRequest.standard()),
                 "unsupported-standard");
         }
         var sourceBytes = normalizedRequest.source().getBytes(StandardCharsets.UTF_8).length;

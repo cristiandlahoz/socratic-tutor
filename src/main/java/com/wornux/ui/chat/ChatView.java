@@ -272,9 +272,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         var helpTitle = new Span("Uso del contexto");
         helpTitle.addClassName("chat-sidebar-help-title");
 
-        var helpCopy =
-                new Paragraph("Muestra los prompt tokens del transcript activo y el porcentaje usado contra el umbral"
-                        + " de compactación configurado para resumir la conversación antes de perder calidad.");
+        var helpCopy = new Paragraph(
+                "Muestra los prompt tokens del contexto activo y el porcentaje usado contra el umbral de compactación configurado para resumir la conversación antes de perder calidad.");
         helpCopy.addClassName("chat-sidebar-help-description");
         helpPopover.add(new Div(helpTitle, helpCopy));
 
@@ -286,8 +285,8 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
             var inputTokens = state.usageInputTokens().get();
             var usagePercent = state.usagePercent().get();
             var compacted = Boolean.TRUE.equals(state.conversationCompacted().get());
-            var level = state.compactionLevel().get();
-            var sourceTranscriptId = state.compactedFromTranscriptId().get();
+            var generation = state.compactionGeneration().get();
+            var sourceConversationStateId = state.compactedFromConversationStateId().get();
             var visible = (inputTokens != null && usagePercent != null) || compacted;
             usageBadge.setVisible(visible);
             if (inputTokens != null && usagePercent != null) {
@@ -297,10 +296,11 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
                 usageText.setText("Contexto compactado");
             }
 
-            if (compacted && level != null) {
-                var sourceLabel =
-                        sourceTranscriptId == null ? "" : " · desde %s".formatted(shortId(sourceTranscriptId));
-                lineageText.setText("Compactado · nivel %d%s".formatted(level, sourceLabel));
+            if (compacted && generation != null) {
+                var sourceLabel = sourceConversationStateId == null
+                        ? ""
+                        : " · desde %s".formatted(shortId(sourceConversationStateId));
+                lineageText.setText("Compactado · generación %d%s".formatted(generation, sourceLabel));
                 lineageText.setVisible(true);
             }
             else {
