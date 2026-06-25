@@ -1,17 +1,233 @@
 .workspace-view {
   box-sizing: border-box;
-  padding: var(--vaadin-padding-xl);
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: clamp(var(--vaadin-padding-m), 2.5vw, var(--vaadin-padding-xl));
+  gap: var(--vaadin-gap-l);
   background: var(--vaadin-background-color);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+  overflow-y: auto;
 }
 
-.workspace-view h1 {
-  margin: 0 0 var(--vaadin-gap-m);
+.workspace-view > * {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+}
+
+.workspace-view h1,
+.workspace-view h2,
+.workspace-view p {
+  margin: 0;
+}
+
+.workspace-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-s);
+  padding: clamp(var(--vaadin-padding-l), 2.5vw, var(--vaadin-padding-xl));
+  border: 1px solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-l);
+  background: var(--aura-surface-color);
+  box-shadow: var(--aura-shadow-m);
+}
+
+.workspace-hero h1 {
+  max-width: 20ch;
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-xxxl);
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.workspace-hero p,
+.workspace-section-header p {
+  max-width: 72ch;
+  color: var(--vaadin-secondary-text-color);
+  font-size: var(--aura-font-size-s);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.workspace-toolbar,
+.workspace-section {
+  border: 1px solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-l);
+  background: var(--aura-surface-color);
+  box-shadow: var(--aura-shadow-s);
+}
+
+.workspace-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--vaadin-gap-m);
+  padding: var(--vaadin-padding-m);
+}
+
+.workspace-context-select {
+  width: min(100%, 28rem);
+}
+
+.workspace-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-m);
+  padding: var(--vaadin-padding-m);
+}
+
+.workspace-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-xs);
+  padding-bottom: var(--vaadin-padding-m);
+  border-bottom: 1px solid var(--vaadin-border-color);
+}
+
+.workspace-section-header h2 {
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-l);
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: 1.25;
+}
+
+.workspace-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--vaadin-gap-s);
+}
+
+.workspace-form-row > * {
+  flex: 1 1 13rem;
+}
+
+.workspace-form-row vaadin-button {
+  flex: 0 0 auto;
+}
+
+.workspace-field {
+  min-width: 12rem;
+}
+
+.workspace-grid {
+  overflow: hidden;
+  border: 1px solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-m);
+  background: var(--aura-surface-color);
+}
+
+.workspace-view vaadin-grid::part(table) {
+  background: var(--aura-surface-color);
+}
+
+.workspace-view vaadin-grid::part(header-cell) {
+  border-bottom: 1px solid var(--vaadin-border-color);
+  background: var(--vaadin-contrast-5pct);
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-semibold);
+}
+
+.workspace-view vaadin-grid::part(body-cell) {
+  border-bottom: 1px solid var(--vaadin-border-color);
+  background: var(--aura-surface-color);
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-s);
+}
+
+.workspace-view vaadin-grid::part(body-cell):hover {
+  background: var(--vaadin-contrast-5pct);
+}
+
+.workspace-view vaadin-button::part(button) {
+  border-radius: var(--vaadin-radius-m);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.workspace-view vaadin-button:hover::part(button) {
+  transform: translateY(-1px);
+}
+
+.workspace-view vaadin-text-field::part(input-field),
+.workspace-view vaadin-email-field::part(input-field),
+.workspace-view vaadin-date-picker::part(input-field),
+.workspace-view vaadin-combo-box::part(input-field) {
+  border: 1px solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-m);
+  background: var(--vaadin-input-field-background);
+  color: var(--vaadin-text-color);
+  box-shadow: none;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.workspace-view vaadin-text-field:hover::part(input-field),
+.workspace-view vaadin-email-field:hover::part(input-field),
+.workspace-view vaadin-date-picker:hover::part(input-field),
+.workspace-view vaadin-combo-box:hover::part(input-field),
+.workspace-view vaadin-text-field[focused]::part(input-field),
+.workspace-view vaadin-email-field[focused]::part(input-field),
+.workspace-view vaadin-date-picker[focused]::part(input-field),
+.workspace-view vaadin-combo-box[focused]::part(input-field) {
+  border-color: var(--aura-accent-border-color);
+  background: var(--vaadin-input-field-background);
+}
+
+.workspace-view vaadin-text-field::part(label),
+.workspace-view vaadin-email-field::part(label),
+.workspace-view vaadin-date-picker::part(label),
+.workspace-view vaadin-combo-box::part(label) {
+  color: var(--vaadin-secondary-text-color);
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-semibold);
 }
 
 .workspace-card {
   width: min(100%, 34rem);
   padding: var(--vaadin-padding-xl);
+  border: 1px solid var(--vaadin-border-color);
   border-radius: var(--vaadin-radius-l);
   background: var(--aura-surface-color);
   box-shadow: var(--aura-shadow-m);
+}
+
+@media (max-width: 760px) {
+  .workspace-view {
+    padding: var(--vaadin-padding-s);
+  }
+
+  .workspace-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workspace-context-select,
+  .workspace-toolbar vaadin-button,
+  .workspace-form-row > *,
+  .workspace-form-row vaadin-button {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .workspace-hero h1 {
+    font-size: var(--aura-font-size-xxl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-view vaadin-button::part(button) {
+    transition: none;
+  }
+
+  .workspace-view vaadin-button:hover::part(button) {
+    transform: none;
+  }
 }

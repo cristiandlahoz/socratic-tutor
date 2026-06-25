@@ -82,7 +82,8 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var workPreview = new Div(threadHeader, userPrompt, tutorResponse, codeSample, evidence);
         workPreview.addClassName("login-view__work-preview");
 
-        var cherry = new AsciiFrameAnimation("cherry-frames", 147, 24);
+        var cherry = new AsciiFrameAnimation("cherry-frames", 147, 18);
+        cherry.setBouncing(false);
         cherry.addClassName("login-view__cherry");
         cherry.getElement().setAttribute("aria-hidden", "true");
 

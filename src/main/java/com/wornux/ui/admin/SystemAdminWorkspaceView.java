@@ -1,8 +1,12 @@
 package com.wornux.ui.admin;
 
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -40,14 +44,24 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         this.systemAdminWorkspaceService = systemAdminWorkspaceService;
 
         addClassName("workspace-view");
+        tenantNameField.addClassName("workspace-field");
+        inviteEmailField.addClassName("workspace-field");
         tenantGrid.addColumn(com.wornux.data.entities.identity.Tenant::getName).setHeader("Tenant");
         tenantGrid.addColumn(tenant -> tenant.getOwnerTenantAccount() == null ? "Unassigned" : "Assigned")
                 .setHeader("Owner status");
+        tenantGrid.addClassName("workspace-grid");
+        tenantGrid.setWidthFull();
+
         add(
-            new H1("System admin workspace"),
-            new HorizontalLayout(tenantNameField, new Button("Create tenant", _ -> onCreateTenant())),
-            new HorizontalLayout(inviteEmailField, new Button("Invite tenant admin", _ -> onInviteTenantAdmin())),
-            tenantGrid);
+            createHeader(
+                "System admin workspace",
+                "Create tenant spaces, select the right account, and delegate ownership without leaving the academic control surface."),
+            createSection(
+                "Tenant setup",
+                "Create an institution shell before inviting the person who will manage it.",
+                formRow(tenantNameField, primaryButton("Create tenant", this::onCreateTenant)),
+                formRow(inviteEmailField, primaryButton("Invite tenant admin", this::onInviteTenantAdmin))),
+            createSection("Tenants", "Select a tenant before sending an admin invitation.", tenantGrid));
         refresh();
     }
 
@@ -57,6 +71,40 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.SYSTEM_ADMIN)) {
             event.forwardTo("no-access");
         }
+    }
+
+    private Div createHeader(String title, String description) {
+        var heading = new H1(title);
+        var copy = new Paragraph(description);
+        var header = new Div(heading, copy);
+        header.addClassName("workspace-hero");
+        return header;
+    }
+
+    private Div createSection(String title, String description, com.vaadin.flow.component.Component... children) {
+        var heading = new H2(title);
+        var copy = new Paragraph(description);
+        var sectionHeader = new Div(heading, copy);
+        sectionHeader.addClassName("workspace-section-header");
+        var section = new Div(sectionHeader);
+        section.add(children);
+        section.addClassName("workspace-section");
+        return section;
+    }
+
+    private HorizontalLayout formRow(com.vaadin.flow.component.Component... children) {
+        var row = new HorizontalLayout(children);
+        row.addClassName("workspace-form-row");
+        row.setPadding(false);
+        row.setMargin(false);
+        row.setSpacing(false);
+        return row;
+    }
+
+    private Button primaryButton(String label, Runnable action) {
+        var button = new Button(label, _ -> action.run());
+        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        return button;
     }
 
     private void onCreateTenant() {

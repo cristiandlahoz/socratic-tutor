@@ -1,9 +1,13 @@
 package com.wornux.ui.tenant;
 
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -60,6 +64,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
         addClassName("workspace-view");
         tenantSelector.setItemLabelGenerator(AccessibleTenant::tenantName);
+        tenantSelector.addClassName("workspace-context-select");
         tenantSelector.addValueChangeListener(event -> switchTenant(event.getValue()));
         periodGrid.addColumn(com.wornux.data.entities.academic.AcademicPeriod::getCode).setHeader("Code");
         periodGrid.addColumn(com.wornux.data.entities.academic.AcademicPeriod::getName).setHeader("Name");
@@ -70,27 +75,37 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         groupSubjectSelector
                 .setItemLabelGenerator(subject -> "%s - %s".formatted(subject.getCode(), subject.getName()));
         groupPeriodSelector.setItemLabelGenerator(period -> "%s - %s".formatted(period.getCode(), period.getName()));
+        configureWorkspaceFields();
 
         add(
-            new H1("Tenant admin workspace"),
-            tenantSelector,
-            new HorizontalLayout(periodCodeField,
-                    periodNameField,
-                    startDateField,
-                    endDateField,
-                    new Button("Create period", _ -> onCreatePeriod())),
-            periodGrid,
-            new HorizontalLayout(subjectCodeField,
-                    subjectNameField,
-                    new Button("Create subject", _ -> onCreateSubject())),
-            subjectGrid,
-            new HorizontalLayout(groupSubjectSelector,
-                    groupPeriodSelector,
-                    groupCodeField,
-                    groupNameField,
-                    new Button("Create class", _ -> onCreateClass())),
-            groupClassGrid,
-            new HorizontalLayout(professorEmailField, new Button("Invite professor", _ -> onInviteProfessor())));
+            createHeader(
+                "Tenant admin workspace",
+                "Shape the academic structure for the selected institution: periods, subjects, classes, and professor access."),
+            createToolbar(tenantSelector),
+            createSection(
+                "Academic periods",
+                "Define the calendar containers that keep student work in context.",
+                formRow(periodCodeField,
+                        periodNameField,
+                        startDateField,
+                        endDateField,
+                        primaryButton("Create period", this::onCreatePeriod)),
+                periodGrid),
+            createSection(
+                "Subjects",
+                "Create reusable subject records before attaching them to classes.",
+                formRow(subjectCodeField, subjectNameField, primaryButton("Create subject", this::onCreateSubject)),
+                subjectGrid),
+            createSection(
+                "Classes",
+                "Connect subjects and academic periods, then select a class to invite its professor.",
+                formRow(groupSubjectSelector,
+                        groupPeriodSelector,
+                        groupCodeField,
+                        groupNameField,
+                        primaryButton("Create class", this::onCreateClass)),
+                groupClassGrid,
+                formRow(professorEmailField, primaryButton("Invite professor", this::onInviteProfessor))));
     }
 
     @Override
@@ -101,6 +116,66 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
             return;
         }
         refresh();
+    }
+
+    private void configureWorkspaceFields() {
+        periodGrid.addClassName("workspace-grid");
+        subjectGrid.addClassName("workspace-grid");
+        groupClassGrid.addClassName("workspace-grid");
+        periodGrid.setWidthFull();
+        subjectGrid.setWidthFull();
+        groupClassGrid.setWidthFull();
+        periodCodeField.addClassName("workspace-field");
+        periodNameField.addClassName("workspace-field");
+        startDateField.addClassName("workspace-field");
+        endDateField.addClassName("workspace-field");
+        subjectCodeField.addClassName("workspace-field");
+        subjectNameField.addClassName("workspace-field");
+        groupSubjectSelector.addClassName("workspace-field");
+        groupPeriodSelector.addClassName("workspace-field");
+        groupCodeField.addClassName("workspace-field");
+        groupNameField.addClassName("workspace-field");
+        professorEmailField.addClassName("workspace-field");
+    }
+
+    private Div createHeader(String title, String description) {
+        var heading = new H1(title);
+        var copy = new Paragraph(description);
+        var header = new Div(heading, copy);
+        header.addClassName("workspace-hero");
+        return header;
+    }
+
+    private Div createToolbar(com.vaadin.flow.component.Component... children) {
+        var toolbar = new Div(children);
+        toolbar.addClassName("workspace-toolbar");
+        return toolbar;
+    }
+
+    private Div createSection(String title, String description, com.vaadin.flow.component.Component... children) {
+        var heading = new H2(title);
+        var copy = new Paragraph(description);
+        var sectionHeader = new Div(heading, copy);
+        sectionHeader.addClassName("workspace-section-header");
+        var section = new Div(sectionHeader);
+        section.add(children);
+        section.addClassName("workspace-section");
+        return section;
+    }
+
+    private HorizontalLayout formRow(com.vaadin.flow.component.Component... children) {
+        var row = new HorizontalLayout(children);
+        row.addClassName("workspace-form-row");
+        row.setPadding(false);
+        row.setMargin(false);
+        row.setSpacing(false);
+        return row;
+    }
+
+    private Button primaryButton(String label, Runnable action) {
+        var button = new Button(label, _ -> action.run());
+        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        return button;
     }
 
     private void refresh() {

@@ -49,6 +49,7 @@ public class SecurityConfig {
                         "/frontend/**",
                         "/images/*.png",
                         "/crow3-frames/**",
+                        "/cherry-frames/**",
                         "/icons/**",
                         "/line-awesome/**",
                         "/invitations/accept/**")

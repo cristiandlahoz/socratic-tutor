@@ -2,9 +2,13 @@ package com.wornux.ui.student;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
@@ -40,6 +44,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
 
         addClassName("workspace-view");
         classSelector.setItemLabelGenerator(value -> "%s - %s".formatted(value.classCode(), value.className()));
+        classSelector.addClassName("workspace-context-select");
         classSelector.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 switchClass(event.getValue());
@@ -48,12 +53,18 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         assignmentsGrid.addColumn(assignment -> assignment.getTrainingActivity().getTitle())
                 .setHeader("Assigned Activity");
         assignmentsGrid.addColumn(assignment -> assignment.getStatus().name()).setHeader("Status");
+        assignmentsGrid.addClassName("workspace-grid");
+        assignmentsGrid.setWidthFull();
+
+        var openConversationButton = new Button("Open conversation", _ -> UI.getCurrent().navigate(ConversationView.class));
+        openConversationButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         add(
-            new H1("Student workspace"),
-            classSelector,
-            new Button("Open conversation", _ -> UI.getCurrent().navigate(ConversationView.class)),
-            assignmentsGrid);
+            createHeader(
+                "Student workspace",
+                "Keep the active class in context, review assigned activities, and return to the tutor when you need guided reasoning."),
+            createToolbar(classSelector, openConversationButton),
+            createSection("Assigned activities", "Work currently connected to your active class context.", assignmentsGrid));
     }
 
     @Override
@@ -64,6 +75,30 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
             return;
         }
         refresh();
+    }
+
+    private Div createHeader(String title, String description) {
+        var heading = new H1(title);
+        var copy = new Paragraph(description);
+        var header = new Div(heading, copy);
+        header.addClassName("workspace-hero");
+        return header;
+    }
+
+    private Div createToolbar(ComboBox<AccessibleClass> selector, Button action) {
+        var toolbar = new Div(selector, action);
+        toolbar.addClassName("workspace-toolbar");
+        return toolbar;
+    }
+
+    private Div createSection(String title, String description, Grid<?> grid) {
+        var heading = new H2(title);
+        var copy = new Paragraph(description);
+        var sectionHeader = new Div(heading, copy);
+        sectionHeader.addClassName("workspace-section-header");
+        var section = new Div(sectionHeader, grid);
+        section.addClassName("workspace-section");
+        return section;
     }
 
     private void refresh() {

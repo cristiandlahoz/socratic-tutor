@@ -220,24 +220,25 @@
 
 .login-view__cherry-frame {
   position: absolute;
-  left: clamp(0.75rem, 2.4vw, 2rem);
-  bottom: clamp(0.35rem, 1.3vw, 1rem);
+  left: clamp(-24rem, -22vw, -16rem);
+  bottom: clamp(-2.75rem, -3vw, -1.75rem);
   z-index: 0;
-  width: clamp(13.5rem, 18vw, 18rem);
-  height: clamp(3.9rem, 6vw, 5rem);
-  opacity: 0.58;
+  width: clamp(56rem, 66vw, 76rem);
+  height: clamp(21rem, 29vw, 27rem);
+  opacity: 0.28;
   pointer-events: none;
+  mask-image: linear-gradient(90deg, #000 0 72%, transparent 100%);
 }
 
 .login-view__cherry {
   display: block;
   width: 100%;
   height: 100%;
-  --ascii-frame-font-size: clamp(0.68px, 0.062vw, 0.82px);
+  --ascii-frame-font-size: clamp(2.75px, 0.26vw, 3.8px);
   --ascii-frame-scale: 1;
   --ascii-frame-translate-y: 0;
   --chat-ascii-animation-color: var(--theme-interactive);
-  --chat-ascii-animation-shadow: 0 0 0.12rem color-mix(in srgb, var(--theme-interactive) 16%, transparent);
+  --chat-ascii-animation-shadow: 0 0 0.15rem color-mix(in srgb, var(--theme-interactive) 16%, transparent);
 }
 
 .login-view__crow-frame {
