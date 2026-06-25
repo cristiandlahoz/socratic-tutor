@@ -1,7 +1,7 @@
 .evaluation-view {
   width: min(100%, 96rem);
   margin: 0 auto;
-  padding: var(--chat-space-xl) clamp(1.25rem, 3vw, 2.5rem);
+  padding: var(--vaadin-padding-xl) clamp(1.25rem, 3vw, 2.5rem);
   box-sizing: border-box;
 }
 
@@ -12,14 +12,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: var(--vaadin-padding-xl);
   box-sizing: border-box;
 }
 
 .evaluation-overlay-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.36);
+  background: var(--vaadin-overlay-backdrop-background);
 }
 
 .evaluation-overlay-panel {
@@ -28,11 +28,11 @@
   width: min(48rem, 100%);
   max-height: calc(100vh - 4rem);
   overflow: auto;
-  background: var(--chat-surface-strong);
-  border: 1px solid var(--chat-border-visible);
-  border-radius: var(--chat-panel-radius-tight);
-  box-shadow: var(--chat-shadow-soft);
-  padding: var(--chat-space-lg);
+  background: var(--vaadin-background-container-strong);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-s);
+  box-shadow: var(--aura-shadow-xs);
+  padding: var(--vaadin-padding-l);
 }
 
 .evaluation-overlay-footer {
@@ -48,48 +48,48 @@
 .evaluation-form-card {
   display: flex;
   flex-direction: column;
-  gap: var(--chat-space-md);
-  background: var(--chat-surface-strong);
-  border: 1px solid var(--chat-border-visible);
-  border-radius: var(--chat-panel-radius-tight);
-  padding: var(--chat-space-lg);
-  box-shadow: var(--chat-shadow-soft);
+  gap: var(--vaadin-padding-m);
+  background: var(--vaadin-background-container-strong);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-s);
+  padding: var(--vaadin-padding-l);
+  box-shadow: var(--aura-shadow-xs);
 }
 
 .evaluation-grid-card {
   display: flex;
   flex-direction: column;
-  gap: var(--chat-space-md);
-  background: var(--chat-surface-strong);
-  border: 1px solid var(--chat-border-visible);
-  border-radius: var(--chat-panel-radius-tight);
-  padding: var(--chat-space-lg);
-  box-shadow: var(--chat-shadow-soft);
+  gap: var(--vaadin-padding-m);
+  background: var(--vaadin-background-container-strong);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-s);
+  padding: var(--vaadin-padding-l);
+  box-shadow: var(--aura-shadow-xs);
 }
 
 .evaluation-view vaadin-text-field,
 .evaluation-view vaadin-text-area {
-  --vaadin-input-field-border-radius: 0.55rem;
+  --vaadin-input-field-border-radius: var(--vaadin-radius-s);
 }
 
 .evaluation-view vaadin-button {
-  border-radius: 0.55rem;
+  border-radius: var(--vaadin-radius-s);
 }
 
 .evaluation-actions-row {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--vaadin-gap-xs);
 }
 
 .evaluation-description {
-  color: var(--chat-text-secondary);
-  font-size: var(--chat-text-label);
-  margin-top: 0.35rem;
+  color: var(--vaadin-text-color-secondary);
+  font-size: var(--aura-font-size-xs);
+  margin-top: var(--vaadin-gap-xs);
 }
 
 @media (max-width: 960px) {
   .evaluation-view {
     width: 100%;
-    padding-inline: 1rem;
+    padding-inline: var(--vaadin-padding-m);
   }
 }

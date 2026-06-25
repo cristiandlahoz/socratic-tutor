@@ -3,7 +3,7 @@ html {
     --aura-font-family: var(--chat-font-body);
     --aura-base-font-size: 16;
     --aura-base-line-height: 1.5;
-    --aura-base-radius: 10;
+    --aura-base-radius: 6;
     --aura-base-size: 16;
     --aura-contrast-level: 5;
     --aura-background-color-light: var(--theme-light-background);
@@ -18,9 +18,11 @@ html {
     --aura-accent-color-dark: var(--theme-dark-accent);
     --aura-accent-contrast-color-light: var(--theme-light-accent-contrast);
     --aura-accent-contrast-color-dark: var(--theme-dark-accent-contrast);
+    --aura-surface-opacity: 1;
+    --aura-overlay-surface-opacity: 1;
     --aura-app-layout-inset: 0px;
     --aura-app-layout-border-width: 0px;
-    --aura-app-layout-border-radius: 0px;
+    --aura-app-layout-radius: 0px;
     --vaadin-app-layout-drawer-width: clamp(21rem, 25vw, 24rem);
     --vaadin-app-layout-drawer-background: var(--theme-header-surface);
     --vaadin-overlay-shadow: var(--chat-shadow-soft);
@@ -39,7 +41,7 @@ html {
 
     --theme-app-background: var(--theme-dark-background);
     --theme-canvas: var(--theme-dark-background);
-    --theme-header-surface: rgba(10, 24, 25, 0.94);
+    --theme-header-surface: #071210;
     --theme-card-surface: var(--theme-dark-surface);
     --theme-card-surface-strong: var(--theme-dark-surface-strong);
     --theme-card-surface-raised: var(--theme-dark-surface-raised);
@@ -61,8 +63,8 @@ html {
     --theme-interactive-strong: var(--theme-dark-accent-hover);
     --theme-focus-ring: color-mix(in srgb, var(--theme-dark-accent-hover) 22%, transparent);
     --theme-selection: var(--theme-dark-accent-subtle);
-    --theme-history-accent: #d6b05f;
-    --theme-history-accent-soft: rgba(214, 176, 95, 0.14);
+    --theme-history-accent: var(--theme-dark-accent);
+    --theme-history-accent-soft: var(--theme-dark-accent-subtle);
     --theme-history-accent-label: var(--theme-dark-text-display);
     --theme-history-line: var(--theme-dark-line);
     --theme-glow: var(--theme-dark-glow);
@@ -152,11 +154,6 @@ vaadin-markdown strong {
 
 ::selection {
     background: var(--chat-selection);
-}
-
-:focus-visible {
-    outline: 2px solid var(--chat-focus-ring);
-    outline-offset: 2px;
 }
 
 @media (prefers-color-scheme: light) {

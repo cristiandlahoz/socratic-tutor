@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.details.Details;
@@ -32,7 +33,7 @@ import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.components.ShellDrawerToggle;
+import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.ingestion.DocumentSegmentEditorList;
 import com.wornux.ui.components.ingestion.DocumentStatusPanel;
 
@@ -59,7 +60,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         this.authenticatedAccountService = authenticatedAccountService;
         this.workspaceRoutingService = workspaceRoutingService;
 
-        var drawerToggle = new ShellDrawerToggle("shell-drawer-toggle", "Abrir menu");
+        var drawerToggle = createDrawerToggle("shell-drawer-toggle", "Abrir menu");
 
         var eyebrow = new Span("Document ETL");
         eyebrow.addClassName("document-ingest-eyebrow");
@@ -181,6 +182,15 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
             event.forwardTo("no-access");
             return;
         }
+    }
+
+    private DrawerToggle createDrawerToggle(String className, String ariaLabel) {
+        var toggle = new DrawerToggle();
+        toggle.setIcon(new ToggleIcon());
+        toggle.addThemeVariants(ButtonVariant.TERTIARY);
+        toggle.addClassName(className);
+        toggle.setAriaLabel(ariaLabel);
+        return toggle;
     }
 
     private Upload createUpload(DocumentIngestionProperties properties) {

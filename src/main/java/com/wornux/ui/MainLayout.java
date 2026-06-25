@@ -8,6 +8,7 @@ import java.util.*;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
+import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -32,7 +33,7 @@ import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.conversation.ConversationViewModel;
-import com.wornux.ui.components.ShellDrawerToggle;
+import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.SidebarItem;
 import com.wornux.ui.components.chat.WidthAwareLabel;
 import com.wornux.ui.ingestion.DocumentIngestionView;
@@ -107,7 +108,7 @@ public class MainLayout extends AppLayout {
         var appTitle = new H1("Tutor Socrático");
         appTitle.addClassName("chat-sidebar-app-title");
 
-        var drawerToggle = new ShellDrawerToggle("shell-drawer-toggle-inside", "Cerrar menu");
+        var drawerToggle = createDrawerToggle("shell-drawer-toggle-inside", "Cerrar menu");
 
         var appTitleRow = new Div(appTitle, drawerToggle);
         appTitleRow.addClassName("chat-sidebar-app-title-row");
@@ -197,6 +198,15 @@ public class MainLayout extends AppLayout {
 
         bindConversationState(state, this.viewModel);
         installTimelineGraphRenderer();
+    }
+
+    private DrawerToggle createDrawerToggle(String className, String ariaLabel) {
+        var toggle = new DrawerToggle();
+        toggle.setIcon(new ToggleIcon());
+        toggle.addThemeVariants(ButtonVariant.TERTIARY);
+        toggle.addClassName(className);
+        toggle.setAriaLabel(ariaLabel);
+        return toggle;
     }
 
     private Div createThemePreferenceControl(ConversationState state, ConversationViewModel viewModel) {

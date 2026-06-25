@@ -4,8 +4,8 @@
   background:
     radial-gradient(circle at 16% 16%, color-mix(in srgb, var(--theme-interactive) 5%, transparent), transparent 28rem),
     var(--chat-black);
-  color: var(--chat-text-primary);
-  font-family: var(--chat-font-body);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
 }
 
 .login-view__shell {
@@ -34,7 +34,7 @@
 .login-view__shell::after {
   inset: auto 0 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--theme-border-subtle), transparent);
+  background: linear-gradient(90deg, transparent, var(--vaadin-border-color-secondary), transparent);
 }
 
 .login-view__brand {
@@ -45,7 +45,7 @@
   align-content: center;
   gap: clamp(1.5rem, 3vw, 3.25rem);
   padding: clamp(2rem, 5vw, 5.5rem) clamp(2rem, 5.6vw, 6.5rem);
-  border-right: 1px solid var(--theme-border-subtle);
+  border-right: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
 }
 
 .login-view__rail {
@@ -69,11 +69,11 @@
   left: 50%;
   width: 0.68rem;
   height: 0.68rem;
-  border: 1px solid var(--theme-interactive);
-  border-radius: 999px;
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--theme-interactive);
+  border-radius: var(--vaadin-radius-l);
   background: var(--chat-black);
   transform: translateX(-50%);
-  box-shadow: 0 0 0 0.28rem color-mix(in srgb, var(--theme-interactive) 8%, transparent);
+  box-shadow: var(--aura-shadow-s);
 }
 
 .login-view__rail::before {
@@ -91,7 +91,7 @@
   display: flex;
   flex-direction: column;
   gap: clamp(1rem, 2vw, 1.55rem);
-  animation: login-view-fade-up 260ms ease-out both;
+  animation: login-view-fade-up var(--chat-transition-fast) both;
 }
 
 .login-view__eyebrow,
@@ -106,10 +106,10 @@
 .login-view__title {
   max-width: 8ch;
   margin: 0;
-  color: var(--chat-text-display);
-  font-family: var(--chat-font-display);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
   font-size: clamp(3.35rem, 6.8vw, 5.85rem);
-  font-weight: var(--chat-font-weight-title);
+  font-weight: var(--aura-font-weight-semibold);
   letter-spacing: var(--chat-tracking-display);
   line-height: 0.88;
   text-wrap: balance;
@@ -118,8 +118,8 @@
 .login-view__description {
   max-width: 33rem;
   margin: 0;
-  color: color-mix(in srgb, var(--chat-text-primary) 82%, var(--chat-text-secondary));
-  font-family: var(--chat-font-body);
+  color: color-mix(in srgb, var(--vaadin-text-color) 82%, var(--vaadin-text-color-secondary));
+  font-family: var(--aura-font-family);
   font-size: clamp(1rem, 1.28vw, 1.24rem);
   line-height: 1.42;
   text-wrap: pretty;
@@ -134,7 +134,7 @@
   z-index: 1;
   width: clamp(5.75rem, 6.7vw, 6.5rem);
   height: clamp(4.75rem, 5.8vw, 5.35rem);
-  margin-top: 0.25rem;
+  margin-top: var(--vaadin-gap-xs);
   opacity: 0.58;
   filter: saturate(0.9);
 }
@@ -143,8 +143,8 @@
   display: block;
   width: 100%;
   height: 100%;
-  --chat-ascii-animation-color: #b3261e;
-  --chat-ascii-animation-shadow: 0 0 0.22rem color-mix(in srgb, #b3261e 22%, transparent);
+  --chat-ascii-animation-color: var(--aura-red);
+  --chat-ascii-animation-shadow: 0 0 0.22rem color-mix(in srgb, var(--aura-red) 22%, transparent);
 }
 
 .login-view__panel {
@@ -155,8 +155,8 @@
   padding-block: clamp(1.25rem, 4vw, 5rem);
   padding-inline: clamp(3rem, 8vw, 8rem);
   background:
-    linear-gradient(180deg, color-mix(in srgb, #040b0c 28%, transparent), transparent 32%),
-    color-mix(in srgb, var(--chat-black) 86%, #020607);
+    linear-gradient(180deg, color-mix(in srgb, var(--vaadin-background-color) 28%, transparent), transparent 32%),
+    color-mix(in srgb, var(--chat-black) 86%, var(--vaadin-background-color));
 }
 
 .login-view__form-card {
@@ -172,7 +172,7 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  animation: login-view-fade-up 320ms 80ms ease-out both;
+  animation: login-view-fade-up var(--chat-transition-fast) both;
 }
 
 .login-view__form-card::before {
@@ -190,24 +190,24 @@
   grid-row: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.48rem;
+  gap: var(--vaadin-gap-xs);
   margin-bottom: 0;
 }
 
 .login-view__panel-title {
   margin: 0;
-  color: var(--chat-text-display);
-  font-family: var(--chat-font-display);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
   font-size: clamp(1.9rem, 2.8vw, 2.45rem);
-  font-weight: var(--chat-font-weight-title);
+  font-weight: var(--aura-font-weight-semibold);
   letter-spacing: var(--chat-tracking-heading);
   line-height: 0.94;
 }
 
 .login-view__panel-hint {
   margin: 0;
-  color: color-mix(in srgb, var(--chat-text-primary) 82%, var(--chat-text-secondary));
-  font-size: 0.94rem;
+  color: color-mix(in srgb, var(--vaadin-text-color) 82%, var(--vaadin-text-color-secondary));
+  font-size: var(--aura-font-size-s);
   line-height: 1.4;
 }
 
@@ -224,68 +224,76 @@
 }
 
 .login-view__form::part(form-title) {
-  margin-bottom: 0.65rem;
-  color: var(--chat-text-display);
-  font-family: var(--chat-font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
+  margin-bottom: var(--vaadin-gap-s);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-l);
+  font-weight: var(--aura-font-weight-semibold);
 }
 
 .login-view__form::part(error-message) {
-  border: 1px solid color-mix(in srgb, #b3261e 42%, transparent);
-  border-radius: var(--chat-radius-compact-l);
-  background: color-mix(in srgb, #b3261e 13%, transparent);
-  color: color-mix(in srgb, #ffd2c7 86%, var(--chat-text-display));
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--aura-red) 42%, transparent);
+  border-radius: var(--vaadin-radius-m);
+  background: color-mix(in srgb, var(--aura-red) 13%, transparent);
+  color: color-mix(in srgb, var(--aura-red-text) 86%, var(--vaadin-text-color));
 }
 
 .login-view__form::part(error-message-title),
 .login-view__form::part(error-message-description) {
-  color: color-mix(in srgb, #ffd2c7 86%, var(--chat-text-display));
+  color: color-mix(in srgb, var(--aura-red-text) 86%, var(--vaadin-text-color));
 }
 
 .login-view__form::part(footer) {
   justify-content: center;
-  margin-top: 0.75rem;
+  margin-top: var(--vaadin-gap-s);
 }
 
 .login-view__form vaadin-text-field,
 .login-view__form vaadin-password-field {
   width: 100%;
-  color: var(--chat-text-primary);
+  color: var(--vaadin-text-color);
   --vaadin-input-field-background: color-mix(in srgb, var(--theme-card-surface-raised) 74%, transparent);
   --vaadin-input-field-border-width: 1px;
   --vaadin-input-field-border-color: var(--theme-border-strong);
-  --vaadin-input-field-border-radius: 999px;
-  --vaadin-input-field-value-color: var(--chat-text-display);
-  --vaadin-input-field-label-color: var(--chat-text-primary);
-  --vaadin-input-field-focused-border-color: var(--theme-interactive);
-  --vaadin-input-field-hovered-border-color: color-mix(in srgb, var(--theme-interactive) 64%, var(--theme-border-strong));
+  --vaadin-input-field-border-radius: var(--vaadin-radius-l);
+  --vaadin-input-field-value-color: var(--vaadin-text-color);
+  --vaadin-input-field-label-color: var(--vaadin-text-color);
+}
+
+.login-view__form vaadin-text-field:hover,
+.login-view__form vaadin-password-field:hover {
+  --vaadin-input-field-border-color: color-mix(in srgb, var(--theme-interactive) 64%, var(--theme-border-strong));
+}
+
+.login-view__form vaadin-text-field[focused],
+.login-view__form vaadin-password-field[focused] {
+  --vaadin-input-field-border-color: var(--theme-interactive);
 }
 
 .login-view__form vaadin-button[theme~="submit"] {
   width: 100%;
   min-height: 3.15rem;
-  margin-top: 0.55rem;
-  border-radius: 999px;
+  margin-top: var(--vaadin-gap-s);
+  border-radius: var(--vaadin-radius-l);
   background: var(--theme-interactive);
-  color: var(--theme-accent-contrast);
-  font-family: var(--chat-font-display);
-  font-size: 1.08rem;
-  font-weight: 700;
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--theme-interactive) 14%, transparent);
+  color: var(--aura-accent-contrast-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-m);
+  font-weight: var(--aura-font-weight-semibold);
+  box-shadow: var(--aura-shadow-s);
   transition: transform var(--chat-transition-fast), box-shadow var(--chat-transition-fast), filter var(--chat-transition-fast);
 }
 
 .login-view__form vaadin-button[theme~="submit"]:hover {
   filter: brightness(1.05);
   transform: translateY(-1px);
-  box-shadow: 0 14px 34px color-mix(in srgb, var(--theme-interactive) 19%, transparent);
+  box-shadow: var(--aura-shadow-m);
 }
 
 .login-view__form [slot="forgot-password"] {
-  color: color-mix(in srgb, var(--theme-interactive) 88%, var(--chat-text-display));
-  font-family: var(--chat-font-display);
-  font-weight: 700;
+  color: color-mix(in srgb, var(--theme-interactive) 88%, var(--vaadin-text-color));
+  font-family: var(--aura-font-family);
+  font-weight: var(--aura-font-weight-semibold);
 }
 
 @keyframes login-view-fade-up {
@@ -329,7 +337,7 @@
 
   .login-view__description {
     max-width: 32rem;
-    font-size: 0.98rem;
+    font-size: var(--aura-font-size-s);
     line-height: 1.45;
   }
 
@@ -348,11 +356,11 @@
 @media (max-width: 620px) {
   .login-view__brand {
     grid-template-columns: 1fr;
-    padding-top: 1rem;
+    padding-top: var(--vaadin-padding-m);
   }
 
   .login-view__brand-copy {
-    gap: 0.7rem;
+    gap: var(--vaadin-gap-s);
   }
 
   .login-view__title {
@@ -361,7 +369,7 @@
   }
 
   .login-view__description {
-    font-size: 0.92rem;
+    font-size: var(--aura-font-size-s);
     line-height: 1.4;
   }
 
@@ -383,7 +391,7 @@
   .login-view__form-card {
     display: flex;
     flex-direction: column;
-    gap: 1.15rem;
+    gap: var(--vaadin-gap-l);
     padding: 0.75rem 1.15rem 1.15rem;
   }
 
@@ -393,18 +401,18 @@
 
   .login-view__panel-hint {
     padding-right: 4.75rem;
-    font-size: 0.96rem;
+    font-size: var(--aura-font-size-s);
     line-height: 1.45;
   }
 
   .login-view__form::part(error-message) {
-    padding: 0.9rem 1rem;
-    border-radius: var(--chat-radius-compact-l);
+    padding: var(--vaadin-padding-s) var(--vaadin-padding-m);
+    border-radius: var(--vaadin-radius-m);
   }
 
   .login-view__form::part(error-message-title),
   .login-view__form::part(error-message-description) {
-    font-size: 0.95rem;
+    font-size: var(--aura-font-size-s);
     line-height: 1.4;
   }
 }

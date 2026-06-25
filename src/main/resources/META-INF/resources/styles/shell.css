@@ -9,21 +9,20 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.3rem;
+  gap: var(--vaadin-gap-xs);
   padding: 0.6rem 0.55rem;
   background: transparent;
 }
 
 vaadin-app-layout::part(drawer) {
   background: var(--theme-header-surface);
-  border-inline-end: 1px solid var(--chat-border-section);
-  backdrop-filter: blur(18px);
+  border-inline-end: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
 }
 
 vaadin-drawer-toggle.shell-drawer-toggle {
   position: absolute;
-  top: var(--chat-space-md);
-  left: var(--chat-space-md);
+  top: var(--vaadin-padding-m);
+  left: var(--vaadin-padding-m);
   z-index: 5;
 }
 
@@ -37,11 +36,11 @@ vaadin-drawer-toggle.shell-drawer-toggle::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle-inside::part(button) {
   width: 2.8rem;
   height: 2.8rem;
-  border-radius: var(--chat-panel-radius);
-  border: 1px solid var(--chat-border-emphasis);
-  background: var(--chat-surface-strong);
-  box-shadow: var(--chat-shadow-dark-card);
-  color: var(--chat-text-secondary);
+  border-radius: var(--vaadin-radius-m);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  background: var(--vaadin-background-container-strong);
+  box-shadow: var(--aura-shadow-s);
+  color: var(--vaadin-text-color-secondary);
   transition:
       background var(--chat-transition-fast),
       border-color var(--chat-transition-fast),
@@ -54,9 +53,9 @@ vaadin-drawer-toggle.shell-drawer-toggle:hover::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle-inside:hover::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
-  background: var(--chat-surface-hover);
-  border-color: var(--chat-interactive-strong);
-  color: var(--chat-text-display);
+  background: var(--vaadin-background-container-strong);
+  border-color: var(--aura-accent-text-color);
+  color: var(--vaadin-text-color);
   transform: translateY(-1px);
 }
 

@@ -4,31 +4,31 @@
   padding: clamp(1rem, 2vw, 1.4rem);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--vaadin-gap-m);
   background:
     var(--chat-ambient-glow),
     linear-gradient(
         180deg,
         color-mix(in srgb, var(--chat-black) 94%, transparent),
-        color-mix(in srgb, var(--theme-canvas) 96%, transparent));
+        color-mix(in srgb, var(--vaadin-background-color) 96%, transparent));
 }
 
 .document-ingest-header {
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.1rem 1.2rem;
-  border: 1px solid var(--chat-border-section);
-  border-radius: var(--chat-panel-radius);
-  background: var(--chat-surface);
-  box-shadow: var(--chat-shadow-dark-card);
+  gap: var(--vaadin-gap-m);
+  padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  border-radius: var(--vaadin-radius-m);
+  background: var(--aura-surface-color);
+  box-shadow: var(--aura-shadow-s);
   backdrop-filter: blur(18px);
 }
 
 .document-ingest-header-copy {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: var(--vaadin-gap-xs);
 }
 
 .document-ingest-eyebrow,
@@ -36,21 +36,21 @@
 .document-ingest-section-title,
 .document-ingest-segment-ordinal,
 .document-ingest-status-badge {
-  color: var(--chat-history-accent-label);
-  font-family: var(--chat-font-body);
-  font-size: var(--chat-text-label);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .document-ingest-title {
   margin: 0;
-  color: var(--chat-text-display);
-  font-family: var(--chat-font-display);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
   font-size: clamp(2.5rem, 4vw, 3.4rem);
   line-height: 0.98;
   letter-spacing: var(--chat-tracking-heading);
-  font-weight: 300;
+  font-weight: var(--aura-font-weight-regular);
 }
 
 .document-ingest-description,
@@ -61,8 +61,8 @@
 .document-ingest-segment-provenance,
 .document-ingest-status-failure {
   margin: 0;
-  color: var(--chat-text-secondary);
-  font-family: var(--chat-font-body);
+  color: var(--vaadin-text-color-secondary);
+  font-family: var(--aura-font-family);
   line-height: 1.5;
 }
 
@@ -70,18 +70,18 @@
 .document-ingest-status-panel,
 .document-ingest-markdown-shell,
 .document-ingest-segments-shell {
-  border: 1px solid var(--chat-border-section);
-  border-radius: var(--chat-panel-radius);
-  background: var(--chat-surface);
-  padding: 1rem;
-  box-shadow: var(--chat-shadow-dark-card);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  border-radius: var(--vaadin-radius-m);
+  background: var(--aura-surface-color);
+  padding: var(--vaadin-padding-m);
+  box-shadow: var(--aura-shadow-s);
   backdrop-filter: blur(18px);
 }
 
 .document-ingest-upload-card {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: var(--vaadin-gap-s);
 }
 
 .document-ingest-upload-copy,
@@ -89,43 +89,43 @@
 .document-ingest-status-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--vaadin-gap-xs);
 }
 
 .document-ingest-status-title,
 .document-ingest-segment-heading {
-  color: var(--chat-text-display);
-  font-family: var(--chat-font-body);
-  font-size: 1rem;
-  font-weight: 520;
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-m);
+  font-weight: var(--aura-font-weight-medium);
 }
 
 .document-ingest-status-progress {
-  margin-top: 0.3rem;
+  margin-top: var(--vaadin-gap-xs);
 }
 
 .document-ingest-status-failure {
-  color: #ff9ea9;
+  color: var(--aura-red-text);
 }
 
 .document-ingest-review-stack {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--vaadin-gap-m);
 }
 
 .document-ingest-markdown-editor::part(input-field),
 .document-ingest-segment-text::part(input-field) {
-  background: var(--chat-surface-strong);
-  border: 1px solid var(--chat-border-section);
-  border-radius: var(--chat-panel-radius);
-  box-shadow: var(--chat-shadow-dark-card);
+  background: var(--vaadin-background-container-strong);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  border-radius: var(--vaadin-radius-m);
+  box-shadow: var(--aura-shadow-s);
 }
 
 .document-ingest-markdown-editor textarea,
 .document-ingest-segment-text textarea {
-  font-family: var(--chat-font-body);
-  font-size: 0.88rem;
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-s);
   line-height: 1.55;
 }
 
@@ -133,47 +133,47 @@
 .document-ingest-segment-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--vaadin-gap-s);
 }
 
 .document-ingest-segment-card {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: var(--vaadin-gap-xs);
   box-sizing: border-box;
-  padding: 0.9rem;
-  border-radius: var(--chat-panel-radius);
-  border: 1px solid var(--theme-border-subtle);
-  background: color-mix(in srgb, var(--chat-surface-raised) 92%, transparent);
+  padding: var(--vaadin-padding-s);
+  border-radius: var(--vaadin-radius-m);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  background: color-mix(in srgb, var(--vaadin-background-container-strong) 92%, transparent);
 }
 
 .document-ingest-segment-card-header {
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--vaadin-gap-s);
 }
 
 .document-ingest-segment-provenance {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  font-family: var(--chat-font-body);
-  font-size: var(--chat-text-meta);
+  gap: var(--vaadin-gap-xs);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-xs);
 }
 
 .document-ingest-segment-provenance span {
   max-width: 100%;
   overflow-wrap: anywhere;
-  border: 1px solid var(--theme-border-subtle);
-  border-radius: var(--chat-panel-radius-tight);
-  padding: 0.22rem 0.45rem;
-  background: var(--theme-button-ghost-soft);
-  color: var(--chat-text-secondary);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  border-radius: var(--vaadin-radius-s);
+  padding: var(--vaadin-padding-xs) var(--vaadin-padding-s);
+  background: var(--vaadin-background-container);
+  color: var(--vaadin-text-color-secondary);
 }
 
 .document-ingest-action-bar {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--vaadin-gap-s);
   justify-content: flex-end;
 }
 
@@ -183,11 +183,11 @@ vaadin-button.document-ingest-approve-button::part(button),
 vaadin-button.document-ingest-upload-button::part(button),
 vaadin-button.document-ingest-segment-delete-button::part(button) {
   min-height: 2.8rem;
-  border-radius: var(--chat-panel-radius);
-  border: 1px solid var(--chat-border-section);
-  background: var(--theme-button-fill);
-  color: var(--chat-text-primary);
-  box-shadow: var(--chat-shadow-dark-card);
+  border-radius: var(--vaadin-radius-m);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  background: var(--vaadin-background-container);
+  color: var(--vaadin-text-color);
+  box-shadow: var(--aura-shadow-s);
   transition:
       background var(--chat-transition-fast),
       border-color var(--chat-transition-fast),
@@ -200,8 +200,8 @@ vaadin-button.document-ingest-retry-button:hover::part(button),
 vaadin-button.document-ingest-approve-button:hover::part(button),
 vaadin-button.document-ingest-upload-button:hover::part(button),
 vaadin-button.document-ingest-segment-delete-button:hover::part(button) {
-  background: var(--theme-button-fill-hover);
-  color: var(--theme-accent-contrast);
+  background: var(--vaadin-background-container-strong);
+  color: var(--aura-accent-contrast-color);
   transform: translateY(-1px);
 }
 

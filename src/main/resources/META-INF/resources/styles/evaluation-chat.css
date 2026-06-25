@@ -3,24 +3,24 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  padding: var(--chat-space-md) clamp(1.4rem, 4vw, 3rem);
-  border-bottom: 1px solid var(--chat-border-section);
-  background: color-mix(in srgb, var(--theme-header-surface) 72%, transparent);
+  padding: var(--vaadin-padding-m) clamp(1.4rem, 4vw, 3rem);
+  border-bottom: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  background: color-mix(in srgb, var(--aura-surface-color) 72%, transparent);
   backdrop-filter: blur(24px);
 }
 
 .evaluation-run-title {
-  color: var(--chat-text-primary);
-  font-family: var(--chat-font-body);
-  font-size: 1.15rem;
-  font-weight: 600;
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-l);
+  font-weight: var(--aura-font-weight-semibold);
   margin: 0;
 }
 
 .evaluation-run-progress {
-  color: var(--chat-text-secondary);
-  font-family: var(--chat-font-body);
-  font-size: var(--chat-text-label);
+  color: var(--vaadin-text-color-secondary);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-xs);
 }
 
 .evaluation-chat-bubble {
@@ -29,43 +29,43 @@
 
 .evaluation-chat-evaluador {
   padding: 0;
-  color: var(--chat-text-primary);
-  font-family: var(--chat-font-body);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
   line-height: var(--chat-leading-chat-assistant);
 }
 
 .evaluation-chat-evaluador .evaluation-chat-sender {
-  color: var(--chat-interactive);
+  color: var(--aura-accent-text-color);
   text-transform: uppercase;
-  font-size: var(--chat-text-meta);
+  font-size: var(--aura-font-size-xs);
   letter-spacing: 0.1em;
-  margin-bottom: 0.35rem;
+  margin-bottom: var(--vaadin-gap-xs);
 }
 
 .evaluation-chat-estudiante {
-  background: var(--chat-surface);
-  color: var(--chat-text-primary);
-  border: 1px solid var(--chat-border-visible);
-  border-radius: var(--chat-message-radius);
-  box-shadow: var(--chat-shadow-dark-card);
+  background: var(--aura-surface-color);
+  color: var(--vaadin-text-color);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-m);
+  box-shadow: var(--aura-shadow-s);
   backdrop-filter: blur(18px);
-  padding: 1.08rem 1.22rem;
+  padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
   max-width: min(50rem, 100%);
   margin-left: auto;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-top: var(--vaadin-gap-s);
+  margin-bottom: var(--vaadin-gap-s);
 }
 
 .evaluation-chat-estudiante .evaluation-chat-sender {
-  color: var(--chat-text-tertiary);
-  font-size: var(--chat-text-meta);
+  color: var(--vaadin-text-color-disabled);
+  font-size: var(--aura-font-size-xs);
   letter-spacing: 0.06em;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--vaadin-gap-xs);
 }
 
 .evaluation-chat-sender {
   display: block;
-  font-family: var(--chat-font-body);
+  font-family: var(--aura-font-family);
 }
 
 .evaluation-chat-bubble:first-child {
@@ -80,8 +80,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.7rem;
-  padding: var(--chat-space-lg);
+  gap: var(--vaadin-gap-s);
+  padding: var(--vaadin-padding-l);
 }
 
 .evaluation-loading-spinner {
@@ -90,16 +90,16 @@
 }
 
 .evaluation-loading-label {
-  color: var(--chat-text-secondary);
-  font-family: var(--chat-font-body);
-  font-size: 0.95rem;
+  color: var(--vaadin-text-color-secondary);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-s);
   line-height: 1.3;
 }
 
 .evaluation-completion-dialog-content {
   overflow-y: auto;
   max-height: calc(80vh - 10rem);
-  padding: 1rem 0;
+  padding: var(--vaadin-padding-m) 0;
 }
 
 .evaluation-report-markdown vaadin-markdown h1,
@@ -108,20 +108,20 @@
 .evaluation-report-markdown vaadin-markdown h4,
 .evaluation-report-markdown vaadin-markdown h5,
 .evaluation-report-markdown vaadin-markdown h6 {
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
+  margin-top: var(--vaadin-gap-l);
+  margin-bottom: var(--vaadin-gap-s);
 }
 
 .evaluation-report-markdown vaadin-markdown p {
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--vaadin-gap-s);
 }
 
 .evaluation-report-markdown vaadin-markdown ul,
 .evaluation-report-markdown vaadin-markdown ol {
-  margin-bottom: 0.75rem;
-  padding-left: 1.5rem;
+  margin-bottom: var(--vaadin-gap-s);
+  padding-left: var(--vaadin-padding-l);
 }
 
 .evaluation-report-markdown vaadin-markdown li {
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--vaadin-gap-xs);
 }

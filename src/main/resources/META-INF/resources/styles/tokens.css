@@ -12,55 +12,55 @@
   --theme-light-accent-subtle: oklch(92.3% 0.033 6);
   --theme-light-accent-contrast: #fff8ef;
 
-  /* Dark mode foundation, intentionally close to the existing shell. */
-  --theme-dark-background: #091c1e;
-  --theme-dark-surface: rgba(7, 13, 14, 0.92);
-  --theme-dark-surface-strong: rgba(15, 24, 25, 0.96);
-  --theme-dark-surface-raised: rgba(18, 28, 29, 0.98);
-  --theme-dark-surface-hover: rgba(23, 34, 35, 0.98);
-  --theme-dark-surface-muted: rgba(11, 18, 19, 0.82);
-  --theme-dark-button-fill: #121b1c;
-  --theme-dark-button-fill-hover: #182223;
+  /* Dark mode foundation, tuned toward Amp's green-black shell. */
+  --theme-dark-background: #06110f;
+  --theme-dark-surface: #071614;
+  --theme-dark-surface-strong: #040a09;
+  --theme-dark-surface-raised: #101b19;
+  --theme-dark-surface-hover: #172320;
+  --theme-dark-surface-muted: #0b1815;
+  --theme-dark-button-fill: #050b0a;
+  --theme-dark-button-fill-hover: #14201d;
   --theme-dark-border-subtle: rgba(50, 59, 57, 0.3);
   --theme-dark-border: rgba(68, 80, 76, 0.58);
   --theme-dark-border-strong: rgba(94, 108, 101, 0.78);
   --theme-dark-text-display: #f7f8f8;
-  --theme-dark-text: #d0d6e0;
-  --theme-dark-text-muted: #8a8f98;
-  --theme-dark-text-soft: #62666d;
-  --theme-dark-accent: #c6a55b;
-  --theme-dark-accent-hover: #e2c271;
-  --theme-dark-accent-subtle: rgba(226, 194, 113, 0.1);
-  --theme-dark-accent-contrast: #091c1e;
-  --theme-dark-line: rgba(98, 102, 109, 0.46);
-  --theme-dark-glow: radial-gradient(circle at 12% 10%, rgba(214, 176, 95, 0.035), transparent 22%),
-    radial-gradient(circle at 88% 7%, rgba(255, 255, 255, 0.025), transparent 26%);
-  --theme-dark-code-background: #0d1112;
+  --theme-dark-text: #e0e7ea;
+  --theme-dark-text-muted: #a4adb0;
+  --theme-dark-text-soft: #727c7f;
+  --theme-dark-accent: #f6833b;
+  --theme-dark-accent-hover: #ff9a57;
+  --theme-dark-accent-subtle: rgba(246, 131, 59, 0.12);
+  --theme-dark-accent-contrast: #071312;
+  --theme-dark-line: rgba(113, 128, 124, 0.42);
+  --theme-dark-glow: radial-gradient(circle at 82% 8%, rgba(246, 131, 59, 0.028), transparent 24%),
+    radial-gradient(circle at 18% 12%, rgba(230, 248, 240, 0.018), transparent 28%);
+  --theme-dark-code-background: #050b0a;
   --theme-dark-shadow-soft: rgba(0, 0, 0, 0.08) 0px 0px 8px 0px;
   --theme-dark-shadow-card: rgba(0, 0, 0, 0.42) 0px 2px 4px 0px;
-  --theme-dark-ascii-animation-color: #d4af37;
-  --theme-dark-ascii-animation-shadow: 0 0 0.28rem color-mix(in srgb, #b71c1c 20%, transparent);
+  --theme-dark-ascii-animation-color: #f6833b;
+  --theme-dark-ascii-animation-shadow: 0 0 0.24rem color-mix(in srgb, #f6833b 18%, transparent);
 
   --chat-font-display: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
   --chat-font-body: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
   --chat-font-mono: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
 
-  --chat-text-subheading: 1.125rem;
+  --chat-text-subheading: var(--aura-font-size-l);
   --chat-tracking-heading: 0;
   --chat-tracking-display: 0;
-  --chat-text-ui-sm: 1rem;
-  --chat-text-ui: 1.04rem;
-  --chat-text-label: 0.875rem;
-  --chat-text-meta: 0.82rem;
-  --chat-font-weight-body: 400;
-  --chat-font-weight-title: 400;
-  --chat-font-weight-title-strong: 450;
-  --chat-message-font-size: 0.75rem;
-  --chat-message-line-height: 1rem;
-  --chat-message-font-weight: 400;
-  --chat-markdown-heading-font-weight: 700;
-  --chat-markdown-h1-font-size: 1rem;
-  --chat-markdown-h2-font-size: 0.88rem;
+  --chat-text-ui-sm: var(--aura-font-size-s);
+  --chat-text-ui: var(--aura-font-size-m);
+  --chat-text-label: var(--aura-font-size-xs);
+  --chat-text-meta: var(--aura-font-size-xs);
+  --chat-font-weight-body: var(--aura-font-weight-regular);
+  --chat-font-weight-title: var(--aura-font-weight-semibold);
+  --chat-font-weight-title-strong: var(--aura-font-weight-semibold);
+  --chat-message-font-size: var(--aura-font-size-xs);
+  --chat-message-line-height: var(--aura-line-height-xs);
+  --chat-message-font-weight: var(--aura-font-weight-regular);
+  --chat-markdown-heading-font-weight: var(--aura-font-weight-semibold);
+  --chat-markdown-h1-font-size: var(--aura-font-size-m);
+  --chat-markdown-h2-font-size: var(--aura-font-size-s);
   --chat-markdown-h3-font-size: var(--chat-message-font-size);
   --chat-font-size: clamp(1rem, 0.34vw, 1.18rem);
   --chat-text-code: clamp(1rem, 0.38vw, 1.08rem);
@@ -69,14 +69,14 @@
   --chat-leading-code: 1.48;
 
   --chat-content-max-width: 56rem;
-  --chat-space-md: 16px;
-  --chat-space-lg: 24px;
-  --chat-space-xl: 32px;
-  --chat-radius-technical: 10px;
-  --chat-radius-s: 16px;
-  --chat-radius-compact-s: 6px;
-  --chat-radius-compact-m: 8px;
-  --chat-radius-compact-l: 10px;
+  --chat-space-md: var(--vaadin-padding-m);
+  --chat-space-lg: var(--vaadin-padding-l);
+  --chat-space-xl: var(--vaadin-padding-xl);
+  --chat-radius-technical: var(--vaadin-radius-s);
+  --chat-radius-s: var(--vaadin-radius-s);
+  --chat-radius-compact-s: var(--vaadin-radius-xs);
+  --chat-radius-compact-m: var(--vaadin-radius-s);
+  --chat-radius-compact-l: var(--vaadin-radius-m);
   --chat-transition-fast: 0.2s ease;
 
   --chat-black: var(--theme-app-background);
@@ -112,11 +112,16 @@
   --chat-code-background: var(--theme-code-background);
   --chat-shadow-soft: var(--theme-shadow-soft);
   --chat-shadow-dark-card: var(--theme-shadow-card);
+  --chat-composer-surface: color-mix(in srgb, var(--theme-card-surface-strong) 88%, var(--theme-app-background));
+  --chat-composer-surface-hover: color-mix(in srgb, var(--theme-card-surface-strong) 78%, var(--theme-app-background));
+  --chat-composer-border: color-mix(in srgb, var(--vaadin-text-color) 24%, var(--theme-app-background));
+  --chat-composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 28%, var(--chat-composer-border));
+  --chat-composer-placeholder: color-mix(in srgb, var(--vaadin-text-color) 42%, var(--theme-app-background));
   --chat-ascii-animation-color: var(--theme-ascii-animation-color);
   --chat-ascii-animation-shadow: var(--theme-ascii-animation-shadow);
-  --chat-panel-radius: 10px;
-  --chat-panel-radius-tight: 6px;
-  --chat-message-radius: 8px;
-  --chat-code-radius: 6px;
-  --chat-sidebar-item-radius: 6px;
+  --chat-panel-radius: var(--vaadin-radius-s);
+  --chat-panel-radius-tight: var(--vaadin-radius-xs);
+  --chat-message-radius: var(--vaadin-radius-s);
+  --chat-code-radius: var(--vaadin-radius-s);
+  --chat-sidebar-item-radius: var(--vaadin-radius-s);
 }

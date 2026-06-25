@@ -14,7 +14,6 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Pre;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -35,6 +34,7 @@ import com.wornux.services.crunner.CExamplePreparationResult;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CExamplePreparationStatus;
 import com.wornux.services.crunner.CProgramDebugService;
+import com.wornux.ui.components.ToggleIcon;
 
 @StyleSheet("styles/c-runner.css")
 public final class DebuggerPanel extends Composite<Div> implements HasSize {
@@ -45,8 +45,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
     private final Button validateButton = createIconButton(VaadinIcon.PLAY, "Ejecutar depuracion");
     private final Button stepButton = createIconButton(VaadinIcon.ARROW_RIGHT, "Paso siguiente");
     private final Button resetButton = createIconButton(VaadinIcon.ROTATE_LEFT, "Reiniciar");
-    private final Button menuButton = createIconButton(VaadinIcon.ELLIPSIS_V, "Diagnosticos");
-    private final Button closeButton = createPanelToggleButton();
+    private final ToggleIcon toggle = createPanelToggleButton();
     private final Span statusText = new Span("");
     private final DebugSourceViewer sourceViewer = new DebugSourceViewer();
     private final TextArea stdinField = new TextArea("stdin");
@@ -72,12 +71,12 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         this.preparationService = Objects.requireNonNull(preparationService, "preparationService must not be null");
         this.cRunnerExecutor = Objects.requireNonNull(cRunnerExecutor, "cRunnerExecutor must not be null");
 
-        var title = new H2("Code Visualizer");
+        var title = new H2("Depurador Visual");
         title.addClassName("c-runner-title");
 
-        closeButton.addClickListener(_ -> closeHandler.run());
+        toggle.addClickListener(_ -> closeHandler.run());
 
-        var header = new HorizontalLayout(closeButton, title);
+        var header = new HorizontalLayout(toggle, title);
         header.setPadding(false);
         header.setSpacing(false);
         header.setWidthFull();
@@ -92,13 +91,12 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         validateButton.addClickListener(_ -> debugCurrentSourceAsync());
         stepButton.addClickListener(_ -> stepActiveLine());
         resetButton.addClickListener(_ -> resetActiveLine());
-        menuButton.addClickListener(_ -> showDiagnosticsSummary());
         stdinField.addClassName("c-runner-stdin");
         stdinField.setValueChangeMode(ValueChangeMode.EAGER);
         stdinField.setPlaceholder("stdin antes de ejecutar, ej: 42");
         stdoutText.addClassName("c-runner-stdout");
 
-        var controls = new HorizontalLayout(validateButton, stepButton, resetButton, menuButton);
+        var controls = new HorizontalLayout(validateButton, stepButton, resetButton);
         controls.setPadding(false);
         controls.setSpacing(false);
         controls.addClassName("c-runner-controls");
@@ -320,7 +318,6 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         validateButton.setEnabled(enabled);
         stepButton.setEnabled(enabled);
         resetButton.setEnabled(enabled);
-        menuButton.setEnabled(enabled);
         stdinField.setEnabled(enabled);
     }
 
@@ -391,19 +388,15 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         return button;
     }
 
-    private static Button createPanelToggleButton() {
-        var icon = new Image("/icons/toggle.svg", "");
-        icon.addClassName("c-runner-panel-toggle-icon");
-
-        var button = new Button(icon);
-        button.addClassName("c-runner-panel-toggle");
-        button.getElement().setAttribute("aria-label", "Hide debugger");
-        button.getElement().setAttribute("title", "Hide debugger");
-        return button;
+    private static ToggleIcon createPanelToggleButton() {
+        var toggle = new ToggleIcon();
+        toggle.addClassName("c-runner-panel-toggle");
+        toggle.getElement().setAttribute("title", "Ocultar depurador");
+        return toggle;
     }
 
     private VerticalLayout createStateCard() {
-        var stateTitle = new Span("State");
+        var stateTitle = new Span("Estado");
         stateTitle.addClassName("c-runner-state-title");
 
         var stateHeader = new HorizontalLayout(stateTitle, variableCount);

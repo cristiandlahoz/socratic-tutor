@@ -6,6 +6,7 @@ import java.util.concurrent.Executor;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -34,7 +35,7 @@ import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.components.ShellDrawerToggle;
+import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
 import com.wornux.ui.crunner.DebuggerPanel;
 import jakarta.annotation.security.PermitAll;
@@ -101,7 +102,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         ConversationCss.SCROLL_REGION.addTo(historyScroller);
         historyScroller.addAttachListener(_ -> initializeAutoScrollTracking());
 
-        var floatingDrawerToggle = new ShellDrawerToggle("shell-drawer-toggle", "Abrir menu");
+        var floatingDrawerToggle = createDrawerToggle("shell-drawer-toggle", "Abrir menu");
 
         composerField = new TextArea();
         composerField.setWidthFull();
@@ -185,6 +186,15 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             return;
         }
         historyScroller.getElement().executeJs("this.scrollTop = 0;");
+    }
+
+    private DrawerToggle createDrawerToggle(String className, String ariaLabel) {
+        var toggle = new DrawerToggle();
+        toggle.setIcon(new ToggleIcon());
+        toggle.addThemeVariants(ButtonVariant.TERTIARY);
+        toggle.addClassName(className);
+        toggle.setAriaLabel(ariaLabel);
+        return toggle;
     }
 
     private Div createEmptyState(ConversationState chatState) {
@@ -356,7 +366,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         ConversationCss.DEBUG_SPLIT_COLLAPSED.addTo(splitLayout, !visible);
         splitLayout.getElement()
                 .executeJs(
-                    "const mobile = window.matchMedia('(max-width: 960px)').matches; this.splitterPosition = $0 ? (mobile ? 62 : 58) : 100;",
+                    "const mobile = window.matchMedia('(max-width: 960px)').matches; this.splitterPosition = $0 ? (mobile ? 42 : 58) : 100;",
                     visible);
         debuggerToggleButton.setAriaLabel(visible ? "Hide debugger" : "Open debugger");
         debuggerToggleButton.getElement().setAttribute("title", visible ? "Hide debugger" : "Open debugger");
@@ -454,10 +464,10 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                     this.__responsiveSplitInstalled = true;
 
                     const media = window.matchMedia('(max-width: 960px)');
-                      const update = () => {
-                        this.orientation = media.matches ? 'vertical' : 'horizontal';
-                      this.splitterPosition = this.classList.contains('conversation-view__debug-split--collapsed') ? 100 : (media.matches ? 62 : 58);
-                      };
+                    const update = () => {
+                      this.orientation = 'horizontal';
+                      this.splitterPosition = this.classList.contains('conversation-view__debug-split--collapsed') ? 100 : (media.matches ? 42 : 58);
+                    };
                     media.addEventListener?.('change', update);
                     media.addListener?.(update);
                     update();

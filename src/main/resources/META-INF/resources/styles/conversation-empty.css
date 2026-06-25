@@ -4,7 +4,7 @@
   flex-direction: column;
   justify-content: flex-start;
   padding-top: clamp(6.4rem, 6.5vh, 7.1rem);
-  animation: chat-fade-up 220ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  animation: chat-fade-up var(--chat-transition-fast);
 }
 
 .conversation-empty__layout {
@@ -20,7 +20,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.72rem;
+  gap: var(--vaadin-gap-s);
 }
 
 .conversation-empty__frame {
@@ -44,23 +44,23 @@
 .conversation-empty__title {
   margin: 0;
   max-width: 14ch;
-  font-family: var(--chat-font-display);
+  font-family: var(--aura-font-family);
   font-size: clamp(2.2rem, 9.2vw, 3rem);
   line-height: 0.94;
-  font-weight: var(--chat-font-weight-title);
+  font-weight: var(--aura-font-weight-semibold);
   letter-spacing: var(--chat-tracking-display);
-  color: var(--chat-text-display);
+  color: var(--vaadin-text-color);
   text-wrap: balance;
 }
 
 .conversation-empty__description {
   margin: 0;
   max-width: 32rem;
-  font-family: var(--chat-font-body);
+  font-family: var(--aura-font-family);
   font-size: clamp(0.96rem, 1.08vw, 1.02rem);
   line-height: 1.38;
-  font-weight: 400;
-  color: var(--chat-text-secondary);
+  font-weight: var(--aura-font-weight-regular);
+  color: var(--vaadin-text-color-secondary);
   text-wrap: pretty;
 }
 

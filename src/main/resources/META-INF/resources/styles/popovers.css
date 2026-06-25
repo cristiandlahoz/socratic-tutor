@@ -1,27 +1,27 @@
 .chat-sidebar-help-popover::part(content) {
   max-width: 16rem;
-  padding: 0.85rem 0.95rem;
-  border: 1px solid var(--chat-border-section);
-  border-radius: var(--chat-panel-radius);
-  background: var(--chat-surface-strong);
-  color: var(--chat-text-primary);
-  box-shadow: var(--chat-shadow-dark-card);
+  padding: var(--vaadin-padding-s) var(--vaadin-padding-m);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  border-radius: var(--vaadin-radius-m);
+  background: var(--vaadin-background-container-strong);
+  color: var(--vaadin-text-color);
+  box-shadow: var(--aura-shadow-s);
 }
 
 .chat-sidebar-help-title {
   display: block;
-  margin-bottom: 0.45rem;
-  color: var(--chat-text-display);
-  font-family: var(--chat-font-body);
-  font-size: var(--chat-text-meta);
+  margin-bottom: var(--vaadin-gap-xs);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .chat-sidebar-help-description {
   margin: 0;
-  color: var(--chat-text-secondary);
-  font-family: var(--chat-font-body);
-  font-size: var(--chat-text-ui-sm);
+  color: var(--vaadin-text-color-secondary);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-s);
   line-height: 1.55;
 }

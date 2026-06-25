@@ -352,16 +352,18 @@ class CDebugSourceViewerElement extends HTMLElement {
           }
 
           .cm-debug-active-line {
-            border-radius: var(--chat-code-radius, 6px);
+            border-radius: var(--vaadin-radius-xs, 3px);
             background: var(
               --c-runner-active-line-background,
               color-mix(in srgb, var(--chat-accent) 16%, transparent)
             );
-            color: var(--c-runner-active-line-foreground, inherit);
+            color: var(--c-runner-active-line-foreground, inherit) !important;
             margin-inline-end: 0.2rem;
-            box-shadow:
-              0 0 0 1px color-mix(in srgb, var(--c-runner-active-line-background, var(--chat-accent)) 76%, transparent) inset,
-              0 0.28rem 0.75rem color-mix(in srgb, var(--c-runner-active-line-background, var(--chat-accent)) 22%, transparent);
+            box-shadow: none;
+          }
+
+          .cm-debug-active-line * {
+            color: var(--c-runner-active-line-foreground, inherit) !important;
           }
 
           .cm-debug-active-line::before {

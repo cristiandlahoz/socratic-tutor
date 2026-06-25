@@ -2,7 +2,7 @@
 .sidebar-actions__list {
   display: flex;
   flex-direction: column;
-  gap: 0.16rem;
+  gap: var(--vaadin-gap-xs);
 }
 
 .chat-sidebar-actions-section,
@@ -41,15 +41,15 @@
   grid-template-columns: 0.95rem minmax(0, 1fr);
   align-items: center;
   justify-content: flex-start;
-  column-gap: 0.55rem;
+  column-gap: var(--vaadin-gap-s);
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  color: var(--chat-interactive);
-  font-family: var(--chat-font-body);
-  font-size: 0.82rem;
+  color: var(--aura-accent-text-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   transition: color var(--chat-transition-fast), transform var(--chat-transition-fast);
@@ -64,7 +64,7 @@
 .chat-sidebar-action-link:hover .chat-sidebar-action-link-content,
 .chat-sidebar-action-link:focus-visible .chat-sidebar-action-link-content,
 .chat-sidebar-action-link[aria-current="page"] .chat-sidebar-action-link-content {
-  color: var(--chat-text-display);
+  color: var(--vaadin-text-color);
   transform: translateX(2px);
 }
 
@@ -86,7 +86,7 @@
 
 .chat-sidebar-action-button:focus-visible,
 .chat-sidebar-action-link:focus-visible {
-  outline: 2px solid var(--chat-focus-ring);
+  outline: var(--vaadin-focus-ring-width, 2px) solid var(--aura-accent-border-color);
   outline-offset: 2px;
 }
 
