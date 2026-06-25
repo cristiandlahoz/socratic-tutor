@@ -29,18 +29,14 @@ function ensureCodeMessageBodyStyles(): void {
     code-message-body code-block-viewer {
       display: block;
       width: 100%;
-      overflow: hidden;
-      border: 1px solid var(--chat-border-visible);
-      border-radius: var(--chat-code-radius);
-      box-shadow: var(--chat-shadow-dark-card);
-      background: var(--chat-code-background);
-      backdrop-filter: blur(16px);
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent;
+      backdrop-filter: none;
       font-size: 0.75rem;
       line-height: 1rem;
-    }
-
-    vaadin-message.conversation-message--user code-message-body code-block-viewer {
-      border-color: var(--chat-border-visible);
     }
 
     code-message-body vaadin-markdown {

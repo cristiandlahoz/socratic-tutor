@@ -92,22 +92,33 @@ class CodeBlockViewerElement extends HTMLElement {
            }
 
           .code-block-viewer__shell {
-            background: var(--theme-app-background);
-            border-radius: inherit;
-            overflow: hidden;
+            background: transparent;
+            overflow: visible;
+            position: relative;
           }
 
           .code-block-viewer__toolbar {
+            align-items: center;
             display: flex;
             justify-content: flex-end;
-            align-items: center;
-            padding: 0.4rem 0.48rem;
-            border-bottom: 1px solid color-mix(in srgb, var(--chat-border-visible) 72%, transparent);
+            opacity: 0;
+            padding: 0;
+            pointer-events: none;
+            position: absolute;
+            right: 0;
+            top: 0;
+            transition: opacity var(--chat-transition-fast);
+            z-index: 1;
+          }
+
+          .code-block-viewer__shell:hover .code-block-viewer__toolbar,
+          .code-block-viewer__shell:focus-within .code-block-viewer__toolbar {
+            opacity: 1;
           }
 
           .cm-editor {
             border: 0;
-            background: var(--theme-app-background) !important;
+            background: transparent !important;
             font-family: var(--chat-font-mono);
             font-size: 0.75rem;
             line-height: 1rem;
@@ -122,6 +133,10 @@ class CodeBlockViewerElement extends HTMLElement {
             line-height: inherit;
           }
 
+          .cm-content {
+            padding-right: 4.25rem;
+          }
+
           .cm-scroller,
           .cm-gutters,
           .cm-activeLine,
@@ -130,6 +145,7 @@ class CodeBlockViewerElement extends HTMLElement {
           }
 
           .cm-gutters {
+            display: none;
             border: 0;
           }
 
@@ -142,6 +158,7 @@ class CodeBlockViewerElement extends HTMLElement {
             font: 600 0.72rem var(--chat-font-mono);
             letter-spacing: 0.02em;
             padding: 0.28rem 0.58rem;
+            pointer-events: auto;
             transition:
               background var(--chat-transition-fast),
               border-color var(--chat-transition-fast),
@@ -184,6 +201,7 @@ class CodeBlockViewerElement extends HTMLElement {
             editable={false}
             readOnly={true}
             basicSetup={{
+              lineNumbers: false,
               highlightActiveLine: false,
               highlightActiveLineGutter: false,
               foldGutter: false,
