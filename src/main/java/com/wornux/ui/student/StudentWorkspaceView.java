@@ -15,7 +15,7 @@ import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
-import com.wornux.ui.chat.ChatView;
+import com.wornux.ui.conversation.ConversationView;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "student", autoLayout = false)
@@ -52,7 +52,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         add(
             new H1("Student workspace"),
             classSelector,
-            new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)),
+            new Button("Open conversation", _ -> UI.getCurrent().navigate(ConversationView.class)),
             assignmentsGrid);
     }
 

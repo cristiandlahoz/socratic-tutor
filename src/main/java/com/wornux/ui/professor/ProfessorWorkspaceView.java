@@ -18,7 +18,7 @@ import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
-import com.wornux.ui.chat.ChatView;
+import com.wornux.ui.conversation.ConversationView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.training_activity.TrainingActivityView;
 import jakarta.annotation.security.PermitAll;
@@ -63,7 +63,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
         add(
             new H1("Professor workspace"),
             classSelector,
-            new HorizontalLayout(new Button("Open chat", _ -> UI.getCurrent().navigate(ChatView.class)),
+            new HorizontalLayout(new Button("Open conversation", _ -> UI.getCurrent().navigate(ConversationView.class)),
                     new Button("Documents", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
                     new Button("Formative Activities", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
             new HorizontalLayout(studentEmailField, new Button("Invite student", _ -> inviteStudent())),

@@ -1,4 +1,4 @@
-package com.wornux.ui.chat;
+package com.wornux.ui.conversation;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -25,7 +25,7 @@ import com.wornux.ui.MainLayout;
 @SpringComponent
 @RouteScope
 @RouteScopeOwner(MainLayout.class)
-public class ChatViewModel implements Serializable {
+public class ConversationViewModel implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -40,23 +40,23 @@ public class ChatViewModel implements Serializable {
     private final ConversationTitleService conversationTitleService;
     private final ThemePreferenceService themePreferenceService;
     private final ActiveAcademicContextResolver contextResolver;
-    private final ChatNavigationOrchestrator navigationOrchestrator;
-    private final ChatThemeOrchestrator themeOrchestrator;
-    private final ChatTurnOrchestrator turnOrchestrator;
-    private final ChatState state;
+    private final ConversationNavigationOrchestrator navigationOrchestrator;
+    private final ConversationThemeOrchestrator themeOrchestrator;
+    private final ConversationTurnOrchestrator turnOrchestrator;
+    private final ConversationState state;
     private final StudentQuestionExchange questionExchange;
 
-    public ChatViewModel(
+    public ConversationViewModel(
             ChatService chatService,
             ConversationService conversationService,
             ChatUsageService chatUsageService,
             ConversationTitleService conversationTitleService,
             ThemePreferenceService themePreferenceService,
             ActiveAcademicContextResolver contextResolver,
-            ChatNavigationOrchestrator navigationOrchestrator,
-            ChatThemeOrchestrator themeOrchestrator,
-            ChatTurnOrchestrator turnOrchestrator,
-            @RouteScopeOwner(MainLayout.class) ChatState state) {
+            ConversationNavigationOrchestrator navigationOrchestrator,
+            ConversationThemeOrchestrator themeOrchestrator,
+            ConversationTurnOrchestrator turnOrchestrator,
+            @RouteScopeOwner(MainLayout.class) ConversationState state) {
         this.chatService = chatService;
         this.conversationService = conversationService;
         this.chatUsageService = chatUsageService;
@@ -70,7 +70,7 @@ public class ChatViewModel implements Serializable {
         this.questionExchange = new StudentQuestionExchange(state);
     }
 
-    public ChatState state() {
+    public ConversationState state() {
         return state;
     }
 
@@ -135,7 +135,7 @@ public class ChatViewModel implements Serializable {
         navigationOrchestrator.openConversation(CONVERSATION_QUERY_PARAMETER, conversationId);
     }
 
-    public void onStartNewChat() {
+    public void onStartNewConversation() {
         if (state.responseInProgress().peek() || state.questionSubmissionInProgress().peek()) {
             return;
         }
@@ -159,7 +159,7 @@ public class ChatViewModel implements Serializable {
             return false;
         }
         turnOrchestrator.startTurn(
-            new ChatTurnOrchestrator.TurnContext(UUID.randomUUID(),
+            new ConversationTurnOrchestrator.TurnContext(UUID.randomUUID(),
                     ensuredConversation.id(),
                     prompt,
                     ensuredConversation.newlyCreated(),

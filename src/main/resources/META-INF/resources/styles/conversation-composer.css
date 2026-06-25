@@ -1,11 +1,11 @@
-.chat-composer-wrap {
+.conversation-composer__field-wrap {
   box-sizing: border-box;
   position: relative;
   width: 100%;
   min-width: 0;
 }
 
-.chat-usage-badge {
+.conversation-usage {
   position: fixed;
   top: 1.25rem;
   right: 1.5rem;
@@ -23,13 +23,13 @@
   backdrop-filter: blur(16px);
 }
 
-.chat-usage-copy {
+.conversation-usage__copy {
   display: flex;
   flex-direction: column;
   gap: 0.18rem;
 }
 
-.chat-usage-text {
+.conversation-usage__text {
   display: inline-flex;
   align-items: center;
   font-family: var(--chat-font-body);
@@ -37,19 +37,19 @@
   line-height: 1;
 }
 
-.chat-usage-lineage {
+.conversation-usage__lineage {
   color: var(--chat-text-disabled);
   font-family: var(--chat-font-body);
   font-size: var(--chat-text-label);
   line-height: 1.1;
 }
 
-vaadin-button.chat-usage-help-button {
+vaadin-button.conversation-usage__help-button {
   --vaadin-button-padding: 0;
   flex-shrink: 0;
 }
 
-vaadin-button.chat-usage-help-button::part(button) {
+vaadin-button.conversation-usage__help-button::part(button) {
   width: 1.9rem;
   height: 1.9rem;
   border-radius: calc(var(--chat-radius-s) - 2px);
@@ -59,13 +59,13 @@ vaadin-button.chat-usage-help-button::part(button) {
   color: var(--chat-text-secondary);
 }
 
-vaadin-button.chat-usage-help-button:hover::part(button),
-vaadin-button.chat-usage-help-button:focus-within::part(button) {
+vaadin-button.conversation-usage__help-button:hover::part(button),
+vaadin-button.conversation-usage__help-button:focus-within::part(button) {
   border-color: var(--chat-interactive);
   color: var(--chat-text-primary);
 }
 
-vaadin-text-area.chat-composer-input {
+vaadin-text-area.conversation-composer__input {
   display: block;
   overflow: hidden;
   border: 1px solid var(--chat-border-emphasis);
@@ -75,14 +75,14 @@ vaadin-text-area.chat-composer-input {
   backdrop-filter: blur(24px);
 }
 
-vaadin-text-area.chat-composer-input:hover,
-vaadin-text-area.chat-composer-input[focused],
-vaadin-text-area.chat-composer-input:focus-within {
+vaadin-text-area.conversation-composer__input:hover,
+vaadin-text-area.conversation-composer__input[focused],
+vaadin-text-area.conversation-composer__input:focus-within {
   border-color: color-mix(in srgb, var(--chat-interactive) 36%, var(--chat-border-emphasis));
   box-shadow: 0 0 0 3px var(--chat-focus-ring), var(--chat-shadow-soft);
 }
 
-vaadin-text-area.chat-composer-input::part(input-field) {
+vaadin-text-area.conversation-composer__input::part(input-field) {
   min-height: 6.5rem;
   max-height: 30vh;
   scrollbar-width: none;
@@ -94,7 +94,7 @@ vaadin-text-area.chat-composer-input::part(input-field) {
 }
 
 
-vaadin-text-area.chat-composer-input > textarea {
+vaadin-text-area.conversation-composer__input > textarea {
   color: var(--chat-text-primary);
   font-family: var(--chat-font-body);
   font-size: var(--chat-text-code);
@@ -102,11 +102,11 @@ vaadin-text-area.chat-composer-input > textarea {
   line-height: var(--chat-leading-code);
 }
 
-vaadin-text-area.chat-composer-input > textarea::placeholder {
+vaadin-text-area.conversation-composer__input > textarea::placeholder {
   color: var(--chat-text-disabled);
 }
 
-vaadin-button.chat-composer-send {
+vaadin-button.conversation-composer__send-button {
   position: absolute;
   right: 0.9rem;
   bottom: 0.8rem;
@@ -114,7 +114,7 @@ vaadin-button.chat-composer-send {
   --vaadin-button-padding: 0;
 }
 
-vaadin-button.chat-composer-send::part(button) {
+vaadin-button.conversation-composer__send-button::part(button) {
   width: 2.8rem;
   height: 2.8rem;
   border-radius: var(--chat-radius-s);
@@ -129,14 +129,14 @@ vaadin-button.chat-composer-send::part(button) {
       transform var(--chat-transition-fast);
 }
 
-vaadin-button.chat-composer-send:hover::part(button) {
+vaadin-button.conversation-composer__send-button:hover::part(button) {
   background: var(--theme-button-fill-hover);
   border-color: var(--chat-border-emphasis);
   color: var(--theme-accent-contrast);
   transform: translateY(-1px);
 }
 
-.chat-composer-shell {
+.conversation-composer {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -147,13 +147,13 @@ vaadin-button.chat-composer-send:hover::part(button) {
   backdrop-filter: blur(24px);
 }
 
-.chat-composer-shell > * {
+.conversation-composer > * {
   width: min(100%, var(--chat-content-max-width));
   min-width: 0;
   margin: 0 auto;
 }
 
-.chat-question-panel {
+.conversation-question {
   box-sizing: border-box;
   width: min(70%, 52rem);
   min-width: 0;
@@ -172,7 +172,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
       box-shadow var(--chat-transition-fast);
 }
 
-.chat-question-panel.is-open {
+.conversation-question--open {
   opacity: 1;
   padding: clamp(0.8rem, 1.4vw, 1.05rem);
   border-color: var(--chat-border-emphasis);
@@ -180,7 +180,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
   box-shadow: 0 18px 48px color-mix(in srgb, var(--chat-black) 28%, transparent);
 }
 
-.chat-question-header-row {
+.conversation-question__header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -188,7 +188,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
   margin-bottom: 0.85rem;
 }
 
-.chat-question-panel-title {
+.conversation-question__title {
   display: block;
   color: var(--chat-text-primary);
   font-family: var(--chat-font-body);
@@ -197,20 +197,20 @@ vaadin-button.chat-composer-send:hover::part(button) {
   letter-spacing: 0.08em;
 }
 
-.chat-question-progress {
+.conversation-question__progress {
   color: var(--chat-text-secondary);
   font-family: var(--chat-font-body);
   font-size: var(--chat-text-meta);
   letter-spacing: 0.1em;
 }
 
-.chat-question-viewport {
+.conversation-question__viewport {
   width: 100%;
   min-height: 0;
   min-width: 0;
 }
 
-.chat-question-card {
+.conversation-question__card {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -229,7 +229,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
   backdrop-filter: blur(16px);
 }
 
-.chat-question-header {
+.conversation-question__header {
   color: var(--chat-text-secondary);
   font-family: var(--chat-font-body);
   font-size: var(--chat-text-label);
@@ -237,7 +237,7 @@ vaadin-button.chat-composer-send:hover::part(button) {
   letter-spacing: 0.08em;
 }
 
-.chat-question-prompt {
+.conversation-question__prompt {
   display: block;
   margin: 0;
   color: var(--chat-text-primary);
@@ -245,20 +245,20 @@ vaadin-button.chat-composer-send:hover::part(button) {
   line-height: 1.48;
 }
 
-.chat-question-options {
+.conversation-question__options {
   gap: 0.5rem;
 }
 
-.chat-question-option-row {
+.conversation-question__option-row {
   width: 100%;
 }
 
-.chat-question-option-row.is-selected {
+.conversation-question__option-row.is-selected {
   border-radius: var(--chat-panel-radius);
   background: color-mix(in srgb, var(--chat-interactive-strong) 6%, transparent);
 }
 
-.chat-question-option-mobile-header {
+.conversation-question__option-mobile-header {
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
@@ -267,18 +267,18 @@ vaadin-button.chat-composer-send:hover::part(button) {
   min-width: 0;
 }
 
-vaadin-button.chat-question-option,
-vaadin-button.chat-question-option-info {
+vaadin-button.conversation-question__option,
+vaadin-button.conversation-question__option-info {
   --vaadin-button-padding: 0;
 }
 
-vaadin-button.chat-question-option {
+vaadin-button.conversation-question__option {
   width: 100%;
   min-width: 0;
   flex: 1 1 auto;
 }
 
-vaadin-button.chat-question-option::part(button) {
+vaadin-button.conversation-question__option::part(button) {
   justify-content: flex-start;
   width: 100%;
   min-height: 3.15rem;
@@ -294,23 +294,23 @@ vaadin-button.chat-question-option::part(button) {
       background var(--chat-transition-fast);
 }
 
-vaadin-button.chat-question-option::part(label) {
+vaadin-button.conversation-question__option::part(label) {
   display: block;
   width: 100%;
   text-align: left;
 }
 
-vaadin-button.chat-question-option:hover::part(button) {
+vaadin-button.conversation-question__option:hover::part(button) {
   border-color: color-mix(in srgb, var(--chat-interactive) 64%, var(--chat-border-section));
   background: color-mix(in srgb, var(--chat-surface-raised) 78%, transparent);
 }
 
-.chat-question-option.is-selected::part(button) {
+.conversation-question__option.is-selected::part(button) {
   border-color: color-mix(in srgb, var(--chat-interactive-strong) 42%, var(--chat-border-emphasis));
   background: color-mix(in srgb, var(--chat-interactive-strong) 5%, transparent);
 }
 
-.chat-question-option-copy {
+.conversation-question__option-copy {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -320,7 +320,7 @@ vaadin-button.chat-question-option:hover::part(button) {
   justify-content: flex-start;
 }
 
-.chat-question-option-label {
+.conversation-question__option-label {
   display: block;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -329,7 +329,7 @@ vaadin-button.chat-question-option:hover::part(button) {
   line-height: 1.22;
 }
 
-vaadin-button.chat-question-option-info::part(button) {
+vaadin-button.conversation-question__option-info::part(button) {
   width: 2rem;
   min-width: 2rem;
   height: 2rem;
@@ -340,16 +340,16 @@ vaadin-button.chat-question-option-info::part(button) {
   color: var(--chat-text-secondary);
 }
 
-vaadin-button.chat-question-option-info:hover::part(button) {
+vaadin-button.conversation-question__option-info:hover::part(button) {
   color: var(--chat-text-primary);
   border-color: var(--chat-interactive);
 }
 
-.chat-question-option-popover {
+.conversation-question__option-popover {
   max-width: 18rem;
 }
 
-.chat-question-option-description {
+.conversation-question__option-description {
   margin: 0;
   color: var(--chat-text-secondary);
   font-size: 0.9rem;
@@ -357,22 +357,22 @@ vaadin-button.chat-question-option-info:hover::part(button) {
   text-wrap: pretty;
 }
 
-.chat-question-option-description-inline {
+.conversation-question__option-description--inline {
   display: block;
 }
 
-.chat-question-option-description-popover {
+.conversation-question__option-description--popover {
   display: none;
 }
 
-vaadin-button.chat-question-option-info {
+vaadin-button.conversation-question__option-info {
   display: none;
   margin-top: 0.6rem;
   margin-left: 0;
   flex: 0 0 auto;
 }
 
-vaadin-text-area.chat-question-custom-text {
+vaadin-text-area.conversation-question__custom-text {
   display: block;
   width: 100%;
   min-width: 0;
@@ -385,25 +385,25 @@ vaadin-text-area.chat-question-custom-text {
   --vaadin-input-field-padding: 0.95rem clamp(7.25rem, 28vw, 8.8rem) 0.95rem 1rem;
 }
 
-.chat-question-composer {
+.conversation-question__composer {
   margin-top: 0.95rem;
   width: 100%;
   min-width: 0;
 }
 
-.chat-question-composer-wrap {
+.conversation-question__composer-wrap {
   box-sizing: border-box;
   position: relative;
   width: 100%;
   min-width: 0;
 }
 
-vaadin-text-area.chat-question-custom-text::part(input-field) {
+vaadin-text-area.conversation-question__custom-text::part(input-field) {
   min-height: 6.5rem;
   max-height: 30vh;
 }
 
-.chat-question-composer-actions {
+.conversation-question__composer-actions {
   position: absolute;
   right: max(0.75rem, env(safe-area-inset-right));
   bottom: 0.8rem;
@@ -414,8 +414,8 @@ vaadin-text-area.chat-question-custom-text::part(input-field) {
   max-width: calc(100% - 1.5rem);
 }
 
-vaadin-button.chat-question-nav-button::part(button),
-vaadin-button.chat-question-submit::part(button) {
+vaadin-button.conversation-question__nav-button::part(button),
+vaadin-button.conversation-question__submit-button::part(button) {
   width: 2.5rem;
   min-width: 2.5rem;
   height: 2.5rem;
@@ -431,27 +431,27 @@ vaadin-button.chat-question-submit::part(button) {
       transform var(--chat-transition-fast);
 }
 
-vaadin-button.chat-question-nav-button:hover::part(button) {
+vaadin-button.conversation-question__nav-button:hover::part(button) {
   color: var(--theme-accent-contrast);
   border-color: var(--chat-border-emphasis);
   background: var(--theme-button-fill-hover);
   transform: translateY(-1px);
 }
 
-vaadin-button.chat-question-submit:hover::part(button) {
+vaadin-button.conversation-question__submit-button:hover::part(button) {
   color: var(--theme-accent-contrast);
   border-color: var(--chat-border-emphasis);
   background: var(--theme-button-fill-hover);
   transform: translateY(-1px);
 }
 
-vaadin-button.chat-question-submit::part(button) {
+vaadin-button.conversation-question__submit-button::part(button) {
   width: auto;
   min-width: 7rem;
   padding-inline: 0.9rem;
   color: var(--chat-text-primary);
 }
 
-.chat-question-panel.is-submitting {
+.conversation-question--submitting {
   pointer-events: none;
 }

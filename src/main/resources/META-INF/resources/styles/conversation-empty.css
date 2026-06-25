@@ -1,4 +1,4 @@
-.chat-empty {
+.conversation-empty {
   min-height: min(55vh, 30rem);
   display: flex;
   flex-direction: column;
@@ -7,7 +7,7 @@
   animation: chat-fade-up 220ms cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-.chat-empty-layout {
+.conversation-empty__layout {
   width: min(100%, 56rem);
   display: flex;
   align-items: center;
@@ -15,7 +15,7 @@
   gap: clamp(0.65rem, 1.6vw, 1.15rem);
 }
 
-.chat-empty-content {
+.conversation-empty__content {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
@@ -23,7 +23,7 @@
   gap: 0.72rem;
 }
 
-.chat-empty-frame {
+.conversation-empty__frame {
   width: clamp(14.55rem, 28.75vw, 19.84rem);
   height: clamp(14.55rem, 28.75vw, 19.84rem);
   margin-bottom: 0;
@@ -34,14 +34,14 @@
   flex: 0 0 auto;
 }
 
-.chat-empty-illustration {
+.conversation-empty__illustration {
   display: block;
   width: 100%;
   height: 100%;
   opacity: 1;
 }
 
-.chat-empty-title {
+.conversation-empty__title {
   margin: 0;
   max-width: 14ch;
   font-family: var(--chat-font-display);
@@ -53,7 +53,7 @@
   text-wrap: balance;
 }
 
-.chat-empty-description {
+.conversation-empty__description {
   margin: 0;
   max-width: 32rem;
   font-family: var(--chat-font-body);

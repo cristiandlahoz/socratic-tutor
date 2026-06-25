@@ -1,11 +1,11 @@
-package com.wornux.ui.chat;
+package com.wornux.ui.conversation;
 
 import com.vaadin.flow.component.UI;
 import com.wornux.data.enums.ThemePreference;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ChatThemeOrchestrator {
+public class ConversationThemeOrchestrator {
 
     public void applyThemePreference(ThemePreference preference) {
         var ui = UI.getCurrent();

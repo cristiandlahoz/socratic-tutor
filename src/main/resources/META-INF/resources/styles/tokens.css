@@ -114,9 +114,9 @@
   --chat-shadow-dark-card: var(--theme-shadow-card);
   --chat-ascii-animation-color: var(--theme-ascii-animation-color);
   --chat-ascii-animation-shadow: var(--theme-ascii-animation-shadow);
-  --chat-panel-radius: var(--chat-radius-compact-l);
-  --chat-panel-radius-tight: var(--chat-radius-compact-s);
-  --chat-message-radius: var(--chat-radius-compact-m);
-  --chat-code-radius: var(--chat-radius-compact-s);
-  --chat-sidebar-item-radius: var(--chat-radius-compact-s);
+  --chat-panel-radius: 10px;
+  --chat-panel-radius-tight: 6px;
+  --chat-message-radius: 8px;
+  --chat-code-radius: 6px;
+  --chat-sidebar-item-radius: 6px;
 }

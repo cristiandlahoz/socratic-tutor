@@ -1,4 +1,4 @@
-package com.wornux.ui.chat;
+package com.wornux.ui.conversation;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;

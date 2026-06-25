@@ -13,7 +13,7 @@ import com.wornux.services.document.ApproveDocumentCommand;
 import com.wornux.services.document.DocumentIngestionService;
 import com.wornux.services.document.StartIngestionCommand;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.chat.ChatState;
+import com.wornux.ui.conversation.ConversationState;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
@@ -29,17 +29,17 @@ public class DocumentIngestionUiController implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final DocumentIngestionService documentIngestionService;
-    private final ChatState chatUiState;
+    private final ConversationState conversationUiState;
     private final DocumentIngestionState state;
     private transient Disposable activeTask;
     private transient UploadedFile lastUploadedFile;
 
     public DocumentIngestionUiController(
             DocumentIngestionService documentIngestionService,
-            @RouteScopeOwner(MainLayout.class) ChatState chatUiState,
+            @RouteScopeOwner(MainLayout.class) ConversationState conversationUiState,
             @RouteScopeOwner(MainLayout.class) DocumentIngestionState state) {
         this.documentIngestionService = documentIngestionService;
-        this.chatUiState = chatUiState;
+        this.conversationUiState = conversationUiState;
         this.state = state;
     }
 
@@ -131,15 +131,15 @@ public class DocumentIngestionUiController implements Serializable {
         state.dirty().set(true);
     }
 
-    public void returnToChat() {
-        if (chatUiState.activeConversationId().peek() != null) {
+    public void returnToConversation() {
+        if (conversationUiState.activeConversationId().peek() != null) {
             UI.getCurrent()
                     .navigate(
-                        com.wornux.ui.chat.ChatView.class,
-                        QueryParameters.of("c", chatUiState.activeConversationId().peek().toString()));
+                        com.wornux.ui.conversation.ConversationView.class,
+                        QueryParameters.of("c", conversationUiState.activeConversationId().peek().toString()));
             return;
         }
-        UI.getCurrent().navigate(com.wornux.ui.chat.ChatView.class);
+        UI.getCurrent().navigate(com.wornux.ui.conversation.ConversationView.class);
     }
 
     private void applyReview(DocumentReviewViewModel review) {

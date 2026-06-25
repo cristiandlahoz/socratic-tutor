@@ -60,7 +60,7 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
   transform: translateY(-1px);
 }
 
-.chat-view {
+.conversation-view {
   position: relative;
   min-width: 0;
   min-height: 0;
@@ -71,7 +71,7 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
   background: transparent;
 }
 
-.chat-scroll-region {
+.conversation-view__scroll-region {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
@@ -80,7 +80,7 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
   background: transparent;
 }
 
-.chat-scroll-region::-webkit-scrollbar {
+.conversation-view__scroll-region::-webkit-scrollbar {
   width: 0;
   height: 0;
 }

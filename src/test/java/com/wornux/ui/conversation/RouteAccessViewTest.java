@@ -1,4 +1,4 @@
-package com.wornux.ui.chat;
+package com.wornux.ui.conversation;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
@@ -33,7 +33,7 @@ class RouteAccessViewTest {
     void chatAllowsStudentAccess() {
         var authenticatedAccountService = mock(AuthenticatedAccountService.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
-        var viewModel = mock(ChatViewModel.class);
+        var viewModel = mock(ConversationViewModel.class);
         var event = mock(BeforeEnterEvent.class);
         var account = mock(Account.class);
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
@@ -42,9 +42,9 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
         when(event.getLocation()).thenReturn(new Location("chat"));
-        when(viewModel.initializeFromRoute(null, false)).thenReturn(ChatViewModel.RouteInitialization.noReroute());
+        when(viewModel.initializeFromRoute(null, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
-        var view = new ChatView(new ChatState(),
+        var view = new ConversationView(new ConversationState(),
                 viewModel,
                 new ChatProperties(),
                 mock(CProgramDebugService.class),
@@ -62,7 +62,7 @@ class RouteAccessViewTest {
     void chatAllowsProfessorAccess() {
         var authenticatedAccountService = mock(AuthenticatedAccountService.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
-        var viewModel = mock(ChatViewModel.class);
+        var viewModel = mock(ConversationViewModel.class);
         var event = mock(BeforeEnterEvent.class);
         var account = mock(Account.class);
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
@@ -71,9 +71,9 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
         when(event.getLocation()).thenReturn(new Location("chat"));
-        when(viewModel.initializeFromRoute(null, false)).thenReturn(ChatViewModel.RouteInitialization.noReroute());
+        when(viewModel.initializeFromRoute(null, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
-        var view = new ChatView(new ChatState(),
+        var view = new ConversationView(new ConversationState(),
                 viewModel,
                 new ChatProperties(),
                 mock(CProgramDebugService.class),

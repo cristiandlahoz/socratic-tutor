@@ -30,8 +30,8 @@ import com.wornux.dtos.chat.ConversationSummary;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
-import com.wornux.ui.chat.ChatState;
-import com.wornux.ui.chat.ChatViewModel;
+import com.wornux.ui.conversation.ConversationState;
+import com.wornux.ui.conversation.ConversationViewModel;
 import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.SidebarItem;
 import com.wornux.ui.components.chat.WidthAwareLabel;
@@ -48,12 +48,12 @@ public class MainLayout extends AppLayout {
     private static final DateTimeFormatter CONVERSATION_DAY_FORMATTER =
             DateTimeFormatter.ofPattern("dd MMM yyyy", SPANISH_LOCALE);
 
-    private final NativeButton newChatButton;
+    private final NativeButton newConversationButton;
     private final Div timelineRoot;
     private final Div timelineRows;
     private final Div emptyHistory;
     private final Span historyCount;
-    private final ChatViewModel viewModel;
+    private final ConversationViewModel viewModel;
 
     static record SidebarNavigationAccess(boolean showChat, boolean showDocuments, boolean showEvaluations) {
 
@@ -92,8 +92,8 @@ public class MainLayout extends AppLayout {
     }
 
     public MainLayout(
-            @RouteScopeOwner(MainLayout.class) ChatState state,
-            @RouteScopeOwner(MainLayout.class) ChatViewModel viewModel,
+            @RouteScopeOwner(MainLayout.class) ConversationState state,
+            @RouteScopeOwner(MainLayout.class) ConversationViewModel viewModel,
             AuthenticatedAccountService authenticatedAccountService,
             WorkspaceRoutingService workspaceRoutingService) {
         setPrimarySection(Section.DRAWER);
@@ -119,9 +119,9 @@ public class MainLayout extends AppLayout {
         var appHeader = new Div(appTitleRow, appDescription);
         appHeader.addClassName("chat-sidebar-app-header");
 
-        newChatButton = createActionButton();
-        newChatButton.setId("sidebar-chat-action");
-        newChatButton.addClickListener(_ -> this.viewModel.onStartNewChat());
+        newConversationButton = createActionButton();
+        newConversationButton.setId("sidebar-chat-action");
+        newConversationButton.addClickListener(_ -> this.viewModel.onStartNewConversation());
 
         var ingestDocumentButton =
                 createNavigationButton(DocumentIngestionView.class, "Ingestar PDF", new Icon(VaadinIcon.UPLOAD_ALT));
@@ -199,7 +199,7 @@ public class MainLayout extends AppLayout {
         installTimelineGraphRenderer();
     }
 
-    private Div createThemePreferenceControl(ChatState state, ChatViewModel viewModel) {
+    private Div createThemePreferenceControl(ConversationState state, ConversationViewModel viewModel) {
         var label = new Span("Tema");
         label.addClassName("chat-sidebar-theme-label");
 
@@ -226,7 +226,7 @@ public class MainLayout extends AppLayout {
         return entry;
     }
 
-    private Button createThemePreferenceButton(ThemePreference preference, ChatState state, ChatViewModel viewModel) {
+    private Button createThemePreferenceButton(ThemePreference preference, ConversationState state, ConversationViewModel viewModel) {
         var button = new Button(switch (preference) {
             case SYSTEM -> "Sistema";
             case LIGHT -> "Claro";
@@ -272,7 +272,7 @@ public class MainLayout extends AppLayout {
             RouterLink evaluationButton) {
         var actionsRow = new Div();
         if (sidebarNavigationAccess.showChat()) {
-            actionsRow.add(newChatButton);
+            actionsRow.add(newConversationButton);
         }
         if (sidebarNavigationAccess.showDocuments()) {
             actionsRow.add(ingestDocumentButton);
@@ -295,8 +295,8 @@ public class MainLayout extends AppLayout {
         return link;
     }
 
-    private void bindConversationState(ChatState state, ChatViewModel viewModel) {
-        Signal.effect(newChatButton, () -> newChatButton.setEnabled(!state.responseInProgress().get()));
+    private void bindConversationState(ConversationState state, ConversationViewModel viewModel) {
+        Signal.effect(newConversationButton, () -> newConversationButton.setEnabled(!state.responseInProgress().get()));
         Signal.effect(
             timelineRoot,
             () -> renderConversationTimeline(
@@ -310,7 +310,7 @@ public class MainLayout extends AppLayout {
             List<ConversationSummary> conversations,
             UUID activeConversationId,
             boolean disabled,
-            ChatViewModel viewModel) {
+            ConversationViewModel viewModel) {
         historyCount.setText(formatConversationCount(conversations.size()));
         emptyHistory.setVisible(conversations.isEmpty());
         timelineRoot.setVisible(!conversations.isEmpty());
@@ -331,7 +331,7 @@ public class MainLayout extends AppLayout {
             TimelineEntry entry,
             UUID activeConversationId,
             boolean disabled,
-            ChatViewModel viewModel) {
+            ConversationViewModel viewModel) {
         return switch (entry) {
             case TimelineDividerEntry(String _, String _) -> createDividerEntry((TimelineDividerEntry) entry);
             case TimelineThreadEntry(_, _) ->
@@ -354,7 +354,7 @@ public class MainLayout extends AppLayout {
             TimelineThreadEntry entry,
             UUID activeConversationId,
             boolean disabled,
-            ChatViewModel viewModel) {
+            ConversationViewModel viewModel) {
         var conversation = entry.conversation();
         var active = conversation.id().equals(activeConversationId);
 

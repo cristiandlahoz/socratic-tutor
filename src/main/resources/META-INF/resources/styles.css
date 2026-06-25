@@ -6,9 +6,9 @@
 @import url("./styles/sidebar-actions.css");
 @import url("./styles/sidebar-history.css");
 @import url("./styles/popovers.css");
-@import url("./styles/chat-thread.css");
-@import url("./styles/chat-composer.css");
-@import url("./styles/chat-empty.css");
+@import url("./styles/conversation-thread.css");
+@import url("./styles/conversation-composer.css");
+@import url("./styles/conversation-empty.css");
 @import url("./styles/login-view.css");
 @import url("./styles/document-ingest.css");
 @import url("./styles/c-runner.css");

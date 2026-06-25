@@ -39,7 +39,7 @@ function ensureCodeMessageBodyStyles(): void {
       line-height: 1rem;
     }
 
-    vaadin-message.chat-message-user code-message-body code-block-viewer {
+    vaadin-message.conversation-message--user code-message-body code-block-viewer {
       border-color: var(--chat-border-visible);
     }
 

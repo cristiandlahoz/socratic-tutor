@@ -97,7 +97,7 @@ class CodeMessageList extends LitElement {
   }
 
   private isAssistantItem(item: MessageItem): boolean {
-    return item.className?.split(/\s+/).includes('chat-message-assistant') ?? false;
+    return item.className?.split(/\s+/).includes('conversation-message--assistant') ?? false;
   }
 }
 

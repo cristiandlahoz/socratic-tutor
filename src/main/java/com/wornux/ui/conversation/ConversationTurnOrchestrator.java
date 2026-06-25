@@ -1,4 +1,4 @@
-package com.wornux.ui.chat;
+package com.wornux.ui.conversation;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -19,9 +19,9 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Component
-public class ChatTurnOrchestrator {
+public class ConversationTurnOrchestrator {
 
-    private static final Logger log = LoggerFactory.getLogger(ChatTurnOrchestrator.class);
+    private static final Logger log = LoggerFactory.getLogger(ConversationTurnOrchestrator.class);
     private final AtomicLong streamGeneration = new AtomicLong();
     private transient Disposable activeStream;
 
@@ -147,7 +147,7 @@ public class ChatTurnOrchestrator {
     }
 
     private void finishResponse(
-            ChatState state,
+            ConversationState state,
             UI ui,
             Runnable onResponseFinished,
             Runnable refreshConversationHistory,
@@ -179,5 +179,5 @@ public class ChatTurnOrchestrator {
     }
 
     public record TurnContext(UUID turnId, UUID conversationId, String prompt, boolean newConversation,
-            String fallbackTitle, ChatState state) {}
+            String fallbackTitle, ConversationState state) {}
 }

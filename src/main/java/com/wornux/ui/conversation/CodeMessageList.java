@@ -1,4 +1,4 @@
-package com.wornux.ui.chat;
+package com.wornux.ui.conversation;
 
 import java.util.ArrayList;
 import java.util.Collection;

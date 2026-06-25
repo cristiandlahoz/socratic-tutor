@@ -1,4 +1,4 @@
-package com.wornux.ui.chat;
+package com.wornux.ui.conversation;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -19,7 +19,7 @@ import com.wornux.ui.MainLayout;
 @SpringComponent
 @RouteScope
 @RouteScopeOwner(MainLayout.class)
-public class ChatState implements Serializable {
+public class ConversationState implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;

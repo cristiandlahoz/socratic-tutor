@@ -71,18 +71,18 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
                 "Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y luego indexalo para preguntas posteriores.");
         description.addClassName("document-ingest-description");
 
-        Button backToChatButton = new Button("Volver a la conversación");
-        backToChatButton.setId("document-ingestion-back-to-chat");
-        backToChatButton.addThemeVariants(ButtonVariant.TERTIARY);
-        backToChatButton.addClassName("document-ingest-back-button");
-        backToChatButton.setIcon(new Icon(VaadinIcon.ARROW_LEFT));
-        backToChatButton.getThemeNames().remove("icon");
-        backToChatButton.addClickListener(_ -> controller.returnToChat());
+        Button backToConversationButton = new Button("Volver a la conversación");
+        backToConversationButton.setId("document-ingestion-back-to-chat");
+        backToConversationButton.addThemeVariants(ButtonVariant.TERTIARY);
+        backToConversationButton.addClassName("document-ingest-back-button");
+        backToConversationButton.setIcon(new Icon(VaadinIcon.ARROW_LEFT));
+        backToConversationButton.getThemeNames().remove("icon");
+        backToConversationButton.addClickListener(_ -> controller.returnToConversation());
 
         var headerCopy = new Div(eyebrow, title, description);
         headerCopy.addClassName("document-ingest-header-copy");
 
-        var header = new HorizontalLayout(headerCopy, backToChatButton);
+        var header = new HorizontalLayout(headerCopy, backToConversationButton);
         header.addClassName("document-ingest-header");
         header.setWidthFull();
         header.setPadding(false);

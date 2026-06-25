@@ -11,7 +11,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
-import com.wornux.ui.chat.*;
+import com.wornux.ui.conversation.*;
 
 public class StudentQuestionExchange implements Serializable {
 
@@ -20,10 +20,10 @@ public class StudentQuestionExchange implements Serializable {
 
     private static final Duration RESPONSE_TIMEOUT = Duration.ofMinutes(5);
 
-    private final ChatState state;
+    private final ConversationState state;
     private transient CompletableFuture<StudentQuestionResponse> pendingResponse;
 
-    public StudentQuestionExchange(ChatState state) {
+    public StudentQuestionExchange(ConversationState state) {
         this.state = state;
     }
 

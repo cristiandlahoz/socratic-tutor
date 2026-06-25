@@ -18,34 +18,34 @@
     font-size: 1.38rem;
   }
 
-  .chat-thread {
+  .conversation-thread {
     padding: 4.75rem 1rem 1.5rem;
     gap: var(--chat-space-lg);
   }
 
-  .chat-empty-frame {
+  .conversation-empty__frame {
     width: 11.9rem;
     height: 11.9rem;
   }
 
-  .chat-empty-description,
-  vaadin-message.chat-message-assistant::part(message) {
+  .conversation-empty__description,
+  vaadin-message.conversation-message--assistant::part(message) {
     font-size: 1rem;
   }
 
-  vaadin-message.chat-message-user::part(content) {
+  vaadin-message.conversation-message--user::part(content) {
     max-width: 100%;
   }
 
-  .chat-composer-shell {
+  .conversation-composer {
     padding: 1rem 1rem 1.25rem;
   }
 
-  .chat-question-prompt {
+  .conversation-question__prompt {
     font-size: 1rem;
   }
 
-  .chat-usage-badge {
+  .conversation-usage {
     top: 1rem;
     right: 1rem;
   }
@@ -57,7 +57,7 @@
     left: 1rem;
   }
 
-  .chat-usage-badge {
+  .conversation-usage {
     top: 4.2rem;
     right: 0.75rem;
     max-width: calc(100vw - 1.5rem);
@@ -90,81 +90,81 @@
     font-size: 1.72rem;
   }
 
-  .chat-empty-title {
+  .conversation-empty__title {
     font-size: clamp(2.5rem, 12vw, 3.5rem);
   }
 
-  .chat-empty-layout {
+  .conversation-empty__layout {
     align-items: flex-start;
     flex-direction: column;
     gap: var(--chat-space-md);
   }
 
-  .chat-question-panel {
+  .conversation-question {
     width: 100%;
     margin-inline: 0;
   }
 
-  .chat-question-header-row {
+  .conversation-question__header-row {
     margin-bottom: 0.7rem;
   }
 
-  .chat-question-card {
+  .conversation-question__card {
     gap: 0.75rem;
   }
 
-  .chat-question-prompt {
+  .conversation-question__prompt {
     font-size: 0.97rem;
     line-height: 1.36;
   }
 
-  .chat-question-option-label {
+  .conversation-question__option-label {
     font-size: 0.93rem;
   }
 
-  .chat-question-option-mobile-header {
+  .conversation-question__option-mobile-header {
     gap: 0.12rem;
     width: auto;
     min-width: 0;
     max-width: 100%;
   }
 
-  vaadin-button.chat-question-option {
+  vaadin-button.conversation-question__option {
     width: auto;
     min-width: 0;
     max-width: calc(100% - 2.2rem);
     flex: 0 1 auto;
   }
 
-  vaadin-button.chat-question-option::part(button) {
+  vaadin-button.conversation-question__option::part(button) {
     width: auto;
     max-width: 100%;
     padding-right: 0.35rem;
   }
 
-  vaadin-button.chat-question-option::part(label) {
+  vaadin-button.conversation-question__option::part(label) {
     width: auto;
     max-width: 100%;
   }
 
-  .chat-question-option-description-inline {
+  .conversation-question__option-description--inline {
     display: none;
   }
 
-  .chat-question-option-description-popover {
+  .conversation-question__option-description--popover {
     display: block;
   }
 
-  .chat-question-option-description {
+  .conversation-question__option-description {
     font-size: var(--chat-text-label);
   }
 
-  vaadin-button.chat-question-option-info {
+  vaadin-button.conversation-question__option-info {
     display: inline-flex;
     margin-top: 0.48rem;
   }
 
-  .chat-question-composer-actions {
+  .conversation-question__composer-actions {
     right: max(0.65rem, env(safe-area-inset-right));
     bottom: 0.7rem;
   }

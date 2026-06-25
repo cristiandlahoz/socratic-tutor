@@ -1,4 +1,4 @@
-package com.wornux.ui.chat;
+package com.wornux.ui.conversation;
 
 import java.util.UUID;
 
@@ -8,14 +8,14 @@ import com.vaadin.flow.router.QueryParameters;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ChatNavigationOrchestrator {
+public class ConversationNavigationOrchestrator {
 
     public void openConversation(String conversationParameter, UUID conversationId) {
-        UI.getCurrent().navigate(ChatView.class, QueryParameters.of(conversationParameter, conversationId.toString()));
+        UI.getCurrent().navigate(ConversationView.class, QueryParameters.of(conversationParameter, conversationId.toString()));
     }
 
     public void openDraft(String draftParameter, String draftValue) {
-        UI.getCurrent().navigate(ChatView.class, QueryParameters.of(draftParameter, draftValue));
+        UI.getCurrent().navigate(ConversationView.class, QueryParameters.of(draftParameter, draftValue));
     }
 
     public void synchronizeAddressBar(String conversationParameter, UUID conversationId) {

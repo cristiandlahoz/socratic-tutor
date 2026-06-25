@@ -25,6 +25,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.local.ValueSignal;
 import com.wornux.dtos.chat.questions.*;
+import com.wornux.ui.conversation.ConversationCss;
 import org.jspecify.annotations.NonNull;
 
 public class StudentQuestionPanel extends Composite<Div> {
@@ -49,33 +50,33 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     public StudentQuestionPanel() {
         var root = getContent();
-        root.addClassName("chat-question-panel");
+        ConversationCss.QUESTION.addTo(root);
 
-        title.addClassName("chat-question-panel-title");
-        progress.addClassName("chat-question-progress");
-        questionViewport.addClassName("chat-question-viewport");
+        ConversationCss.QUESTION_TITLE.addTo(title);
+        ConversationCss.QUESTION_PROGRESS.addTo(progress);
+        ConversationCss.QUESTION_VIEWPORT.addTo(questionViewport);
 
         previousButton.addThemeVariants(ButtonVariant.TERTIARY);
-        previousButton.addClassName("chat-question-nav-button");
+        ConversationCss.QUESTION_NAV_BUTTON.addTo(previousButton);
         previousButton.setAriaLabel("Pregunta anterior");
         previousButton.addClickListener(_ -> showPreviousQuestion());
 
         nextButton.addThemeVariants(ButtonVariant.TERTIARY);
-        nextButton.addClassName("chat-question-nav-button");
+        ConversationCss.QUESTION_NAV_BUTTON.addTo(nextButton);
         nextButton.setAriaLabel("Pregunta siguiente");
         nextButton.addClickListener(_ -> showNextQuestion());
 
-        submitButton.addClassName("chat-question-submit");
+        ConversationCss.QUESTION_SUBMIT_BUTTON.addTo(submitButton);
         submitButton.addThemeVariants(ButtonVariant.TERTIARY);
         submitButton.addClickListener(_ -> submitAnswers());
 
-        composerActions.addClassName("chat-question-composer-actions");
+        ConversationCss.QUESTION_COMPOSER_ACTIONS.addTo(composerActions);
         composerActions.add(previousButton, nextButton, submitButton);
 
-        responseComposer.addClassName("chat-question-composer");
+        ConversationCss.QUESTION_COMPOSER.addTo(responseComposer);
 
         var header = new Div(title, progress);
-        header.addClassName("chat-question-header-row");
+        ConversationCss.QUESTION_HEADER_ROW.addTo(header);
 
         root.add(header, questionViewport, responseComposer);
         updateSubmitEnabled();
@@ -92,7 +93,7 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     public void setSubmitting(boolean submitting) {
         this.submitting = submitting;
-        getContent().getElement().getClassList().set("is-submitting", submitting);
+        getContent().getElement().getClassList().set(ConversationCss.QUESTION_SUBMITTING.value(), submitting);
         updateSubmitEnabled();
     }
 
@@ -109,12 +110,12 @@ public class StudentQuestionPanel extends Composite<Div> {
         if (questionSet == null) {
             title.setText("");
             progress.setText("");
-            rootClasses.remove("is-open");
+            rootClasses.remove(ConversationCss.QUESTION_OPEN.value());
             updateSubmitEnabled();
             return;
         }
 
-        rootClasses.add("is-open");
+        rootClasses.add(ConversationCss.QUESTION_OPEN.value());
 
         for (int index = 0; index < questionSet.questions().size(); index++) {
             var questionKey = questionKey(index);
@@ -152,10 +153,10 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     private Div buildQuestionCard(StudentQuestion question, String questionKey) {
         var card = new Div();
-        card.addClassName("chat-question-card");
+        ConversationCss.QUESTION_CARD.addTo(card);
 
         var options = new VerticalLayout();
-        options.addClassName("chat-question-options");
+        ConversationCss.QUESTION_OPTIONS.addTo(options);
         options.setPadding(false);
         options.setSpacing(false);
         options.setMargin(false);
@@ -174,28 +175,28 @@ public class StudentQuestionPanel extends Composite<Div> {
 
         var infoButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
         infoButton.addThemeVariants(ButtonVariant.TERTIARY);
-        infoButton.addClassName("chat-question-option-info");
+        ConversationCss.QUESTION_OPTION_INFO.addTo(infoButton);
         infoButton.setAriaLabel("Ver detalle de %s".formatted(option.label()));
 
         var infoPopover = new Popover();
         infoPopover.setTarget(infoButton);
         infoPopover.setModal(false);
-        infoPopover.addClassName("chat-question-option-popover");
+        ConversationCss.QUESTION_OPTION_POPOVER.addTo(infoPopover);
         var popoverDescription = new Paragraph(option.description());
-        popoverDescription
-                .addClassNames("chat-question-option-description", "chat-question-option-description-popover");
+        ConversationCss.QUESTION_OPTION_DESCRIPTION.addTo(popoverDescription);
+        ConversationCss.QUESTION_OPTION_DESCRIPTION_POPOVER.addTo(popoverDescription);
         infoPopover.add(popoverDescription);
 
         var button = new Button(optionCopy);
         button.addThemeVariants(ButtonVariant.TERTIARY);
-        button.addClassName("chat-question-option");
+        ConversationCss.QUESTION_OPTION.addTo(button);
         button.getElement().setAttribute("data-question-id", questionKey);
         button.getElement().setAttribute("data-option-index", Integer.toString(optionIndex));
         button.getElement().setAttribute("aria-pressed", Boolean.FALSE.toString());
         button.addClickListener(_ -> toggleOption(questionKey, optionKey));
 
         var mobileHeader = new HorizontalLayout(button, infoButton);
-        mobileHeader.addClassName("chat-question-option-mobile-header");
+        ConversationCss.QUESTION_OPTION_MOBILE_HEADER.addTo(mobileHeader);
         mobileHeader.setPadding(false);
         mobileHeader.setSpacing(false);
         mobileHeader.setMargin(false);
@@ -203,7 +204,7 @@ public class StudentQuestionPanel extends Composite<Div> {
         mobileHeader.setAlignItems(Alignment.START);
 
         var row = new VerticalLayout(mobileHeader, infoPopover);
-        row.addClassName("chat-question-option-row");
+        ConversationCss.QUESTION_OPTION_ROW.addTo(row);
         row.setPadding(false);
         row.setSpacing(false);
         row.setMargin(false);
@@ -219,13 +220,13 @@ public class StudentQuestionPanel extends Composite<Div> {
         var selectedSignal = selectedOptionsByQuestion.get(questionId);
         Signal.effect(row, () -> {
             var isSelected = selectedSignal.get().contains(optionKey);
-            row.getElement().getClassList().set("is-selected", isSelected);
+            row.getElement().getClassList().set(ConversationCss.QUESTION_OPTION_SELECTED.value(), isSelected);
             applySelectedButtonStyle(button, isSelected);
         });
     }
 
     private void applySelectedButtonStyle(Button button, boolean isSelected) {
-        button.getElement().getClassList().set("is-selected", isSelected);
+        button.getElement().getClassList().set(ConversationCss.QUESTION_OPTION_SELECTED.value(), isSelected);
         button.getElement().setAttribute("aria-pressed", Boolean.toString(isSelected));
         if (isSelected) {
             button.addThemeVariants(ButtonVariant.WARNING);
@@ -237,13 +238,14 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     private static @NonNull VerticalLayout getOptionCopy(StudentQuestionOption option) {
         var label = new Span(option.label());
-        label.addClassName("chat-question-option-label");
+        ConversationCss.QUESTION_OPTION_LABEL.addTo(label);
 
         var inlineDescription = new Paragraph(option.description());
-        inlineDescription.addClassNames("chat-question-option-description", "chat-question-option-description-inline");
+        ConversationCss.QUESTION_OPTION_DESCRIPTION.addTo(inlineDescription);
+        ConversationCss.QUESTION_OPTION_DESCRIPTION_INLINE.addTo(inlineDescription);
 
         var optionCopy = new VerticalLayout(label, inlineDescription);
-        optionCopy.addClassName("chat-question-option-copy");
+        ConversationCss.QUESTION_OPTION_COPY.addTo(optionCopy);
         optionCopy.setPadding(false);
         optionCopy.setSpacing(false);
         optionCopy.setMargin(false);
@@ -252,7 +254,7 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     private TextArea buildCustomTextArea(String questionId) {
         var customText = new TextArea();
-        customText.addClassName("chat-question-custom-text");
+        ConversationCss.QUESTION_CUSTOM_TEXT.addTo(customText);
         customText.setWidthFull();
         customText.getElement().setAttribute("data-question-id", questionId);
         customText.setValueChangeMode(ValueChangeMode.EAGER);
@@ -272,7 +274,7 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     private Div buildResponseComposer(String questionKey) {
         var composer = new Div();
-        composer.addClassName("chat-question-composer-wrap");
+        ConversationCss.QUESTION_COMPOSER_WRAP.addTo(composer);
         composer.add(customTextByQuestion.get(questionKey));
         composer.add(composerActions);
         return composer;

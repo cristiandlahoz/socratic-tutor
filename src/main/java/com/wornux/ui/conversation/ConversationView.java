@@ -1,4 +1,4 @@
-package com.wornux.ui.chat;
+package com.wornux.ui.conversation;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -37,14 +37,16 @@ import com.wornux.ui.MainLayout;
 import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
 import com.wornux.ui.crunner.DebuggerPanel;
+import jakarta.annotation.security.PermitAll;
 import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @Route(value = "chat", layout = MainLayout.class)
-public class ChatView extends Composite<Div> implements BeforeEnterObserver {
+@PermitAll
+public class ConversationView extends Composite<Div> implements BeforeEnterObserver {
 
-    private final ChatViewModel viewModel;
+    private final ConversationViewModel viewModel;
     private final CodeMessageList messageList;
     private final Div historyScroller;
     private final TextArea composerField;
@@ -61,9 +63,9 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     private final WorkspaceRoutingService workspaceRoutingService;
     private boolean debuggerVisible;
 
-    public ChatView(
-            @RouteScopeOwner(MainLayout.class) ChatState state,
-            @RouteScopeOwner(MainLayout.class) ChatViewModel viewModel,
+    public ConversationView(
+            @RouteScopeOwner(MainLayout.class) ConversationState state,
+            @RouteScopeOwner(MainLayout.class) ConversationViewModel viewModel,
             ChatProperties chatProperties,
             CProgramDebugService cProgramDebugService,
             CExamplePreparationService cExamplePreparationService,
@@ -92,11 +94,11 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
                 state.messages().get().stream().map(messageSignal -> toMessageListItem(messageSignal.get())).toList()));
 
         var conversationStack = new Div(emptyState, messageList);
-        conversationStack.addClassName("chat-thread");
+        ConversationCss.THREAD.addTo(conversationStack);
 
         historyScroller = new Div(conversationStack);
         historyScroller.setSizeFull();
-        historyScroller.addClassName("chat-scroll-region");
+        ConversationCss.SCROLL_REGION.addTo(historyScroller);
         historyScroller.addAttachListener(_ -> initializeAutoScrollTracking());
 
         var floatingDrawerToggle = new ShellDrawerToggle("shell-drawer-toggle", "Abrir menu");
@@ -105,13 +107,13 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         composerField.setWidthFull();
         composerField.setPlaceholder("Escribe tu mensaje aquí...");
         composerField.setAriaLabel("Escribe tu mensaje aquí");
-        composerField.addClassName("chat-composer-input");
+        ConversationCss.COMPOSER_INPUT.addTo(composerField);
         composerField.bindValue(state.composerText(), state.composerText()::set);
         composerField.bindEnabled(state.composerEnabled());
         composerField.setValueChangeMode(ValueChangeMode.EAGER);
 
         sendButton = new Button(new Icon(VaadinIcon.ARROW_UP));
-        sendButton.addClassName("chat-composer-send");
+        ConversationCss.COMPOSER_SEND_BUTTON.addTo(sendButton);
         sendButton.setAriaLabel("Enviar mensaje");
         sendButton.bindEnabled(state.sendEnabled());
         sendButton.addClickShortcut(Key.ENTER).listenOn(composerField);
@@ -126,7 +128,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
         var root = getContent();
         root.setSizeFull();
-        root.addClassName("chat-view");
+        ConversationCss.VIEW.addTo(root);
 
         var chatPane = new Div(floatingDrawerToggle,
                 debuggerToggleButton,
@@ -134,7 +136,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
                 createUsageBadge(state),
                 createInputShell(state));
         chatPane.setSizeFull();
-        chatPane.addClassName("chat-pane");
+        ConversationCss.PANE.addTo(chatPane);
 
         debuggerPanel = new DebuggerPanel(cProgramDebugService, cExamplePreparationService, cRunnerExecutor);
         debuggerPanel.setSizeFull();
@@ -143,7 +145,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         splitLayout = new SplitLayout(chatPane, debuggerPanel);
         splitLayout.setSizeFull();
         splitLayout.setSplitterPosition(58);
-        splitLayout.addClassName("chat-debug-split");
+        ConversationCss.DEBUG_SPLIT.addTo(splitLayout);
         splitLayout.addAttachListener(_ -> installResponsiveSplitBehavior(splitLayout));
         setDebuggerVisible(false);
 
@@ -169,12 +171,12 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         }
         var draftRequested = event.getLocation()
                 .getQueryParameters()
-                .getSingleParameter(ChatViewModel.DRAFT_QUERY_PARAMETER)
-                .filter(ChatViewModel.DRAFT_QUERY_VALUE::equals)
+                .getSingleParameter(ConversationViewModel.DRAFT_QUERY_PARAMETER)
+                .filter(ConversationViewModel.DRAFT_QUERY_VALUE::equals)
                 .isPresent();
         var requestedConversationParam = event.getLocation()
                 .getQueryParameters()
-                .getSingleParameter(ChatViewModel.CONVERSATION_QUERY_PARAMETER)
+                .getSingleParameter(ConversationViewModel.CONVERSATION_QUERY_PARAMETER)
                 .orElse(null);
 
         var initialization = viewModel.initializeFromRoute(requestedConversationParam, draftRequested);
@@ -185,22 +187,22 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         historyScroller.getElement().executeJs("this.scrollTop = 0;");
     }
 
-    private Div createEmptyState(ChatState chatState) {
+    private Div createEmptyState(ConversationState chatState) {
         var emptyState = new Div();
-        emptyState.addClassName("chat-empty");
+        ConversationCss.EMPTY.addTo(emptyState);
 
         var animation = new AsciiFrameAnimation("crow3-frames", 240, 30);
-        animation.addClassName("chat-empty-illustration");
+        ConversationCss.EMPTY_ILLUSTRATION.addTo(animation);
 
         var animationFrame = new Div(animation);
-        animationFrame.addClassName("chat-empty-frame");
+        ConversationCss.EMPTY_FRAME.addTo(animationFrame);
 
         var title = new H2("Ask your first question");
-        title.addClassName("chat-empty-title");
+        ConversationCss.EMPTY_TITLE.addTo(title);
 
         var description = new Paragraph(
                 "Write a prompt and the tutor will help you reason step by step, clarify concepts, and practice with examples.");
-        description.addClassName("chat-empty-description");
+        ConversationCss.EMPTY_DESCRIPTION.addTo(description);
         com.vaadin.flow.signals.Signal.effect(
             title,
             () -> title.setText(
@@ -222,13 +224,13 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
     private static @NonNull HorizontalLayout getContentRow(H2 title, Paragraph description, Div animationFrame) {
         var textColumn = new VerticalLayout(title, description);
-        textColumn.addClassName("chat-empty-content");
+        ConversationCss.EMPTY_CONTENT.addTo(textColumn);
         textColumn.setPadding(false);
         textColumn.setSpacing(false);
         textColumn.setMargin(false);
 
         var contentRow = new HorizontalLayout(textColumn, animationFrame);
-        contentRow.addClassName("chat-empty-layout");
+        ConversationCss.EMPTY_LAYOUT.addTo(contentRow);
         contentRow.setPadding(false);
         contentRow.setSpacing(false);
         contentRow.setMargin(false);
@@ -236,30 +238,30 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         return contentRow;
     }
 
-    private Div createInputShell(ChatState state) {
+    private Div createInputShell(ConversationState state) {
         var composer = new Div(composerField, sendButton);
-        composer.addClassName("chat-composer-wrap");
+        ConversationCss.COMPOSER_FIELD_WRAP.addTo(composer);
         Signal.effect(composer, () -> composer.setVisible(!state.questionPanelVisible().get()));
         Signal.effect(questionPanel, () -> questionPanel.setVisible(state.questionPanelVisible().get()));
 
         var inputShell = new Div(questionPanel, composer);
-        inputShell.addClassName("chat-composer-shell");
+        ConversationCss.COMPOSER.addTo(inputShell);
         return inputShell;
     }
 
-    private Div createUsageBadge(ChatState state) {
+    private Div createUsageBadge(ConversationState state) {
         var usageText = new Span();
-        usageText.addClassName("chat-usage-text");
+        ConversationCss.USAGE_TEXT.addTo(usageText);
 
         var lineageText = new Span();
-        lineageText.addClassName("chat-usage-lineage");
+        ConversationCss.USAGE_LINEAGE.addTo(lineageText);
 
         var usageCopy = new Div(usageText, lineageText);
-        usageCopy.addClassName("chat-usage-copy");
+        ConversationCss.USAGE_COPY.addTo(usageCopy);
 
         var helpButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
         helpButton.addThemeVariants(ButtonVariant.TERTIARY);
-        helpButton.addClassName("chat-usage-help-button");
+        ConversationCss.USAGE_HELP_BUTTON.addTo(helpButton);
         helpButton.setAriaLabel("Explicar uso del contexto");
 
         var helpPopover = new Popover();
@@ -276,7 +278,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         helpPopover.add(new Div(helpTitle, helpCopy));
 
         var usageBadge = new Div(usageCopy, helpButton);
-        usageBadge.addClassName("chat-usage-badge");
+        ConversationCss.USAGE.addTo(usageBadge);
         usageBadge.setVisible(false);
 
         Signal.effect(usageBadge, () -> {
@@ -335,7 +337,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     private Button createDebuggerToggleButton() {
         var button = new Button(new Icon(VaadinIcon.ANGLE_LEFT));
         button.addThemeVariants(ButtonVariant.TERTIARY);
-        button.addClassName("chat-debugger-toggle");
+        ConversationCss.DEBUGGER_TOGGLE.addTo(button);
         button.setAriaLabel("Open debugger");
         button.getElement().setAttribute("title", "Open debugger");
         button.addClickListener(_ -> setDebuggerVisible(!debuggerVisible));
@@ -351,7 +353,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
         debuggerVisible = visible;
         debuggerPanel.setVisible(visible);
         splitLayout.setSplitterPosition(visible ? 58 : 100);
-        splitLayout.setClassName("chat-debug-split--collapsed", !visible);
+        ConversationCss.DEBUG_SPLIT_COLLAPSED.addTo(splitLayout, !visible);
         splitLayout.getElement()
                 .executeJs(
                     "const mobile = window.matchMedia('(max-width: 960px)').matches; this.splitterPosition = $0 ? (mobile ? 62 : 58) : 100;",
@@ -367,21 +369,21 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
                 message.createdAt(),
                 isUserMessage ? "You" : "Socratic Tutor");
         item.setUserColorIndex();
-        item.addClassNames(isUserMessage ? "chat-message-user" : "chat-message-assistant");
+        (isUserMessage ? ConversationCss.MESSAGE_USER : ConversationCss.MESSAGE_ASSISTANT).addTo(item);
         if (message.loading()) {
-            item.addClassNames("is-loading");
+            ConversationCss.MESSAGE_LOADING.addTo(item);
         }
         return item;
     }
 
     private void rerouteToResolvedConversation(BeforeEnterEvent event, UUID resolvedConversationId) {
         if (resolvedConversationId == null) {
-            event.rerouteTo(ChatView.class, QueryParameters.empty());
+            event.rerouteTo(ConversationView.class, QueryParameters.empty());
             return;
         }
         event.rerouteTo(
-            ChatView.class,
-            QueryParameters.of(ChatViewModel.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
+            ConversationView.class,
+            QueryParameters.of(ConversationViewModel.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
     }
 
     private void initializeAutoScrollTracking() {
@@ -454,7 +456,7 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
                     const media = window.matchMedia('(max-width: 960px)');
                       const update = () => {
                         this.orientation = media.matches ? 'vertical' : 'horizontal';
-                      this.splitterPosition = this.classList.contains('chat-debug-split--collapsed') ? 100 : (media.matches ? 62 : 58);
+                      this.splitterPosition = this.classList.contains('conversation-view__debug-split--collapsed') ? 100 : (media.matches ? 62 : 58);
                       };
                     media.addEventListener?.('change', update);
                     media.addListener?.(update);
