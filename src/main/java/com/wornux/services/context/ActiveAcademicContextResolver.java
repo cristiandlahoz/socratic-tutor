@@ -45,6 +45,7 @@ public class ActiveAcademicContextResolver {
         return findAccount(authentication.getName()).flatMap(this::toContext);
     }
 
+    @Transactional(readOnly = true)
     public ActiveAcademicContext requireCurrent() {
         return resolveCurrent().orElseThrow(() -> new SetupRequiredException(SETUP_REQUIRED_MESSAGE));
     }

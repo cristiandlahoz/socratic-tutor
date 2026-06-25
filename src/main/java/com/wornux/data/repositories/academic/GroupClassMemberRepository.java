@@ -5,9 +5,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.wornux.data.entities.academic.GroupClassMember;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface GroupClassMemberRepository extends JpaRepository<GroupClassMember, UUID> {
+    @EntityGraph(attributePaths = {"groupClass", "groupClass.tenant"})
     Optional<GroupClassMember> findByIdAndTenantAccount_Id(UUID groupClassMemberId, UUID tenantAccountId);
 
     Optional<GroupClassMember> findByGroupClass_IdAndTenantAccount_Id(UUID groupClassId, UUID tenantAccountId);
