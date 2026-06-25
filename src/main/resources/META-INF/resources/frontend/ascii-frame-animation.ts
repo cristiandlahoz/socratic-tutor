@@ -33,7 +33,7 @@ class AsciiFrameAnimation extends LitElement {
       margin: 0;
       white-space: pre;
       font-family: var(--chat-font-mono, monospace);
-      font-size: clamp(2.3px, 0.3vw, 3.34px);
+      font-size: var(--ascii-frame-font-size, clamp(2.3px, 0.3vw, 3.34px));
       line-height: 1;
       color: var(--chat-ascii-animation-color, #d4af37);
       text-shadow: var(
@@ -41,7 +41,8 @@ class AsciiFrameAnimation extends LitElement {
         0 0 0.28rem color-mix(in srgb, var(--chat-ascii-animation-color, #d4af37) 20%, transparent)
       );
       text-rendering: optimizeSpeed;
-      transform: translateY(1%);
+      transform: translateY(var(--ascii-frame-translate-y, 1%)) scale(var(--ascii-frame-scale, 1));
+      transform-origin: center;
       user-select: none;
     }
 

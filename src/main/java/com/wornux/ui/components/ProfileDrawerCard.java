@@ -18,14 +18,16 @@ public class ProfileDrawerCard extends Div {
     public ProfileDrawerCard(Account account, Component themeControl, Runnable logoutAction) {
         addClassName("profile-drawer-card");
 
-        menu = new Div(themeControl, createLogoutButton(logoutAction));
+        var menuContent = new Div(themeControl, createLogoutButton(logoutAction));
+        menuContent.addClassName("profile-drawer-card__menu-content");
+
+        menu = new Div(menuContent);
         menu.addClassName("profile-drawer-card__menu");
-        menu.setVisible(false);
 
         chevron = new Icon(VaadinIcon.CHEVRON_UP);
         chevron.addClassName("profile-drawer-card__chevron");
 
-        add(createHeaderButton(account), menu);
+        add(menu, createHeaderButton(account));
     }
 
     private NativeButton createHeaderButton(Account account) {
@@ -50,7 +52,7 @@ public class ProfileDrawerCard extends Div {
         button.add(content);
         button.setAriaLabel("Abrir opciones de perfil");
         button.getElement().setAttribute("aria-expanded", "false");
-        button.addClickListener(_ -> setExpanded(!menu.isVisible(), button));
+        button.addClickListener(_ -> setExpanded(!hasClassName("is-expanded"), button));
         return button;
     }
 
@@ -63,7 +65,12 @@ public class ProfileDrawerCard extends Div {
     }
 
     private void setExpanded(boolean expanded, NativeButton button) {
-        menu.setVisible(expanded);
+        if (expanded) {
+            addClassName("is-expanded");
+        }
+        else {
+            removeClassName("is-expanded");
+        }
         button.getElement().setAttribute("aria-expanded", Boolean.toString(expanded));
         chevron.getElement().setAttribute("icon", expanded ? "vaadin:chevron-down" : "vaadin:chevron-up");
     }

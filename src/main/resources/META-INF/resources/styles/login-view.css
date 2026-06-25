@@ -41,110 +41,228 @@
   position: relative;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(2.75rem, 5vw) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-content: center;
-  gap: clamp(1.5rem, 3vw, 3.25rem);
-  padding: clamp(2rem, 5vw, 5.5rem) clamp(2rem, 5.6vw, 6.5rem);
+  gap: clamp(1.35rem, 3vh, 2.35rem);
+  padding: clamp(1.5rem, 4vw, 3.5rem) clamp(2rem, 5.6vw, 6.5rem);
   border-right: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  overflow: hidden;
 }
 
-.login-view__rail {
-  position: relative;
-  min-height: min(68vh, 43rem);
-  width: 1px;
-  justify-self: center;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    color-mix(in srgb, var(--theme-interactive) 72%, transparent) 14%,
-    color-mix(in srgb, var(--theme-interactive) 48%, transparent) 72%,
-    transparent
-  );
-}
-
-.login-view__rail::before,
-.login-view__rail::after {
+.login-view__brand::before,
+.login-view__brand::after {
   content: "";
   position: absolute;
-  left: 50%;
-  width: 0.68rem;
-  height: 0.68rem;
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--theme-interactive);
-  border-radius: var(--vaadin-radius-l);
-  background: var(--chat-black);
-  transform: translateX(-50%);
-  box-shadow: var(--aura-shadow-s);
+  inset: 0;
+  pointer-events: none;
 }
 
-.login-view__rail::before {
-  top: 8%;
+.login-view__brand::before {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--theme-border-default) 50%, transparent) 0 1px,
+      transparent 1px 15px
+    ) 0 0 / min(22vw, 19rem) 100% repeat-x,
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--theme-border-default) 26%, transparent) 0 1px,
+      transparent 1px 15px
+    ) 0 0 / 100% min(18vh, 11rem) repeat-y;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  opacity: 0.5;
 }
 
-.login-view__rail::after {
-  bottom: 18%;
+.login-view__brand::after {
+  background:
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--theme-border-strong) 70%, transparent), transparent) 24% 16% / 1px 10.5rem no-repeat,
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--theme-border-strong) 62%, transparent), transparent) 52% 54% / 1px 8.25rem no-repeat,
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--theme-border-strong) 54%, transparent), transparent) 78% 24% / 1px 6.75rem no-repeat;
+  opacity: 0.72;
 }
 
 .login-view__brand-copy {
   position: relative;
   z-index: 1;
-  max-width: 42rem;
+  grid-row: 2;
+  max-width: 44rem;
   display: flex;
   flex-direction: column;
-  gap: clamp(1rem, 2vw, 1.55rem);
+  gap: clamp(0.65rem, 1.35vw, 1rem);
   animation: login-view-fade-up var(--chat-transition-fast) both;
 }
 
-.login-view__eyebrow,
-.login-view__panel-label {
+.login-view__product-label {
+  width: fit-content;
+  color: color-mix(in srgb, var(--vaadin-text-color) 78%, var(--theme-interactive));
   font-family: var(--chat-font-mono);
-  font-size: clamp(0.72rem, 0.85vw, 0.88rem);
+  font-size: var(--aura-font-size-s);
   line-height: 1.4;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 .login-view__title {
-  max-width: 8ch;
+  max-width: 18ch;
   margin: 0;
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);
-  font-size: clamp(3.35rem, 6.8vw, 5.85rem);
+  font-size: clamp(2.55rem, 4.8vw, 4rem);
   font-weight: var(--aura-font-weight-semibold);
   letter-spacing: var(--chat-tracking-display);
-  line-height: 0.88;
+  line-height: 0.94;
   text-wrap: balance;
 }
 
 .login-view__description {
-  max-width: 33rem;
+  max-width: 44rem;
   margin: 0;
-  color: color-mix(in srgb, var(--vaadin-text-color) 82%, var(--vaadin-text-color-secondary));
+  color: color-mix(in srgb, var(--vaadin-text-color) 80%, var(--vaadin-text-color-secondary));
   font-family: var(--aura-font-family);
-  font-size: clamp(1rem, 1.28vw, 1.24rem);
-  line-height: 1.42;
+  font-size: clamp(0.96rem, 1.08vw, 1.08rem);
+  line-height: 1.48;
   text-wrap: pretty;
+}
+
+.login-view__work-preview {
+  position: relative;
+  z-index: 2;
+  grid-row: 1;
+  width: min(100%, 44rem);
+  justify-self: start;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-xs);
+  padding: var(--vaadin-padding-s);
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--theme-border-strong) 72%, transparent);
+  border-radius: var(--vaadin-radius-m);
+  background: color-mix(in srgb, var(--theme-card-surface-strong) 82%, var(--chat-black));
+  box-shadow: var(--theme-shadow-card);
+  animation: login-view-fade-up var(--chat-transition-fast) both;
+}
+
+.login-view__work-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vaadin-text-color) 4%, transparent), transparent 42%);
+}
+
+.login-view__work-header,
+.login-view__evidence-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vaadin-gap-xs);
+  color: var(--vaadin-text-color-secondary);
+  font-family: var(--chat-font-mono);
+  font-size: var(--aura-font-size-xs);
+  line-height: 1.4;
+}
+
+.login-view__work-header span:last-child {
+  color: color-mix(in srgb, var(--theme-interactive) 82%, var(--vaadin-text-color));
+}
+
+.login-view__work-message {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 4.75rem minmax(0, 1fr);
+  gap: var(--vaadin-gap-s);
+  padding-block: calc(var(--vaadin-padding-xs) * 0.75);
+  border-top: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+}
+
+.login-view__work-message > span {
+  color: var(--vaadin-text-color-secondary);
+  font-family: var(--chat-font-mono);
+  font-size: var(--aura-font-size-xs);
+  line-height: 1.5;
+}
+
+.login-view__work-message p {
+  margin: 0;
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-s);
+  line-height: 1.38;
+}
+
+.login-view__work-message--user p {
+  color: color-mix(in srgb, var(--vaadin-text-color) 88%, var(--theme-interactive));
+}
+
+.login-view__code-sample {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--vaadin-padding-xs) var(--vaadin-padding-s);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  border-radius: var(--vaadin-radius-s);
+  background: var(--theme-code-background);
+  color: color-mix(in srgb, var(--vaadin-text-color) 82%, var(--vaadin-text-color-secondary));
+  font-family: var(--chat-font-mono);
+  font-size: var(--aura-font-size-xs);
+  line-height: 1.55;
+  overflow: hidden;
+}
+
+.login-view__evidence-row {
+  padding-top: var(--vaadin-padding-xs);
+  border-top: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+}
+
+.login-view__cherry-frame {
+  position: absolute;
+  left: clamp(0.75rem, 2.4vw, 2rem);
+  bottom: clamp(0.35rem, 1.3vw, 1rem);
+  z-index: 0;
+  width: clamp(13.5rem, 18vw, 18rem);
+  height: clamp(3.9rem, 6vw, 5rem);
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.login-view__cherry {
+  display: block;
+  width: 100%;
+  height: 100%;
+  --ascii-frame-font-size: clamp(0.68px, 0.062vw, 0.82px);
+  --ascii-frame-scale: 1;
+  --ascii-frame-translate-y: 0;
+  --chat-ascii-animation-color: var(--theme-interactive);
+  --chat-ascii-animation-shadow: 0 0 0.12rem color-mix(in srgb, var(--theme-interactive) 16%, transparent);
 }
 
 .login-view__crow-frame {
   position: absolute;
-  top: 0.2rem;
-  right: -5.75rem;
+  top: -0.35rem;
+  right: -4.35rem;
   align-self: start;
   justify-self: end;
   z-index: 1;
-  width: clamp(5.75rem, 6.7vw, 6.5rem);
-  height: clamp(4.75rem, 5.8vw, 5.35rem);
-  margin-top: var(--vaadin-gap-xs);
-  opacity: 0.58;
+  width: clamp(11.5rem, 12vw, 14rem);
+  height: clamp(5.35rem, 6vw, 6.4rem);
+  margin-top: 0;
+  opacity: 0.54;
   filter: saturate(0.9);
+  pointer-events: none;
 }
 
 .login-view__crow {
   display: block;
   width: 100%;
   height: 100%;
+  --ascii-frame-font-size: clamp(1.55px, 0.12vw, 1.92px);
+  --ascii-frame-translate-y: 0;
   --chat-ascii-animation-color: var(--aura-red);
-  --chat-ascii-animation-shadow: 0 0 0.22rem color-mix(in srgb, var(--aura-red) 22%, transparent);
+  --chat-ascii-animation-shadow: 0 0 0.18rem color-mix(in srgb, var(--aura-red) 20%, transparent);
 }
 
 .login-view__panel {
@@ -153,7 +271,7 @@
   align-items: center;
   justify-content: center;
   padding-block: clamp(1.25rem, 4vw, 5rem);
-  padding-inline: clamp(3rem, 8vw, 8rem);
+  padding-inline: clamp(3.25rem, 7vw, 7.5rem);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--vaadin-background-color) 28%, transparent), transparent 32%),
     color-mix(in srgb, var(--chat-black) 86%, var(--vaadin-background-color));
@@ -161,13 +279,13 @@
 
 .login-view__form-card {
   position: relative;
-  width: min(100%, 26.5rem);
+  width: min(100%, 27.75rem);
   margin-inline: auto;
   padding: 0;
   overflow: visible;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  row-gap: clamp(1.65rem, 3vh, 2.4rem);
+  row-gap: clamp(1.45rem, 2.6vh, 2.1rem);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -195,20 +313,24 @@
 }
 
 .login-view__panel-title {
+  max-width: 16ch;
   margin: 0;
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);
-  font-size: clamp(1.9rem, 2.8vw, 2.45rem);
+  font-size: clamp(1.95rem, 2.65vw, 2.45rem);
   font-weight: var(--aura-font-weight-semibold);
   letter-spacing: var(--chat-tracking-heading);
   line-height: 0.94;
+  text-wrap: balance;
 }
 
 .login-view__panel-hint {
+  max-width: 29rem;
   margin: 0;
-  color: color-mix(in srgb, var(--vaadin-text-color) 82%, var(--vaadin-text-color-secondary));
+  color: color-mix(in srgb, var(--vaadin-text-color) 84%, var(--vaadin-text-color-secondary));
   font-size: var(--aura-font-size-s);
-  line-height: 1.4;
+  line-height: 1.42;
+  text-wrap: pretty;
 }
 
 .login-view__form {
@@ -272,8 +394,8 @@
 
 .login-view__form vaadin-button[theme~="submit"] {
   width: 100%;
-  min-height: 3.15rem;
-  margin-top: var(--vaadin-gap-s);
+  min-height: 3.2rem;
+  margin-top: var(--vaadin-gap-m);
   border-radius: var(--vaadin-radius-l);
   background: var(--theme-interactive);
   color: var(--aura-accent-contrast-color);
@@ -320,30 +442,43 @@
 
   .login-view__brand {
     min-height: auto;
-    grid-template-columns: minmax(1.5rem, 2rem) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     padding: 1.5rem clamp(1rem, 5vw, 2.25rem) 0;
     border-right: 0;
+    gap: var(--vaadin-gap-l);
   }
 
-  .login-view__rail {
-    min-height: 16rem;
+  .login-view__brand-copy {
+    max-width: 42rem;
   }
 
   .login-view__title {
-    max-width: 10ch;
-    font-size: clamp(2.75rem, 14vw, 4rem);
+    max-width: 12ch;
+    font-size: clamp(2.75rem, 12vw, 4rem);
     line-height: 0.92;
   }
 
   .login-view__description {
-    max-width: 32rem;
+    max-width: 42rem;
     font-size: var(--aura-font-size-s);
     line-height: 1.45;
   }
 
+  .login-view__work-preview {
+    width: min(100%, 42rem);
+    justify-self: start;
+    align-self: auto;
+    margin-block-start: 0;
+  }
+
+  .login-view__cherry-frame {
+    display: none;
+  }
+
   .login-view__crow-frame {
-    width: 5.5rem;
-    height: 4.5rem;
+    right: -2.25rem;
+    width: 10rem;
+    height: 5rem;
   }
 
   .login-view__panel {
@@ -360,6 +495,7 @@
   }
 
   .login-view__brand-copy {
+    grid-row: 1;
     gap: var(--vaadin-gap-s);
   }
 
@@ -373,19 +509,23 @@
     line-height: 1.4;
   }
 
-  .login-view__rail {
+  .login-view__work-preview {
     display: none;
   }
 
   .login-view__crow-frame {
     position: absolute;
-    top: 4.8rem;
-    right: 1.15rem;
+    top: 4.6rem;
+    right: 0.75rem;
     display: block;
-    width: 4.75rem;
-    height: 3.85rem;
+    width: 8.5rem;
+    height: 4.5rem;
     margin-top: 0;
-    opacity: 0.48;
+    opacity: 0.44;
+  }
+
+  .login-view__crow {
+    --ascii-frame-font-size: 1.25px;
   }
 
   .login-view__form-card {
@@ -419,6 +559,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .login-view__brand-copy,
+  .login-view__work-preview,
   .login-view__form-card {
     animation: none;
   }

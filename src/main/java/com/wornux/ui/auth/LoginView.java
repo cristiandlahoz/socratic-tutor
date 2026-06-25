@@ -46,19 +46,50 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private Component createBrandPanel() {
-        var rail = new Div();
-        rail.addClassName("login-view__rail");
+        var productLabel = new Span("Socratic Tutor");
+        productLabel.addClassName("login-view__product-label");
 
-        var title = new H1("Socratic Tutor");
+        var title = new H1("Real work, reasoned through.");
         title.addClassName("login-view__title");
 
-        var description = new Paragraph("Explore ideas, ask better questions, and learn algorithms step by step.");
+        var description = new Paragraph(
+                "Bring a question, a document, or a piece of code. The tutor keeps the thread grounded in evidence and guides the next step without taking the work away from you.");
         description.addClassName("login-view__description");
 
-        var copy = new Div(title, description);
+        var copy = new Div(productLabel, title, description);
         copy.addClassName("login-view__brand-copy");
 
-        var panel = new Div(rail, copy);
+        var threadHeader = new Div(new Span("conversation"), new Span("debug-ready"));
+        threadHeader.addClassName("login-view__work-header");
+
+        var userPrompt = new Div(new Span("Student"), new Paragraph("Why does this loop skip the last value?"));
+        userPrompt.addClassName("login-view__work-message");
+        userPrompt.addClassName("login-view__work-message--user");
+
+        var tutorResponse = new Div(new Span("Tutor"), new Paragraph(
+                "Trace the boundary first. What value does i hold on the final comparison, and which array index would that touch?"));
+        tutorResponse.addClassName("login-view__work-message");
+
+        var codeLineOne = new Span("for (int i = 0; i < values.length - 1; i++) {");
+        var codeLineTwo = new Span("    sum += values[i];");
+        var codeLineThree = new Span("}");
+        var codeSample = new Div(codeLineOne, codeLineTwo, codeLineThree);
+        codeSample.addClassName("login-view__code-sample");
+
+        var evidence = new Div(new Span("Document context · 3 passages"));
+        evidence.addClassName("login-view__evidence-row");
+
+        var workPreview = new Div(threadHeader, userPrompt, tutorResponse, codeSample, evidence);
+        workPreview.addClassName("login-view__work-preview");
+
+        var cherry = new AsciiFrameAnimation("cherry-frames", 147, 24);
+        cherry.addClassName("login-view__cherry");
+        cherry.getElement().setAttribute("aria-hidden", "true");
+
+        var cherryFrame = new Div(cherry);
+        cherryFrame.addClassName("login-view__cherry-frame");
+
+        var panel = new Div(copy, workPreview, cherryFrame);
         panel.addClassName("login-view__brand");
         return panel;
     }
