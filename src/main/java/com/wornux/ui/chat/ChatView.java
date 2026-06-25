@@ -37,11 +37,13 @@ import com.wornux.ui.MainLayout;
 import com.wornux.ui.components.ShellDrawerToggle;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
 import com.wornux.ui.crunner.DebuggerPanel;
+import jakarta.annotation.security.PermitAll;
 import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @Route(value = "chat", layout = MainLayout.class)
+@PermitAll
 public class ChatView extends Composite<Div> implements BeforeEnterObserver {
 
     private final ChatViewModel viewModel;
@@ -53,10 +55,6 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
     private final StudentQuestionPanel questionPanel;
     private final DebuggerPanel debuggerPanel;
     private final SplitLayout splitLayout;
-    private final ChatProperties chatProperties;
-    private final CProgramDebugService cProgramDebugService;
-    private final CExamplePreparationService cExamplePreparationService;
-    private final Executor cRunnerExecutor;
     private final AuthenticatedAccountService authenticatedAccountService;
     private final WorkspaceRoutingService workspaceRoutingService;
     private boolean debuggerVisible;
@@ -71,10 +69,6 @@ public class ChatView extends Composite<Div> implements BeforeEnterObserver {
             AuthenticatedAccountService authenticatedAccountService,
             WorkspaceRoutingService workspaceRoutingService) {
         this.viewModel = viewModel;
-        this.chatProperties = chatProperties;
-        this.cProgramDebugService = cProgramDebugService;
-        this.cExamplePreparationService = cExamplePreparationService;
-        this.cRunnerExecutor = cRunnerExecutor;
         this.authenticatedAccountService = authenticatedAccountService;
         this.workspaceRoutingService = workspaceRoutingService;
 

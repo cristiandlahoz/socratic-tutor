@@ -24,7 +24,6 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
   jpa:
-    packages-to-scan: com.wornux.data.entities
     hibernate:
       ddl-auto: validate
   docker:
