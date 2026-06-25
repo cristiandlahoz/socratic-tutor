@@ -41,7 +41,7 @@ html {
 
     --theme-app-background: var(--theme-dark-background);
     --theme-canvas: var(--theme-dark-background);
-    --theme-header-surface: #071210;
+    --theme-header-surface: color-mix(in srgb, var(--theme-dark-background) 92%, var(--theme-dark-surface-raised));
     --theme-card-surface: var(--theme-dark-surface);
     --theme-card-surface-strong: var(--theme-dark-surface-strong);
     --theme-card-surface-raised: var(--theme-dark-surface-raised);

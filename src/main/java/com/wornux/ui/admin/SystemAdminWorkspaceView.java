@@ -20,9 +20,10 @@ import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.SystemAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
+import com.wornux.ui.MainLayout;
 import jakarta.annotation.security.PermitAll;
 
-@Route(value = "admin", autoLayout = false)
+@Route(value = "admin", layout = MainLayout.class)
 @PageTitle("System admin workspace")
 @PermitAll
 public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {

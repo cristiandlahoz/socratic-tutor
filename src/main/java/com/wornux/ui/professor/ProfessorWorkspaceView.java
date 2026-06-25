@@ -18,12 +18,13 @@ import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
+import com.wornux.ui.MainLayout;
 import com.wornux.ui.conversation.ConversationView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.training_activity.TrainingActivityView;
 import jakarta.annotation.security.PermitAll;
 
-@Route(value = "professor", autoLayout = false)
+@Route(value = "professor", layout = MainLayout.class)
 @PageTitle("Professor workspace")
 @PermitAll
 public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnterObserver {

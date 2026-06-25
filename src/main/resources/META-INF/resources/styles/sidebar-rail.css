@@ -60,6 +60,7 @@
 
 .sidebar-rail-entry-theme,
 .sidebar-rail-entry-actions,
+.sidebar-rail-entry-chat,
 .chat-sidebar-actions .sidebar-rail-entry,
 .sidebar-rail-entry-history,
 .sidebar-rail-entry-profile {
@@ -77,7 +78,12 @@
 .sidebar-rail-entry-profile {
   align-items: end;
   flex: none;
+  margin-top: auto;
   padding-top: var(--vaadin-gap-s);
+  padding-bottom: 0.35rem;
+  position: sticky;
+  bottom: 0;
+  background: transparent;
 }
 
 .sidebar-rail-entry-profile::after,
@@ -85,12 +91,15 @@
   opacity: 0;
 }
 
-.sidebar-rail-entry-actions {
+.sidebar-rail-entry-actions,
+.sidebar-rail-entry-chat {
   align-items: start;
 }
 
 .sidebar-rail-entry-actions::after,
-.sidebar-rail-entry-actions .sidebar-rail-node {
+.sidebar-rail-entry-actions .sidebar-rail-node,
+.sidebar-rail-entry-chat::after,
+.sidebar-rail-entry-chat .sidebar-rail-node {
   opacity: 0;
 }
 

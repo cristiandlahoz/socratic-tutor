@@ -1,45 +1,44 @@
 :root {
-  /* Light mode foundation, inspired by fechan.github.io */
-  --theme-light-background: oklch(97.5% 0.036 78);
-  --theme-light-surface: oklch(91.6% 0.025 79);
-  --theme-light-surface-muted: oklch(89.8% 0.039 80);
-  --theme-light-text: oklch(32.4% 0.007 107);
-  --theme-light-text-muted: oklch(45.4% 0.016 71);
-  --theme-light-border: oklch(73.8% 0.022 68);
-  --theme-light-accent: oklch(45.9% 0.168 17);
-  --theme-light-accent-hover: oklch(39.5% 0.144 17);
-  --theme-light-accent-muted: oklch(85.7% 0.053 7);
-  --theme-light-accent-subtle: oklch(92.3% 0.033 6);
-  --theme-light-accent-contrast: #fff8ef;
+  /* American retro palette: ink #111111, paper #e8d8c9, federal blue #4b607f, signal orange #f3701e. */
+  --theme-light-background: #e8d8c9;
+  --theme-light-surface: color-mix(in srgb, #e8d8c9 88%, white);
+  --theme-light-surface-muted: color-mix(in srgb, #e8d8c9 82%, #4b607f 18%);
+  --theme-light-text: #111111;
+  --theme-light-text-muted: color-mix(in srgb, #111111 64%, #4b607f);
+  --theme-light-border: color-mix(in srgb, #111111 22%, #e8d8c9);
+  --theme-light-accent: #f3701e;
+  --theme-light-accent-hover: #c95814;
+  --theme-light-accent-muted: color-mix(in srgb, #f3701e 24%, #e8d8c9);
+  --theme-light-accent-subtle: color-mix(in srgb, #f3701e 13%, #e8d8c9);
+  --theme-light-accent-contrast: #111111;
 
-  /* Dark mode foundation, tuned toward Amp's green-black shell. */
-  --theme-dark-background: #06110f;
-  --theme-dark-surface: #071614;
-  --theme-dark-surface-strong: #040a09;
-  --theme-dark-surface-raised: #101b19;
-  --theme-dark-surface-hover: #172320;
-  --theme-dark-surface-muted: #0b1815;
-  --theme-dark-button-fill: #050b0a;
-  --theme-dark-button-fill-hover: #14201d;
-  --theme-dark-border-subtle: rgba(50, 59, 57, 0.3);
-  --theme-dark-border: rgba(68, 80, 76, 0.58);
-  --theme-dark-border-strong: rgba(94, 108, 101, 0.78);
-  --theme-dark-text-display: #f7f8f8;
-  --theme-dark-text: #e0e7ea;
-  --theme-dark-text-muted: #a4adb0;
-  --theme-dark-text-soft: #727c7f;
-  --theme-dark-accent: #f6833b;
-  --theme-dark-accent-hover: #ff9a57;
-  --theme-dark-accent-subtle: rgba(246, 131, 59, 0.12);
-  --theme-dark-accent-contrast: #071312;
-  --theme-dark-line: rgba(113, 128, 124, 0.42);
-  --theme-dark-glow: radial-gradient(circle at 82% 8%, rgba(246, 131, 59, 0.028), transparent 24%),
-    radial-gradient(circle at 18% 12%, rgba(230, 248, 240, 0.018), transparent 28%);
-  --theme-dark-code-background: #050b0a;
-  --theme-dark-shadow-soft: rgba(0, 0, 0, 0.08) 0px 0px 8px 0px;
-  --theme-dark-shadow-card: rgba(0, 0, 0, 0.42) 0px 2px 4px 0px;
-  --theme-dark-ascii-animation-color: #f6833b;
-  --theme-dark-ascii-animation-shadow: 0 0 0.24rem color-mix(in srgb, #f6833b 18%, transparent);
+  --theme-dark-background: #111111;
+  --theme-dark-surface: color-mix(in srgb, #111111 92%, #e8d8c9);
+  --theme-dark-surface-strong: #111111;
+  --theme-dark-surface-raised: color-mix(in srgb, #111111 84%, #e8d8c9);
+  --theme-dark-surface-hover: color-mix(in srgb, #111111 74%, #4b607f);
+  --theme-dark-surface-muted: color-mix(in srgb, #111111 86%, #4b607f);
+  --theme-dark-button-fill: color-mix(in srgb, #111111 88%, #e8d8c9);
+  --theme-dark-button-fill-hover: color-mix(in srgb, #111111 70%, #4b607f);
+  --theme-dark-border-subtle: color-mix(in srgb, #4b607f 26%, transparent);
+  --theme-dark-border: color-mix(in srgb, #4b607f 46%, transparent);
+  --theme-dark-border-strong: color-mix(in srgb, #e8d8c9 42%, #4b607f);
+  --theme-dark-text-display: #e8d8c9;
+  --theme-dark-text: color-mix(in srgb, #e8d8c9 92%, white);
+  --theme-dark-text-muted: color-mix(in srgb, #e8d8c9 68%, #4b607f);
+  --theme-dark-text-soft: color-mix(in srgb, #e8d8c9 48%, #4b607f);
+  --theme-dark-accent: #f3701e;
+  --theme-dark-accent-hover: #ff8a3d;
+  --theme-dark-accent-subtle: color-mix(in srgb, #f3701e 18%, transparent);
+  --theme-dark-accent-contrast: #111111;
+  --theme-dark-line: color-mix(in srgb, #4b607f 52%, transparent);
+  --theme-dark-glow: radial-gradient(circle at 82% 8%, color-mix(in srgb, #f3701e 5%, transparent), transparent 24%),
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, #4b607f 8%, transparent), transparent 28%);
+  --theme-dark-code-background: #111111;
+  --theme-dark-shadow-soft: rgba(17, 17, 17, 0.22) 0px 0px 8px 0px;
+  --theme-dark-shadow-card: rgba(17, 17, 17, 0.52) 0px 2px 4px 0px;
+  --theme-dark-ascii-animation-color: #f3701e;
+  --theme-dark-ascii-animation-shadow: 0 0 0.24rem color-mix(in srgb, #f3701e 20%, transparent);
 
   --chat-font-display: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
   --chat-font-body: "CommitMono", "SF Mono", "JetBrains Mono", monospace;

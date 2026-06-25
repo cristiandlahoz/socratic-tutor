@@ -22,9 +22,10 @@ import com.wornux.services.workspace.AccessibleTenant;
 import com.wornux.services.workspace.TenantAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
+import com.wornux.ui.MainLayout;
 import jakarta.annotation.security.PermitAll;
 
-@Route(value = "tenant", autoLayout = false)
+@Route(value = "tenant", layout = MainLayout.class)
 @PageTitle("Tenant admin workspace")
 @PermitAll
 public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {

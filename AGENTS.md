@@ -68,3 +68,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+## Local QA credentials
+
+Use only for local visual verification / development testing:
+
+- Student: `cristiandelahooz` / `1234f`
+- Professor: `alfredo` / `1234`
+- Tenant admin: `camacho` / `1234f`
+- System admin: `admin` / `admin`
