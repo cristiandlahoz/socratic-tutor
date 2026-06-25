@@ -13,6 +13,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.ui.conversation.AsciiFrameAnimation;
 
 @Route(value = "login", autoLayout = false)
@@ -21,8 +22,10 @@ import com.wornux.ui.conversation.AsciiFrameAnimation;
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     private final LoginForm login = new LoginForm();
+    private final AuthenticatedAccountService authenticatedAccountService;
 
-    public LoginView() {
+    public LoginView(AuthenticatedAccountService authenticatedAccountService) {
+        this.authenticatedAccountService = authenticatedAccountService;
         addClassName("login-view");
         setSizeFull();
         setPadding(false);
@@ -106,6 +109,10 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent beforeEnterEvent) {
+        if (authenticatedAccountService.currentAccount().isPresent()) {
+            beforeEnterEvent.forwardTo("");
+            return;
+        }
         if (beforeEnterEvent.getLocation().getQueryParameters().getParameters().containsKey("error")) {
             login.setError(true);
         }

@@ -14,6 +14,7 @@ import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
 import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WorkspaceRoutingService {
 
     private final AuthenticatedAccountService authenticatedAccountService;
+    private final AuthenticatedUserContext authenticatedUserContext;
     private final AccountRepository accountRepository;
     private final TenantAccountRepository tenantAccountRepository;
     private final TenantAccountRoleRepository tenantAccountRoleRepository;
@@ -28,11 +30,13 @@ public class WorkspaceRoutingService {
 
     public WorkspaceRoutingService(
             AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContext authenticatedUserContext,
             AccountRepository accountRepository,
             TenantAccountRepository tenantAccountRepository,
             TenantAccountRoleRepository tenantAccountRoleRepository,
             GroupClassMemberRepository groupClassMemberRepository) {
         this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContext = authenticatedUserContext;
         this.accountRepository = accountRepository;
         this.tenantAccountRepository = tenantAccountRepository;
         this.tenantAccountRoleRepository = tenantAccountRoleRepository;
@@ -150,6 +154,7 @@ public class WorkspaceRoutingService {
                 .orElseThrow(() -> new SecurityException("The tenant context is not available for this account."));
         account.setLastTenantAccount(tenantAccount);
         accountRepository.save(account);
+        authenticatedUserContext.refreshCurrentAuthentication(account.getId());
     }
 
     @Transactional
@@ -163,6 +168,7 @@ public class WorkspaceRoutingService {
         account.setLastTenantAccount(membership.getTenantAccount());
         account.setLastGroupClassMember(membership);
         accountRepository.save(account);
+        authenticatedUserContext.refreshCurrentAuthentication(account.getId());
     }
 
     @Transactional(readOnly = true)
@@ -195,6 +201,7 @@ public class WorkspaceRoutingService {
         }
         account.setLastTenantAccount(tenantAdminRole.getTenantAccount());
         accountRepository.save(account);
+        authenticatedUserContext.refreshCurrentAuthentication(account.getId());
     }
 
     private boolean prepareTenantAdminAccess(Account account) {
@@ -251,5 +258,6 @@ public class WorkspaceRoutingService {
         account.setLastTenantAccount(member.getTenantAccount());
         account.setLastGroupClassMember(member);
         accountRepository.save(account);
+        authenticatedUserContext.refreshCurrentAuthentication(account.getId());
     }
 }

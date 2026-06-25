@@ -26,6 +26,7 @@ import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
+import com.vaadin.flow.spring.security.AuthenticationContext;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.ConversationSummary;
 import com.wornux.services.security.AuthenticatedAccountService;
@@ -35,6 +36,7 @@ import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.conversation.ConversationViewModel;
 import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.SidebarItem;
+import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.chat.WidthAwareLabel;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.training_activity.TrainingActivityView;
@@ -96,7 +98,8 @@ public class MainLayout extends AppLayout {
             @RouteScopeOwner(MainLayout.class) ConversationState state,
             @RouteScopeOwner(MainLayout.class) ConversationViewModel viewModel,
             AuthenticatedAccountService authenticatedAccountService,
-            WorkspaceRoutingService workspaceRoutingService) {
+            WorkspaceRoutingService workspaceRoutingService,
+            AuthenticationContext authenticationContext) {
         setPrimarySection(Section.DRAWER);
         this.viewModel = viewModel;
         this.viewModel.initializeShellState();
@@ -134,11 +137,11 @@ public class MainLayout extends AppLayout {
             new SvgIcon("/icons/pencil.svg"));
         evaluationButton.setId("sidebar-evaluation-link");
 
-        var sidebarNavigationAccess = authenticatedAccountService.currentAccount()
-                .map(
-                    account -> buildSidebarNavigationAccess(
-                        workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR),
-                        workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)))
+        var currentAccount = authenticatedAccountService.currentAccount();
+        var sidebarNavigationAccess = currentAccount.map(
+            account -> buildSidebarNavigationAccess(
+                workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR),
+                workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)))
                 .orElseGet(SidebarNavigationAccess::noAccess);
 
         var actionsRow = createActionsRow(sidebarNavigationAccess, ingestDocumentButton, evaluationButton);
@@ -186,10 +189,15 @@ public class MainLayout extends AppLayout {
 
         drawerContent.add(
             createRailEntry("brand", appHeader),
-            createRailEntry("theme", createThemePreferenceControl(state, this.viewModel)),
             createRailEntry("actions", actionsSection),
             createRailEntry("history", historyHeader),
             historySection);
+        currentAccount.map(account -> new ProfileDrawerCard(
+            account,
+            createThemePreferenceControl(state, this.viewModel),
+            authenticationContext::logout))
+                .map(profileCard -> createRailEntry("profile", profileCard))
+                .ifPresent(drawerContent::add);
 
         var drawerScroller = new Scroller(drawerContent, Scroller.ScrollDirection.NONE);
         drawerScroller.setSizeFull();

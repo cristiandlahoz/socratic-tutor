@@ -6,9 +6,11 @@ import java.util.UUID;
 
 import com.wornux.data.entities.authorization.TenantAccountRole;
 import com.wornux.data.entities.authorization.TenantAccountRoleId;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TenantAccountRoleRepository extends JpaRepository<TenantAccountRole, TenantAccountRoleId> {
+    @EntityGraph(attributePaths = {"role", "tenantAccount", "tenantAccount.tenant"})
     List<TenantAccountRole> findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(UUID accountId);
 
     List<TenantAccountRole> findByTenantAccount_Tenant_IdAndRole_CodeAndTenantAccount_LockedFalse(

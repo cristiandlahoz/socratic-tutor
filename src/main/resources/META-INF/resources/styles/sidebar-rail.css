@@ -61,7 +61,8 @@
 .sidebar-rail-entry-theme,
 .sidebar-rail-entry-actions,
 .chat-sidebar-actions .sidebar-rail-entry,
-.sidebar-rail-entry-history {
+.sidebar-rail-entry-history,
+.sidebar-rail-entry-profile {
   min-height: 2.45rem;
 }
 
@@ -71,6 +72,17 @@
 
 .sidebar-rail-entry-theme::after {
   top: calc(0.42rem + var(--sidebar-rail-node-size) / 2);
+}
+
+.sidebar-rail-entry-profile {
+  align-items: end;
+  flex: none;
+  padding-top: var(--vaadin-gap-s);
+}
+
+.sidebar-rail-entry-profile::after,
+.sidebar-rail-entry-profile .sidebar-rail-node {
+  opacity: 0;
 }
 
 .sidebar-rail-entry-actions {
@@ -217,4 +229,117 @@ vaadin-button.chat-sidebar-theme-button:hover::part(label),
 vaadin-button.chat-sidebar-theme-button:focus-within::part(label) {
   color: var(--vaadin-text-color);
   opacity: 0.9;
+}
+
+.profile-drawer-card {
+  min-width: 0;
+  margin-right: var(--sidebar-section-inline-end);
+  border-top: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  padding-top: var(--vaadin-gap-s);
+}
+
+.profile-drawer-card__header {
+  width: 100%;
+  margin: 0;
+  padding: 0.44rem 0.25rem;
+  border: 0;
+  border-radius: var(--vaadin-radius-m);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--chat-transition-fast);
+}
+
+.profile-drawer-card__header:hover,
+.profile-drawer-card__header:focus-visible {
+  background: color-mix(in srgb, var(--vaadin-background-container-strong) 34%, transparent);
+  outline: none;
+}
+
+.profile-drawer-card__header-content {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--vaadin-gap-s);
+}
+
+.profile-drawer-card__avatar {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--aura-accent-text-color) 22%, var(--vaadin-background-container-strong));
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-semibold);
+  box-shadow: var(--aura-shadow-xs);
+}
+
+.profile-drawer-card__identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.profile-drawer-card__name,
+.profile-drawer-card__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--aura-font-family);
+}
+
+.profile-drawer-card__name {
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-s);
+  font-weight: var(--aura-font-weight-semibold);
+}
+
+.profile-drawer-card__email {
+  color: var(--vaadin-text-color-secondary);
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-medium);
+}
+
+.profile-drawer-card__chevron {
+  width: 1.18rem;
+  height: 1.18rem;
+  color: var(--vaadin-text-color-secondary);
+}
+
+.profile-drawer-card__menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-s);
+  padding: var(--vaadin-gap-s) 0.25rem 0.18rem;
+}
+
+.profile-drawer-card .chat-sidebar-theme-control {
+  padding-right: 0;
+}
+
+vaadin-button.profile-drawer-card__logout {
+  width: 100%;
+  --vaadin-button-padding: 0;
+}
+
+vaadin-button.profile-drawer-card__logout::part(button) {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 2rem;
+  padding: 0;
+  color: var(--vaadin-text-color-secondary);
+  background: transparent;
+  box-shadow: none;
+}
+
+vaadin-button.profile-drawer-card__logout:hover::part(button),
+vaadin-button.profile-drawer-card__logout:focus-within::part(button) {
+  color: var(--vaadin-text-color);
 }
