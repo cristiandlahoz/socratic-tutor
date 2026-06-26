@@ -60,6 +60,7 @@ public class SocraticEmailProperties {
         private String password;
         private boolean auth;
         private boolean starttlsEnabled;
+        private boolean sslEnabled;
         private int connectionTimeout = 5000;
         private int timeout = 5000;
         private int writeTimeout = 5000;
@@ -110,6 +111,14 @@ public class SocraticEmailProperties {
 
         public void setStarttlsEnabled(boolean starttlsEnabled) {
             this.starttlsEnabled = starttlsEnabled;
+        }
+
+        public boolean isSslEnabled() {
+            return sslEnabled;
+        }
+
+        public void setSslEnabled(boolean sslEnabled) {
+            this.sslEnabled = sslEnabled;
         }
 
         public int getConnectionTimeout() {

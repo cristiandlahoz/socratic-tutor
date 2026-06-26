@@ -25,10 +25,16 @@ public class SmtpEmailService implements EmailService {
     public void send(EmailMessage message) {
         try {
             var mimeMessage = mailSender.createMimeMessage();
-            var helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            var helper = new MimeMessageHelper(
+                    mimeMessage, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
             helper.setTo(message.toAddress());
             helper.setSubject(message.subject());
-            helper.setText(message.htmlBody(), true);
+            if (message.plainTextBody() == null || message.plainTextBody().isBlank()) {
+                helper.setText(message.htmlBody(), true);
+            }
+            else {
+                helper.setText(message.plainTextBody(), message.htmlBody());
+            }
             helper.setFrom(new InternetAddress(emailProperties.getFromAddress(), emailProperties.getFromName()));
             if (!message.ccAddresses().isEmpty()) {
                 helper.setCc(message.ccAddresses().toArray(String[]::new));

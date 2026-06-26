@@ -21,6 +21,7 @@ public class EmailConfiguration {
         Properties properties = sender.getJavaMailProperties();
         properties.put("mail.smtp.auth", Boolean.toString(emailProperties.getSmtp().isAuth()));
         properties.put("mail.smtp.starttls.enable", Boolean.toString(emailProperties.getSmtp().isStarttlsEnabled()));
+        properties.put("mail.smtp.ssl.enable", Boolean.toString(emailProperties.getSmtp().isSslEnabled()));
         properties
                 .put("mail.smtp.connectiontimeout", Integer.toString(emailProperties.getSmtp().getConnectionTimeout()));
         properties.put("mail.smtp.timeout", Integer.toString(emailProperties.getSmtp().getTimeout()));

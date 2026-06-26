@@ -118,6 +118,7 @@ socratic:
       password: ${SOCRATIC_EMAIL_SMTP_PASSWORD:}
       auth: ${SOCRATIC_EMAIL_SMTP_AUTH:false}
       starttls-enabled: ${SOCRATIC_EMAIL_SMTP_STARTTLS_ENABLED:false}
+      ssl-enabled: ${SOCRATIC_EMAIL_SMTP_SSL_ENABLED:false}
       connection-timeout: ${SOCRATIC_EMAIL_SMTP_CONNECTION_TIMEOUT:5000}
       timeout: ${SOCRATIC_EMAIL_SMTP_TIMEOUT:5000}
       write-timeout: ${SOCRATIC_EMAIL_SMTP_WRITE_TIMEOUT:5000}

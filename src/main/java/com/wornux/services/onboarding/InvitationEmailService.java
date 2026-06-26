@@ -28,26 +28,31 @@ public class InvitationEmailService {
 
     public void sendInvitation(Invitation invitation, String rawToken) {
         var model = new HashMap<String, Object>();
-        model.put("tenantName", invitation.getTenant().getName());
-        model.put("groupClassName", invitation.getGroupClass() == null ? null : invitation.getGroupClass().getName());
-        model.put("invitedEmail", invitation.getInvitedEmail());
-        model.put("targetRole", invitation.getTargetRole().name());
-        model.put(
-            "acceptUrl",
-            "%s/invitations/accept?token=%s".formatted(emailProperties.getInvitationBaseUrl(), rawToken));
+        var acceptUrl = "%s/invitations/accept?token=%s".formatted(emailProperties.getInvitationBaseUrl(), rawToken);
+        model.put("acceptUrl", acceptUrl);
 
-        var templateName = switch (invitation.getTargetRole()) {
-            case TENANT_ADMIN -> "tenant-admin-invitation";
-            case PROFESSOR -> "professor-invitation";
-            case STUDENT -> "student-invitation";
-        };
         var subject = switch (invitation.getTargetRole()) {
-            case TENANT_ADMIN -> "You have been invited as a tenant admin";
-            case PROFESSOR -> "You have been invited as a professor";
-            case STUDENT -> "You have been invited as a student";
+            case TENANT_ADMIN -> "Invitation to manage %s".formatted(invitation.getTenant().getName());
+            case PROFESSOR -> "Invitation to teach %s".formatted(invitation.getGroupClass().getName());
+            case STUDENT -> "Invitation to join %s".formatted(invitation.getGroupClass().getName());
         };
+        var headline = switch (invitation.getTargetRole()) {
+            case TENANT_ADMIN -> "Manage %s".formatted(invitation.getTenant().getName());
+            case PROFESSOR -> "Teach %s".formatted(invitation.getGroupClass().getName());
+            case STUDENT -> "Join %s".formatted(invitation.getGroupClass().getName());
+        };
+        var intro = switch (invitation.getTargetRole()) {
+            case TENANT_ADMIN -> "You were invited to manage this institution in Socratic Tutor.";
+            case PROFESSOR -> "You were invited to teach this class in Socratic Tutor.";
+            case STUDENT -> "You were invited to join this class in Socratic Tutor.";
+        };
+        model.put("headline", headline);
+        model.put("intro", intro);
+
         var html = emailTemplateService
-                .render(new TemplatedEmailMessage(invitation.getInvitedEmail(), subject, templateName, model));
-        emailService.send(new EmailMessage(invitation.getInvitedEmail(), subject, html));
+                .render(new TemplatedEmailMessage(invitation.getInvitedEmail(), subject, "invitation", model));
+        var plainText = "%s%n%n%s%n%nAccept invitation:%n%s%n%nIf you were not expecting this invitation, you can ignore this email."
+                .formatted(headline, intro, acceptUrl);
+        emailService.send(new EmailMessage(invitation.getInvitedEmail(), subject, plainText, html));
     }
 }
