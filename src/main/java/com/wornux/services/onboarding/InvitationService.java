@@ -7,7 +7,6 @@ import java.util.UUID;
 import com.wornux.config.SocraticEmailProperties;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
-import com.wornux.data.entities.authorization.Role;
 import com.wornux.data.entities.authorization.TenantAccountRole;
 import com.wornux.data.entities.authorization.TenantAccountRoleId;
 import com.wornux.data.entities.identity.Account;

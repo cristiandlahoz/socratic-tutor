@@ -30,6 +30,7 @@ import com.wornux.services.workspace.SystemAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.auth.NoAccessView;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "admin", layout = MainLayout.class)
@@ -81,7 +82,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
     public void beforeEnter(BeforeEnterEvent event) {
         var account = authenticatedAccountService.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.SYSTEM_ADMIN)) {
-            event.forwardTo("no-access");
+            event.forwardTo(NoAccessView.class);
         }
     }
 

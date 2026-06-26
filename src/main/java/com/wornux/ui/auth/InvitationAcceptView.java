@@ -20,6 +20,11 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.wornux.services.onboarding.InvitationService;
 import com.wornux.services.onboarding.InvitationStateException;
 import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.workspace.WorkspaceDestination;
+import com.wornux.ui.admin.SystemAdminWorkspaceView;
+import com.wornux.ui.professor.ProfessorWorkspaceView;
+import com.wornux.ui.student.StudentWorkspaceView;
+import com.wornux.ui.tenant.TenantAdminWorkspaceView;
 
 @Route(value = "invitations/accept", autoLayout = false)
 @PageTitle("Accept invitation")
@@ -73,7 +78,7 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
                     return;
                 }
                 var decision = invitationService.completePendingInvitationForCurrentAccount();
-                event.forwardTo(decision.route());
+                forwardToDestination(event, decision.destination());
                 return;
             }
             render(onboarding.accountAlreadyExists());
@@ -81,6 +86,16 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         catch (InvitationStateException exception) {
             content.removeAll();
             content.add(new H2("Invitation unavailable"), new Paragraph(exception.getMessage()));
+        }
+    }
+
+    private void forwardToDestination(BeforeEnterEvent event, WorkspaceDestination destination) {
+        switch (destination) {
+            case SYSTEM_ADMIN -> event.forwardTo(SystemAdminWorkspaceView.class);
+            case TENANT_ADMIN -> event.forwardTo(TenantAdminWorkspaceView.class);
+            case PROFESSOR -> event.forwardTo(ProfessorWorkspaceView.class);
+            case STUDENT -> event.forwardTo(StudentWorkspaceView.class);
+            case NO_ACCESS -> event.forwardTo(NoAccessView.class);
         }
     }
 

@@ -10,6 +10,10 @@ import com.wornux.services.onboarding.InvitationStateException;
 import com.wornux.services.onboarding.OnboardingSessionContext;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
+import com.wornux.ui.admin.SystemAdminWorkspaceView;
+import com.wornux.ui.professor.ProfessorWorkspaceView;
+import com.wornux.ui.student.StudentWorkspaceView;
+import com.wornux.ui.tenant.TenantAdminWorkspaceView;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "", autoLayout = false)
@@ -35,7 +39,7 @@ public class LandingView extends Div implements BeforeEnterObserver {
         if (onboardingSessionContext.hasActiveInvitation()) {
             try {
                 var onboardingDecision = invitationService.completePendingInvitationForCurrentAccount();
-                event.forwardTo(onboardingDecision.route());
+                forwardToDestination(event, onboardingDecision.destination());
                 return;
             }
             catch (IllegalStateException ignored) {
@@ -53,6 +57,16 @@ public class LandingView extends Div implements BeforeEnterObserver {
             event.forwardTo(NoAccessView.class);
             return;
         }
-        event.forwardTo(decision.route());
+        forwardToDestination(event, decision.destination());
+    }
+
+    private void forwardToDestination(BeforeEnterEvent event, WorkspaceDestination destination) {
+        switch (destination) {
+            case SYSTEM_ADMIN -> event.forwardTo(SystemAdminWorkspaceView.class);
+            case TENANT_ADMIN -> event.forwardTo(TenantAdminWorkspaceView.class);
+            case PROFESSOR -> event.forwardTo(ProfessorWorkspaceView.class);
+            case STUDENT -> event.forwardTo(StudentWorkspaceView.class);
+            case NO_ACCESS -> event.forwardTo(NoAccessView.class);
+        }
     }
 }

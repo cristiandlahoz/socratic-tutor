@@ -142,7 +142,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
     @Override
     public void beforeEnter(BeforeEnterEvent beforeEnterEvent) {
         if (authenticatedAccountService.currentAccount().isPresent()) {
-            beforeEnterEvent.forwardTo("");
+            beforeEnterEvent.forwardTo(LandingView.class);
             return;
         }
         if (beforeEnterEvent.getLocation().getQueryParameters().getParameters().containsKey("error")) {

@@ -38,6 +38,7 @@ import com.wornux.services.workspace.TenantAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.auth.NoAccessView;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "tenant", layout = MainLayout.class)
@@ -82,7 +83,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     public void beforeEnter(BeforeEnterEvent event) {
         var account = authenticatedAccountService.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.TENANT_ADMIN)) {
-            event.forwardTo("no-access");
+            event.forwardTo(NoAccessView.class);
             return;
         }
         refresh();

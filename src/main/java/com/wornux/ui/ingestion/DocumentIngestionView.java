@@ -32,6 +32,7 @@ import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.components.ingestion.DocumentSegmentEditorList;
 import com.wornux.ui.components.ingestion.DocumentStatusPanel;
 
@@ -175,7 +176,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     public void beforeEnter(BeforeEnterEvent event) {
         var account = authenticatedAccountService.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
-            event.forwardTo("no-access");
+            event.forwardTo(NoAccessView.class);
             return;
         }
     }

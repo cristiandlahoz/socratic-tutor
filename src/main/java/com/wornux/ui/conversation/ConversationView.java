@@ -34,6 +34,7 @@ import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
 import com.wornux.ui.crunner.DebuggerPanel;
 import jakarta.annotation.security.PermitAll;
@@ -155,7 +156,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         var hasProfessorAccess = workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR);
         var hasStudentAccess = workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT);
         if (!hasProfessorAccess && !hasStudentAccess) {
-            event.forwardTo("no-access");
+            event.forwardTo(NoAccessView.class);
             return;
         }
         if (!workspaceRoutingService.currentClassMembership(account, null).isPresent()) {

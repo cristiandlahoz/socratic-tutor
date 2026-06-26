@@ -39,6 +39,7 @@ import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.auth.NoAccessView;
 
 @Route(value = "evaluations", layout = MainLayout.class)
 public class TrainingActivityView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
@@ -183,7 +184,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     public void beforeEnter(BeforeEnterEvent event) {
         var account = authenticatedAccountService.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
-            event.forwardTo("no-access");
+            event.forwardTo(NoAccessView.class);
             return;
         }
         pendingDialogActivityId = event.getLocation()
