@@ -223,7 +223,7 @@ Role and membership decide what an account can do.
 
 ### Roles are tenant-scoped
 
-Roles are assigned through `tenant_account_role`, not directly to a global account.
+Global platform roles are assigned through `account_role`; tenant roles are assigned through `tenant_account_role`.
 
 This allows a person to have different responsibilities in different tenants.
 

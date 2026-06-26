@@ -21,7 +21,7 @@ spring:
 
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration/prod
     baseline-on-migrate: true
   jpa:
     packages-to-scan: com.wornux.data.entities
@@ -154,7 +154,18 @@ spring:
   docker:
     compose:
       lifecycle-management: start-only
+  flyway:
+    locations:
+      - classpath:db/migration/prod
+      - classpath:db/migration/dev
 
 vaadin:
   frontend:
     hotdeploy: true
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  flyway:
+    locations: classpath:db/migration/prod

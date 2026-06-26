@@ -44,6 +44,7 @@ public class MainLayout extends AppLayout {
             WorkspaceRoutingService workspaceRoutingService,
             AuthenticationContext authenticationContext) {
         setPrimarySection(Section.DRAWER);
+        addToNavbar(createDrawerToggle("shell-drawer-toggle", "Abrir menú"));
         this.viewModel = viewModel;
         this.viewModel.initializeShellState();
 
@@ -90,7 +91,7 @@ public class MainLayout extends AppLayout {
         var appTitle = new H1("Tutor Socrático");
         appTitle.addClassName("chat-sidebar-app-title");
 
-        var drawerToggle = createDrawerToggle("shell-drawer-toggle-inside", "Cerrar menu");
+        var drawerToggle = createDrawerToggle("shell-drawer-toggle-inside", "Cerrar menú");
 
         var appTitleRow = new Div(appTitle, drawerToggle);
         appTitleRow.addClassName("chat-sidebar-app-title-row");

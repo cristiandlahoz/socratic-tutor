@@ -46,7 +46,6 @@ public class InvitationService {
     private final InvitationTokenService invitationTokenService;
     private final InvitationEmailService invitationEmailService;
     private final OnboardingSessionContext onboardingSessionContext;
-    private final UsernameGenerator usernameGenerator;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticatedAccountService authenticatedAccountService;
     private final WorkspaceRoutingService workspaceRoutingService;
@@ -64,7 +63,6 @@ public class InvitationService {
             InvitationTokenService invitationTokenService,
             InvitationEmailService invitationEmailService,
             OnboardingSessionContext onboardingSessionContext,
-            UsernameGenerator usernameGenerator,
             PasswordEncoder passwordEncoder,
             AuthenticatedAccountService authenticatedAccountService,
             WorkspaceRoutingService workspaceRoutingService) {
@@ -80,7 +78,6 @@ public class InvitationService {
         this.invitationTokenService = invitationTokenService;
         this.invitationEmailService = invitationEmailService;
         this.onboardingSessionContext = onboardingSessionContext;
-        this.usernameGenerator = usernameGenerator;
         this.passwordEncoder = passwordEncoder;
         this.authenticatedAccountService = authenticatedAccountService;
         this.workspaceRoutingService = workspaceRoutingService;
@@ -177,11 +174,9 @@ public class InvitationService {
         var account = new Account();
         account.setId(UUID.randomUUID());
         account.setEmail(invitation.getInvitedEmail());
-        account.setUsername(usernameGenerator.generateForEmail(invitation.getInvitedEmail()));
         account.setFirstName(firstName.trim());
         account.setLastName(lastName.trim());
         account.setPasswordHash(passwordEncoder.encode(password));
-        account.setSystemAdmin(false);
         account.setLocked(false);
         account.setCreatedAt(Instant.now());
         account.setUpdatedAt(Instant.now());

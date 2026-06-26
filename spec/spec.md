@@ -92,7 +92,8 @@ The application must include:
 - Application-managed authorization.
 - Persisted accounts.
 - Persisted tenant membership through `tenant_account`.
-- Persisted role assignment through `tenant_account_role`.
+- Persisted global role assignment through `account_role`.
+- Persisted tenant role assignment through `tenant_account_role`.
 - Persisted resources, actions, permissions, and role-permission mappings.
 - Role-based workspace routing.
 - Tenant-level academic setup.
@@ -231,7 +232,7 @@ It answers:
 Which authenticated accounts are present inside this institution?
 ```
 
-Roles are assigned to `tenant_account`, not directly to a global account.
+Tenant-scoped roles are assigned to `tenant_account`. Global platform roles are assigned directly to `account` through `account_role`.
 
 ### Group Class
 
@@ -271,6 +272,7 @@ Most tutor activity is owned by or created through a `group_class_member`.
 | `account` | Root authenticated identity for every signed-in person. |
 | `tenant` | Institution/university boundary. |
 | `tenant_account` | Account membership inside a tenant. |
+| `account_role` | Global platform role assignment for an account. |
 | `tenant_account_role` | Role assignment inside a tenant. |
 | `role` | Capability grouping such as `SYSTEM_ADMIN`, `TENANT_ADMIN`, `PROFESSOR`, or `STUDENT`. |
 | `resource` | User-facing or policy-relevant capability boundary. |
@@ -303,7 +305,7 @@ Required application direction:
 spring:
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration/prod
 
   jpa:
     hibernate:
@@ -318,7 +320,7 @@ The baseline migration must create the active target ERD and seed only foundatio
 Recommended baseline file:
 
 ```text
-src/main/resources/db/migration/V1__baseline.sql
+src/main/resources/db/migration/prod/V1__baseline.sql
 ```
 
 The baseline must create:
@@ -327,6 +329,7 @@ The baseline must create:
 account
 tenant
 tenant_account
+account_role
 tenant_account_role
 role
 resource
@@ -355,7 +358,7 @@ If old code remains in the repository, it must be excluded from active JPA start
 Seed only:
 
 ```text
-admin@socratic-tutor.com
+admin@wornux.com
 SYSTEM_ADMIN
 TENANT_ADMIN
 PROFESSOR
@@ -404,7 +407,6 @@ The database must enforce invariants that are safe to enforce at the database le
 Required constraints include:
 
 - `account.email` unique.
-- `account.username` unique.
 - `tenant_account(tenant_id, account_id)` unique.
 - `role.code` unique.
 - `resource.code` unique.
@@ -412,6 +414,7 @@ Required constraints include:
 - `permission.code` unique.
 - `permission(resource_id, action_id)` unique.
 - `role_permission(role_id, permission_id)` primary key.
+- `account_role(account_id, role_id)` primary key.
 - `tenant_account_role(tenant_account_id, role_id)` primary key.
 - `subject(tenant_id, code)` unique.
 - `academic_period(tenant_id, code)` unique.
@@ -447,6 +450,14 @@ Do not store permissions as JSON arrays inside roles.
 The persisted authorization chain is:
 
 ```text
+account
+  -> account_role
+      -> role
+          -> role_permission
+              -> permission
+                  -> resource
+                  -> action
+
 tenant_account
   -> tenant_account_role
       -> role
@@ -675,7 +686,7 @@ The `LoginView` must:
 - use Vaadin login components or a custom responsive layout,
 - route unauthenticated users to login,
 - display invalid-login feedback,
-- avoid revealing whether a username or email exists,
+- avoid revealing whether an email exists,
 - redirect authenticated users through workspace routing,
 - not create anonymous academic identity.
 
@@ -705,6 +716,7 @@ After authentication, the system must resolve:
 
 ```text
 account
+account_role records
 tenant_account records
 tenant_account_role records
 group_class_member records
@@ -1049,7 +1061,7 @@ spring:
 
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration/prod
 
   jpa:
     hibernate:
@@ -1057,7 +1069,7 @@ spring:
     open-in-view: false
 ```
 
-AI/model configuration must remain explicit and centralized.
+AI/model configuration must remain explicit and centralized. The dev profile may add `classpath:db/migration/dev` after the prod location for local-only seed data.
 
 Spring AI PgVectorStore configuration must remain available when grounding embeddings depend on vector retrieval.
 
@@ -1127,10 +1139,10 @@ Legacy packages may remain for reference or later migration work, but they must 
 
 - Every authenticated person is an `account`.
 - Account email must be unique.
-- Account username must be unique.
+- Account email must be unique and is the only supported login identifier.
 - `tenant_account` connects an account to a tenant.
 - An account cannot be added to the same tenant twice.
-- Roles are assigned to `tenant_account`, not directly to global accounts.
+- Global platform roles are assigned through `account_role`; tenant roles are assigned through `tenant_account_role`.
 - A user cannot receive the same tenant-account role twice.
 - A group-class member must reference a valid group class and tenant account.
 - A tenant account cannot receive duplicate group-class membership for the same role in the same group class.

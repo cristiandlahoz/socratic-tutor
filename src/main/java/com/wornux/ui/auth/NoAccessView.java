@@ -14,7 +14,7 @@ import jakarta.annotation.security.PermitAll;
 public class NoAccessView extends VerticalLayout {
 
     public NoAccessView() {
-        addClassName("workspace-view");
+        addClassName("onboarding-view");
         setSizeFull();
         setJustifyContentMode(JustifyContentMode.CENTER);
         setDefaultHorizontalComponentAlignment(Alignment.CENTER);
@@ -23,7 +23,7 @@ public class NoAccessView extends VerticalLayout {
         var description = new Paragraph(
                 "This account does not have an active role or class context. Ask a system admin, tenant admin, or professor to invite you.");
         var shell = new Div(title, description);
-        shell.addClassName("workspace-card");
+        shell.addClassName("onboarding-terminal-card");
         add(shell);
     }
 }

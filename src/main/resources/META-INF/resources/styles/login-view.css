@@ -222,7 +222,7 @@
   position: absolute;
   left: clamp(-24rem, -22vw, -16rem);
   bottom: clamp(-2.75rem, -3vw, -1.75rem);
-  z-index: 0;
+  z-index: 3;
   width: clamp(56rem, 66vw, 76rem);
   height: clamp(21rem, 29vw, 27rem);
   opacity: 0.28;

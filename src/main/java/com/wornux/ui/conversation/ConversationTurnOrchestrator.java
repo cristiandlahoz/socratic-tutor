@@ -51,13 +51,13 @@ public class ConversationTurnOrchestrator {
         var ui = UI.getCurrent();
 
         if (context.newConversation()) {
-            conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> {
+            conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> runUiSideEffect(ui, () -> {
                 conversationService.renameConversationIfTitleMatches(
                     context.conversationId(),
                     context.fallbackTitle(),
                     generatedTitle);
-                runUiSideEffect(ui, refreshConversationHistory);
-            });
+                refreshConversationHistory.run();
+            }));
         }
 
         context.state().responseInProgress().set(true);
@@ -153,12 +153,14 @@ public class ConversationTurnOrchestrator {
             Runnable refreshConversationHistory,
             Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus) {
-        state.responseInProgress().set(false);
-        refreshConversationHistory.run();
-        refreshConversationTokenUsage.run();
-        refreshCompactionStatus.run();
-        activeStream = null;
-        runUiSideEffect(ui, onResponseFinished);
+        runUiSideEffect(ui, () -> {
+            state.responseInProgress().set(false);
+            refreshConversationHistory.run();
+            refreshConversationTokenUsage.run();
+            refreshCompactionStatus.run();
+            activeStream = null;
+            onResponseFinished.run();
+        });
     }
 
     private void runUiSideEffect(UI ui, Runnable callback) {

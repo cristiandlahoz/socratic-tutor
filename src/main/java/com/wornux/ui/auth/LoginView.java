@@ -17,7 +17,7 @@ import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.ui.conversation.AsciiFrameAnimation;
 
 @Route(value = "login", autoLayout = false)
-@PageTitle("Login")
+@PageTitle("Iniciar sesión")
 @AnonymousAllowed
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
@@ -46,28 +46,28 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private Component createBrandPanel() {
-        var productLabel = new Span("Socratic Tutor");
+        var productLabel = new Span("Tutor Socrático");
         productLabel.addClassName("login-view__product-label");
 
-        var title = new H1("Real work, reasoned through.");
+        var title = new H1("Trabajo real, razonado paso a paso.");
         title.addClassName("login-view__title");
 
         var description = new Paragraph(
-                "Bring a question, a document, or a piece of code. The tutor keeps the thread grounded in evidence and guides the next step without taking the work away from you.");
+                "Trae una pregunta, un documento o un fragmento de código. El tutor mantiene la conversación anclada en evidencia y guía el siguiente paso sin quitarte el trabajo de las manos.");
         description.addClassName("login-view__description");
 
         var copy = new Div(productLabel, title, description);
         copy.addClassName("login-view__brand-copy");
 
-        var threadHeader = new Div(new Span("conversation"), new Span("debug-ready"));
+        var threadHeader = new Div(new Span("conversación"), new Span("listo para depurar"));
         threadHeader.addClassName("login-view__work-header");
 
-        var userPrompt = new Div(new Span("Student"), new Paragraph("Why does this loop skip the last value?"));
+        var userPrompt = new Div(new Span("Estudiante"), new Paragraph("¿Por qué este ciclo se salta el último valor?"));
         userPrompt.addClassName("login-view__work-message");
         userPrompt.addClassName("login-view__work-message--user");
 
         var tutorResponse = new Div(new Span("Tutor"), new Paragraph(
-                "Trace the boundary first. What value does i hold on the final comparison, and which array index would that touch?"));
+                "Revisa primero el límite. ¿Qué valor tiene i en la comparación final y qué índice del arreglo intentaría tocar?"));
         tutorResponse.addClassName("login-view__work-message");
 
         var codeLineOne = new Span("for (int i = 0; i < values.length - 1; i++) {");
@@ -76,7 +76,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var codeSample = new Div(codeLineOne, codeLineTwo, codeLineThree);
         codeSample.addClassName("login-view__code-sample");
 
-        var evidence = new Div(new Span("Document context · 3 passages"));
+        var evidence = new Div(new Span("Contexto del documento · 3 fragmentos"));
         evidence.addClassName("login-view__evidence-row");
 
         var workPreview = new Div(threadHeader, userPrompt, tutorResponse, codeSample, evidence);
@@ -96,10 +96,10 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private Component createFormPanel() {
-        var title = new H1("Continue your learning");
+        var title = new H1("Continúa tu aprendizaje");
         title.addClassName("login-view__panel-title");
 
-        var hint = new Paragraph("Return to your saved conversations, documents, and evaluations.");
+        var hint = new Paragraph("Vuelve a tus conversaciones, documentos y evaluaciones guardadas.");
         hint.addClassName("login-view__panel-hint");
 
         var header = new Div(title, hint);
@@ -124,16 +124,16 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var i18n = LoginI18n.createDefault();
 
         var form = i18n.getForm();
-        form.setTitle("Sign in");
-        form.setUsername("Email or username");
-        form.setPassword("Password");
-        form.setSubmit("Sign in");
-        form.setForgotPassword("Invitation-only access");
+        form.setTitle("Inicia sesión");
+        form.setUsername("Correo");
+        form.setPassword("Contraseña");
+        form.setSubmit("Entrar");
+        form.setForgotPassword("Acceso solo con invitación");
         i18n.setForm(form);
 
         var error = i18n.getErrorMessage();
-        error.setTitle("We could not sign you in");
-        error.setMessage("Check your email or username and password, then try again.");
+        error.setTitle("No pudimos iniciar sesión");
+        error.setMessage("Revisa tu correo y tu contraseña, e inténtalo de nuevo.");
         i18n.setErrorMessage(error);
 
         return i18n;

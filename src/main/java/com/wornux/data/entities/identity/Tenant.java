@@ -8,7 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,9 +22,9 @@ public class Tenant {
     @Id
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_tenant_account_id")
-    private TenantAccount ownerTenantAccount;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_account_id")
+    private Account createdByAccount;
 
     @Column(nullable = false)
     private String name;

@@ -24,14 +24,14 @@ import com.wornux.ui.conversation.ConversationView;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "student", layout = MainLayout.class)
-@PageTitle("Student workspace")
+@PageTitle("Espacio del estudiante")
 @PermitAll
 public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final AuthenticatedAccountService authenticatedAccountService;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
-    private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Class context");
+    private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<com.wornux.data.entities.training_activity.TrainingActivityAssignment> assignmentsGrid =
             new Grid<>(com.wornux.data.entities.training_activity.TrainingActivityAssignment.class, false);
 
@@ -52,20 +52,20 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
             }
         });
         assignmentsGrid.addColumn(assignment -> assignment.getTrainingActivity().getTitle())
-                .setHeader("Assigned Activity");
-        assignmentsGrid.addColumn(assignment -> assignment.getStatus().name()).setHeader("Status");
+                .setHeader("Actividad asignada");
+        assignmentsGrid.addColumn(assignment -> assignmentStatusLabel(assignment.getStatus())).setHeader("Estado");
         assignmentsGrid.addClassName("workspace-grid");
         assignmentsGrid.setWidthFull();
 
-        var openConversationButton = new Button("Open conversation", _ -> UI.getCurrent().navigate(ConversationView.class));
+        var openConversationButton = new Button("Abrir conversación", _ -> UI.getCurrent().navigate(ConversationView.class));
         openConversationButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         add(
             createHeader(
-                "Student workspace",
-                "Keep the active class in context, review assigned activities, and return to the tutor when you need guided reasoning."),
+                "Espacio del estudiante",
+                "Mantén la clase activa en contexto, revisa las actividades asignadas y vuelve al tutor cuando necesites razonar con guía."),
             createToolbar(classSelector, openConversationButton),
-            createSection("Assigned activities", "Work currently connected to your active class context.", assignmentsGrid));
+            createSection("Actividades asignadas", "Trabajo conectado actualmente con el contexto de tu clase activa.", assignmentsGrid));
     }
 
     @Override
@@ -100,6 +100,18 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         var section = new Div(sectionHeader, grid);
         section.addClassName("workspace-section");
         return section;
+    }
+
+    private String assignmentStatusLabel(
+            com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus status) {
+        return switch (status) {
+            case ASSIGNED -> "Asignada";
+            case STARTED -> "Iniciada";
+            case SUBMITTED -> "Entregada";
+            case SKIPPED -> "Omitida";
+            case EXPIRED -> "Vencida";
+            case EXCUSED -> "Justificada";
+        };
     }
 
     private void refresh() {

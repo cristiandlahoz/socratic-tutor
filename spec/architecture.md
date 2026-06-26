@@ -69,6 +69,7 @@ Identity and context:
 
 ```text
 account
+  -> account_role
   -> tenant_account
       -> tenant_account_role
       -> group_class_member
@@ -193,7 +194,8 @@ Legacy packages may remain for reference or future migration, but they must be e
 
 - **Database:** PostgreSQL.
 - **Schema management:** Flyway.
-- **Migration location:** `src/main/resources/db/migration/`.
+- **Production migration location:** `src/main/resources/db/migration/prod/`.
+- **Development seed migration location:** `src/main/resources/db/migration/dev/`.
 - **Naming:** `V[N]__[description].sql`.
 - **Hibernate behavior:** `ddl-auto=validate`.
 - **Timestamps:** Java `Instant`; PostgreSQL `timestamptz`.
@@ -254,6 +256,14 @@ Authorization is application-managed.
 Persisted chain:
 
 ```text
+account
+  -> account_role
+      -> role
+          -> role_permission
+              -> permission
+                  -> resource
+                  -> action
+
 tenant_account
   -> tenant_account_role
       -> role
@@ -269,7 +279,7 @@ Every protected service operation should evaluate:
 1. Is the account authenticated?
 2. Is the account active/unlocked?
 3. Is the tenant account active/unlocked?
-4. Does the tenant account have the required permission?
+4. Does the global account role or tenant account role have the required permission?
 5. Is the target record inside the same tenant?
 6. Is the target record inside an allowed group class?
 7. If the record is personal, does ownership match?

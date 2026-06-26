@@ -10,6 +10,7 @@ import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.data.entities.authorization.TenantAccountRole;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
+import com.wornux.data.repositories.authorization.AccountRoleRepository;
 import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
@@ -25,6 +26,7 @@ public class WorkspaceRoutingService {
     private final AuthenticatedUserContext authenticatedUserContext;
     private final AccountRepository accountRepository;
     private final TenantAccountRepository tenantAccountRepository;
+    private final AccountRoleRepository accountRoleRepository;
     private final TenantAccountRoleRepository tenantAccountRoleRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
 
@@ -33,12 +35,14 @@ public class WorkspaceRoutingService {
             AuthenticatedUserContext authenticatedUserContext,
             AccountRepository accountRepository,
             TenantAccountRepository tenantAccountRepository,
+            AccountRoleRepository accountRoleRepository,
             TenantAccountRoleRepository tenantAccountRoleRepository,
             GroupClassMemberRepository groupClassMemberRepository) {
         this.authenticatedAccountService = authenticatedAccountService;
         this.authenticatedUserContext = authenticatedUserContext;
         this.accountRepository = accountRepository;
         this.tenantAccountRepository = tenantAccountRepository;
+        this.accountRoleRepository = accountRoleRepository;
         this.tenantAccountRoleRepository = tenantAccountRoleRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
     }
@@ -52,7 +56,7 @@ public class WorkspaceRoutingService {
 
     @Transactional
     public WorkspaceDecision resolveForAccount(Account account) {
-        if (account.isSystemAdmin()) {
+        if (hasGlobalRole(account, "SYSTEM_ADMIN")) {
             return new WorkspaceDecision(WorkspaceDestination.SYSTEM_ADMIN,
                     account.getLastTenantAccount() == null ? null : account.getLastTenantAccount().getId(),
                     null);
@@ -96,7 +100,7 @@ public class WorkspaceRoutingService {
     @Transactional(readOnly = true)
     public boolean canAccessWorkspace(Account account, WorkspaceDestination destination) {
         return switch (destination) {
-            case SYSTEM_ADMIN -> account.isSystemAdmin();
+            case SYSTEM_ADMIN -> hasGlobalRole(account, "SYSTEM_ADMIN");
             case TENANT_ADMIN -> !findTenantAdminRoles(account).isEmpty();
             case PROFESSOR -> !findActiveMembers(account, GroupClassMemberRole.PROFESSOR).isEmpty();
             case STUDENT -> !findActiveMembers(account, GroupClassMemberRole.STUDENT).isEmpty();
@@ -107,7 +111,7 @@ public class WorkspaceRoutingService {
     @Transactional
     public boolean prepareWorkspaceAccess(Account account, WorkspaceDestination destination) {
         return switch (destination) {
-            case SYSTEM_ADMIN -> account.isSystemAdmin();
+            case SYSTEM_ADMIN -> hasGlobalRole(account, "SYSTEM_ADMIN");
             case TENANT_ADMIN -> prepareTenantAdminAccess(account);
             case PROFESSOR -> prepareGroupClassAccess(account, GroupClassMemberRole.PROFESSOR);
             case STUDENT -> prepareGroupClassAccess(account, GroupClassMemberRole.STUDENT);
@@ -230,6 +234,10 @@ public class WorkspaceRoutingService {
         }
         ensureLastClassContext(account, activeMembers.getFirst());
         return true;
+    }
+
+    private boolean hasGlobalRole(Account account, String roleCode) {
+        return accountRoleRepository.findByAccount_IdAndRole_CodeAndRole_ActiveTrue(account.getId(), roleCode).isPresent();
     }
 
     private List<TenantAccountRole> findTenantAdminRoles(Account account) {

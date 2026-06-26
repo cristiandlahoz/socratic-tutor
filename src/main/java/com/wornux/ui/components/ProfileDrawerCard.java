@@ -80,9 +80,6 @@ public class ProfileDrawerCard extends Div {
         if (!fullName.isBlank()) {
             return fullName;
         }
-        if (!safeText(account.getUsername()).isBlank()) {
-            return account.getUsername();
-        }
         return safeText(account.getEmail());
     }
 
@@ -92,7 +89,7 @@ public class ProfileDrawerCard extends Div {
         if (!firstName.isBlank() || !lastName.isBlank()) {
             return (firstInitial(firstName) + firstInitial(lastName)).toUpperCase();
         }
-        var source = safeText(account.getUsername()).isBlank() ? safeText(account.getEmail()) : account.getUsername();
+        var source = safeText(account.getEmail());
         return source.isBlank() ? "?" : source.substring(0, Math.min(2, source.length())).toUpperCase();
     }
 

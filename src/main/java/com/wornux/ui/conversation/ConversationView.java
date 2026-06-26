@@ -6,7 +6,6 @@ import java.util.concurrent.Executor;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -35,7 +34,6 @@ import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
 import com.wornux.ui.crunner.DebuggerPanel;
 import jakarta.annotation.security.PermitAll;
@@ -102,8 +100,6 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         ConversationCss.SCROLL_REGION.addTo(historyScroller);
         historyScroller.addAttachListener(_ -> initializeAutoScrollTracking());
 
-        var floatingDrawerToggle = createDrawerToggle("shell-drawer-toggle", "Abrir menu");
-
         composerField = new TextArea();
         composerField.setWidthFull();
         composerField.setPlaceholder("Escribe tu mensaje aquí...");
@@ -131,7 +127,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         root.setSizeFull();
         ConversationCss.VIEW.addTo(root);
 
-        var chatPane = new Div(floatingDrawerToggle,
+        var chatPane = new Div(
                 debuggerToggleButton,
                 historyScroller,
                 createUsageBadge(state),
@@ -186,15 +182,6 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             return;
         }
         historyScroller.getElement().executeJs("this.scrollTop = 0;");
-    }
-
-    private DrawerToggle createDrawerToggle(String className, String ariaLabel) {
-        var toggle = new DrawerToggle();
-        toggle.setIcon(new ToggleIcon());
-        toggle.addThemeVariants(ButtonVariant.TERTIARY);
-        toggle.addClassName(className);
-        toggle.setAriaLabel(ariaLabel);
-        return toggle;
     }
 
     private Div createEmptyState(ConversationState chatState) {

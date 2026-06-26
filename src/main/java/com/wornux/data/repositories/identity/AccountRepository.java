@@ -28,18 +28,5 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
             "lastGroupClassMember.tenantAccount",
             "lastGroupClassMember.tenantAccount.tenant"
     })
-    Optional<Account> findByUsername(String username);
-
-    @EntityGraph(attributePaths = {
-            "lastTenantAccount",
-            "lastTenantAccount.tenant",
-            "lastGroupClassMember",
-            "lastGroupClassMember.groupClass",
-            "lastGroupClassMember.groupClass.tenant",
-            "lastGroupClassMember.tenantAccount",
-            "lastGroupClassMember.tenantAccount.tenant"
-    })
     Optional<Account> findById(UUID id);
-
-    boolean existsByUsername(String username);
 }

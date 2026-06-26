@@ -10,24 +10,20 @@ create table account (
     first_name text null,
     last_name text null,
     email text not null,
-    username text not null,
     password_hash text not null,
-    system_admin boolean not null default false,
     locked boolean not null default false,
     created_at timestamptz not null default current_timestamp,
     updated_at timestamptz not null default current_timestamp,
-    constraint uk_account_email unique (email),
-    constraint uk_account_username unique (username)
+    constraint uk_account_email unique (email)
 );
 
 create table tenant (
     id uuid primary key default gen_random_uuid(),
-    owner_tenant_account_id uuid null,
+    created_by_account_id uuid null references account(id) on delete set null,
     name text not null,
     locked boolean not null default false,
     created_at timestamptz not null default current_timestamp,
-    updated_at timestamptz not null default current_timestamp,
-    constraint uk_tenant_owner_tenant_account_id unique (owner_tenant_account_id)
+    updated_at timestamptz not null default current_timestamp
 );
 
 create table tenant_account (
@@ -95,6 +91,14 @@ create table role_permission (
     permission_id bigint not null references permission(id) on delete cascade,
     granted_at timestamptz not null default current_timestamp,
     primary key (role_id, permission_id)
+);
+
+create table account_role (
+    account_id uuid not null references account(id) on delete cascade,
+    role_id bigint not null references role(id) on delete cascade,
+    assigned_by_account_id uuid null references account(id) on delete set null,
+    assigned_at timestamptz not null default current_timestamp,
+    primary key (account_id, role_id)
 );
 
 create table tenant_account_role (
@@ -286,10 +290,6 @@ create table invitation (
 
 -- ── Circular FK resolution ──
 
-alter table tenant
-    add constraint fk_tenant_owner_tenant_account
-    foreign key (owner_tenant_account_id) references tenant_account(id) on delete set null;
-
 alter table account
     add constraint fk_account_last_tenant_account
     foreign key (last_tenant_account_id) references tenant_account(id) on delete set null;
@@ -302,6 +302,8 @@ alter table account
 
 create index idx_tenant_account_tenant_id on tenant_account (tenant_id);
 create index idx_tenant_account_account_id on tenant_account (account_id);
+create index idx_account_role_account_id on account_role (account_id);
+create index idx_account_role_role_id on account_role (role_id);
 create index idx_tenant_account_role_tenant_account_id on tenant_account_role (tenant_account_id);
 create index idx_tenant_account_role_role_id on tenant_account_role (role_id);
 create index idx_subject_tenant_id on subject (tenant_id);
@@ -487,14 +489,19 @@ join permission on (role.code, permission.code) in (
 
 -- ── Seed: system admin account ──
 
-insert into account (email, username, password_hash, system_admin, locked)
+insert into account (id, email, password_hash, locked)
 values (
-    'admin@socratic-tutor.com',
-    'admin',
+    '8ebd933e-20e2-42ef-adec-5331b67a0a54',
+    'admin@wornux.com',
     coalesce(
         nullif(current_setting('app.initial_system_admin_password_hash', true), ''),
-        '$2a$10$92yet9HnGBh7nyZ8SPte.ubzx3JtHTLLw7m.2I6XY/IlWlm3cAb9W'
+        '$2a$10$wUGCyVy0IhomdLcgCE.VleTywHS.MwF9bhOnqCxIj3ZqeVmG/RnrC'
     ),
-    true,
     false
 );
+
+insert into account_role (account_id, role_id)
+select account.id, role.id
+from account
+join role on role.code = 'SYSTEM_ADMIN'
+where account.email = 'admin@wornux.com';

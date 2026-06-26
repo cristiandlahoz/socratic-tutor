@@ -9,12 +9,14 @@
 <schema>
 ~~~mermaid
 erDiagram
+    ACCOUNT ||--o{ ACCOUNT_ROLE : receives_global
     ACCOUNT ||--o{ TENANT_ACCOUNT : joins
     TENANT ||--o{ TENANT_ACCOUNT : has_members
     TENANT_ACCOUNT ||--o{ TENANT : owns
 
-    TENANT_ACCOUNT ||--o{ TENANT_ACCOUNT_ROLE : receives
-    ROLE ||--o{ TENANT_ACCOUNT_ROLE : assigned_as
+    ROLE ||--o{ ACCOUNT_ROLE : assigned_global
+    TENANT_ACCOUNT ||--o{ TENANT_ACCOUNT_ROLE : receives_tenant
+    ROLE ||--o{ TENANT_ACCOUNT_ROLE : assigned_tenant
 
     ROLE ||--o{ ROLE_PERMISSION : contains
     PERMISSION ||--o{ ROLE_PERMISSION : included_in
@@ -52,9 +54,7 @@ erDiagram
         text first_name
         text last_name
         text email UK
-        text username UK
         text password_hash
-        boolean system_admin
         boolean locked
         timestamptz created_at
         timestamptz updated_at
@@ -62,7 +62,7 @@ erDiagram
 
     TENANT {
         uuid id PK
-        uuid owner_tenant_account_id FK
+        uuid created_by_account_id FK
         text name
         boolean locked
         timestamptz created_at
@@ -88,6 +88,13 @@ erDiagram
         boolean active
         timestamptz created_at
         timestamptz updated_at
+    }
+
+    ACCOUNT_ROLE {
+        uuid account_id PK,FK
+        bigint role_id PK,FK
+        uuid assigned_by_account_id FK
+        timestamptz assigned_at
     }
 
     TENANT_ACCOUNT_ROLE {
@@ -275,9 +282,9 @@ Spring AI Session owns `ai_session` and `ai_session_event`. Their identifiers an
 ### `account`
 
 - Every authenticated user is an `account`.
-- `email` and `username` are unique.
+- `email` is unique and is the only login identifier.
 - Passwords stored only as hashes.
-- `system_admin` identifies global platform operators.
+- Global platform roles are assigned through `account_role`, not boolean columns.
 - `locked` prevents access.
 - `last_tenant_account_id` and `last_group_class_member_id` are navigation hints, not authorization sources.
 
@@ -285,18 +292,32 @@ Spring AI Session owns `ai_session` and `ai_session_event`. Their identifiers an
 
 - Represents an institution/university.
 - Not a professor workspace.
-- May have an owner tenant account.
+- Records the global account that created it for provenance.
+- Tenant administration is determined through `tenant_account_role`, not an owner pointer.
 - Locked tenants block normal operations.
 
 ### `tenant_account`
 
 - Connects one account to one tenant. `(tenant_id, account_id)` unique.
-- Roles are assigned to this entity, not directly to accounts.
+- Tenant-scoped roles are assigned to this entity through `tenant_account_role`.
 
 ### `role`
 
 - Codes are stable and unique: `SYSTEM_ADMIN`, `TENANT_ADMIN`, `PROFESSOR`, `STUDENT`.
 - `assignable=false` prevents manual UI assignment.
+
+### Role assignment scope
+
+Authorization assignments are stored at the narrowest scope they govern:
+
+| Role | Assignment table | Scope |
+|---|---|---|
+| `SYSTEM_ADMIN` | `account_role` | Global platform |
+| `TENANT_ADMIN` | `tenant_account_role` | Tenant |
+| `PROFESSOR` | `group_class_member` | Group class |
+| `STUDENT` | `group_class_member` | Group class |
+
+`account_role` is reserved for global roles that are not bound to a tenant. Do not assign `SYSTEM_ADMIN` through `tenant_account_role`, because that would require a fake tenant context. Do not add role booleans to `account`; new global platform roles should be rows in `role` plus assignments in `account_role`.
 
 ### `group_class_member`
 
@@ -349,7 +370,7 @@ Spring AI Session owns `ai_session` and `ai_session_event`. Their identifiers an
 
 Baseline seeds only foundational authorization data and the system admin account.
 
-**Account:** `admin@socratic-tutor.com`, `username=admin`, `system_admin=true`.
+**Account:** `admin@wornux.com`, with `SYSTEM_ADMIN` assigned through `account_role`.
 
 **Roles:** `SYSTEM_ADMIN`, `TENANT_ADMIN`, `PROFESSOR`, `STUDENT`.
 

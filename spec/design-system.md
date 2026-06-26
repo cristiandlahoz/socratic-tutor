@@ -157,7 +157,7 @@ Aura computes gap and padding from `--aura-base-size` (unitless, range 12–24).
 
 ### Main Layout
 
-- **Header:** Application title, user menu (username, logout)
+- **Header:** Application title, user menu (email, logout)
 - **Sidebar:** Role-specific navigation items
 - **Mobile behavior:** Hamburger menu, full-width sidebar on toggle
 

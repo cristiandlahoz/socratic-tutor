@@ -1,0 +1,134 @@
+.onboarding-view {
+  box-sizing: border-box;
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: clamp(var(--vaadin-padding-m), 4vw, var(--vaadin-padding-xl));
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--theme-light-accent) 10%, transparent), transparent 24rem),
+    var(--vaadin-background-color);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+}
+
+.onboarding-terminal-card {
+  width: min(100%, 42rem);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-m);
+  padding: clamp(var(--vaadin-padding-l), 4vw, var(--vaadin-padding-xl));
+  border: 1px solid var(--vaadin-text-color);
+  border-radius: var(--vaadin-radius-s);
+  background: var(--aura-surface-color);
+  box-shadow: 0.55rem 0.55rem 0 color-mix(in srgb, var(--vaadin-text-color) 12%, transparent);
+}
+
+.onboarding-terminal-card h1,
+.onboarding-terminal-card h2,
+.onboarding-terminal-card p {
+  margin: 0;
+}
+
+.onboarding-terminal-card h2 {
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-xl);
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: 1.18;
+  text-wrap: balance;
+}
+
+.onboarding-terminal-card p {
+  max-width: 68ch;
+  color: var(--vaadin-secondary-text-color);
+  font-size: var(--aura-font-size-s);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.onboarding-terminal-card h2::before {
+  content: "> ";
+  color: var(--aura-accent-text-color);
+}
+
+.onboarding-terminal-card::before {
+  content: "invitation.session";
+  width: max-content;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--vaadin-border-color);
+  background: var(--vaadin-contrast-5pct);
+  color: var(--vaadin-secondary-text-color);
+  font-size: var(--aura-font-size-xs);
+  line-height: 1;
+}
+
+.onboarding-terminal-card vaadin-text-field,
+.onboarding-terminal-card vaadin-email-field,
+.onboarding-terminal-card vaadin-password-field {
+  width: 100%;
+}
+
+.onboarding-terminal-card vaadin-text-field::part(input-field),
+.onboarding-terminal-card vaadin-email-field::part(input-field),
+.onboarding-terminal-card vaadin-password-field::part(input-field) {
+  border: 1px solid var(--vaadin-text-color);
+  border-radius: var(--vaadin-radius-s);
+  background: var(--vaadin-input-field-background);
+  color: var(--vaadin-text-color);
+  box-shadow: none;
+}
+
+.onboarding-terminal-card vaadin-text-field::part(label),
+.onboarding-terminal-card vaadin-email-field::part(label),
+.onboarding-terminal-card vaadin-password-field::part(label) {
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-semibold);
+}
+
+.onboarding-terminal-card vaadin-text-field[focused]::part(input-field),
+.onboarding-terminal-card vaadin-email-field[focused]::part(input-field),
+.onboarding-terminal-card vaadin-password-field[focused]::part(input-field) {
+  border-color: var(--aura-accent-text-color);
+  outline: 2px solid color-mix(in srgb, var(--aura-accent-text-color) 24%, transparent);
+  outline-offset: 2px;
+}
+
+.onboarding-terminal-card vaadin-button::part(button) {
+  border: 1px solid var(--vaadin-text-color);
+  border-radius: var(--vaadin-radius-s);
+  background: var(--aura-accent-color);
+  color: var(--aura-accent-contrast-color);
+  box-shadow: 0.25rem 0.25rem 0 color-mix(in srgb, var(--vaadin-text-color) 16%, transparent);
+  font-weight: var(--aura-font-weight-semibold);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.onboarding-terminal-card vaadin-button:hover::part(button) {
+  transform: translate(-1px, -1px);
+  box-shadow: 0.32rem 0.32rem 0 color-mix(in srgb, var(--vaadin-text-color) 18%, transparent);
+  filter: saturate(1.04);
+}
+
+@media (max-width: 640px) {
+  .onboarding-view {
+    padding: var(--vaadin-padding-m);
+  }
+
+  .onboarding-terminal-card {
+    box-shadow: 0.35rem 0.35rem 0 color-mix(in srgb, var(--vaadin-text-color) 12%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-terminal-card vaadin-button::part(button) {
+    transition: none;
+  }
+
+  .onboarding-terminal-card vaadin-button:hover::part(button) {
+    transform: none;
+  }
+}

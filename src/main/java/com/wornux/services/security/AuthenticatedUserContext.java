@@ -110,8 +110,7 @@ public class AuthenticatedUserContext {
             return false;
         }
         var account = details.account();
-        return authentication.getName().equalsIgnoreCase(account.getEmail())
-                || authentication.getName().equalsIgnoreCase(account.getUsername());
+        return authentication.getName().equalsIgnoreCase(account.getEmail());
     }
 
     private Optional<AuthenticatedAccountDetails> sessionDetails() {

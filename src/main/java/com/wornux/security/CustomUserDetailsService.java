@@ -7,6 +7,7 @@ import java.util.UUID;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
+import com.wornux.data.repositories.authorization.AccountRoleRepository;
 import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import org.springframework.security.core.GrantedAuthority;
@@ -21,24 +22,26 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final AccountRepository accountRepository;
+    private final AccountRoleRepository accountRoleRepository;
     private final TenantAccountRoleRepository tenantAccountRoleRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
 
     public CustomUserDetailsService(
             AccountRepository accountRepository,
+            AccountRoleRepository accountRoleRepository,
             TenantAccountRoleRepository tenantAccountRoleRepository,
             GroupClassMemberRepository groupClassMemberRepository) {
         this.accountRepository = accountRepository;
+        this.accountRoleRepository = accountRoleRepository;
         this.tenantAccountRoleRepository = tenantAccountRoleRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var account = accountRepository.findByEmail(username)
-                .or(() -> accountRepository.findByUsername(username))
-                .orElseThrow(() -> new UsernameNotFoundException("Unknown account %s".formatted(username)));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        var account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Unknown account %s".formatted(email)));
 
         return toUserDetails(account);
     }
@@ -56,9 +59,13 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private Set<GrantedAuthority> buildAuthorities(Account account) {
         var authorities = new LinkedHashSet<GrantedAuthority>();
-        if (account.isSystemAdmin()) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_SYSTEM_ADMIN"));
-        }
+        accountRoleRepository.findByAccount_IdAndRole_ActiveTrue(account.getId())
+                .stream()
+                .filter(accountRole -> accountRole.getRole() != null)
+                .map(accountRole -> accountRole.getRole().getCode())
+                .filter(code -> code != null && !code.isBlank())
+                .map(code -> new SimpleGrantedAuthority("ROLE_" + code))
+                .forEach(authorities::add);
 
         tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId())
                 .stream()

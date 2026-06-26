@@ -40,14 +40,8 @@ public class Account {
     @Column(nullable = false)
     private String email;
 
-    @Column(nullable = false)
-    private String username;
-
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
-
-    @Column(name = "system_admin", nullable = false)
-    private boolean systemAdmin;
 
     @Column(nullable = false)
     private boolean locked;

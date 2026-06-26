@@ -41,7 +41,7 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         this.invitationService = invitationService;
         this.authenticatedAccountService = authenticatedAccountService;
 
-        addClassName("workspace-view");
+        addClassName("onboarding-view");
         setSizeFull();
         setJustifyContentMode(JustifyContentMode.CENTER);
         setDefaultHorizontalComponentAlignment(Alignment.CENTER);
@@ -52,7 +52,7 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         lastNameField.setWidthFull();
         passwordField.setWidthFull();
         confirmPasswordField.setWidthFull();
-        content.addClassName("workspace-card");
+        content.addClassName("onboarding-terminal-card");
         add(content);
     }
 

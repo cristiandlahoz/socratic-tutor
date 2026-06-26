@@ -77,6 +77,7 @@ public class ConversationViewModel implements Serializable {
     public void initializeShellState() {
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
+        refreshConversationHistory();
     }
 
     public void onThemePreferenceChanged(ThemePreference preference) {

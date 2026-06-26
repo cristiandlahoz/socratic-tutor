@@ -14,6 +14,7 @@ Before implementing:
 - If multiple interpretations exist, present them - don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
+- For existing Vaadin projects, verify the Vaadin version from project files (for example `pom.xml`) before using Vaadin-specific docs or primers. Never default to a version from habit.
 
 ## 2. Simplicity First
 
@@ -73,7 +74,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 Use only for local visual verification / development testing:
 
-- Student: `cristiandelahooz` / `1234f`
-- Professor: `alfredo` / `1234`
-- Tenant admin: `camacho` / `1234f`
-- System admin: `admin` / `admin`
+- Student: `cristiandelahooz@wornux.com` / `1234f`
+- Professor: `alfredo@wornux.com` / `1234f`
+- Tenant admin: `camacho@wornux.com` / `1234f`
+- System admin: `admin@wornux.com` / `1234f`

@@ -11,7 +11,7 @@ class SessionSchemaMigrationTest {
 
     @Test
     void baselineContainsOfficialSessionSchemaAndNoCustomSnapshotTable() throws IOException {
-        try (var migration = getClass().getResourceAsStream("/db/migration/V1__baseline.sql")) {
+        try (var migration = getClass().getResourceAsStream("/db/migration/prod/V1__baseline.sql")) {
             assertThat(migration).isNotNull();
             var sql = new String(migration.readAllBytes(), StandardCharsets.UTF_8);
 

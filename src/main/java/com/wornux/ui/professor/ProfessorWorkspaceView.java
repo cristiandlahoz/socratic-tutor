@@ -5,6 +5,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -25,17 +27,17 @@ import com.wornux.ui.training_activity.TrainingActivityView;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "professor", layout = MainLayout.class)
-@PageTitle("Professor workspace")
+@PageTitle("Espacio del profesor")
 @PermitAll
 public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final AuthenticatedAccountService authenticatedAccountService;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final ProfessorWorkspaceService professorWorkspaceService;
-    private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Class context");
+    private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<com.wornux.data.entities.academic.GroupClassMember> studentsGrid =
             new Grid<>(com.wornux.data.entities.academic.GroupClassMember.class, false);
-    private final EmailField studentEmailField = new EmailField("Student email");
+    private final EmailField studentEmailField = new EmailField("Correo del estudiante");
 
     public ProfessorWorkspaceView(
             AuthenticatedAccountService authenticatedAccountService,
@@ -55,19 +57,19 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
         studentsGrid.addColumn(
             member -> "%s %s".formatted(
                 member.getTenantAccount().getAccount().getFirstName(),
-                member.getTenantAccount().getAccount().getLastName())).setHeader("Student");
-        studentsGrid.addColumn(member -> member.getTenantAccount().getAccount().getEmail()).setHeader("Email");
-        studentsGrid.addColumn(member -> member.isLocked() ? "Disabled" : "Active").setHeader("Status");
-        studentsGrid.addComponentColumn(member -> new Button("Disable", _ -> disableStudent(member.getId())))
-                .setHeader("Actions");
+                member.getTenantAccount().getAccount().getLastName())).setHeader("Estudiante");
+        studentsGrid.addColumn(member -> member.getTenantAccount().getAccount().getEmail()).setHeader("Correo");
+        studentsGrid.addColumn(member -> member.isLocked() ? "Deshabilitado" : "Activo").setHeader("Estado");
+        studentsGrid.addComponentColumn(member -> new Button("Deshabilitar", _ -> disableStudent(member.getId())))
+                .setHeader("Acciones");
 
         add(
-            new H1("Professor workspace"),
+            new H1("Espacio del profesor"),
             classSelector,
-            new HorizontalLayout(new Button("Open conversation", _ -> UI.getCurrent().navigate(ConversationView.class)),
-                    new Button("Documents", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
-                    new Button("Formative Activities", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
-            new HorizontalLayout(studentEmailField, new Button("Invite student", _ -> inviteStudent())),
+            new HorizontalLayout(new Button("Abrir conversación", _ -> UI.getCurrent().navigate(ConversationView.class)),
+                    new Button("Documentos", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
+                    new Button("Actividades formativas", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
+            new HorizontalLayout(studentEmailField, new Button("Enviar invitación", new Icon(VaadinIcon.PAPERPLANE), _ -> inviteStudent())),
             studentsGrid);
     }
 
@@ -105,7 +107,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
             professorWorkspaceService
                     .inviteStudent(authenticatedAccountService.requireCurrentAccount(), studentEmailField.getValue());
             studentEmailField.clear();
-            Notification.show("Invitation sent.");
+            Notification.show("Invitación enviada.");
         }
         catch (RuntimeException exception) {
             Notification.show(exception.getMessage());
