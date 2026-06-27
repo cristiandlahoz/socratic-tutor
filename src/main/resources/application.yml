@@ -2,8 +2,13 @@ logging:
   level:
     org:
       atmosphere: warn
+      springframework:
+        ai:
+          chat:
+            model:
+              MessageAggregator: off
 server:
-  port: ${PORT:8080}
+  port: ${PORT:3321}
 
 spring:
   config:
@@ -44,16 +49,20 @@ spring:
         index-type: HNSW
         initialize-schema: false
         schema-validation: true
+    model:
+      chat: openai
+      embedding: ollama
+    openai:
+      api-key: ${OPENAI_API_KEY:dummy}
+      base-url: ${OPENAI_BASE_URL:http://127.0.0.1:8080/v1}
+      timeout: ${OPENAI_TIMEOUT:5m}
+      chat:
+        model: ${CHAT_MODEL:AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL}
     ollama:
       init:
         pull-model-strategy: when_missing
         timeout: 5m
         max-retries: 1
-        chat:
-          additional-models:
-            - "qwen3:4b-instruct"
-      chat:
-        model: ${CHAT_MODEL:qwen3:4b-instruct}
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
@@ -67,19 +76,19 @@ app:
   security:
     disable-for-local-development: ${SECURITY_DISABLE:false}
   chat:
-    context-window-tokens: ${CHAT_CONTEXT_WINDOW_TOKENS:40960}
-    compaction-threshold-ratio: ${CHAT_COMPACTION_THRESHOLD_RATIO:0.30}
+    context-window-tokens: ${CHAT_CONTEXT_WINDOW_TOKENS:8192}
+    compaction-threshold-ratio: ${CHAT_COMPACTION_THRESHOLD_RATIO:0.70}
     ui:
       thinking-spinner: ${CHAT_UI_THINKING_SPINNER:snake}
   ai:
     guard:
-      model: ${GUARD_MODEL:qwen3:4b-instruct}
+      model: ${GUARD_MODEL:${spring.ai.openai.chat.model}}
     tutor:
-      routing-model: ${ROUTING_MODEL:${spring.ai.ollama.chat.model}}
+      routing-model: ${ROUTING_MODEL:${spring.ai.openai.chat.model}}
     title:
-      model: ${TITLE_MODEL:${spring.ai.ollama.chat.model}}
+      model: ${TITLE_MODEL:${spring.ai.openai.chat.model}}
     c-example-preparation:
-      model: ${C_EXAMPLE_PREPARATION_MODEL:${spring.ai.ollama.chat.model}}
+      model: ${C_EXAMPLE_PREPARATION_MODEL:${spring.ai.openai.chat.model}}
   document-ingest:
     max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:20971520}
     retrieval-top-k: ${DOCUMENT_RETRIEVAL_TOP_K:4}

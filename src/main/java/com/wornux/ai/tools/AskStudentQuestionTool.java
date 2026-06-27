@@ -33,8 +33,8 @@ public class AskStudentQuestionTool {
                                for the exercise statement, the student's attempt, code, an error message, wrong
                                output, a stuck point, or an explanation of what the student thinks should happen.
 
-                            Options are optional. Use at most 3 options, and only when the question is naturally
-                            categorical or multi-choice, for example:
+                            Options are optional. Use options only when the question is naturally categorical
+                            or multi-choice, for example:
                              - the student's current progress state
                              - the type of exercise
                              - the kind of material the student can share

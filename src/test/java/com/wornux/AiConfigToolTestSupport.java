@@ -11,8 +11,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration;
-import org.springframework.ai.model.ollama.autoconfigure.OllamaApiAutoConfiguration;
-import org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration;
+import org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration;
 import org.springframework.ai.model.tool.autoconfigure.ToolCallingAutoConfiguration;
 import org.springframework.ai.session.DefaultSessionService;
 import org.springframework.ai.session.InMemorySessionRepository;
@@ -31,8 +30,7 @@ import tools.jackson.databind.ObjectMapper;
 @EnableConfigurationProperties({ TutorAiProperties.class, ChatProperties.class })
 @Import({ AIConfig.class })
 @ImportAutoConfiguration({
-        OllamaApiAutoConfiguration.class,
-        OllamaChatAutoConfiguration.class,
+        OpenAiChatAutoConfiguration.class,
         ToolCallingAutoConfiguration.class,
         ChatClientAutoConfiguration.class })
 class AiConfigToolTestSupport {
@@ -82,7 +80,7 @@ class AiConfigToolTestSupport {
 
     @Bean
     RestClient.Builder restClientBuilder(
-            @Value("${test.ollama.transcript-name:ollama-tool-test}") String transcriptName) {
+            @Value("${test.openai.transcript-name:openai-tool-test}") String transcriptName) {
         return OllamaHttpLogging.restClientBuilder(transcriptName);
     }
 }

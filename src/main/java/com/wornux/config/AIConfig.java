@@ -4,7 +4,7 @@ import com.wornux.ai.prompt.TutorPromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.session.EventFilter;
 import org.springframework.ai.session.SessionService;
 import org.springframework.ai.session.advisor.SessionMemoryAdvisor;
@@ -45,7 +45,7 @@ public class AIConfig {
                 .build();
 
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
-                .defaultOptions(OllamaChatOptions.builder().enableThinking())
+                .defaultOptions(OpenAiChatOptions.builder())
                 .defaultAdvisors(sessionMemoryAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();

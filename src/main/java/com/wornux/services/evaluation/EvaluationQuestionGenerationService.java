@@ -11,7 +11,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,7 +31,7 @@ public class EvaluationQuestionGenerationService {
         var prompt = Prompt.builder()
                 .messages(new SystemMessage(SYSTEM_PROMPT), new UserMessage(instruction))
                 .chatOptions(
-                    OllamaChatOptions.builder().temperature(0.2).format(outputConverter.getJsonSchemaMap()).build())
+                    OpenAiChatOptions.builder().temperature(0.2).outputSchema(outputConverter.getJsonSchema()).build())
                 .build();
 
         var response = chatModel.call(prompt);

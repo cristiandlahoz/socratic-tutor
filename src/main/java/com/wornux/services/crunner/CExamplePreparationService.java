@@ -10,7 +10,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +37,7 @@ public class CExamplePreparationService {
 
     public CExamplePreparationService(
             ChatModel chatModel,
-            @Value("${app.ai.c-example-preparation.model:${spring.ai.ollama.chat.model}}") String model) {
+            @Value("${app.ai.c-example-preparation.model:${spring.ai.openai.chat.model}}") String model) {
         this.chatModel = chatModel;
         this.model = model;
     }
@@ -60,11 +60,10 @@ public class CExamplePreparationService {
         var prompt = Prompt.builder()
                 .messages(new SystemMessage(SYSTEM_PROMPT), new UserMessage(userPrompt(source, language)))
                 .chatOptions(
-                    OllamaChatOptions.builder()
+                    OpenAiChatOptions.builder()
                             .model(model)
                             .temperature(0.0)
-                            .disableThinking()
-                            .format(outputConverter.getJsonSchemaMap())
+                            .outputSchema(outputConverter.getJsonSchema())
                             .build())
                 .build();
         var response = chatModel.call(prompt);

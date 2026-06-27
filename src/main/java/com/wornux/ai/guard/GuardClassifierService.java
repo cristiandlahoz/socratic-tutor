@@ -13,7 +13,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -42,10 +42,10 @@ public class GuardClassifierService {
         Prompt prompt = Prompt.builder()
                 .messages(classifierMessages(userMessages))
                 .chatOptions(
-                    OllamaChatOptions.builder()
+                    OpenAiChatOptions.builder()
                             .model(guardModel)
                             .temperature(0.0)
-                            .format(outputConverter.getJsonSchemaMap())
+                            .outputSchema(outputConverter.getJsonSchema())
                             .build())
                 .build();
 

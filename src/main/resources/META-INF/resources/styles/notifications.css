@@ -1,0 +1,21 @@
+vaadin-notification-card[theme~="terminal"]::part(overlay) {
+  color: var(--vaadin-text-color);
+  background: var(--vaadin-background-container);
+  border: 1px solid var(--vaadin-border-color-secondary);
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--app-font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  padding: 0.85rem 1rem;
+}
+
+vaadin-notification-card[theme~="terminal"][theme~="error"]::part(overlay) {
+  color: var(--vaadin-error-color);
+  border-color: var(--vaadin-error-color);
+}
+
+vaadin-notification-card[theme~="terminal"]::part(content)::before {
+  content: "> ";
+  color: currentColor;
+}

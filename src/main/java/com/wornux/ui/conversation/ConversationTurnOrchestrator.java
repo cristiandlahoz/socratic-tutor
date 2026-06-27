@@ -7,8 +7,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.signals.local.ValueSignal;
 import com.wornux.dtos.chat.StudentQuestionExchange;
 import com.wornux.services.chat.ChatService;
+import com.wornux.services.chat.ChatStreamTimeoutException;
 import com.wornux.services.chat.ConversationService;
 import com.wornux.services.chat.ConversationTitleService;
 import org.slf4j.Logger;
@@ -61,7 +65,7 @@ public class ConversationTurnOrchestrator {
         }
 
         context.state().responseInProgress().set(true);
-        context.state().messages().insertLast(MessageState.user(context.prompt(), Instant.now()));
+        var userMessage = context.state().messages().insertLast(MessageState.user(context.prompt(), Instant.now()));
         context.state().composerText().set("");
         var responseMessage = context.state().messages().insertLast(MessageState.assistantLoading(Instant.now()));
 
@@ -80,21 +84,16 @@ public class ConversationTurnOrchestrator {
                     if (streamGeneration.get() != streamId) {
                         return;
                     }
-                    log.warn(
-                        """
-                        chat_ui_stream_failed turn_id={} conversation_id={} failure_kind={}\
-                         error_type={} error_message={}\
-                        """,
-                        context.turnId(),
-                        context.conversationId(),
-                        chatFailureKind(exception),
-                        exception.getClass().getSimpleName(),
-                        exception.getMessage(),
-                        exception);
-                    responseMessage.update(
-                        message -> Objects.requireNonNull(message)
-                                .fallback(
-                                    "Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente."));
+                    logStreamFailure(context, exception);
+                    if (exception instanceof ChatStreamTimeoutException) {
+                        handleOpenAiStreamTimeout(context, userMessage, responseMessage, ui);
+                    }
+                    else {
+                        responseMessage.update(
+                            message -> Objects.requireNonNull(message)
+                                    .fallback(
+                                        "Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente."));
+                    }
                     finishResponse(
                         context.state(),
                         ui,
@@ -169,6 +168,50 @@ public class ConversationTurnOrchestrator {
             return;
         }
         callback.run();
+    }
+
+    private void handleOpenAiStreamTimeout(
+            TurnContext context,
+            ValueSignal<MessageState> userMessage,
+            ValueSignal<MessageState> responseMessage,
+            UI ui) {
+        runUiSideEffect(ui, () -> {
+            context.state().messages().remove(responseMessage);
+            context.state().messages().remove(userMessage);
+            context.state().composerText().set(context.prompt());
+            showStreamTimeoutNotification();
+        });
+    }
+
+    private void showStreamTimeoutNotification() {
+        var notification = Notification.show(
+            "La respuesta tardó demasiado. Tu mensaje quedó listo para reintentar.",
+            5_000,
+            Notification.Position.MIDDLE);
+        notification.addThemeVariants(NotificationVariant.ERROR);
+        notification.addThemeName("terminal");
+    }
+
+    private void logStreamFailure(TurnContext context, Throwable exception) {
+        if (exception instanceof ChatStreamTimeoutException) {
+            log.warn(
+                "chat_ui_stream_timeout turn_id={} conversation_id={} message={}",
+                context.turnId(),
+                context.conversationId(),
+                exception.getMessage());
+            return;
+        }
+        log.warn(
+            """
+            chat_ui_stream_failed turn_id={} conversation_id={} failure_kind={}\
+             error_type={} error_message={}\
+            """,
+            context.turnId(),
+            context.conversationId(),
+            chatFailureKind(exception),
+            exception.getClass().getSimpleName(),
+            exception.getMessage(),
+            exception);
     }
 
     private String chatFailureKind(Throwable exception) {

@@ -1,11 +1,13 @@
 package com.wornux.services.chat;
 
+import java.io.InterruptedIOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.openai.errors.OpenAIIoException;
 import com.wornux.ai.tools.AskStudentQuestionTool;
 import com.wornux.ai.tools.ToolContextKeys;
 import com.wornux.ai.tools.ToolUsageAuditService;
@@ -75,7 +77,8 @@ public class ChatService {
                 .filter(token -> !token.isEmpty())
                 .doOnComplete(() -> storePromptTokens(turnId, promptTokens.get()))
                 .doOnCancel(() -> clearTurnState(turnId))
-                .doOnError(_ -> clearTurnState(turnId));
+                .doOnError(_ -> clearTurnState(turnId))
+                .onErrorMap(this::wrapStreamException);
     }
 
     public void finalizeTurn(UUID turnId, UUID conversationId) {
@@ -116,6 +119,25 @@ public class ChatService {
 
         var text = response.getResult().getOutput().getText();
         return text == null ? "" : text;
+    }
+
+    private Throwable wrapStreamException(Throwable exception) {
+        if (isOpenAiStreamTimeout(exception)) {
+            return new ChatStreamTimeoutException("OpenAI-compatible chat stream timed out", exception);
+        }
+        return exception;
+    }
+
+    private boolean isOpenAiStreamTimeout(Throwable exception) {
+        var hasOpenAiIoException = false;
+        var hasTimeout = false;
+        for (Throwable cursor = exception; cursor != null; cursor = cursor.getCause()) {
+            hasOpenAiIoException = hasOpenAiIoException || cursor instanceof OpenAIIoException;
+            hasTimeout = hasTimeout
+                    || cursor instanceof InterruptedIOException
+                    || cursor.getMessage() != null && cursor.getMessage().toLowerCase(java.util.Locale.ROOT).contains("timeout");
+        }
+        return hasOpenAiIoException && hasTimeout;
     }
 
     static Map<String, Object> buildToolContext(

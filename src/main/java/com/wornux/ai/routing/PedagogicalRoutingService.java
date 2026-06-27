@@ -11,7 +11,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -48,10 +48,10 @@ public class PedagogicalRoutingService {
             Prompt prompt = Prompt.builder()
                     .messages(new SystemMessage(promptResources.routingClassifier()), new UserMessage(userMessage))
                     .chatOptions(
-                        OllamaChatOptions.builder()
+                        OpenAiChatOptions.builder()
                                 .model(tutorAiProperties.getRoutingModel())
                                 .temperature(0.0)
-                                .format(outputConverter.getJsonSchemaMap())
+                                .outputSchema(outputConverter.getJsonSchema())
                                 .build())
                     .build();
 

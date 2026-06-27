@@ -1,0 +1,4 @@
+# Ignore generated frontend artifacts for codebase-memory-mcp indexing
+main/frontend/generated/
+main/bundles/
+**/generated/**

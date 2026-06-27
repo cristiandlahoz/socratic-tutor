@@ -12,8 +12,7 @@ public record StudentQuestion(
         @JsonProperty(required = true) @JsonPropertyDescription("The full question shown to the student") @Schema(
                 pattern = "^.*\\?$") String question,
 
-        @JsonPropertyDescription("Optional selectable options. Provide up to 3 concrete options only when the question is naturally categorical or multi-choice.") @ArraySchema(
-                maxItems = 3,
+        @JsonPropertyDescription("Optional selectable options. Provide concrete options only when the question is naturally categorical or multi-choice.") @ArraySchema(
                 schema = @Schema(implementation = StudentQuestionOption.class)) List<StudentQuestionOption> options)
         implements Serializable {
 
@@ -23,9 +22,6 @@ public record StudentQuestion(
         }
         if (options == null) {
             options = List.of();
-        }
-        if (options.size() > 3) {
-            throw new IllegalArgumentException("Questions must have at most 3 options");
         }
         options = List.copyOf(options);
     }
