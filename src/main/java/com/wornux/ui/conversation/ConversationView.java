@@ -216,11 +216,14 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     }
 
     private Div createInputShell(ConversationState state) {
-        Signal.effect(composer, () -> composer.setVisible(!state.questionPanelVisible().get()));
-        Signal.effect(questionPanel, () -> questionPanel.setVisible(state.questionPanelVisible().get()));
-
-        var inputShell = new Div(questionPanel, composer);
+        var inputShell = new Div();
         ConversationCss.COMPOSER.addTo(inputShell);
+
+        Signal.effect(inputShell, () -> {
+            inputShell.removeAll();
+            inputShell.add(state.questionPanelVisible().get() ? questionPanel : composer);
+        });
+
         return inputShell;
     }
 

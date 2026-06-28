@@ -4,10 +4,11 @@
   box-sizing: border-box;
   width: min(100%, var(--chat-content-max-width));
   margin: 0 auto;
-  padding: var(--vaadin-padding-xl) clamp(1.4rem, 4vw, 3rem) var(--vaadin-padding-l);
+  padding: var(--vaadin-padding-xl) clamp(1.4rem, 4vw, 3rem) clamp(12rem, 26vh, 18rem);
   display: flex;
   flex-direction: column;
   gap: clamp(2rem, 3vw, 2.8rem);
+  background: transparent;
 }
 
 .conversation-thread::before {
@@ -72,11 +73,11 @@ message-code-renderer code-block-viewer {
 }
 
 vaadin-message.conversation-message--user::part(message) {
-  background: var(--aura-surface-color);
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  background: var(--chat-message-user-surface, var(--aura-surface-color));
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--chat-message-user-border, var(--vaadin-border-color));
   border-radius: var(--vaadin-radius-m);
-  box-shadow: var(--aura-shadow-s);
-  backdrop-filter: blur(18px);
+  box-shadow: var(--chat-message-user-shadow, var(--aura-shadow-s));
+  backdrop-filter: blur(18px) saturate(1.05);
   padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
 }
 

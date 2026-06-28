@@ -19,7 +19,7 @@
   }
 
   .conversation-thread {
-    padding: 4.75rem 1rem 1.5rem;
+    padding: 4.75rem 1rem clamp(11rem, 28vh, 16rem);
     gap: var(--vaadin-padding-l);
   }
 

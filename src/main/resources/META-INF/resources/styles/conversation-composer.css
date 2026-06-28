@@ -94,7 +94,7 @@ vaadin-text-area.conversation-composer__input::part(input-field) {
 
 
 vaadin-text-area.conversation-composer__input>textarea {
-  color: var(--vaadin-text-color);
+  color: var(--chat-composer-text, var(--vaadin-text-color));
   font-family: var(--aura-font-family);
   font-size: var(--chat-text-code);
   font-weight: var(--aura-font-weight-regular);
@@ -136,19 +136,25 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
 }
 
 .conversation-composer {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: var(--vaadin-gap-s);
   padding: var(--vaadin-padding-l) clamp(1rem, 4vw, 3rem) var(--vaadin-padding-xl);
   border-top: 0;
   background: transparent;
+  pointer-events: none;
 }
 
 .conversation-composer>* {
   width: min(100%, var(--chat-content-max-width));
   min-width: 0;
   margin: 0 auto;
+  pointer-events: auto;
 }
 
 .conversation-question {
