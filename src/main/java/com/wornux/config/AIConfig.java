@@ -45,7 +45,10 @@ public class AIConfig {
                 .build();
 
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
-                .defaultOptions(OpenAiChatOptions.builder())
+                .defaultOptions(OpenAiChatOptions.builder()
+                        .temperature(0.6)
+                        .topP(0.95)
+                        .topK(20))
                 .defaultAdvisors(sessionMemoryAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();
