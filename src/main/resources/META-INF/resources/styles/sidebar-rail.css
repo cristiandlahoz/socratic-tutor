@@ -138,6 +138,13 @@
   gap: var(--vaadin-gap-s);
 }
 
+.chat-sidebar-app-title-group {
+  min-width: 0;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--vaadin-gap-xs);
+}
+
 .chat-sidebar-app-title {
   margin: 0;
   color: var(--vaadin-text-color);
@@ -149,13 +156,42 @@
   text-wrap: balance;
 }
 
-.chat-sidebar-app-description {
-  margin: 0;
-  max-width: 17rem;
-  color: var(--vaadin-text-color);
+vaadin-button.chat-sidebar-app-info {
+  --vaadin-button-padding: 0;
+  flex: 0 0 auto;
+  margin-top: 0.08rem;
+}
+
+vaadin-button.chat-sidebar-app-info::part(button) {
+  width: 1.22rem;
+  min-width: 1.22rem;
+  height: 1.22rem;
+  min-height: 1.22rem;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--vaadin-text-color) 28%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: color-mix(in srgb, var(--vaadin-text-color) 72%, transparent);
+  transition:
+    border-color var(--chat-transition-fast),
+    color var(--chat-transition-fast),
+    background var(--chat-transition-fast);
+}
+
+vaadin-button.chat-sidebar-app-info::part(label) {
+  color: inherit;
   font-family: var(--aura-font-family);
   font-size: var(--aura-font-size-xs);
-  line-height: 1.34;
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: 1;
+}
+
+vaadin-button.chat-sidebar-app-info:hover::part(button),
+vaadin-button.chat-sidebar-app-info:focus-within::part(button) {
+  border-color: color-mix(in srgb, var(--vaadin-text-color) 52%, transparent);
+  background: color-mix(in srgb, var(--vaadin-text-color) 7%, transparent);
+  color: var(--vaadin-text-color);
 }
 
 .chat-sidebar-theme-control {

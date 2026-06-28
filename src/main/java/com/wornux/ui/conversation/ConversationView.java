@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 
 import com.vaadin.flow.component.Composite;
-import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -19,8 +18,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.popover.Popover;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
-import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.QueryParameters;
@@ -48,9 +45,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private final ConversationViewModel viewModel;
     private final CodeMessageList messageList;
-    private final Div historyScroller;
-    private final TextArea composerField;
-    private final Button sendButton;
+    private final ConversationComposer composer;
     private final Button debuggerToggleButton;
     private final StudentQuestionPanel questionPanel;
     private final DebuggerPanel debuggerPanel;
@@ -96,26 +91,11 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         var conversationStack = new Div(emptyState, messageList);
         ConversationCss.THREAD.addTo(conversationStack);
 
-        historyScroller = new Div(conversationStack);
+        var historyScroller = new Div(conversationStack);
         historyScroller.setSizeFull();
         ConversationCss.SCROLL_REGION.addTo(historyScroller);
-        historyScroller.addAttachListener(_ -> initializeAutoScrollTracking());
 
-        composerField = new TextArea();
-        composerField.setWidthFull();
-        composerField.setPlaceholder("Escribe tu mensaje aquí...");
-        composerField.setAriaLabel("Escribe tu mensaje aquí");
-        ConversationCss.COMPOSER_INPUT.addTo(composerField);
-        composerField.bindValue(state.composerText(), state.composerText()::set);
-        composerField.bindEnabled(state.composerEnabled());
-        composerField.setValueChangeMode(ValueChangeMode.EAGER);
-
-        sendButton = new Button(new Icon(VaadinIcon.ARROW_UP));
-        ConversationCss.COMPOSER_SEND_BUTTON.addTo(sendButton);
-        sendButton.setAriaLabel("Enviar mensaje");
-        sendButton.bindEnabled(state.sendEnabled());
-        sendButton.addClickShortcut(Key.ENTER).listenOn(composerField);
-        sendButton.addClickListener(_ -> submitPrompt());
+        composer = new ConversationComposer(state, this::submitPrompt);
 
         debuggerToggleButton = createDebuggerToggleButton();
 
@@ -182,7 +162,6 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             rerouteToResolvedConversation(event, initialization.rerouteConversationId());
             return;
         }
-        historyScroller.getElement().executeJs("this.scrollTop = 0;");
     }
 
     private Div createEmptyState(ConversationState chatState) {
@@ -237,8 +216,6 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     }
 
     private Div createInputShell(ConversationState state) {
-        var composer = new Div(composerField, sendButton);
-        ConversationCss.COMPOSER_FIELD_WRAP.addTo(composer);
         Signal.effect(composer, () -> composer.setVisible(!state.questionPanelVisible().get()));
         Signal.effect(questionPanel, () -> questionPanel.setVisible(state.questionPanelVisible().get()));
 
@@ -324,12 +301,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     }
 
     private void submitPrompt() {
-        var submitted = viewModel.onSubmitPrompt(
-            this::scrollConversationToBottomSmoothIfEnabled,
-            this::scrollConversationToBottomSmoothIfEnabled);
-        if (submitted) {
-            enableAutoScrollAndJumpToBottom();
-        }
+        viewModel.onSubmitPrompt();
     }
 
     private Button createDebuggerToggleButton() {
@@ -384,63 +356,6 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             QueryParameters.of(ConversationViewModel.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
     }
 
-    private void initializeAutoScrollTracking() {
-        historyScroller.getElement()
-                .executeJs("""
-                           if (this.__autoScrollInitialized) {
-                             return;
-                           }
-                           this.__autoScrollInitialized = true;
-                           this.__autoScrollEnabled = true;
-                           this.__autoScrollThreshold = 64;
-                           this.__programmaticScroll = false;
-
-                           const updateAutoScrollState = () => {
-                             const distanceToBottom = this.scrollHeight - this.scrollTop - this.clientHeight;
-                             const nearBottom = distanceToBottom <= this.__autoScrollThreshold;
-                             if (nearBottom) {
-                               this.__autoScrollEnabled = true;
-                               return;
-                             }
-                             if (!this.__programmaticScroll) {
-                               this.__autoScrollEnabled = false;
-                             }
-                           };
-
-                           this.addEventListener('scroll', () => {
-                             updateAutoScrollState();
-                           }, { passive: true });
-
-                           this.__updateAutoScrollState = updateAutoScrollState;
-                           updateAutoScrollState();
-                           """);
-    }
-
-    private void enableAutoScrollAndJumpToBottom() {
-        historyScroller.getElement().executeJs("""
-                                               this.__autoScrollEnabled = true;
-                                               this.__programmaticScroll = true;
-                                               this.scrollTo({ top: this.scrollHeight, behavior: 'auto' });
-                                               requestAnimationFrame(() => {
-                                                 this.__programmaticScroll = false;
-                                                 this.__updateAutoScrollState?.();
-                                               });
-                                               """);
-    }
-
-    private void scrollConversationToBottomSmoothIfEnabled() {
-        historyScroller.getElement().executeJs("""
-                                               if (!this.__autoScrollEnabled) {
-                                                 return;
-                                               }
-                                               this.__programmaticScroll = true;
-                                               this.scrollTo({ top: this.scrollHeight, behavior: 'smooth' });
-                                               requestAnimationFrame(() => {
-                                                 this.__programmaticScroll = false;
-                                                 this.__updateAutoScrollState?.();
-                                               });
-                                               """);
-    }
 
     private void installResponsiveSplitBehavior(SplitLayout splitLayout) {
         splitLayout.getElement()

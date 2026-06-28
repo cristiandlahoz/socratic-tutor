@@ -1,149 +1,148 @@
 .conversation-thread {
-    position: relative;
-    min-height: 100%;
-    box-sizing: border-box;
-    width: min(100%, var(--chat-content-max-width));
-    margin: 0 auto;
-    padding: var(--vaadin-padding-xl) clamp(1.4rem, 4vw, 3rem) var(--vaadin-padding-l);
-    display: flex;
-    flex-direction: column;
-    gap: clamp(2rem, 3vw, 2.8rem);
-    background: transparent;
+  position: relative;
+  min-height: 100%;
+  box-sizing: border-box;
+  width: min(100%, var(--chat-content-max-width));
+  margin: 0 auto;
+  padding: var(--vaadin-padding-xl) clamp(1.4rem, 4vw, 3rem) var(--vaadin-padding-l);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 3vw, 2.8rem);
 }
 
 .conversation-thread::before {
-    content: "";
-    position: absolute;
-    inset: 1.5rem 0 auto;
-    height: 18rem;
-    pointer-events: none;
-    background: var(--chat-ambient-glow);
-    filter: blur(20px);
-    opacity: 0.16;
+  content: "";
+  position: absolute;
+  inset: 1.5rem 0 auto;
+  height: 18rem;
+  pointer-events: none;
+  background: var(--chat-ambient-glow);
+  filter: blur(20px);
+  opacity: 0.16;
 }
 
-.conversation-thread > * {
-    position: relative;
-    z-index: 1;
+.conversation-thread>* {
+  position: relative;
+  z-index: 1;
 }
 
-vaadin-message > vaadin-avatar {
-    display: none;
+vaadin-message>vaadin-avatar {
+  display: none;
 }
 
 vaadin-message::part(header) {
-    display: none;
+  display: none;
 }
 
 vaadin-message.conversation-message--user::part(content),
 vaadin-message.conversation-message--assistant::part(content) {
-    max-width: min(50rem, 100%);
+  max-width: min(50rem, 100%);
 }
 
 vaadin-message {
-    --vaadin-message-font-size: var(--chat-message-font-size);
-    --vaadin-message-font-weight: var(--chat-message-font-weight);
-    --vaadin-message-line-height: var(--chat-message-line-height);
-    --vaadin-message-name-color: transparent;
-    --vaadin-message-time-color: transparent;
+  --vaadin-message-font-size: var(--chat-message-font-size);
+  --vaadin-message-font-weight: var(--chat-message-font-weight);
+  --vaadin-message-line-height: var(--chat-message-line-height);
+  --vaadin-message-name-color: transparent;
+  --vaadin-message-time-color: transparent;
 }
 
 vaadin-message.conversation-message--user {
-    --vaadin-message-text-color: var(--chat-message-user-text-color);
+  --vaadin-message-text-color: var(--chat-message-user-text-color);
 }
 
 vaadin-message.conversation-message--assistant {
-    --vaadin-message-text-color: var(--chat-message-assistant-text-color);
+  --vaadin-message-text-color: var(--chat-message-assistant-text-color);
 }
 
 vaadin-message message-content-renderer {
-    font-size: var(--chat-message-font-size);
-    line-height: var(--chat-message-line-height);
+  font-size: var(--chat-message-font-size);
+  line-height: var(--chat-message-line-height);
 }
 
 message-code-renderer code-block-viewer {
-    display: block;
-    width: 100%;
-    overflow: hidden;
-    border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
-    border-radius: var(--vaadin-radius-s);
-    box-shadow: var(--aura-shadow-s);
-    background: var(--vaadin-background-container);
-    backdrop-filter: blur(16px);
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-s);
+  box-shadow: var(--aura-shadow-s);
+  background: var(--vaadin-background-container);
+  backdrop-filter: blur(16px);
 }
 
 vaadin-message.conversation-message--user::part(message) {
-    background: var(--aura-surface-color);
-    border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
-    border-radius: var(--vaadin-radius-m);
-    box-shadow: var(--aura-shadow-s);
-    backdrop-filter: blur(18px);
-    padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
+  background: var(--aura-surface-color);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-m);
+  box-shadow: var(--aura-shadow-s);
+  backdrop-filter: blur(18px);
+  padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
 }
 
 vaadin-message.conversation-message--user :is(message-content-renderer, message-prose-renderer, vaadin-markdown) :is(p, ul, ol, li, blockquote, h1, h2, h3, h4, h5, h6, strong) {
-    color: var(--chat-message-user-text-color);
+  color: var(--chat-message-user-text-color);
 }
 
 vaadin-message.conversation-message--assistant::part(message) {
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-    padding: 0;
-    letter-spacing: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  letter-spacing: 0;
 }
 
 vaadin-message.conversation-message--assistant vaadin-markdown :is(ul, ol) {
-    padding-left: var(--vaadin-padding-l);
+  padding-left: var(--vaadin-padding-l);
 }
 
-vaadin-message.conversation-message--assistant vaadin-markdown li + li,
-vaadin-message.conversation-message--assistant vaadin-markdown p + p {
-    margin-top: var(--vaadin-gap-xs);
+vaadin-message.conversation-message--assistant vaadin-markdown li+li,
+vaadin-message.conversation-message--assistant vaadin-markdown p+p {
+  margin-top: var(--vaadin-gap-xs);
 }
 
 vaadin-message code,
 vaadin-message pre,
 vaadin-message kbd,
 vaadin-message samp {
-    font-family: var(--aura-font-family);
+  font-family: var(--aura-font-family);
 }
 
 vaadin-message.is-loading::part(message) {
-    min-height: auto;
-    width: auto;
-    border-radius: 0;
-    background: transparent;
-    color: var(--vaadin-text-color-disabled);
-    font-family: var(--aura-font-family);
-    letter-spacing: 0;
+  min-height: auto;
+  width: auto;
+  border-radius: 0;
+  background: transparent;
+  color: var(--vaadin-text-color-disabled);
+  font-family: var(--aura-font-family);
+  letter-spacing: 0;
 }
 
 vaadin-message.is-loading message-content-renderer,
 vaadin-message.is-loading braille-spinner {
-    display: inline-block;
-    min-width: 2ch;
-    white-space: pre;
+  display: inline-block;
+  min-width: 2ch;
+  white-space: pre;
 }
 
 vaadin-message.is-loading braille-spinner {
-    --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
-    --thinking-spinner-weight: 400;
-    --thinking-spinner-color: var(--aura-accent-text-color);
-    --thinking-spinner-accent-color: var(--aura-red);
+  --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
+  --thinking-spinner-weight: 400;
+  --thinking-spinner-color: var(--aura-accent-text-color);
+  --thinking-spinner-accent-color: var(--aura-red);
 }
 
 vaadin-message a {
-    color: var(--aura-accent-text-color);
-    text-decoration-color: color-mix(in srgb, var(--aura-accent-text-color) 35%, transparent);
-    transition: text-decoration-color var(--chat-transition-fast);
+  color: var(--aura-accent-text-color);
+  text-decoration-color: color-mix(in srgb, var(--aura-accent-text-color) 35%, transparent);
+  transition: text-decoration-color var(--chat-transition-fast);
 }
 
 vaadin-message a:hover {
-    text-decoration-color: var(--aura-accent-text-color);
+  text-decoration-color: var(--aura-accent-text-color);
 }
 
 vaadin-message message-content-renderer {
-    display: block;
-    width: 100%;
+  display: block;
+  width: 100%;
 }

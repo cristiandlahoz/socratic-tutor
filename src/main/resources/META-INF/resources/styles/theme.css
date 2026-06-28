@@ -1,222 +1,175 @@
 html {
-    color-scheme: dark;
-    --aura-font-family: var(--chat-font-body);
-    --aura-base-font-size: 16;
-    --aura-base-line-height: 1.5;
-    --aura-base-radius: 6;
-    --aura-base-size: 16;
-    --aura-contrast-level: 5;
-    --aura-background-color-light: var(--theme-light-background);
-    --aura-background-color-dark: var(--theme-dark-background);
-    --aura-red: #b3261e;
-    --aura-orange: #b86421;
-    --aura-yellow: #d7aa42;
-    --aura-green: #4f7e55;
-    --aura-blue: #486178;
-    --aura-purple: #73527f;
-    --aura-accent-color-light: var(--theme-light-accent);
-    --aura-accent-color-dark: var(--theme-dark-accent);
-    --aura-accent-contrast-color-light: var(--theme-light-accent-contrast);
-    --aura-accent-contrast-color-dark: var(--theme-dark-accent-contrast);
-    --aura-surface-opacity: 1;
-    --aura-overlay-surface-opacity: 1;
-    --aura-app-layout-inset: 0px;
-    --aura-app-layout-border-width: 0px;
-    --aura-app-layout-radius: 0px;
-    --vaadin-app-layout-drawer-width: clamp(21rem, 25vw, 24rem);
-    --vaadin-app-layout-drawer-background: var(--theme-header-surface);
-    --vaadin-overlay-shadow: var(--chat-shadow-soft);
-    --vaadin-overlay-backdrop-background: rgba(0, 0, 0, 0.36);
-    --vaadin-message-font-size: var(--chat-message-font-size);
-    --vaadin-message-font-weight: var(--chat-message-font-weight);
-    --vaadin-message-line-height: var(--chat-message-line-height);
-    --vaadin-message-text-color: var(--chat-message-user-text-color);
-    --vaadin-message-name-color: var(--chat-text-secondary);
-    --vaadin-message-name-font-size: var(--chat-text-meta);
-    --vaadin-message-name-font-weight: var(--chat-font-weight-body);
-    --vaadin-message-time-color: var(--chat-text-tertiary);
-    --vaadin-message-time-font-size: var(--chat-text-meta);
-    --vaadin-message-time-font-weight: var(--chat-font-weight-body);
-    --vaadin-message-gap: 0;
+  color-scheme: dark;
+  --aura-font-family: var(--chat-font-body);
+  --aura-base-font-size: 17;
+  --aura-base-line-height: 1.5;
+  --aura-base-radius: 6;
+  --aura-base-size: 20;
+  --aura-contrast-level: 5;
+  --aura-background-color-light: var(--theme-light-background);
+  --aura-background-color-dark: var(--theme-dark-background);
+  --aura-red: #b3261e;
+  --aura-orange: #b86421;
+  --aura-yellow: #d7aa42;
+  --aura-green: #4f7e55;
+  --aura-blue: #486178;
+  --aura-purple: #73527f;
+  --aura-accent-color-light: var(--theme-light-accent);
+  --aura-accent-color-dark: var(--theme-dark-accent);
+  --aura-accent-contrast-color-light: var(--theme-light-accent-contrast);
+  --aura-accent-contrast-color-dark: var(--theme-dark-accent-contrast);
+  --aura-surface-opacity: 1;
+  --aura-overlay-surface-opacity: 1;
+  --aura-app-layout-inset: 0px;
+  --aura-app-layout-border-width: 0px;
+  --aura-app-layout-radius: 0px;
+  --vaadin-app-layout-drawer-width: clamp(21rem, 25vw, 24rem);
+  --vaadin-app-layout-drawer-background: var(--theme-header-surface);
+  --vaadin-overlay-shadow: var(--chat-shadow-soft);
+  --vaadin-overlay-backdrop-background: rgba(0, 0, 0, 0.36);
+  --vaadin-message-font-size: var(--chat-message-font-size);
+  --vaadin-message-font-weight: var(--chat-message-font-weight);
+  --vaadin-message-line-height: var(--chat-message-line-height);
+  --vaadin-message-text-color: var(--chat-message-user-text-color);
+  --vaadin-message-name-color: var(--chat-text-secondary);
+  --vaadin-message-name-font-size: var(--chat-text-meta);
+  --vaadin-message-name-font-weight: var(--chat-font-weight-body);
+  --vaadin-message-time-color: var(--chat-text-tertiary);
+  --vaadin-message-time-font-size: var(--chat-text-meta);
+  --vaadin-message-time-font-weight: var(--chat-font-weight-body);
+  --vaadin-message-gap: 0;
 
-    --theme-app-background: var(--theme-dark-background);
-    --theme-canvas: var(--theme-dark-background);
-    --theme-header-surface: color-mix(in srgb, var(--theme-dark-background) 92%, var(--theme-dark-surface-raised));
-    --theme-card-surface: var(--theme-dark-surface);
-    --theme-card-surface-strong: var(--theme-dark-surface-strong);
-    --theme-card-surface-raised: var(--theme-dark-surface-raised);
-    --theme-card-surface-hover: var(--theme-dark-surface-hover);
-    --theme-card-surface-muted: var(--theme-dark-surface-muted);
-    --theme-button-fill: var(--theme-dark-button-fill);
-    --theme-button-fill-hover: var(--theme-dark-button-fill-hover);
-    --theme-button-ghost-hover: rgba(255, 255, 255, 0.04);
-    --theme-button-ghost-soft: rgba(255, 255, 255, 0.03);
-    --theme-border-subtle: var(--theme-dark-border-subtle);
-    --theme-border-default: var(--theme-dark-border);
-    --theme-border-strong: var(--theme-dark-border-strong);
-    --theme-text-display: var(--theme-dark-text-display);
-    --theme-text-primary: var(--theme-dark-text);
-    --theme-text-secondary: var(--theme-dark-text-muted);
-    --theme-text-tertiary: var(--theme-dark-text-soft);
-    --theme-link: var(--theme-dark-text);
-    --theme-interactive: var(--theme-dark-accent);
-    --theme-interactive-strong: var(--theme-dark-accent-hover);
-    --theme-focus-ring: color-mix(in srgb, var(--theme-dark-accent-hover) 22%, transparent);
-    --theme-selection: var(--theme-dark-accent-subtle);
-    --theme-history-accent: var(--theme-dark-accent);
-    --theme-history-accent-soft: var(--theme-dark-accent-subtle);
-    --theme-history-accent-label: var(--theme-dark-text-display);
-    --theme-history-line: var(--theme-dark-line);
-    --theme-glow: var(--theme-dark-glow);
-    --theme-code-background: var(--theme-dark-code-background);
-    --theme-shadow-soft: var(--theme-dark-shadow-soft);
-    --theme-shadow-card: var(--theme-dark-shadow-card);
-    --theme-ascii-animation-color: var(--theme-dark-ascii-animation-color);
-    --theme-ascii-animation-shadow: var(--theme-dark-ascii-animation-shadow);
-    --theme-accent-contrast: var(--theme-dark-accent-contrast);
-    --aura-app-background: var(--theme-app-background);
+  --theme-app-background: light-dark(oklch(99% 0.01 131.32), #0C1516);
+  --theme-canvas: var(--theme-dark-background);
+  --theme-header-surface: color-mix(in srgb, var(--theme-dark-background) 92%, var(--theme-dark-surface-raised));
+  --theme-card-surface: var(--theme-dark-surface);
+  --theme-card-surface-strong: var(--theme-dark-surface-strong);
+  --theme-card-surface-raised: var(--theme-dark-surface-raised);
+  --theme-card-surface-hover: var(--theme-dark-surface-hover);
+  --theme-card-surface-muted: var(--theme-dark-surface-muted);
+  --theme-button-fill: var(--theme-dark-button-fill);
+  --theme-button-fill-hover: var(--theme-dark-button-fill-hover);
+  --theme-button-ghost-hover: rgba(255, 255, 255, 0.04);
+  --theme-button-ghost-soft: rgba(255, 255, 255, 0.03);
+  --theme-border-subtle: var(--theme-dark-border-subtle);
+  --theme-border-default: var(--theme-dark-border);
+  --theme-border-strong: var(--theme-dark-border-strong);
+  --theme-text-display: var(--theme-dark-text-display);
+  --theme-text-primary: var(--theme-dark-text);
+  --theme-text-secondary: var(--theme-dark-text-muted);
+  --theme-text-tertiary: var(--theme-dark-text-soft);
+  --theme-link: var(--theme-dark-text);
+  --theme-interactive: var(--theme-dark-accent);
+  --theme-interactive-strong: var(--theme-dark-accent-hover);
+  --theme-focus-ring: color-mix(in srgb, var(--theme-dark-accent-hover) 22%, transparent);
+  --theme-selection: var(--theme-dark-accent-subtle);
+  --theme-history-accent: var(--theme-dark-accent);
+  --theme-history-accent-soft: var(--theme-dark-accent-subtle);
+  --theme-history-accent-label: var(--theme-dark-text-display);
+  --theme-history-line: var(--theme-dark-line);
+  --theme-glow: var(--theme-dark-glow);
+  --theme-code-background: var(--theme-dark-code-background);
+  --theme-shadow-soft: var(--theme-dark-shadow-soft);
+  --theme-shadow-card: var(--theme-dark-shadow-card);
+  --theme-ascii-animation-color: var(--theme-dark-ascii-animation-color);
+  --theme-ascii-animation-shadow: var(--theme-dark-ascii-animation-shadow);
+  --theme-accent-contrast: var(--theme-dark-accent-contrast);
+  --aura-app-background: var(--theme-app-background);
 }
 
 html,
 body {
-    height: 100%;
-    overflow: hidden;
-    margin: 0;
-    background: var(--chat-black);
-    color: var(--chat-text-primary);
-    font-family: var(--chat-font-body);
-    font-weight: var(--chat-font-weight-body);
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  background: var(--chat-black);
+  color: var(--chat-text-primary);
+  font-family: var(--chat-font-body);
+  font-size: var(--aura-font-size-m);
+  font-weight: var(--chat-font-weight-body);
 }
 
 body {
-    position: relative;
-    accent-color: var(--chat-interactive-strong);
-    font-kerning: normal;
-    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
-    text-rendering: optimizeLegibility;
+  position: relative;
+  accent-color: var(--chat-interactive-strong);
+  font-kerning: normal;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
 }
 
 body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background: var(--chat-ambient-glow);
-    opacity: 0.4;
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--chat-ambient-glow);
+  opacity: 0.4;
 }
 
-body > * {
-    position: relative;
-    z-index: 1;
+body>* {
+  position: relative;
+  z-index: 1;
 }
 
 vaadin-markdown {
-    display: block;
-    color: var(--chat-message-prose-color);
-    font-size: var(--chat-message-font-size);
-    line-height: var(--chat-message-line-height);
-    font-weight: var(--chat-message-font-weight);
+  display: block;
+  color: var(--chat-message-prose-color);
+  font-size: var(--chat-message-font-size);
+  line-height: var(--chat-message-line-height);
+  font-weight: var(--chat-message-font-weight);
 }
 
 vaadin-markdown :is(p, ul, ol, li, blockquote, table, figure, hr, h1, h2, h3, h4, h5, h6) {
-    margin-block: 0;
-    margin: 0;
+  margin-block: 0;
+  margin: 0;
 }
 
 vaadin-markdown :is(p, ul, ol, li, blockquote) {
-    color: var(--chat-message-prose-color);
-    line-height: var(--chat-message-line-height);
+  color: var(--chat-message-prose-color);
+  line-height: var(--chat-message-line-height);
 }
 
 vaadin-markdown :is(h1, h2, h3, h4, h5, h6) {
-    color: var(--chat-message-heading-color);
-    font-weight: var(--chat-markdown-heading-font-weight);
-    line-height: var(--chat-message-line-height);
+  color: var(--chat-message-heading-color);
+  font-weight: var(--chat-markdown-heading-font-weight);
+  line-height: var(--chat-message-line-height);
 }
 
 vaadin-markdown h1 {
-    font-size: var(--chat-markdown-h1-font-size);
+  font-size: var(--chat-markdown-h1-font-size);
 }
 
 vaadin-markdown h2 {
-    font-size: var(--chat-markdown-h2-font-size);
+  font-size: var(--chat-markdown-h2-font-size);
 }
 
 vaadin-markdown :is(h3, h4, h5, h6) {
-    font-size: var(--chat-markdown-h3-font-size);
+  font-size: var(--chat-markdown-h3-font-size);
 }
 
 vaadin-markdown strong {
-    color: var(--chat-message-strong-color);
-    font-weight: var(--chat-markdown-heading-font-weight);
+  color: var(--chat-message-strong-color);
+  font-weight: var(--chat-markdown-heading-font-weight);
 }
 
 ::selection {
-    background: var(--chat-selection);
+  background: var(--chat-selection);
 }
 
 @media (prefers-color-scheme: light) {
-    html:not([data-theme-preference]),
-    html[data-theme-preference="system"] {
-        color-scheme: light;
-    }
 
-    html:not([data-theme-preference]),
-    html[data-theme-preference="system"],
-    body:not([data-theme-preference]),
-    body[data-theme-preference="system"] {
-        --chat-font-weight-body: 450;
-        --chat-message-font-weight: 450;
-        --theme-app-background: var(--theme-light-background);
-        --theme-canvas: var(--theme-light-background);
-        --theme-header-surface: color-mix(in srgb, var(--theme-light-surface) 86%, transparent);
-        --theme-card-surface: color-mix(in srgb, var(--theme-light-surface) 90%, transparent);
-        --theme-card-surface-strong: var(--theme-light-surface);
-        --theme-card-surface-raised: color-mix(in srgb, white 72%, var(--theme-light-surface));
-        --theme-card-surface-hover: color-mix(in srgb, white 80%, var(--theme-light-surface));
-        --theme-card-surface-muted: var(--theme-light-surface-muted);
-        --theme-button-fill: var(--theme-light-accent-subtle);
-        --theme-button-fill-hover: var(--theme-light-accent-hover);
-        --theme-button-ghost-hover: color-mix(in srgb, var(--theme-light-accent) 8%, transparent);
-        --theme-button-ghost-soft: color-mix(in srgb, var(--theme-light-accent) 5%, transparent);
-        --theme-border-subtle: color-mix(in srgb, var(--theme-light-border) 42%, transparent);
-        --theme-border-default: color-mix(in srgb, var(--theme-light-border) 72%, transparent);
-        --theme-border-strong: color-mix(in srgb, var(--theme-light-border) 82%, var(--theme-light-text) 18%);
-        --theme-text-display: var(--theme-light-text);
-        --theme-text-primary: color-mix(in srgb, var(--theme-light-text) 92%, black);
-        --theme-text-secondary: var(--theme-light-text-muted);
-        --theme-text-tertiary: color-mix(in srgb, var(--theme-light-text-muted) 76%, var(--theme-light-background));
-        --theme-link: var(--theme-light-accent);
-        --theme-interactive: var(--theme-light-accent);
-        --theme-interactive-strong: var(--theme-light-accent-hover);
-        --theme-focus-ring: color-mix(in srgb, var(--theme-light-accent) 26%, transparent);
-        --theme-selection: var(--theme-light-accent-subtle);
-        --theme-history-accent: var(--theme-light-accent);
-        --theme-history-accent-soft: color-mix(in srgb, var(--theme-light-accent) 17%, transparent);
-        --theme-history-accent-label: var(--theme-light-text);
-        --theme-history-line: color-mix(in srgb, var(--theme-light-border) 64%, transparent);
-        --theme-glow: radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--theme-light-accent) 8%, transparent), transparent 28%),
-            radial-gradient(circle at 86% 14%, rgba(255, 248, 239, 0.42), transparent 24%);
-        --theme-code-background: color-mix(in srgb, var(--theme-light-surface) 94%, white);
-        --theme-shadow-soft: rgba(58, 40, 24, 0.08) 0px 2px 8px 0px;
-        --theme-shadow-card: rgba(58, 40, 24, 0.12) 0px 3px 10px 0px;
-        --theme-ascii-animation-color: var(--theme-light-accent);
-        --theme-ascii-animation-shadow: 0 0 0.18rem color-mix(in srgb, var(--theme-light-accent) 12%, transparent);
-        --theme-accent-contrast: var(--theme-light-accent-contrast);
-        --aura-app-background: var(--theme-app-background);
-    }
-}
-
-html[data-theme-preference="light"] {
+  html:not([data-theme-preference]),
+  html[data-theme-preference="system"] {
     color-scheme: light;
-}
+  }
 
-html[data-theme-preference="light"],
-body[data-theme-preference="light"] {
+  html:not([data-theme-preference]),
+  html[data-theme-preference="system"],
+  body:not([data-theme-preference]),
+  body[data-theme-preference="system"] {
     --chat-font-weight-body: 450;
     --chat-message-font-weight: 450;
-    --theme-app-background: var(--theme-light-background);
     --theme-canvas: var(--theme-light-background);
     --theme-header-surface: color-mix(in srgb, var(--theme-light-surface) 86%, transparent);
     --theme-card-surface: color-mix(in srgb, var(--theme-light-surface) 90%, transparent);
@@ -245,7 +198,7 @@ body[data-theme-preference="light"] {
     --theme-history-accent-label: var(--theme-light-text);
     --theme-history-line: color-mix(in srgb, var(--theme-light-border) 64%, transparent);
     --theme-glow: radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--theme-light-accent) 8%, transparent), transparent 28%),
-        radial-gradient(circle at 86% 14%, rgba(255, 248, 239, 0.42), transparent 24%);
+      radial-gradient(circle at 86% 14%, rgba(255, 248, 239, 0.42), transparent 24%);
     --theme-code-background: color-mix(in srgb, var(--theme-light-surface) 94%, white);
     --theme-shadow-soft: rgba(58, 40, 24, 0.08) 0px 2px 8px 0px;
     --theme-shadow-card: rgba(58, 40, 24, 0.12) 0px 3px 10px 0px;
@@ -253,8 +206,55 @@ body[data-theme-preference="light"] {
     --theme-ascii-animation-shadow: 0 0 0.18rem color-mix(in srgb, var(--theme-light-accent) 12%, transparent);
     --theme-accent-contrast: var(--theme-light-accent-contrast);
     --aura-app-background: var(--theme-app-background);
+  }
+}
+
+html[data-theme-preference="light"] {
+  color-scheme: light;
+}
+
+html[data-theme-preference="light"],
+body[data-theme-preference="light"] {
+  --chat-font-weight-body: 450;
+  --chat-message-font-weight: 450;
+  --theme-canvas: var(--theme-light-background);
+  --theme-header-surface: color-mix(in srgb, var(--theme-light-surface) 86%, transparent);
+  --theme-card-surface: color-mix(in srgb, var(--theme-light-surface) 90%, transparent);
+  --theme-card-surface-strong: var(--theme-light-surface);
+  --theme-card-surface-raised: color-mix(in srgb, white 72%, var(--theme-light-surface));
+  --theme-card-surface-hover: color-mix(in srgb, white 80%, var(--theme-light-surface));
+  --theme-card-surface-muted: var(--theme-light-surface-muted);
+  --theme-button-fill: var(--theme-light-accent-subtle);
+  --theme-button-fill-hover: var(--theme-light-accent-hover);
+  --theme-button-ghost-hover: color-mix(in srgb, var(--theme-light-accent) 8%, transparent);
+  --theme-button-ghost-soft: color-mix(in srgb, var(--theme-light-accent) 5%, transparent);
+  --theme-border-subtle: color-mix(in srgb, var(--theme-light-border) 42%, transparent);
+  --theme-border-default: color-mix(in srgb, var(--theme-light-border) 72%, transparent);
+  --theme-border-strong: color-mix(in srgb, var(--theme-light-border) 82%, var(--theme-light-text) 18%);
+  --theme-text-display: var(--theme-light-text);
+  --theme-text-primary: color-mix(in srgb, var(--theme-light-text) 92%, black);
+  --theme-text-secondary: var(--theme-light-text-muted);
+  --theme-text-tertiary: color-mix(in srgb, var(--theme-light-text-muted) 76%, var(--theme-light-background));
+  --theme-link: var(--theme-light-accent);
+  --theme-interactive: var(--theme-light-accent);
+  --theme-interactive-strong: var(--theme-light-accent-hover);
+  --theme-focus-ring: color-mix(in srgb, var(--theme-light-accent) 26%, transparent);
+  --theme-selection: var(--theme-light-accent-subtle);
+  --theme-history-accent: var(--theme-light-accent);
+  --theme-history-accent-soft: color-mix(in srgb, var(--theme-light-accent) 17%, transparent);
+  --theme-history-accent-label: var(--theme-light-text);
+  --theme-history-line: color-mix(in srgb, var(--theme-light-border) 64%, transparent);
+  --theme-glow: radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--theme-light-accent) 8%, transparent), transparent 28%),
+    radial-gradient(circle at 86% 14%, rgba(255, 248, 239, 0.42), transparent 24%);
+  --theme-code-background: color-mix(in srgb, var(--theme-light-surface) 94%, white);
+  --theme-shadow-soft: rgba(58, 40, 24, 0.08) 0px 2px 8px 0px;
+  --theme-shadow-card: rgba(58, 40, 24, 0.12) 0px 3px 10px 0px;
+  --theme-ascii-animation-color: var(--theme-light-accent);
+  --theme-ascii-animation-shadow: 0 0 0.18rem color-mix(in srgb, var(--theme-light-accent) 12%, transparent);
+  --theme-accent-contrast: var(--theme-light-accent-contrast);
+  --aura-app-background: var(--theme-app-background);
 }
 
 html[data-theme-preference="dark"] {
-    color-scheme: dark;
+  color-scheme: dark;
 }

@@ -143,7 +143,7 @@ public class ConversationViewModel implements Serializable {
         navigationOrchestrator.openDraft(DRAFT_QUERY_PARAMETER, DRAFT_QUERY_VALUE);
     }
 
-    public boolean onSubmitPrompt(Runnable onResponseUpdated, Runnable onResponseFinished) {
+    public boolean onSubmitPrompt() {
         var prompt = state.composerText().peek();
         if (state.responseInProgress().peek() || state.pendingQuestionSet().peek() != null || prompt.isBlank()) {
             return false;
@@ -170,8 +170,6 @@ public class ConversationViewModel implements Serializable {
             conversationService,
             conversationTitleService,
             questionExchange,
-            onResponseUpdated,
-            onResponseFinished,
             this::refreshConversationHistory,
             this::refreshConversationTokenUsage,
             this::refreshCompactionStatus);

@@ -44,8 +44,6 @@ public class ConversationTurnOrchestrator {
             ConversationService conversationService,
             ConversationTitleService conversationTitleService,
             StudentQuestionExchange questionExchange,
-            Runnable onResponseUpdated,
-            Runnable onResponseFinished,
             Runnable refreshConversationHistory,
             Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus) {
@@ -79,7 +77,6 @@ public class ConversationTurnOrchestrator {
                         responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
                     }
                     responseMessage.update(message -> Objects.requireNonNull(message).append(token));
-                    runUiSideEffect(ui, onResponseUpdated);
                 }, exception -> {
                     if (streamGeneration.get() != streamId) {
                         return;
@@ -97,7 +94,6 @@ public class ConversationTurnOrchestrator {
                     finishResponse(
                         context.state(),
                         ui,
-                        onResponseFinished,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
                         refreshCompactionStatus);
@@ -109,7 +105,6 @@ public class ConversationTurnOrchestrator {
                     finalizeTurn(
                         context,
                         chatService,
-                        onResponseFinished,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
                         refreshCompactionStatus,
@@ -120,7 +115,6 @@ public class ConversationTurnOrchestrator {
     private void finalizeTurn(
             TurnContext context,
             ChatService chatService,
-            Runnable onResponseFinished,
             Runnable refreshConversationHistory,
             Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus,
@@ -132,14 +126,12 @@ public class ConversationTurnOrchestrator {
                     _ -> finishResponse(
                         context.state(),
                         ui,
-                        onResponseFinished,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
                         refreshCompactionStatus),
                     () -> finishResponse(
                         context.state(),
                         ui,
-                        onResponseFinished,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
                         refreshCompactionStatus));
@@ -148,7 +140,6 @@ public class ConversationTurnOrchestrator {
     private void finishResponse(
             ConversationState state,
             UI ui,
-            Runnable onResponseFinished,
             Runnable refreshConversationHistory,
             Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus) {
@@ -158,7 +149,6 @@ public class ConversationTurnOrchestrator {
             refreshConversationTokenUsage.run();
             refreshCompactionStatus.run();
             activeStream = null;
-            onResponseFinished.run();
         });
     }
 

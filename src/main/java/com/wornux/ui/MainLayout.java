@@ -7,9 +7,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.signals.Signal;
@@ -91,16 +90,23 @@ public class MainLayout extends AppLayout {
         var appTitle = new H1("Tutor Socrático");
         appTitle.addClassName("chat-sidebar-app-title");
 
+        var appDescription = "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia "
+                + "con conversaciones guiadas.";
+        var appInfo = new Button("?");
+        appInfo.addThemeVariants(ButtonVariant.TERTIARY);
+        appInfo.addClassName("chat-sidebar-app-info");
+        appInfo.setAriaLabel("Acerca de Tutor Socrático");
+        appInfo.setTooltipText(appDescription);
+
+        var appTitleGroup = new Div(appTitle, appInfo);
+        appTitleGroup.addClassName("chat-sidebar-app-title-group");
+
         var drawerToggle = createDrawerToggle("shell-drawer-toggle-inside", "Cerrar menú");
 
-        var appTitleRow = new Div(appTitle, drawerToggle);
+        var appTitleRow = new Div(appTitleGroup, drawerToggle);
         appTitleRow.addClassName("chat-sidebar-app-title-row");
 
-        var appDescription = new Paragraph(
-                "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia con conversaciones guiadas.");
-        appDescription.addClassName("chat-sidebar-app-description");
-
-        var appHeader = new Div(appTitleRow, appDescription);
+        var appHeader = new Div(appTitleRow);
         appHeader.addClassName("chat-sidebar-app-header");
         return appHeader;
     }

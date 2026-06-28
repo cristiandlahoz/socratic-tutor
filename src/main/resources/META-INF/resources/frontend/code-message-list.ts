@@ -14,11 +14,42 @@ type MessageItem = {
   theme?: string;
 };
 
+type ScrollMode = 'auto' | 'force' | 'none';
+
 function normalizeItems(items: unknown): MessageItem[] {
   if (typeof items === 'string') {
     return JSON.parse(items) as MessageItem[];
   }
   return Array.isArray(items) ? (items as MessageItem[]) : [];
+}
+
+function sameMessageIdentity(a: MessageItem | undefined, b: MessageItem | undefined): boolean {
+  return a?.time === b?.time && a?.userName === b?.userName && a?.className === b?.className && a?.theme === b?.theme;
+}
+
+function isAppendOrTextGrowth(previous: MessageItem[], next: MessageItem[]): boolean {
+  if (previous.length === 0) {
+    return next.length === 0;
+  }
+  if (next.length < previous.length) {
+    return false;
+  }
+
+  const sharedCount = Math.min(previous.length, next.length);
+  for (let index = 0; index < sharedCount - 1; index += 1) {
+    const previousItem = previous[index];
+    const nextItem = next[index];
+    if (!sameMessageIdentity(previousItem, nextItem) || previousItem?.text !== nextItem?.text) {
+      return false;
+    }
+  }
+
+  const previousLast = previous[sharedCount - 1];
+  const nextLast = next[sharedCount - 1];
+  return (
+    sameMessageIdentity(previousLast, nextLast) &&
+    (nextLast?.text ?? '').startsWith(previousLast?.text ?? '')
+  );
 }
 
 class CodeMessageList extends LitElement {
@@ -32,6 +63,12 @@ class CodeMessageList extends LitElement {
   declare markdown: boolean;
   declare thinkingSpinner: BrailleSpinnerName;
 
+  private readonly autoScrollThreshold = 50;
+  private autoScrollEnabled = true;
+  private programmaticScroll = false;
+  private scrollTarget: HTMLElement | null = null;
+  private readonly handleScroll = () => this.updateAutoScrollState();
+
   constructor() {
     super();
     this.items = [];
@@ -39,29 +76,42 @@ class CodeMessageList extends LitElement {
     this.thinkingSpinner = 'braille';
   }
 
+  connectedCallback(): void {
+    super.connectedCallback();
+    requestAnimationFrame(() => this.attachScrollTarget());
+  }
+
+  disconnectedCallback(): void {
+    this.detachScrollTarget();
+    super.disconnectedCallback();
+  }
+
   protected createRenderRoot(): HTMLElement | DocumentFragment {
     return this;
   }
 
   setItems(items: unknown): void {
-    this.items = normalizeItems(items);
+    const nextItems = normalizeItems(items);
+    const forceScroll = this.items.length === 0 || !isAppendOrTextGrowth(this.items, nextItems);
+    this.updateItems(nextItems, forceScroll ? 'force' : 'auto');
   }
 
   addItems(items: unknown): void {
-    this.items = [...this.items, ...normalizeItems(items)];
+    const nextItems = [...this.items, ...normalizeItems(items)];
+    this.updateItems(nextItems, 'auto');
   }
 
   setItemText(text: string, index: number): void {
     const nextItems = [...this.items];
     nextItems[index] = { ...nextItems[index], text };
-    this.items = nextItems;
+    this.updateItems(nextItems, 'auto');
   }
 
   appendItemText(diff: string, index: number): void {
     const nextItems = [...this.items];
     const item = nextItems[index] ?? {};
     nextItems[index] = { ...item, text: `${item.text ?? ''}${diff ?? ''}` };
-    this.items = nextItems;
+    this.updateItems(nextItems, 'auto');
   }
 
   protected render() {
@@ -70,6 +120,72 @@ class CodeMessageList extends LitElement {
         ${this.items.map((item) => this.renderMessage(item))}
       </div>
     `;
+  }
+
+  private updateItems(items: MessageItem[], scrollMode: ScrollMode): void {
+    this.attachScrollTarget();
+    const shouldKeepPinnedToBottom = scrollMode === 'force' || this.shouldAutoScroll();
+    this.items = items;
+
+    if (scrollMode === 'none' || !shouldKeepPinnedToBottom) {
+      return;
+    }
+
+    this.updateComplete.then(() => {
+      requestAnimationFrame(() => this.scrollToBottom(scrollMode === 'auto' ? 'smooth' : 'auto'));
+    });
+  }
+
+  private attachScrollTarget(): void {
+    const target = this.resolveScrollTarget();
+    if (target === this.scrollTarget) {
+      return;
+    }
+
+    this.detachScrollTarget();
+    this.scrollTarget = target;
+    this.scrollTarget.addEventListener('scroll', this.handleScroll, { passive: true });
+    this.updateAutoScrollState();
+  }
+
+  private detachScrollTarget(): void {
+    this.scrollTarget?.removeEventListener('scroll', this.handleScroll);
+    this.scrollTarget = null;
+  }
+
+  private resolveScrollTarget(): HTMLElement {
+    return this.closest<HTMLElement>('.conversation-view__scroll-region') ?? this;
+  }
+
+  private shouldAutoScroll(): boolean {
+    return this.autoScrollEnabled || this.isCloseToBottom();
+  }
+
+  private isCloseToBottom(): boolean {
+    const target = this.scrollTarget ?? this.resolveScrollTarget();
+    const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+    return distanceToBottom <= this.autoScrollThreshold;
+  }
+
+  private updateAutoScrollState(): void {
+    if (this.isCloseToBottom()) {
+      this.autoScrollEnabled = true;
+      return;
+    }
+    if (!this.programmaticScroll) {
+      this.autoScrollEnabled = false;
+    }
+  }
+
+  private scrollToBottom(behavior: ScrollBehavior): void {
+    const target = this.scrollTarget ?? this.resolveScrollTarget();
+    this.autoScrollEnabled = true;
+    this.programmaticScroll = true;
+    target.scrollTo({ top: target.scrollHeight, behavior });
+    requestAnimationFrame(() => {
+      this.programmaticScroll = false;
+      this.updateAutoScrollState();
+    });
   }
 
   private renderMessage(item: MessageItem) {
