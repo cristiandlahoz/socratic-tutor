@@ -36,23 +36,23 @@
 .chat-sidebar-action-link-content,
 .sidebar-actions__item-content {
   width: 100%;
-  min-height: 2.1rem;
+  min-height: 2.25rem;
   display: grid;
-  grid-template-columns: 0.95rem minmax(0, 1fr);
+  grid-template-columns: 1rem minmax(0, 1fr);
   align-items: center;
   justify-content: flex-start;
   column-gap: var(--vaadin-gap-s);
-  padding: 0;
+  padding: 0 0.55rem;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--vaadin-radius-m);
   background: transparent;
   box-shadow: none;
-  color: var(--aura-accent-text-color);
+  color: var(--vaadin-text-color-secondary);
   font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: color var(--chat-transition-fast), transform var(--chat-transition-fast);
+  font-size: var(--aura-font-size-s);
+  letter-spacing: -0.01em;
+  text-transform: none;
+  transition: background var(--chat-transition-fast), color var(--chat-transition-fast), transform var(--chat-transition-fast);
 }
 
 .sidebar-actions__item-content {
@@ -64,8 +64,13 @@
 .chat-sidebar-action-link:hover .chat-sidebar-action-link-content,
 .chat-sidebar-action-link:focus-visible .chat-sidebar-action-link-content,
 .chat-sidebar-action-link[aria-current="page"] .chat-sidebar-action-link-content {
+  background: color-mix(in srgb, var(--vaadin-background-container-strong) 38%, transparent);
   color: var(--vaadin-text-color);
-  transform: translateX(2px);
+  transform: translateX(1px);
+}
+
+.chat-sidebar-action-link[aria-current="page"] .chat-sidebar-action-link-content {
+  background: color-mix(in srgb, var(--aura-accent-text-color) 7%, transparent);
 }
 
 .sidebar-actions__item-text {

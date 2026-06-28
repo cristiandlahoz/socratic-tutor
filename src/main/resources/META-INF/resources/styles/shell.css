@@ -1,3 +1,8 @@
+vaadin-app-layout {
+  padding: 0 !important;
+  background: var(--theme-app-background);
+}
+
 .shell-drawer-scroller {
   height: 100%;
   padding: 0;
@@ -20,6 +25,10 @@ vaadin-app-layout::part(drawer) {
   border-inline-end: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
 }
 
+vaadin-app-layout::part(content) {
+  background: var(--theme-app-background);
+}
+
 vaadin-app-layout::part(navbar) {
   position: absolute;
   inset: 0 auto auto 0;
@@ -35,10 +44,10 @@ vaadin-app-layout::part(navbar) {
 
 vaadin-drawer-toggle.shell-drawer-toggle {
   pointer-events: auto;
-  position: absolute;
+  position: fixed;
   top: var(--vaadin-padding-m);
   left: var(--vaadin-padding-m);
-  z-index: 5;
+  z-index: 40;
 }
 
 vaadin-app-layout[drawer-opened] vaadin-drawer-toggle.shell-drawer-toggle {
@@ -47,7 +56,23 @@ vaadin-app-layout[drawer-opened] vaadin-drawer-toggle.shell-drawer-toggle {
   visibility: hidden;
 }
 
-vaadin-drawer-toggle.shell-drawer-toggle::part(button),
+vaadin-drawer-toggle.shell-drawer-toggle::part(button) {
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: var(--vaadin-radius-m);
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 34%, transparent);
+  background: color-mix(in srgb, var(--theme-app-background) 86%, transparent);
+  box-shadow: var(--chat-shadow-soft);
+  color: var(--vaadin-text-color-secondary);
+  backdrop-filter: blur(12px) saturate(1.04);
+  transition:
+    background var(--chat-transition-fast),
+    border-color var(--chat-transition-fast),
+    color var(--chat-transition-fast),
+    opacity var(--chat-transition-fast),
+    transform var(--chat-transition-fast);
+}
+
 vaadin-drawer-toggle.shell-drawer-toggle-inside::part(button) {
   width: 2.8rem;
   height: 2.8rem;
@@ -57,15 +82,21 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside::part(button) {
   box-shadow: var(--aura-shadow-s);
   color: var(--vaadin-text-color-secondary);
   transition:
-      background var(--chat-transition-fast),
-      border-color var(--chat-transition-fast),
-      color var(--chat-transition-fast),
-      opacity var(--chat-transition-fast),
-      transform var(--chat-transition-fast);
+    background var(--chat-transition-fast),
+    border-color var(--chat-transition-fast),
+    color var(--chat-transition-fast),
+    opacity var(--chat-transition-fast),
+    transform var(--chat-transition-fast);
 }
 
 vaadin-drawer-toggle.shell-drawer-toggle:hover::part(button),
-vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button),
+vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button) {
+  background: color-mix(in srgb, var(--theme-app-background) 72%, var(--theme-card-surface-strong));
+  border-color: color-mix(in srgb, var(--aura-accent-text-color) 54%, var(--vaadin-border-color));
+  color: var(--vaadin-text-color);
+  transform: translateY(-1px);
+}
+
 vaadin-drawer-toggle.shell-drawer-toggle-inside:hover::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
   background: var(--vaadin-background-container-strong);

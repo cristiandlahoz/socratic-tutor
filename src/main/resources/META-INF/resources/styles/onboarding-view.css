@@ -5,7 +5,7 @@
   margin: 0;
   padding: clamp(var(--vaadin-padding-m), 4vw, var(--vaadin-padding-xl));
   background:
-    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--theme-light-accent) 10%, transparent), transparent 24rem),
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--aura-accent-text-color) 10%, transparent), transparent 24rem),
     var(--vaadin-background-color);
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);

@@ -3,6 +3,7 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
+  background: transparent;
   --vaadin-split-layout-splitter-size: 1px;
   --vaadin-split-layout-splitter-target-size: 0.75rem;
   --vaadin-split-layout-splitter-background: var(--vaadin-border-color-secondary);
@@ -270,14 +271,14 @@ button.c-runner-panel-toggle vaadin-icon {
   top: 0;
   z-index: 1;
   background: var(--c-runner-table-header-surface);
-  color: var(--vaadin-text-color);
+  color: var(--c-runner-code-text, var(--vaadin-text-color));
   font-family: var(--aura-font-family);
   font-size: var(--aura-font-size-s);
   font-weight: var(--aura-font-weight-medium);
 }
 
 .c-runner-vars-table td {
-  color: var(--vaadin-text-color);
+  color: var(--c-runner-code-text, var(--vaadin-text-color));
   font-family: var(--chat-font-mono);
   font-size: var(--aura-font-size-s);
 }
@@ -295,7 +296,7 @@ button.c-runner-panel-toggle vaadin-icon {
 }
 
 .c-runner-var-name {
-  color: var(--vaadin-text-color);
+  color: var(--c-runner-code-text, var(--vaadin-text-color));
 }
 
 .c-runner-var-value {
@@ -343,7 +344,7 @@ vaadin-button.c-runner-control-button {
   padding: 0;
   border-inline-end: var(--c-runner-border-width) solid var(--c-runner-row-border);
   border-radius: 0;
-  color: var(--vaadin-text-color);
+  color: var(--c-runner-code-text, var(--vaadin-text-color));
   --vaadin-button-background: transparent;
   --vaadin-button-text-color: currentColor;
   --vaadin-button-padding: 0;
@@ -381,7 +382,7 @@ vaadin-button.c-runner-validate-button {
   border: var(--c-runner-border-width) solid var(--c-runner-row-border);
   border-radius: var(--vaadin-radius-s);
   background: var(--c-runner-code-surface);
-  color: var(--vaadin-text-color-secondary);
+  color: var(--c-runner-code-muted, var(--vaadin-text-color-secondary));
   font-family: var(--chat-font-mono);
   font-size: var(--aura-font-size-xs);
   line-height: 1.1;
@@ -422,8 +423,8 @@ c-debug-source-viewer.c-runner-source-viewer {
   --c-runner-editor-font-size: var(--aura-font-size-s);
   --c-runner-editor-line-height: 1.58;
   --c-runner-editor-background: var(--c-runner-code-surface);
-  --c-runner-editor-text: var(--vaadin-text-color);
-  --c-runner-editor-gutter: var(--vaadin-text-color-secondary);
+  --c-runner-editor-text: var(--c-runner-code-text, var(--vaadin-text-color));
+  --c-runner-editor-gutter: var(--c-runner-code-muted, var(--vaadin-text-color-secondary));
   --c-runner-active-line-background: var(--c-runner-warning);
   --c-runner-active-line-foreground: #06110f;
   --c-runner-active-line-marker: "->";
@@ -464,8 +465,8 @@ vaadin-text-area.c-runner-stdin {
   --vaadin-input-field-border-width: 1px;
   --vaadin-input-field-border-color: var(--c-runner-row-border);
   --vaadin-input-field-label-color: var(--vaadin-text-color-secondary);
-  --vaadin-input-field-value-color: var(--vaadin-text-color);
-  --vaadin-input-field-placeholder-color: var(--vaadin-text-color-disabled);
+  --vaadin-input-field-value-color: var(--c-runner-code-text, var(--vaadin-text-color));
+  --vaadin-input-field-placeholder-color: var(--c-runner-code-muted, var(--vaadin-text-color-disabled));
   --vaadin-input-field-border-radius: var(--vaadin-radius-xs, 3px);
   font-family: var(--chat-font-mono);
   font-size: var(--aura-font-size-xs);
@@ -498,7 +499,7 @@ vaadin-text-area.c-runner-stdin::part(input-field) {
   border: var(--c-runner-border-width) solid var(--c-runner-row-border);
   border-radius: var(--vaadin-radius-xs, 3px);
   background: var(--c-runner-code-surface);
-  color: var(--vaadin-text-color);
+  color: var(--c-runner-code-text, var(--vaadin-text-color));
   font-family: var(--chat-font-mono);
   font-size: var(--aura-font-size-xs);
   line-height: 1.45;
@@ -506,7 +507,7 @@ vaadin-text-area.c-runner-stdin::part(input-field) {
 }
 
 .c-runner-stdout[data-empty="true"] {
-  color: var(--vaadin-text-color-disabled);
+  color: var(--c-runner-code-muted, var(--vaadin-text-color-disabled));
 }
 
 .c-runner-value-popover {
@@ -531,6 +532,30 @@ vaadin-text-area.c-runner-stdin::part(input-field) {
   font-size: var(--aura-font-size-s);
   line-height: 1.45;
   white-space: pre-wrap;
+}
+
+@media (prefers-color-scheme: light) {
+
+  html:not([data-theme-preference]) .c-runner-panel,
+  html[data-theme-preference="system"] .c-runner-panel {
+    --c-runner-code-surface: var(--theme-light-contrast-surface);
+    --c-runner-table-header-surface: color-mix(in srgb, var(--theme-light-contrast-surface) 88%, white);
+    --c-runner-row-border: color-mix(in srgb, white 24%, transparent);
+    --c-runner-code-text: #edf5f2;
+    --c-runner-code-muted: color-mix(in srgb, #edf5f2 48%, var(--theme-light-contrast-surface));
+    --c-runner-accent: rgb(82, 190, 230);
+    --c-runner-danger: rgb(255, 118, 96);
+  }
+}
+
+html[data-theme-preference="light"] .c-runner-panel {
+  --c-runner-code-surface: var(--theme-light-contrast-surface);
+  --c-runner-table-header-surface: color-mix(in srgb, var(--theme-light-contrast-surface) 88%, white);
+  --c-runner-row-border: color-mix(in srgb, white 24%, transparent);
+  --c-runner-code-text: #edf5f2;
+  --c-runner-code-muted: color-mix(in srgb, #edf5f2 48%, var(--theme-light-contrast-surface));
+  --c-runner-accent: rgb(82, 190, 230);
+  --c-runner-danger: rgb(255, 118, 96);
 }
 
 @media (max-width: 960px) {
