@@ -22,7 +22,7 @@ import com.vaadin.flow.shared.Registration;
 @JsModule("./code-message-list.ts")
 @NpmPackage(value = "@uiw/react-codemirror", version = "4.25.4")
 @NpmPackage(value = "@fsegurai/codemirror-theme-solarized-dark", version = "6.2.5")
-@NpmPackage(value = "@fsegurai/codemirror-theme-solarized-light", version = "6.2.5")
+@NpmPackage(value = "@fsegurai/codemirror-theme-cobalt2", version = "6.0.5")
 @NpmPackage(value = "@codemirror/lang-json", version = "6.0.2")
 @NpmPackage(value = "@codemirror/lang-xml", version = "6.1.0")
 @NpmPackage(value = "@codemirror/lang-javascript", version = "6.2.4")
@@ -31,145 +31,145 @@ import com.vaadin.flow.shared.Registration;
 @NpmPackage(value = "@codemirror/lang-cpp", version = "6.0.2")
 public final class CodeMessageList extends Component implements HasSize {
 
-    private transient List<CodeMessageListItem> items = new ArrayList<>();
-    private boolean pendingUpdate;
-    private boolean pendingTextUpdate;
-    private Integer pendingAddItemsIndex;
+  private transient List<CodeMessageListItem> items = new ArrayList<>();
+  private boolean pendingUpdate;
+  private boolean pendingTextUpdate;
+  private Integer pendingAddItemsIndex;
 
-    public void setItems(Collection<CodeMessageListItem> items) {
-        Objects.requireNonNull(items, "Can't set null item collection to CodeMessageList.");
-        items.forEach(item -> Objects.requireNonNull(item, "Can't include null items in CodeMessageList."));
+  public void setItems(Collection<CodeMessageListItem> items) {
+    Objects.requireNonNull(items, "Can't set null item collection to CodeMessageList.");
+    items.forEach(item -> Objects.requireNonNull(item, "Can't include null items in CodeMessageList."));
 
-        this.items.forEach(item -> item.setHost(null));
-        this.items = new ArrayList<>(items);
-        this.items.forEach(item -> item.setHost(this));
-        scheduleItemsUpdate();
+    this.items.forEach(item -> item.setHost(null));
+    this.items = new ArrayList<>(items);
+    this.items.forEach(item -> item.setHost(this));
+    scheduleItemsUpdate();
+  }
+
+  public void addItem(CodeMessageListItem item) {
+    Objects.requireNonNull(item, "Can't add null item to CodeMessageList.");
+
+    item.setHost(this);
+    items.add(item);
+    scheduleAddItemsUpdate();
+  }
+
+  public List<CodeMessageListItem> getItems() {
+    return Collections.unmodifiableList(items);
+  }
+
+  public void setMarkdown(boolean markdown) {
+    getElement().setProperty("markdown", markdown);
+  }
+
+  public void setThinkingSpinner(String thinkingSpinner) {
+    if (thinkingSpinner == null || thinkingSpinner.isBlank()) {
+      getElement().setProperty("thinkingSpinner", "braille");
+      return;
+    }
+    getElement().setProperty("thinkingSpinner", thinkingSpinner.trim());
+  }
+
+  public Registration addDebugCodeRequestListener(ComponentEventListener<DebugCodeRequestEvent> listener) {
+    return addListener(DebugCodeRequestEvent.class, listener);
+  }
+
+  void scheduleItemsTextUpdate() {
+    scheduleUpdate();
+    pendingTextUpdate = true;
+  }
+
+  void scheduleItemsUpdate() {
+    scheduleUpdate();
+    pendingUpdate = true;
+  }
+
+  private void scheduleAddItemsUpdate() {
+    scheduleUpdate();
+    if (pendingAddItemsIndex == null) {
+      pendingAddItemsIndex = items.size() - 1;
+    }
+  }
+
+  private void scheduleUpdate() {
+    if (pendingUpdate || pendingTextUpdate || pendingAddItemsIndex != null) {
+      return;
     }
 
-    public void addItem(CodeMessageListItem item) {
-        Objects.requireNonNull(item, "Can't add null item to CodeMessageList.");
+    getElement().getNode().runWhenAttached(ui -> ui.beforeClientResponse(this, ctx -> updateClient()));
+  }
 
-        item.setHost(this);
-        items.add(item);
-        scheduleAddItemsUpdate();
+  private void updateClient() {
+    if (pendingUpdate) {
+      handleFullUpdate();
+    }
+    else {
+      handleAddItemsUpdate();
+      handleTextUpdates();
     }
 
-    public List<CodeMessageListItem> getItems() {
-        return Collections.unmodifiableList(items);
+    pendingTextUpdate = false;
+    pendingUpdate = false;
+    pendingAddItemsIndex = null;
+  }
+
+  private void handleFullUpdate() {
+    items.forEach(item -> item.clientText = item.getText());
+    var itemsJson = JacksonUtils.listToJson(items);
+    getElement().executeJs("this.setItems($0)", itemsJson);
+  }
+
+  private void handleAddItemsUpdate() {
+    if (pendingAddItemsIndex == null) {
+      return;
     }
 
-    public void setMarkdown(boolean markdown) {
-        getElement().setProperty("markdown", markdown);
+    var newItems = items.subList(pendingAddItemsIndex, items.size());
+    newItems.forEach(item -> item.clientText = item.getText());
+    var itemsJson = JacksonUtils.listToJson(newItems);
+    getElement().executeJs("this.addItems($0)", itemsJson);
+  }
+
+  private void handleTextUpdates() {
+    items.forEach(item -> {
+      var textChanged = !Objects.equals(item.getText(), item.clientText);
+      if (!textChanged) {
+        return;
+      }
+
+      if (item.getText() != null && item.clientText != null && item.getText().startsWith(item.clientText)) {
+        var diff = item.getText().substring(item.clientText.length());
+        getElement().executeJs("this.appendItemText($0, $1)", diff, items.indexOf(item));
+      }
+      else {
+        getElement().executeJs("this.setItemText($0, $1)", item.getText(), items.indexOf(item));
+      }
+      item.clientText = item.getText();
+    });
+  }
+
+  @DomEvent("debug-code-requested")
+  public static final class DebugCodeRequestEvent extends ComponentEvent<CodeMessageList> {
+
+    private final String code;
+    private final String lang;
+
+    public DebugCodeRequestEvent(
+        CodeMessageList source,
+        boolean fromClient,
+        @EventData("event.detail.code") String code,
+        @EventData("event.detail.lang") String lang) {
+      super(source, fromClient);
+      this.code = code == null ? "" : code;
+      this.lang = lang == null ? "" : lang;
     }
 
-    public void setThinkingSpinner(String thinkingSpinner) {
-        if (thinkingSpinner == null || thinkingSpinner.isBlank()) {
-            getElement().setProperty("thinkingSpinner", "braille");
-            return;
-        }
-        getElement().setProperty("thinkingSpinner", thinkingSpinner.trim());
+    public String getCode() {
+      return code;
     }
 
-    public Registration addDebugCodeRequestListener(ComponentEventListener<DebugCodeRequestEvent> listener) {
-        return addListener(DebugCodeRequestEvent.class, listener);
+    public String getLang() {
+      return lang;
     }
-
-    void scheduleItemsTextUpdate() {
-        scheduleUpdate();
-        pendingTextUpdate = true;
-    }
-
-    void scheduleItemsUpdate() {
-        scheduleUpdate();
-        pendingUpdate = true;
-    }
-
-    private void scheduleAddItemsUpdate() {
-        scheduleUpdate();
-        if (pendingAddItemsIndex == null) {
-            pendingAddItemsIndex = items.size() - 1;
-        }
-    }
-
-    private void scheduleUpdate() {
-        if (pendingUpdate || pendingTextUpdate || pendingAddItemsIndex != null) {
-            return;
-        }
-
-        getElement().getNode().runWhenAttached(ui -> ui.beforeClientResponse(this, ctx -> updateClient()));
-    }
-
-    private void updateClient() {
-        if (pendingUpdate) {
-            handleFullUpdate();
-        }
-        else {
-            handleAddItemsUpdate();
-            handleTextUpdates();
-        }
-
-        pendingTextUpdate = false;
-        pendingUpdate = false;
-        pendingAddItemsIndex = null;
-    }
-
-    private void handleFullUpdate() {
-        items.forEach(item -> item.clientText = item.getText());
-        var itemsJson = JacksonUtils.listToJson(items);
-        getElement().executeJs("this.setItems($0)", itemsJson);
-    }
-
-    private void handleAddItemsUpdate() {
-        if (pendingAddItemsIndex == null) {
-            return;
-        }
-
-        var newItems = items.subList(pendingAddItemsIndex, items.size());
-        newItems.forEach(item -> item.clientText = item.getText());
-        var itemsJson = JacksonUtils.listToJson(newItems);
-        getElement().executeJs("this.addItems($0)", itemsJson);
-    }
-
-    private void handleTextUpdates() {
-        items.forEach(item -> {
-            var textChanged = !Objects.equals(item.getText(), item.clientText);
-            if (!textChanged) {
-                return;
-            }
-
-            if (item.getText() != null && item.clientText != null && item.getText().startsWith(item.clientText)) {
-                var diff = item.getText().substring(item.clientText.length());
-                getElement().executeJs("this.appendItemText($0, $1)", diff, items.indexOf(item));
-            }
-            else {
-                getElement().executeJs("this.setItemText($0, $1)", item.getText(), items.indexOf(item));
-            }
-            item.clientText = item.getText();
-        });
-    }
-
-    @DomEvent("debug-code-requested")
-    public static final class DebugCodeRequestEvent extends ComponentEvent<CodeMessageList> {
-
-        private final String code;
-        private final String lang;
-
-        public DebugCodeRequestEvent(
-                CodeMessageList source,
-                boolean fromClient,
-                @EventData("event.detail.code") String code,
-                @EventData("event.detail.lang") String lang) {
-            super(source, fromClient);
-            this.code = code == null ? "" : code;
-            this.lang = lang == null ? "" : lang;
-        }
-
-        public String getCode() {
-            return code;
-        }
-
-        public String getLang() {
-            return lang;
-        }
-    }
+  }
 }
