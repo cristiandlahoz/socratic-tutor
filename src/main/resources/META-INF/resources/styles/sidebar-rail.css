@@ -24,7 +24,7 @@
   width: 1px;
   background: linear-gradient(to bottom,
       color-mix(in srgb, var(--aura-accent-text-color) 34%, transparent),
-      color-mix(in srgb, var(--chat-history-line) 36%, transparent));
+      color-mix(in srgb, var(--vaadin-border-color) 36%, transparent));
   opacity: 0.45;
   pointer-events: none;
 }
@@ -45,7 +45,7 @@
   left: calc(var(--sidebar-rail-line-x) + var(--sidebar-rail-node-size) / 2);
   width: var(--sidebar-rail-stub-length);
   height: 1px;
-  background: color-mix(in srgb, var(--chat-history-line) 42%, transparent);
+  background: color-mix(in srgb, var(--vaadin-border-color) 42%, transparent);
   transform: translateY(-50%);
   opacity: 0.38;
   pointer-events: none;
@@ -64,7 +64,7 @@
 .sidebar-rail-entry-actions,
 .sidebar-rail-entry-chat,
 .chat-sidebar-actions .sidebar-rail-entry,
-.sidebar-rail-entry-history,
+.sidebar-rail-entry-conversations-history,
 .sidebar-rail-entry-profile {
   min-height: 2.45rem;
 }
@@ -86,6 +86,17 @@
   position: sticky;
   bottom: 0;
   background: transparent;
+}
+
+.sidebar-rail-entry-profile::before {
+  content: "";
+  position: absolute;
+  top: var(--vaadin-gap-s);
+  left: calc(var(--sidebar-rail-line-x) + 0.35rem);
+  right: var(--sidebar-section-inline-end);
+  height: var(--vaadin-input-field-border-width, 1px);
+  background: var(--chat-composer-border);
+  pointer-events: none;
 }
 
 .sidebar-rail-entry-profile::after,
@@ -113,7 +124,7 @@
   height: var(--sidebar-rail-node-size);
   border-radius: var(--vaadin-radius-l);
   border: var(--vaadin-input-field-border-width, 1px) solid var(--aura-accent-text-color);
-  background: color-mix(in srgb, var(--chat-black) 72%, transparent);
+  background: color-mix(in srgb, var(--aura-app-background) 72%, transparent);
   box-shadow: var(--aura-shadow-xs);
 }
 
@@ -283,7 +294,6 @@ vaadin-button.chat-sidebar-theme-button:focus-within::part(label) {
 .profile-drawer-card {
   min-width: 0;
   margin-right: var(--sidebar-section-inline-end);
-  border-top: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-border-color-secondary) 58%, transparent);
   padding-top: var(--vaadin-gap-s);
 }
 

@@ -6,7 +6,7 @@ import { python } from '@codemirror/lang-python';
 import { xml } from '@codemirror/lang-xml';
 import type { Extension } from '@codemirror/state';
 import { solarizedDark } from '@fsegurai/codemirror-theme-solarized-dark';
-import { cobalt2 } from '@fsegurai/codemirror-theme-cobalt2';
+import { solarizedLight } from '@fsegurai/codemirror-theme-solarized-light';
 
 export function codeMirrorLanguageExtensions(lang: string | null | undefined): Extension[] {
   switch ((lang ?? '').toLowerCase()) {
@@ -43,10 +43,10 @@ export function resolveCodeMirrorTheme(
   systemPrefersDark: boolean,
 ): Extension | undefined {
   if (themePreference === 'light') {
-    return cobalt2;
+    return solarizedLight;
   }
   if (themePreference === 'dark') {
     return solarizedDark;
   }
-  return systemPrefersDark ? solarizedDark : cobalt2;
+  return systemPrefersDark ? solarizedDark : solarizedLight;
 }

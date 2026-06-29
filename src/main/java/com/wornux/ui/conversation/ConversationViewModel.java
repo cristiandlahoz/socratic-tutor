@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
@@ -55,7 +56,7 @@ public class ConversationViewModel implements Serializable {
             ActiveAcademicContextResolver contextResolver,
             ConversationNavigationOrchestrator navigationOrchestrator,
             ConversationThemeOrchestrator themeOrchestrator,
-            ConversationTurnOrchestrator turnOrchestrator,
+            @RouteScopeOwner(MainLayout.class) ConversationTurnOrchestrator turnOrchestrator,
             @RouteScopeOwner(MainLayout.class) ConversationState state) {
         this.chatService = chatService;
         this.conversationService = conversationService;
@@ -74,6 +75,10 @@ public class ConversationViewModel implements Serializable {
         return state;
     }
 
+    public void bindTurnUiAnchor(Component uiAnchor) {
+        turnOrchestrator.bindUiAnchor(uiAnchor);
+    }
+
     public void initializeShellState() {
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
@@ -87,12 +92,20 @@ public class ConversationViewModel implements Serializable {
         themeOrchestrator.applyThemePreference(resolvedPreference);
     }
 
-    RouteInitialization initializeFromRoute(String requestedConversationParam, boolean draftRequested) {
-        turnOrchestrator.abortActiveStream(questionExchange);
-        state.responseInProgress().set(false);
+    RouteInitialization initializeFromRoute(
+            String requestedConversationParam,
+            boolean draftRequested,
+            boolean refreshEvent) {
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
         state.setupRequired().set(contextResolver.resolveCurrent().isEmpty());
+
+        if (refreshEvent && state.responseInProgress().peek()) {
+            return RouteInitialization.noReroute();
+        }
+
+        turnOrchestrator.abortActiveStream(questionExchange);
+        state.responseInProgress().set(false);
 
         if (draftRequested) {
             state.activeConversationId().set(null);

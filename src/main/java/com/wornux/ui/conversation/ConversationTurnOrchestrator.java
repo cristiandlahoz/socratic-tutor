@@ -6,28 +6,41 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.signals.local.ValueSignal;
+import com.vaadin.flow.spring.annotation.RouteScope;
+import com.vaadin.flow.spring.annotation.RouteScopeOwner;
+import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.dtos.chat.StudentQuestionExchange;
 import com.wornux.services.chat.ChatService;
 import com.wornux.services.chat.ChatStreamTimeoutException;
 import com.wornux.services.chat.ConversationService;
 import com.wornux.services.chat.ConversationTitleService;
+import com.wornux.ui.MainLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-@Component
+@SpringComponent
+@RouteScope
+@RouteScopeOwner(MainLayout.class)
 public class ConversationTurnOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(ConversationTurnOrchestrator.class);
     private final AtomicLong streamGeneration = new AtomicLong();
     private transient Disposable activeStream;
+    private transient Component uiAnchor;
+    private transient VaadinSession vaadinSession;
+
+    public void bindUiAnchor(Component uiAnchor) {
+        this.uiAnchor = uiAnchor;
+        uiAnchor.getUI().ifPresent(ui -> vaadinSession = ui.getSession());
+    }
 
     public void abortActiveStream(StudentQuestionExchange questionExchange) {
         streamGeneration.incrementAndGet();
@@ -50,10 +63,9 @@ public class ConversationTurnOrchestrator {
 
         var streamId = streamGeneration.incrementAndGet();
         var firstTokenReceived = new AtomicBoolean(false);
-        var ui = UI.getCurrent();
-
+        vaadinSession = VaadinSession.getCurrent();
         if (context.newConversation()) {
-            conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> runUiSideEffect(ui, () -> {
+            conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> runUiSideEffect(() -> {
                 conversationService.renameConversationIfTitleMatches(
                     context.conversationId(),
                     context.fallbackTitle(),
@@ -69,7 +81,7 @@ public class ConversationTurnOrchestrator {
 
         activeStream = chatService
                 .chatStream(context.turnId(), context.prompt(), context.conversationId(), questionExchange::ask)
-                .subscribe(token -> {
+                .subscribe(token -> runUiSideEffect(() -> {
                     if (streamGeneration.get() != streamId) {
                         return;
                     }
@@ -77,27 +89,26 @@ public class ConversationTurnOrchestrator {
                         responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
                     }
                     responseMessage.update(message -> Objects.requireNonNull(message).append(token));
-                }, exception -> {
+                }), exception -> {
                     if (streamGeneration.get() != streamId) {
                         return;
                     }
                     logStreamFailure(context, exception);
                     if (exception instanceof ChatStreamTimeoutException) {
-                        handleOpenAiStreamTimeout(context, userMessage, responseMessage, ui);
+                        handleOpenAiStreamTimeout(context, userMessage, responseMessage);
                     }
                     else {
-                        responseMessage.update(
+                        runUiSideEffect(() -> responseMessage.update(
                             message -> Objects.requireNonNull(message)
                                     .fallback(
-                                        "Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente."));
+                                        "Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente.")));
                     }
                     finishResponse(
                         context.state(),
-                        ui,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
                         refreshCompactionStatus);
-                }, () -> {
+                }, () -> runUiSideEffect(() -> {
                     if (streamGeneration.get() != streamId) {
                         return;
                     }
@@ -107,9 +118,8 @@ public class ConversationTurnOrchestrator {
                         chatService,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
-                        refreshCompactionStatus,
-                        ui);
-                });
+                        refreshCompactionStatus);
+                }));
     }
 
     private void finalizeTurn(
@@ -117,21 +127,18 @@ public class ConversationTurnOrchestrator {
             ChatService chatService,
             Runnable refreshConversationHistory,
             Runnable refreshConversationTokenUsage,
-            Runnable refreshCompactionStatus,
-            UI ui) {
+            Runnable refreshCompactionStatus) {
         activeStream = Mono.fromRunnable(() -> chatService.finalizeTurn(context.turnId(), context.conversationId()))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                     _ -> {},
                     _ -> finishResponse(
                         context.state(),
-                        ui,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
                         refreshCompactionStatus),
                     () -> finishResponse(
                         context.state(),
-                        ui,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
                         refreshCompactionStatus));
@@ -139,11 +146,10 @@ public class ConversationTurnOrchestrator {
 
     private void finishResponse(
             ConversationState state,
-            UI ui,
             Runnable refreshConversationHistory,
             Runnable refreshConversationTokenUsage,
             Runnable refreshCompactionStatus) {
-        runUiSideEffect(ui, () -> {
+        runUiSideEffect(() -> {
             state.responseInProgress().set(false);
             refreshConversationHistory.run();
             refreshConversationTokenUsage.run();
@@ -152,9 +158,13 @@ public class ConversationTurnOrchestrator {
         });
     }
 
-    private void runUiSideEffect(UI ui, Runnable callback) {
-        if (ui != null) {
-            ui.access(callback::run);
+    private void runUiSideEffect(Runnable callback) {
+        if (uiAnchor != null && uiAnchor.getUI().isPresent()) {
+            uiAnchor.getUI().get().access(callback::run);
+            return;
+        }
+        if (vaadinSession != null) {
+            vaadinSession.access(callback::run);
             return;
         }
         callback.run();
@@ -163,9 +173,8 @@ public class ConversationTurnOrchestrator {
     private void handleOpenAiStreamTimeout(
             TurnContext context,
             ValueSignal<MessageState> userMessage,
-            ValueSignal<MessageState> responseMessage,
-            UI ui) {
-        runUiSideEffect(ui, () -> {
+            ValueSignal<MessageState> responseMessage) {
+        runUiSideEffect(() -> {
             context.state().messages().remove(responseMessage);
             context.state().messages().remove(userMessage);
             context.state().composerText().set(context.prompt());

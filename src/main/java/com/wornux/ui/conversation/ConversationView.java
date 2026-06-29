@@ -74,6 +74,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         this.cRunnerExecutor = cRunnerExecutor;
         this.authenticatedAccountService = authenticatedAccountService;
         this.workspaceRoutingService = workspaceRoutingService;
+        this.viewModel.bindTurnUiAnchor(this);
 
         Div emptyState = createEmptyState(state);
         emptyState.bindVisible(state.emptyStateVisible());
@@ -157,7 +158,10 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 .getSingleParameter(ConversationViewModel.CONVERSATION_QUERY_PARAMETER)
                 .orElse(null);
 
-        var initialization = viewModel.initializeFromRoute(requestedConversationParam, draftRequested);
+        var initialization = viewModel.initializeFromRoute(
+            requestedConversationParam,
+            draftRequested,
+            event.isRefreshEvent());
         if (initialization.rerouteRequired()) {
             rerouteToResolvedConversation(event, initialization.rerouteConversationId());
             return;
@@ -174,24 +178,24 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         var animationFrame = new Div(animation);
         ConversationCss.EMPTY_FRAME.addTo(animationFrame);
 
-        var title = new H2("Ask your first question");
+        var title = new H2("Haz tu primera pregunta");
         ConversationCss.EMPTY_TITLE.addTo(title);
 
         var description = new Paragraph(
-                "Write a prompt and the tutor will help you reason step by step, clarify concepts, and practice with examples.");
+                "Escribe una pregunta y el tutor te ayudará a razonar paso a paso, aclarar conceptos y practicar con ejemplos.");
         ConversationCss.EMPTY_DESCRIPTION.addTo(description);
         com.vaadin.flow.signals.Signal.effect(
             title,
             () -> title.setText(
                 Boolean.TRUE.equals(chatState.setupRequired().get())
-                        ? "Academic setup required"
-                        : "Ask your first question"));
+                        ? "Configuración académica requerida"
+                        : "Haz tu primera pregunta"));
         com.vaadin.flow.signals.Signal.effect(
             description,
             () -> description.setText(
                 Boolean.TRUE.equals(chatState.setupRequired().get())
                         ? chatState.setupMessage().get()
-                        : "Write a prompt and the tutor will help you reason step by step, clarify concepts, and practice with examples."));
+                        : "Escribe una pregunta y el tutor te ayudará a razonar paso a paso, aclarar conceptos y practicar con ejemplos."));
 
         var contentRow = getContentRow(title, description, animationFrame);
 
@@ -251,7 +255,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         helpTitle.addClassName("chat-sidebar-help-title");
 
         var helpCopy = new Paragraph(
-                "Muestra los prompt tokens del contexto activo y el porcentaje usado contra el umbral de compactación configurado para resumir la conversación antes de perder calidad.");
+                "Muestra los tokens de entrada del contexto activo y el porcentaje usado respecto al umbral de compactación configurado para resumir la conversación antes de perder calidad.");
         helpCopy.addClassName("chat-sidebar-help-description");
         helpPopover.add(new Div(helpTitle, helpCopy));
 
@@ -311,8 +315,8 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         var button = new Button(new Icon(VaadinIcon.ANGLE_LEFT));
         button.addThemeVariants(ButtonVariant.TERTIARY);
         ConversationCss.DEBUGGER_TOGGLE.addTo(button);
-        button.setAriaLabel("Open debugger");
-        button.getElement().setAttribute("title", "Open debugger");
+        button.setAriaLabel("Abrir depurador");
+        button.getElement().setAttribute("title", "Abrir depurador");
         button.addClickListener(_ -> setDebuggerVisible(!debuggerVisible));
         return button;
     }
@@ -331,8 +335,8 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 .executeJs(
                     "const mobile = window.matchMedia('(max-width: 960px)').matches; this.splitterPosition = $0 ? (mobile ? 42 : 58) : 100;",
                     visible);
-        debuggerToggleButton.setAriaLabel(visible ? "Hide debugger" : "Open debugger");
-        debuggerToggleButton.getElement().setAttribute("title", visible ? "Hide debugger" : "Open debugger");
+        debuggerToggleButton.setAriaLabel(visible ? "Ocultar depurador" : "Abrir depurador");
+        debuggerToggleButton.getElement().setAttribute("title", visible ? "Ocultar depurador" : "Abrir depurador");
         debuggerToggleButton.setVisible(!visible);
     }
 
@@ -340,7 +344,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         var isUserMessage = message.role() == MessageType.USER;
         var item = new CodeMessageListItem(message.content(),
                 message.createdAt(),
-                isUserMessage ? "You" : "Socratic Tutor");
+                isUserMessage ? "Tú" : "Tutor Socrático");
         item.setUserColorIndex();
         (isUserMessage ? ConversationCss.MESSAGE_USER : ConversationCss.MESSAGE_ASSISTANT).addTo(item);
         if (message.loading()) {

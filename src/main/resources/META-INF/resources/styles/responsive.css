@@ -14,7 +14,7 @@
     font-size: var(--aura-font-size-xl);
   }
 
-  .chat-sidebar-panel-title {
+  .conversations-history-title {
     font-size: var(--aura-font-size-l);
   }
 
@@ -74,15 +74,15 @@
     --sidebar-section-inline-end: 0.64rem;
   }
 
-  .chat-sidebar-empty {
+  .conversations-history-empty {
     margin: 0.4rem var(--sidebar-section-inline-end) 0.7rem 0;
   }
 
-  .chat-sidebar-timeline {
+  .conversations-history-timeline {
     padding: 0.18rem 0.4rem 0.72rem;
   }
 
-  .chat-sidebar-entry-row {
+  .conversations-history-entry-row {
     grid-template-columns: 2rem minmax(0, 1fr);
   }
 

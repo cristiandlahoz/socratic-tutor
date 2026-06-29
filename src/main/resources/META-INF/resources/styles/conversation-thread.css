@@ -11,17 +11,6 @@
   background: transparent;
 }
 
-.conversation-thread::before {
-  content: "";
-  position: absolute;
-  inset: 1.5rem 0 auto;
-  height: 18rem;
-  pointer-events: none;
-  background: var(--chat-ambient-glow);
-  filter: blur(20px);
-  opacity: 0.16;
-}
-
 .conversation-thread>* {
   position: relative;
   z-index: 1;
@@ -49,7 +38,7 @@ vaadin-message {
 }
 
 vaadin-message.conversation-message--user {
-  --vaadin-message-text-color: var(--chat-message-user-text-color);
+  --vaadin-message-text-color: var(--vaadin-text-color);
 }
 
 vaadin-message.conversation-message--assistant {
@@ -82,7 +71,7 @@ vaadin-message.conversation-message--user::part(message) {
 }
 
 vaadin-message.conversation-message--user :is(message-content-renderer, message-prose-renderer, vaadin-markdown) :is(p, ul, ol, li, blockquote, h1, h2, h3, h4, h5, h6, strong) {
-  color: var(--chat-message-user-text-color);
+  color: var(--vaadin-text-color);
 }
 
 vaadin-message.conversation-message--assistant::part(message) {

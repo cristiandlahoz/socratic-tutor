@@ -57,7 +57,7 @@ vaadin-button.conversation-view__debugger-toggle::part(button) {
   border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
   border-inline-end: 0;
   border-radius: var(--vaadin-radius-m) 0 0 var(--vaadin-radius-m);
-  background: var(--theme-card-surface-raised);
+  background: var(--vaadin-background-container-strong);
   box-shadow: var(--aura-shadow-s);
   backdrop-filter: blur(16px);
 }
@@ -89,16 +89,16 @@ vaadin-button.conversation-view__debugger-toggle vaadin-icon {
   gap: var(--vaadin-gap-s);
   overflow: hidden;
   padding: var(--vaadin-padding-l) var(--vaadin-padding-m) var(--vaadin-padding-m);
-  background: var(--theme-header-surface);
+  background: var(--aura-app-background);
   border-inline-start: var(--c-runner-border-width) solid var(--vaadin-border-color-secondary);
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);
   --c-runner-accent: var(--aura-accent-text-color);
   --c-runner-warning: var(--aura-yellow);
   --c-runner-danger: var(--aura-red-text);
-  --c-runner-card: var(--theme-header-surface);
-  --c-runner-code-surface: color-mix(in srgb, var(--theme-header-surface) 70%, black);
-  --c-runner-table-header-surface: color-mix(in srgb, var(--theme-header-surface) 58%, black);
+  --c-runner-card: var(--aura-app-background);
+  --c-runner-code-surface: color-mix(in srgb, var(--aura-app-background) 70%, black);
+  --c-runner-table-header-surface: color-mix(in srgb, var(--aura-app-background) 58%, black);
   --c-runner-border-width: var(--vaadin-input-field-border-width, 1px);
   --c-runner-card-border: var(--vaadin-border-color-secondary);
   --c-runner-row-border: var(--vaadin-border-color-secondary);
@@ -426,7 +426,7 @@ c-debug-source-viewer.c-runner-source-viewer {
   --c-runner-editor-text: var(--c-runner-code-text, var(--vaadin-text-color));
   --c-runner-editor-gutter: var(--c-runner-code-muted, var(--vaadin-text-color-secondary));
   --c-runner-active-line-background: var(--c-runner-warning);
-  --c-runner-active-line-foreground: #06110f;
+  --c-runner-active-line-foreground: var(--color-mist-950);
   --c-runner-active-line-marker: "->";
   --c-runner-active-line-marker-color: var(--c-runner-warning);
 }
@@ -538,24 +538,24 @@ vaadin-text-area.c-runner-stdin::part(input-field) {
 
   html:not([data-theme-preference]) .c-runner-panel,
   html[data-theme-preference="system"] .c-runner-panel {
-    --c-runner-code-surface: var(--theme-light-contrast-surface);
-    --c-runner-table-header-surface: color-mix(in srgb, var(--theme-light-contrast-surface) 88%, white);
-    --c-runner-row-border: color-mix(in srgb, white 24%, transparent);
-    --c-runner-code-text: #edf5f2;
-    --c-runner-code-muted: color-mix(in srgb, #edf5f2 48%, var(--theme-light-contrast-surface));
-    --c-runner-accent: rgb(82, 190, 230);
-    --c-runner-danger: rgb(255, 118, 96);
+    --c-runner-code-surface: var(--color-neutral-900);
+    --c-runner-table-header-surface: color-mix(in srgb, var(--color-neutral-900) 88%, var(--color-white));
+    --c-runner-row-border: color-mix(in srgb, var(--color-white) 24%, transparent);
+    --c-runner-code-text: var(--color-mist-100);
+    --c-runner-code-muted: color-mix(in srgb, var(--color-mist-100) 48%, var(--color-neutral-900));
+    --c-runner-accent: var(--color-sky-400);
+    --c-runner-danger: var(--color-red-400);
   }
 }
 
 html[data-theme-preference="light"] .c-runner-panel {
-  --c-runner-code-surface: var(--theme-light-contrast-surface);
-  --c-runner-table-header-surface: color-mix(in srgb, var(--theme-light-contrast-surface) 88%, white);
-  --c-runner-row-border: color-mix(in srgb, white 24%, transparent);
-  --c-runner-code-text: #edf5f2;
-  --c-runner-code-muted: color-mix(in srgb, #edf5f2 48%, var(--theme-light-contrast-surface));
-  --c-runner-accent: rgb(82, 190, 230);
-  --c-runner-danger: rgb(255, 118, 96);
+  --c-runner-code-surface: var(--color-neutral-900);
+  --c-runner-table-header-surface: color-mix(in srgb, var(--color-neutral-900) 88%, var(--color-white));
+  --c-runner-row-border: color-mix(in srgb, var(--color-white) 24%, transparent);
+  --c-runner-code-text: var(--color-mist-100);
+  --c-runner-code-muted: color-mix(in srgb, var(--color-mist-100) 48%, var(--color-neutral-900));
+  --c-runner-accent: var(--color-sky-400);
+  --c-runner-danger: var(--color-red-400);
 }
 
 @media (max-width: 960px) {

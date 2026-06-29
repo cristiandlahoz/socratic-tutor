@@ -22,7 +22,7 @@ import com.vaadin.flow.shared.Registration;
 @JsModule("./code-message-list.ts")
 @NpmPackage(value = "@uiw/react-codemirror", version = "4.25.4")
 @NpmPackage(value = "@fsegurai/codemirror-theme-solarized-dark", version = "6.2.5")
-@NpmPackage(value = "@fsegurai/codemirror-theme-cobalt2", version = "6.0.5")
+@NpmPackage(value = "@fsegurai/codemirror-theme-solarized-light", version = "6.2.5")
 @NpmPackage(value = "@codemirror/lang-json", version = "6.0.2")
 @NpmPackage(value = "@codemirror/lang-xml", version = "6.1.0")
 @NpmPackage(value = "@codemirror/lang-javascript", version = "6.2.4")
@@ -35,6 +35,10 @@ public final class CodeMessageList extends Component implements HasSize {
   private boolean pendingUpdate;
   private boolean pendingTextUpdate;
   private Integer pendingAddItemsIndex;
+
+  public CodeMessageList() {
+    addAttachListener(_ -> scheduleItemsUpdate());
+  }
 
   public void setItems(Collection<CodeMessageListItem> items) {
     Objects.requireNonNull(items, "Can't set null item collection to CodeMessageList.");

@@ -17,7 +17,7 @@
   padding: 0.35rem 0.45rem 0.35rem 0.85rem;
   border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
   border-radius: var(--vaadin-radius-m);
-  background: var(--theme-card-surface-raised);
+  background: var(--vaadin-background-container-strong);
   color: var(--vaadin-text-color-secondary);
   box-shadow: var(--aura-shadow-s);
 }
@@ -117,7 +117,7 @@ vaadin-button.conversation-composer__send-button::part(button) {
   width: 2.8rem;
   height: 2.8rem;
   border-radius: var(--vaadin-radius-m);
-  background: color-mix(in srgb, var(--chat-composer-surface) 82%, var(--theme-app-background));
+  background: color-mix(in srgb, var(--chat-composer-surface) 82%, var(--aura-app-background));
   border: var(--vaadin-input-field-border-width, 1px) solid var(--chat-composer-border);
   box-shadow: var(--aura-shadow-xs);
   color: color-mix(in srgb, var(--vaadin-text-color) 78%, var(--aura-accent-text-color));
@@ -166,7 +166,7 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
   padding: 0;
   border: var(--vaadin-input-field-border-width, 1px) solid transparent;
   border-radius: var(--vaadin-radius-m);
-  background: color-mix(in srgb, var(--aura-surface-color) 92%, var(--chat-black));
+  background: color-mix(in srgb, var(--aura-surface-color) 92%, var(--aura-app-background));
   transform: translateY(1rem);
   transition:
     opacity var(--chat-transition-fast),

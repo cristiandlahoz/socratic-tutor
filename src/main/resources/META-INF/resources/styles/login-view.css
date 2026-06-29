@@ -2,8 +2,8 @@
   min-height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(circle at 16% 16%, color-mix(in srgb, var(--theme-interactive) 5%, transparent), transparent 28rem),
-    var(--chat-black);
+    radial-gradient(circle at 16% 16%, color-mix(in srgb, var(--aura-accent-text-color) 5%, transparent), transparent 28rem),
+    var(--aura-app-background);
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);
 }
@@ -28,7 +28,7 @@
 .login-view__shell::before {
   inset: 1px 0 auto;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--theme-border-default), transparent);
+  background: linear-gradient(90deg, transparent, var(--vaadin-border-color), transparent);
 }
 
 .login-view__shell::after {
@@ -61,15 +61,15 @@
   background:
     repeating-linear-gradient(
       180deg,
-      color-mix(in srgb, var(--theme-border-default) 50%, transparent) 0 1px,
+      color-mix(in srgb, var(--vaadin-border-color) 50%, transparent) 0 1px,
       transparent 1px 15px
     ) 0 0 / min(22vw, 19rem) 100% repeat-x,
     repeating-linear-gradient(
       90deg,
-      color-mix(in srgb, var(--theme-border-default) 26%, transparent) 0 1px,
+      color-mix(in srgb, var(--vaadin-border-color) 26%, transparent) 0 1px,
       transparent 1px 15px
     ) 0 0 / 100% min(18vh, 11rem) repeat-y;
-  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, var(--color-black) 12%, var(--color-black) 88%, transparent);
   opacity: 0.5;
 }
 
@@ -94,7 +94,7 @@
 
 .login-view__product-label {
   width: fit-content;
-  color: color-mix(in srgb, var(--vaadin-text-color) 78%, var(--theme-interactive));
+  color: color-mix(in srgb, var(--vaadin-text-color) 78%, var(--aura-accent-text-color));
   font-family: var(--chat-font-mono);
   font-size: var(--aura-font-size-s);
   line-height: 1.4;
@@ -135,8 +135,8 @@
   padding: var(--vaadin-padding-s);
   border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--theme-border-strong) 72%, transparent);
   border-radius: var(--vaadin-radius-m);
-  background: color-mix(in srgb, var(--theme-card-surface-strong) 82%, var(--chat-black));
-  box-shadow: var(--theme-shadow-card);
+  background: color-mix(in srgb, var(--vaadin-background-container-strong) 82%, var(--aura-app-background));
+  box-shadow: var(--aura-shadow-m);
   animation: login-view-fade-up var(--chat-transition-fast) both;
 }
 
@@ -165,7 +165,7 @@
 }
 
 .login-view__work-header span:last-child {
-  color: color-mix(in srgb, var(--theme-interactive) 82%, var(--vaadin-text-color));
+  color: color-mix(in srgb, var(--aura-accent-text-color) 82%, var(--vaadin-text-color));
 }
 
 .login-view__work-message {
@@ -193,7 +193,7 @@
 }
 
 .login-view__work-message--user p {
-  color: color-mix(in srgb, var(--vaadin-text-color) 88%, var(--theme-interactive));
+  color: color-mix(in srgb, var(--vaadin-text-color) 88%, var(--aura-accent-text-color));
 }
 
 .login-view__code-sample {
@@ -205,7 +205,7 @@
   padding: var(--vaadin-padding-xs) var(--vaadin-padding-s);
   border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
   border-radius: var(--vaadin-radius-s);
-  background: var(--theme-code-background);
+  background: var(--vaadin-background-container);
   color: color-mix(in srgb, var(--vaadin-text-color) 82%, var(--vaadin-text-color-secondary));
   font-family: var(--chat-font-mono);
   font-size: var(--aura-font-size-xs);
@@ -227,7 +227,7 @@
   height: clamp(21rem, 29vw, 27rem);
   opacity: 0.28;
   pointer-events: none;
-  mask-image: linear-gradient(90deg, #000 0 72%, transparent 100%);
+  mask-image: linear-gradient(90deg, var(--color-black) 0 72%, transparent 100%);
 }
 
 .login-view__cherry {
@@ -237,8 +237,8 @@
   --ascii-frame-font-size: clamp(2.75px, 0.26vw, 3.8px);
   --ascii-frame-scale: 1;
   --ascii-frame-translate-y: 0;
-  --chat-ascii-animation-color: var(--theme-interactive);
-  --chat-ascii-animation-shadow: 0 0 0.15rem color-mix(in srgb, var(--theme-interactive) 16%, transparent);
+  --chat-ascii-animation-color: var(--aura-accent-text-color);
+  --chat-ascii-animation-shadow: 0 0 0.15rem color-mix(in srgb, var(--aura-accent-text-color) 16%, transparent);
 }
 
 .login-view__crow-frame {
@@ -275,7 +275,7 @@
   padding-inline: clamp(3.25rem, 7vw, 7.5rem);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--vaadin-background-color) 28%, transparent), transparent 32%),
-    color-mix(in srgb, var(--chat-black) 86%, var(--vaadin-background-color));
+    color-mix(in srgb, var(--aura-app-background) 86%, var(--vaadin-background-color));
 }
 
 .login-view__form-card {
@@ -375,7 +375,7 @@
 .login-view__form vaadin-password-field {
   width: 100%;
   color: var(--vaadin-text-color);
-  --vaadin-input-field-background: color-mix(in srgb, var(--theme-card-surface-raised) 74%, transparent);
+  --vaadin-input-field-background: color-mix(in srgb, var(--vaadin-background-container-strong) 74%, transparent);
   --vaadin-input-field-border-width: 1px;
   --vaadin-input-field-border-color: var(--theme-border-strong);
   --vaadin-input-field-border-radius: var(--vaadin-radius-l);
@@ -385,12 +385,12 @@
 
 .login-view__form vaadin-text-field:hover,
 .login-view__form vaadin-password-field:hover {
-  --vaadin-input-field-border-color: color-mix(in srgb, var(--theme-interactive) 64%, var(--theme-border-strong));
+  --vaadin-input-field-border-color: color-mix(in srgb, var(--aura-accent-text-color) 64%, var(--theme-border-strong));
 }
 
 .login-view__form vaadin-text-field[focused],
 .login-view__form vaadin-password-field[focused] {
-  --vaadin-input-field-border-color: var(--theme-interactive);
+  --vaadin-input-field-border-color: var(--aura-accent-text-color);
 }
 
 .login-view__form vaadin-button[theme~="submit"] {
@@ -398,7 +398,7 @@
   min-height: 3.2rem;
   margin-top: var(--vaadin-gap-m);
   border-radius: var(--vaadin-radius-l);
-  background: var(--theme-interactive);
+  background: var(--aura-accent-text-color);
   color: var(--aura-accent-contrast-color);
   font-family: var(--aura-font-family);
   font-size: var(--aura-font-size-m);
@@ -414,7 +414,7 @@
 }
 
 .login-view__form [slot="forgot-password"] {
-  color: color-mix(in srgb, var(--theme-interactive) 88%, var(--vaadin-text-color));
+  color: color-mix(in srgb, var(--aura-accent-text-color) 88%, var(--vaadin-text-color));
   font-family: var(--aura-font-family);
   font-weight: var(--aura-font-weight-semibold);
 }

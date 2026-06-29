@@ -17,17 +17,17 @@ class BrailleSpinner extends LitElement {
       min-width: 2ch;
       white-space: pre;
       letter-spacing: var(--thinking-spinner-letter-spacing, 0.02em);
-      color: var(--thinking-spinner-color, #d4af37);
+      color: var(--thinking-spinner-color, var(--aura-accent-text-color));
       background-image: var(
         --thinking-spinner-gradient,
-        linear-gradient(135deg, #f2c94c 0%, #d4af37 46%, #b3261e 100%)
+        linear-gradient(135deg, var(--aura-yellow) 0%, var(--aura-accent-text-color) 46%, var(--aura-red) 100%)
       );
       background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-shadow: var(
         --thinking-spinner-shadow,
-        0 0 0.25rem color-mix(in srgb, var(--thinking-spinner-accent-color, #b71c1c) 22%, transparent)
+        0 0 0.25rem color-mix(in srgb, var(--thinking-spinner-accent-color, var(--aura-red)) 22%, transparent)
       );
     }
   `;

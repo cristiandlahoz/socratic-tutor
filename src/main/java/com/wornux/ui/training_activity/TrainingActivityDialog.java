@@ -61,7 +61,7 @@ public class TrainingActivityDialog extends Div {
         blocker.getStyle()
                 .set("padding", "1rem")
                 .set("border-radius", "0.75rem")
-                .set("background", "rgba(255,255,255,0.04)");
+                .set("background", "color-mix(in srgb, var(--color-white) 4%, transparent)");
 
         var body = new VerticalLayout(title, titleField, instructionField, blocker);
         body.setPadding(false);

@@ -6,10 +6,10 @@
   flex-direction: column;
   gap: var(--vaadin-gap-m);
   background:
-    var(--chat-ambient-glow),
+    var(--theme-glow),
     linear-gradient(
         180deg,
-        color-mix(in srgb, var(--chat-black) 94%, transparent),
+        color-mix(in srgb, var(--aura-app-background) 94%, transparent),
         color-mix(in srgb, var(--vaadin-background-color) 96%, transparent));
 }
 

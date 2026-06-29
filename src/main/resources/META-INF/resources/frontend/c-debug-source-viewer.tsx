@@ -377,7 +377,7 @@ class CDebugSourceViewerElement extends HTMLElement {
             background-image: linear-gradient(
               45deg,
               transparent 65%,
-              color-mix(in srgb, var(--lumo-error-color, #d93025) 86%, transparent) 80%,
+              color-mix(in srgb, var(--lumo-error-color, var(--aura-red)) 86%, transparent) 80%,
               transparent 92%
             );
           }
@@ -386,7 +386,7 @@ class CDebugSourceViewerElement extends HTMLElement {
             background-image: linear-gradient(
               45deg,
               transparent 65%,
-              color-mix(in srgb, var(--lumo-warning-color, #fbbc04) 86%, transparent) 80%,
+              color-mix(in srgb, var(--lumo-warning-color, var(--aura-yellow)) 86%, transparent) 80%,
               transparent 92%
             );
           }
@@ -395,11 +395,11 @@ class CDebugSourceViewerElement extends HTMLElement {
             max-width: min(42rem, calc(100vw - 2rem));
             max-height: min(22rem, 60vh);
             overflow: auto;
-            border: 1px solid var(--c-runner-card-border, var(--chat-border-section));
+            border: 1px solid var(--c-runner-card-border, var(--vaadin-border-color));
             border-radius: 8px;
-            background: color-mix(in srgb, var(--chat-code-background, #001f27) 94%, black);
-            box-shadow: var(--chat-shadow-dark-card, 0 18px 48px rgb(0 0 0 / 0.35));
-            color: var(--chat-text-primary, inherit);
+            background: color-mix(in srgb, var(--vaadin-background-container) 94%, var(--color-black));
+            box-shadow: var(--aura-shadow-m);
+            color: var(--vaadin-text-color);
             font-family: var(--chat-font-mono, monospace);
             font-size: 12px;
             line-height: 1.45;

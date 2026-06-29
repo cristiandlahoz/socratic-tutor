@@ -1,6 +1,6 @@
 vaadin-app-layout {
   padding: 0 !important;
-  background: var(--theme-app-background);
+  background: var(--aura-app-background);
 }
 
 .shell-drawer-scroller {
@@ -21,12 +21,11 @@ vaadin-app-layout {
 }
 
 vaadin-app-layout::part(drawer) {
-  background: var(--theme-header-surface);
   border-inline-end: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
 }
 
 vaadin-app-layout::part(content) {
-  background: var(--theme-app-background);
+  background: var(--aura-app-background);
 }
 
 vaadin-app-layout::part(navbar) {
@@ -61,8 +60,8 @@ vaadin-drawer-toggle.shell-drawer-toggle::part(button) {
   height: 2.45rem;
   border-radius: var(--vaadin-radius-m);
   border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 34%, transparent);
-  background: color-mix(in srgb, var(--theme-app-background) 86%, transparent);
-  box-shadow: var(--chat-shadow-soft);
+  background: color-mix(in srgb, var(--aura-app-background) 86%, transparent);
+  box-shadow: var(--aura-shadow-s);
   color: var(--vaadin-text-color-secondary);
   backdrop-filter: blur(12px) saturate(1.04);
   transition:
@@ -91,7 +90,7 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside::part(button) {
 
 vaadin-drawer-toggle.shell-drawer-toggle:hover::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button) {
-  background: color-mix(in srgb, var(--theme-app-background) 72%, var(--theme-card-surface-strong));
+  background: color-mix(in srgb, var(--aura-app-background) 72%, var(--vaadin-background-container-strong));
   border-color: color-mix(in srgb, var(--aura-accent-text-color) 54%, var(--vaadin-border-color));
   color: var(--vaadin-text-color);
   transform: translateY(-1px);
@@ -105,6 +104,10 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
   transform: translateY(-1px);
 }
 
+vaadin-app-layout > .conversation-view.conversation-view:nth-child(1 of :not([slot])):nth-last-child(1 of :not([slot])) {
+  background: var(--aura-app-background);
+}
+
 .conversation-view {
   position: relative;
   min-width: 0;
@@ -113,7 +116,7 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: transparent;
+  background: var(--aura-app-background);
 }
 
 .conversation-view__scroll-region {

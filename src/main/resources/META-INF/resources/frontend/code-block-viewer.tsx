@@ -150,10 +150,10 @@ class CodeBlockViewerElement extends HTMLElement {
           }
 
           .code-block-viewer__debug-button {
-            border: 1px solid color-mix(in srgb, var(--chat-interactive) 30%, var(--chat-border-visible));
+            border: 1px solid color-mix(in srgb, var(--aura-accent-text-color) 30%, var(--vaadin-border-color));
             border-radius: 999px;
-            background: color-mix(in srgb, var(--chat-interactive) 10%, var(--chat-code-background));
-            color: var(--chat-text-primary);
+            background: color-mix(in srgb, var(--aura-accent-text-color) 10%, var(--vaadin-background-container));
+            color: var(--vaadin-text-color);
             cursor: pointer;
             font: 600 0.72rem var(--chat-font-mono);
             letter-spacing: 0.02em;
@@ -166,12 +166,12 @@ class CodeBlockViewerElement extends HTMLElement {
           }
 
           .code-block-viewer__debug-button:hover {
-            background: color-mix(in srgb, var(--chat-interactive-strong) 14%, var(--chat-code-background));
-            border-color: color-mix(in srgb, var(--chat-interactive-strong) 42%, var(--chat-border-visible));
+            background: color-mix(in srgb, var(--aura-accent-color) 14%, var(--vaadin-background-container));
+            border-color: color-mix(in srgb, var(--aura-accent-color) 42%, var(--vaadin-border-color));
           }
 
           .code-block-viewer__debug-button:focus-visible {
-            outline: 2px solid var(--chat-focus-ring);
+            outline: 2px solid var(--aura-accent-border-color);
             outline-offset: 2px;
           }
         `}</style>

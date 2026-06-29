@@ -6,75 +6,42 @@ html {
   --aura-base-radius: 6;
   --aura-base-size: 20;
   --aura-contrast-level: 5;
-  --aura-background-color-light: var(--theme-light-background);
-  --aura-background-color-dark: var(--theme-dark-background);
-  --aura-red: #d24f3f;
-  --aura-orange: rgb(246, 131, 59);
-  --aura-yellow: #d7aa42;
-  --aura-green: #4f7e55;
-  --aura-blue: rgb(21, 136, 178);
-  --aura-purple: #73527f;
-  --aura-accent-color-light: var(--theme-light-accent);
-  --aura-accent-color-dark: var(--theme-dark-accent);
-  --aura-accent-contrast-color-light: var(--theme-light-accent-contrast);
-  --aura-accent-contrast-color-dark: var(--theme-dark-accent-contrast);
+  --aura-background-color-light: var(--color-olive-300);
+  --aura-background-color-dark: oklch(18.45% 0.0108 207.1deg);
+  --aura-red: var(--color-red-600);
+  --aura-orange: var(--color-orange-400);
+  --aura-yellow: var(--color-yellow-500);
+  --aura-green: var(--color-green-700);
+  --aura-blue: var(--color-cyan-600);
+  --aura-purple: var(--color-mauve-500);
+  --aura-accent-color-light: var(--color-cyan-600);
+  --aura-accent-color-dark: var(--color-orange-400);
+  --aura-accent-contrast-color-light: var(--color-white);
+  --aura-accent-contrast-color-dark: var(--color-mist-900);
   --aura-surface-opacity: 1;
   --aura-overlay-surface-opacity: 1;
   --aura-app-layout-inset: 0px;
   --aura-app-layout-border-width: 0px;
   --aura-app-layout-radius: 0px;
   --vaadin-app-layout-drawer-width: clamp(21rem, 25vw, 24rem);
-  --vaadin-app-layout-drawer-background: var(--theme-header-surface);
-  --vaadin-overlay-shadow: var(--chat-shadow-soft);
-  --vaadin-overlay-backdrop-background: rgba(0, 0, 0, 0.36);
+  --vaadin-app-layout-drawer-background: var(--aura-app-background);
+  --vaadin-overlay-shadow: var(--aura-shadow-s);
+  --vaadin-overlay-backdrop-background: color-mix(in srgb, var(--color-black) 36%, transparent);
   --vaadin-message-font-size: var(--chat-message-font-size);
   --vaadin-message-font-weight: var(--chat-message-font-weight);
   --vaadin-message-line-height: var(--chat-message-line-height);
-  --vaadin-message-text-color: var(--chat-message-user-text-color);
-  --vaadin-message-name-color: var(--chat-text-secondary);
+  --vaadin-message-text-color: var(--vaadin-text-color);
+  --vaadin-message-name-color: var(--vaadin-text-color-secondary);
   --vaadin-message-name-font-size: var(--chat-text-meta);
   --vaadin-message-name-font-weight: var(--chat-font-weight-body);
-  --vaadin-message-time-color: var(--chat-text-tertiary);
+  --vaadin-message-time-color: var(--vaadin-text-color-disabled);
   --vaadin-message-time-font-size: var(--chat-text-meta);
   --vaadin-message-time-font-weight: var(--chat-font-weight-body);
   --vaadin-message-gap: 0;
 
-  --theme-app-background: light-dark(var(--aura-background-color-light), var(--aura-background-color-dark));
-  --theme-canvas: var(--theme-app-background);
-  --theme-header-surface: color-mix(in srgb, var(--theme-app-background) 84%, var(--vaadin-background-container));
-  --theme-card-surface: var(--vaadin-background-container);
-  --theme-card-surface-strong: var(--vaadin-background-container-strong);
-  --theme-card-surface-raised: var(--vaadin-background-container-strong);
-  --theme-card-surface-hover: color-mix(in srgb, var(--vaadin-background-container-strong) 88%, var(--aura-accent-text-color));
-  --theme-card-surface-muted: var(--vaadin-background-container);
-  --theme-button-fill: var(--vaadin-background-container);
-  --theme-button-fill-hover: var(--vaadin-background-container-strong);
-  --theme-button-ghost-hover: color-mix(in srgb, var(--aura-accent-text-color) 8%, transparent);
-  --theme-button-ghost-soft: color-mix(in srgb, var(--aura-accent-text-color) 5%, transparent);
-  --theme-border-subtle: var(--vaadin-border-color-secondary);
-  --theme-border-default: var(--vaadin-border-color);
+  --aura-app-background: light-dark(var(--aura-background-color-light), var(--aura-background-color-dark));
   --theme-border-strong: color-mix(in srgb, var(--vaadin-border-color) 68%, var(--vaadin-text-color));
-  --theme-text-display: var(--vaadin-text-color);
-  --theme-text-primary: var(--vaadin-text-color);
-  --theme-text-secondary: var(--vaadin-text-color-secondary);
-  --theme-text-tertiary: var(--vaadin-text-color-disabled);
-  --theme-link: var(--aura-accent-text-color);
-  --theme-interactive: var(--aura-accent-text-color);
-  --theme-interactive-strong: var(--aura-accent-color);
-  --theme-focus-ring: var(--aura-accent-border-color);
-  --theme-selection: color-mix(in srgb, var(--aura-accent-text-color) 18%, transparent);
-  --theme-history-accent: var(--aura-accent-text-color);
-  --theme-history-accent-soft: color-mix(in srgb, var(--aura-accent-text-color) 22%, transparent);
-  --theme-history-accent-label: var(--vaadin-text-color);
-  --theme-history-line: var(--vaadin-border-color);
   --theme-glow: radial-gradient(circle at 82% 8%, color-mix(in srgb, var(--aura-accent-text-color) 6%, transparent), transparent 24%);
-  --theme-code-background: var(--vaadin-background-container);
-  --theme-shadow-soft: var(--aura-shadow-s);
-  --theme-shadow-card: var(--aura-shadow-m);
-  --theme-ascii-animation-color: var(--aura-accent-text-color);
-  --theme-ascii-animation-shadow: 0 0 0.22rem color-mix(in srgb, var(--aura-accent-text-color) 18%, transparent);
-  --theme-accent-contrast: var(--aura-accent-contrast-color);
-  --aura-app-background: var(--theme-app-background);
 }
 
 html,
@@ -82,8 +49,8 @@ body {
   height: 100%;
   overflow: hidden;
   margin: 0;
-  background: var(--chat-black);
-  color: var(--chat-text-primary);
+  background: var(--aura-app-background);
+  color: var(--vaadin-text-color);
   font-family: var(--chat-font-body);
   font-size: var(--aura-font-size-m);
   font-weight: var(--chat-font-weight-body);
@@ -91,7 +58,7 @@ body {
 
 body {
   position: relative;
-  accent-color: var(--chat-interactive-strong);
+  accent-color: var(--aura-accent-color);
   font-kerning: normal;
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
   text-rendering: optimizeLegibility;
@@ -103,7 +70,7 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: var(--chat-ambient-glow);
+  background: var(--theme-glow);
   opacity: 0.4;
 }
 
@@ -131,7 +98,7 @@ vaadin-markdown :is(p, ul, ol, li, blockquote) {
 }
 
 vaadin-markdown :is(h1, h2, h3, h4, h5, h6) {
-  color: var(--chat-message-heading-color);
+  color: var(--vaadin-text-color);
   font-weight: var(--chat-markdown-heading-font-weight);
   line-height: var(--chat-message-line-height);
 }
@@ -149,7 +116,7 @@ vaadin-markdown :is(h3, h4, h5, h6) {
 }
 
 vaadin-markdown strong {
-  color: var(--chat-message-strong-color);
+  color: var(--vaadin-text-color);
   font-weight: var(--chat-markdown-heading-font-weight);
 }
 
@@ -170,15 +137,15 @@ vaadin-markdown strong {
   body[data-theme-preference="system"] {
     --chat-font-weight-body: 450;
     --chat-message-font-weight: 450;
-    --chat-composer-surface: var(--theme-light-contrast-surface);
-    --chat-composer-surface-hover: color-mix(in srgb, var(--theme-light-contrast-surface) 92%, white);
+    --chat-composer-surface: var(--color-neutral-900);
+    --chat-composer-surface-hover: color-mix(in srgb, var(--color-neutral-900) 92%, var(--color-white));
     --chat-composer-border: color-mix(in srgb, var(--vaadin-text-color) 52%, transparent);
     --chat-composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 42%, var(--chat-composer-border));
-    --chat-composer-placeholder: color-mix(in srgb, white 48%, var(--theme-light-contrast-surface));
-    --chat-composer-text: #edf5f2;
-    --chat-message-user-surface: color-mix(in srgb, var(--theme-light-contrast-surface) 10%, transparent);
+    --chat-composer-placeholder: color-mix(in srgb, var(--color-white) 48%, var(--color-neutral-900));
+    --chat-composer-text: var(--color-mist-100);
+    --chat-message-user-surface: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
     --chat-message-user-border: color-mix(in srgb, var(--vaadin-text-color) 30%, transparent);
-    --chat-message-user-shadow: rgba(11, 13, 11, 0.08) 0px 2px 8px 0px;
+    --chat-message-user-shadow: color-mix(in srgb, var(--color-black) 8%, transparent) 0px 2px 8px 0px;
   }
 }
 
@@ -190,15 +157,15 @@ html[data-theme-preference="light"],
 body[data-theme-preference="light"] {
   --chat-font-weight-body: 450;
   --chat-message-font-weight: 450;
-  --chat-composer-surface: var(--theme-light-contrast-surface);
-  --chat-composer-surface-hover: color-mix(in srgb, var(--theme-light-contrast-surface) 92%, white);
+  --chat-composer-surface: var(--color-neutral-900);
+  --chat-composer-surface-hover: color-mix(in srgb, var(--color-neutral-900) 92%, var(--color-white));
   --chat-composer-border: color-mix(in srgb, var(--vaadin-text-color) 52%, transparent);
   --chat-composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 42%, var(--chat-composer-border));
-  --chat-composer-placeholder: color-mix(in srgb, white 48%, var(--theme-light-contrast-surface));
-  --chat-composer-text: #edf5f2;
-  --chat-message-user-surface: color-mix(in srgb, var(--theme-light-contrast-surface) 10%, transparent);
+  --chat-composer-placeholder: color-mix(in srgb, var(--color-white) 48%, var(--color-neutral-900));
+  --chat-composer-text: var(--color-mist-100);
+  --chat-message-user-surface: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
   --chat-message-user-border: color-mix(in srgb, var(--vaadin-text-color) 30%, transparent);
-  --chat-message-user-shadow: rgba(11, 13, 11, 0.08) 0px 2px 8px 0px;
+  --chat-message-user-shadow: color-mix(in srgb, var(--color-black) 8%, transparent) 0px 2px 8px 0px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -207,7 +174,8 @@ body[data-theme-preference="light"] {
   html[data-theme-preference="system"],
   body:not([data-theme-preference]),
   body[data-theme-preference="system"] {
-    --chat-composer-surface: var(--theme-dark-composer-surface);
+    --vaadin-border-color-secondary: oklch(26.59% 0.0100 196.6deg);
+    --chat-composer-surface: var(--color-olive-950);
   }
 }
 
@@ -217,5 +185,6 @@ html[data-theme-preference="dark"] {
 
 html[data-theme-preference="dark"],
 body[data-theme-preference="dark"] {
-  --chat-composer-surface: var(--theme-dark-composer-surface);
+  --vaadin-border-color-secondary: oklch(26.59% 0.0100 196.6deg);
+  --chat-composer-surface: var(--color-olive-950);
 }
