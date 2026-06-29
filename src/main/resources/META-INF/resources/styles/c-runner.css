@@ -46,7 +46,7 @@ vaadin-button.conversation-view__debugger-toggle {
   inset-block-start: 50%;
   inset-inline-end: 0;
   transform: translateY(-50%);
-  color: var(--aura-accent-text-color);
+  color: var(--ui-toggle-color);
 }
 
 vaadin-button.conversation-view__debugger-toggle::part(button) {
@@ -62,9 +62,17 @@ vaadin-button.conversation-view__debugger-toggle::part(button) {
   backdrop-filter: blur(16px);
 }
 
-vaadin-button.conversation-view__debugger-toggle vaadin-icon {
+vaadin-button.conversation-view__debugger-toggle:hover,
+vaadin-button.conversation-view__debugger-toggle:focus-within {
+  color: var(--ui-toggle-hover-color);
+}
+
+vaadin-button.conversation-view__debugger-toggle vaadin-icon,
+vaadin-button.conversation-view__debugger-toggle svg {
   width: 1.1rem;
   height: 1.1rem;
+  color: currentColor;
+  stroke: currentColor;
 }
 
 .c-runner-panel,
@@ -125,7 +133,7 @@ button.c-runner-panel-toggle {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--vaadin-text-color-secondary);
+  color: var(--ui-toggle-color);
   box-shadow: none;
   appearance: none;
   cursor: pointer;
@@ -133,7 +141,7 @@ button.c-runner-panel-toggle {
 
 button.c-runner-panel-toggle:hover,
 button.c-runner-panel-toggle:focus-visible {
-  color: var(--vaadin-text-color);
+  color: var(--ui-toggle-hover-color);
 }
 
 button.c-runner-panel-toggle:focus-visible {
@@ -141,10 +149,17 @@ button.c-runner-panel-toggle:focus-visible {
   outline-offset: 2px;
 }
 
-button.c-runner-panel-toggle vaadin-icon {
+button.c-runner-panel-toggle vaadin-icon,
+button.c-runner-panel-toggle svg {
   width: 18px;
   height: 18px;
+  color: currentColor;
+  stroke: currentColor;
   transform: scaleX(-1);
+}
+
+button.c-runner-panel-toggle svg path {
+  stroke: currentColor;
 }
 
 .c-runner-title {
