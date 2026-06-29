@@ -57,4 +57,25 @@
   --chat-composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 28%, var(--chat-composer-border));
   --chat-composer-placeholder: color-mix(in srgb, var(--vaadin-text-color) 42%, var(--aura-app-background));
   --chat-ascii-animation-shadow: 0 0 0.22rem color-mix(in srgb, var(--aura-accent-text-color) 18%, transparent);
+
+  --ui-toggle-color: var(--vaadin-text-color-secondary);
+  --ui-toggle-hover-color: var(--vaadin-text-color);
+
+  --trail-line-color: color-mix(in srgb, var(--vaadin-border-color) 68%, var(--vaadin-text-color-secondary));
+  --trail-line-active-color: color-mix(in srgb, var(--aura-accent-text-color) 52%, var(--vaadin-border-color));
+  --trail-line-width: var(--vaadin-input-field-border-width, 1px);
+  --trail-node-color: color-mix(in srgb, var(--vaadin-text-color-secondary) 78%, transparent);
+  --trail-node-active-color: var(--aura-accent-text-color);
+  --trail-node-size: calc(var(--vaadin-gap-xs) * 1.5);
+  --trail-node-radius: calc(var(--trail-node-size) / 2);
+  --sidebar-trail-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
+  --sidebar-trail-line-x: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
+  --sidebar-trail-line-color: light-dark(
+    color-mix(in srgb, var(--aura-blue) 62%, transparent),
+    color-mix(in srgb, var(--aura-orange) 34%, transparent)
+  );
+  --sidebar-trail-hatch-color: light-dark(
+    color-mix(in srgb, var(--aura-blue) 58%, transparent),
+    color-mix(in srgb, var(--aura-orange) 30%, transparent)
+  );
 }

@@ -105,16 +105,13 @@ class ConversationsHistory extends LitElement {
 
     return html`
       ${this.renderComponentStyles()}
-      <div class="sidebar-rail-entry sidebar-rail-entry-conversations-history" data-rail-target="history">
-        <div class="sidebar-rail-node" data-rail-node="history"></div>
-        <div class="chat-sidebar-header">
-          <div
-            class="conversations-history-title-row"
-            title="Hilos recientes ordenados por fecha y conectados como una sola ruta."
-          >
-            <h1 class="conversations-history-title">Historial</h1>
-            <span class="conversations-history-count">${this.formatConversationCount(this.conversations.length)}</span>
-          </div>
+      <div class="chat-sidebar-header">
+        <div
+          class="conversations-history-title-row"
+          title="Hilos recientes ordenados por fecha y conectados como una sola ruta."
+        >
+          <h1 class="conversations-history-title">Historial</h1>
+          <span class="conversations-history-count">${this.formatConversationCount(this.conversations.length)}</span>
         </div>
       </div>
       <div class="conversations-history-section">
@@ -153,8 +150,8 @@ class ConversationsHistory extends LitElement {
 
         .conversations-history-edge {
           fill: none;
-          stroke: color-mix(in srgb, var(--vaadin-border-color) 68%, var(--vaadin-text-color-secondary));
-          stroke-width: 1.25;
+          stroke: var(--trail-line-color);
+          stroke-width: var(--trail-line-width);
           stroke-linecap: round;
           stroke-linejoin: round;
           opacity: 0.62;
@@ -162,7 +159,7 @@ class ConversationsHistory extends LitElement {
         }
 
         .conversations-history-edge.touches-active {
-          stroke: color-mix(in srgb, var(--aura-accent-text-color) 52%, var(--vaadin-border-color));
+          stroke: var(--trail-line-active-color);
           opacity: 0.82;
         }
 
@@ -172,11 +169,11 @@ class ConversationsHistory extends LitElement {
         }
 
         .conversations-history-traveler-glow {
-          fill: color-mix(in srgb, var(--aura-accent-text-color) 22%, transparent);
+          fill: color-mix(in srgb, var(--trail-node-active-color) 22%, transparent);
         }
 
         .conversations-history-traveler-core {
-          fill: var(--aura-accent-text-color);
+          fill: var(--trail-node-active-color);
         }
       </style>
     `;

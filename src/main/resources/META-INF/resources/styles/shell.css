@@ -6,6 +6,7 @@ vaadin-app-layout {
 .shell-drawer-scroller {
   height: 100%;
   padding: 0;
+  background: var(--aura-app-background);
 }
 
 .shell-drawer-content {
@@ -21,7 +22,9 @@ vaadin-app-layout {
 }
 
 vaadin-app-layout::part(drawer) {
+  overflow: hidden;
   border-inline-end: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  background: var(--aura-app-background);
 }
 
 vaadin-app-layout::part(content) {
@@ -47,6 +50,11 @@ vaadin-drawer-toggle.shell-drawer-toggle {
   top: var(--vaadin-padding-m);
   left: var(--vaadin-padding-m);
   z-index: 40;
+  color: var(--ui-toggle-color);
+}
+
+vaadin-drawer-toggle.shell-drawer-toggle-inside {
+  color: var(--ui-toggle-color);
 }
 
 vaadin-app-layout[drawer-opened] vaadin-drawer-toggle.shell-drawer-toggle {
@@ -59,10 +67,10 @@ vaadin-drawer-toggle.shell-drawer-toggle::part(button) {
   width: 2.45rem;
   height: 2.45rem;
   border-radius: var(--vaadin-radius-m);
-  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 34%, transparent);
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--ui-toggle-color) 34%, transparent);
   background: color-mix(in srgb, var(--aura-app-background) 86%, transparent);
   box-shadow: var(--aura-shadow-s);
-  color: var(--vaadin-text-color-secondary);
+  color: var(--ui-toggle-color);
   backdrop-filter: blur(12px) saturate(1.04);
   transition:
     background var(--chat-transition-fast),
@@ -79,7 +87,7 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside::part(button) {
   border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
   background: var(--vaadin-background-container-strong);
   box-shadow: var(--aura-shadow-s);
-  color: var(--vaadin-text-color-secondary);
+  color: var(--ui-toggle-color);
   transition:
     background var(--chat-transition-fast),
     border-color var(--chat-transition-fast),
@@ -88,11 +96,18 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside::part(button) {
     transform var(--chat-transition-fast);
 }
 
+vaadin-drawer-toggle.shell-drawer-toggle:hover,
+vaadin-drawer-toggle.shell-drawer-toggle:focus-within,
+vaadin-drawer-toggle.shell-drawer-toggle-inside:hover,
+vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within {
+  color: var(--ui-toggle-hover-color);
+}
+
 vaadin-drawer-toggle.shell-drawer-toggle:hover::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button) {
   background: color-mix(in srgb, var(--aura-app-background) 72%, var(--vaadin-background-container-strong));
   border-color: color-mix(in srgb, var(--aura-accent-text-color) 54%, var(--vaadin-border-color));
-  color: var(--vaadin-text-color);
+  color: var(--ui-toggle-hover-color);
   transform: translateY(-1px);
 }
 
@@ -100,8 +115,18 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside:hover::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
   background: var(--vaadin-background-container-strong);
   border-color: var(--aura-accent-text-color);
-  color: var(--vaadin-text-color);
+  color: var(--ui-toggle-hover-color);
   transform: translateY(-1px);
+}
+
+vaadin-drawer-toggle:is(.shell-drawer-toggle, .shell-drawer-toggle-inside) vaadin-icon,
+vaadin-drawer-toggle:is(.shell-drawer-toggle, .shell-drawer-toggle-inside) svg {
+  color: currentColor;
+  stroke: currentColor;
+}
+
+vaadin-drawer-toggle:is(.shell-drawer-toggle, .shell-drawer-toggle-inside) svg path {
+  stroke: currentColor;
 }
 
 vaadin-app-layout > .conversation-view.conversation-view:nth-child(1 of :not([slot])):nth-last-child(1 of :not([slot])) {

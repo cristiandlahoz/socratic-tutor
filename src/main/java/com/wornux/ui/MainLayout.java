@@ -1,6 +1,5 @@
 package com.wornux.ui;
 
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -25,6 +24,7 @@ import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.sidebar.ChatDrawerActions;
 import com.wornux.ui.components.sidebar.ConversationHistoryDrawer;
+import com.wornux.ui.components.sidebar.SidebarTrail;
 import com.wornux.ui.components.sidebar.WorkspaceDrawerNavigation;
 import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.conversation.ConversationViewModel;
@@ -50,10 +50,11 @@ public class MainLayout extends AppLayout {
         this.viewModel.initializeShellState();
 
         var drawerContent = new Div();
-        drawerContent.addClassNames("shell-drawer-content", "chat-sidebar-shell", "sidebar-rail-shell");
+        drawerContent.addClassNames("shell-drawer-content", "chat-sidebar-shell");
         drawerContent.setSizeFull();
+        drawerContent.add(new SidebarTrail());
 
-        drawerContent.add(createRailEntry("brand", createBrandSection()));
+        drawerContent.add(createBrandSection());
 
         var currentAccount = authenticatedAccountService.currentAccount();
         var access = currentAccount
@@ -61,16 +62,15 @@ public class MainLayout extends AppLayout {
                 .orElseGet(MainLayoutAccess::none);
 
         if (currentAccount.isPresent()) {
-            drawerContent.add(createRailEntry("actions", new WorkspaceDrawerNavigation(access)));
+            drawerContent.add(new WorkspaceDrawerNavigation(access));
             if (access.canChat()) {
-                drawerContent.add(createRailEntry("chat", new ChatDrawerActions(access, state, this.viewModel)));
+                drawerContent.add(new ChatDrawerActions(access, state, this.viewModel));
                 drawerContent.add(new ConversationHistoryDrawer(state, this.viewModel));
             }
             currentAccount.map(account -> new ProfileDrawerCard(
                 account,
                 createThemePreferenceControl(state, this.viewModel),
                 authenticationContext::logout))
-                    .map(profileCard -> createRailEntry("profile", profileCard))
                     .ifPresent(drawerContent::add);
         }
 
@@ -136,17 +136,6 @@ public class MainLayout extends AppLayout {
         var control = new Div(label, options);
         control.addClassName("chat-sidebar-theme-control");
         return control;
-    }
-
-    private Div createRailEntry(String target, Component content) {
-        var node = new Div();
-        node.addClassName("sidebar-rail-node");
-        node.getElement().setAttribute("data-rail-node", target);
-
-        var entry = new Div(node, content);
-        entry.addClassNames("sidebar-rail-entry", "sidebar-rail-entry-" + target);
-        entry.getElement().setAttribute("data-rail-target", target);
-        return entry;
     }
 
     private Button createThemePreferenceButton(ThemePreference preference, ConversationState state, ConversationViewModel viewModel) {

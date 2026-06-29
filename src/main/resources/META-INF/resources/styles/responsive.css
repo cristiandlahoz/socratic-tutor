@@ -5,9 +5,9 @@
   }
 
   .chat-sidebar-shell {
-    --sidebar-rail-gutter: 2.25rem;
-    --sidebar-rail-stub-length: 0.64rem;
-    --sidebar-section-inline-end: 0.72rem;
+    --sidebar-trail-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-m));
+    --sidebar-trail-line-x: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
+    --sidebar-section-inline-end: var(--vaadin-gap-m);
   }
 
   .chat-sidebar-app-title {
@@ -69,9 +69,9 @@
   }
 
   .chat-sidebar-shell {
-    --sidebar-rail-gutter: 2.1rem;
-    --sidebar-rail-stub-length: 0.58rem;
-    --sidebar-section-inline-end: 0.64rem;
+    --sidebar-trail-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
+    --sidebar-trail-line-x: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
+    --sidebar-section-inline-end: var(--vaadin-gap-s);
   }
 
   .conversations-history-empty {
