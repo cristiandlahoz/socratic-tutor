@@ -37,6 +37,7 @@ vaadin-app-layout::part(navbar) {
   width: 0;
   height: 0;
   min-height: 0;
+  padding: 0;
   overflow: visible;
   background: transparent;
   box-shadow: none;
@@ -129,7 +130,7 @@ vaadin-drawer-toggle:is(.shell-drawer-toggle, .shell-drawer-toggle-inside) svg p
   stroke: currentColor;
 }
 
-vaadin-app-layout > .conversation-view.conversation-view:nth-child(1 of :not([slot])):nth-last-child(1 of :not([slot])) {
+vaadin-app-layout>.conversation-view.conversation-view:nth-child(1 of :not([slot])):nth-last-child(1 of :not([slot])) {
   background: var(--aura-app-background);
 }
 
