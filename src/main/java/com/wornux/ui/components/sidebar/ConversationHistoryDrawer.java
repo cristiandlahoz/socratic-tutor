@@ -4,10 +4,13 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.conversation.ConversationViewModel;
+import com.wornux.ui.css.UiCss;
 
 public class ConversationHistoryDrawer extends Div {
 
     public ConversationHistoryDrawer(ConversationState state, ConversationViewModel viewModel) {
+        UiCss.CONVERSATION_HISTORY_DRAWER.addTo(this);
+
         var history = new ConversationsHistory();
         history.addConversationOpenRequestedListener(event -> viewModel.onOpenConversation(event.getConversationId()));
 

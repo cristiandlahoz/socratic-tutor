@@ -23,6 +23,8 @@ public final class UiCss {
     public static final CssClass THEME_SWITCHER_OPTIONS = css("theme-switcher__options");
     public static final CssClass THEME_SWITCHER_BUTTON = css("theme-switcher__button");
 
+    public static final CssClass CONVERSATION_HISTORY_DRAWER = css("conversation-history-drawer");
+
     public static final CssClass SIDEBAR_ACTIONS = css("sidebar-actions");
     public static final CssClass SIDEBAR_ACTIONS_LIST = css("sidebar-actions__list");
     public static final CssClass SIDEBAR_ACTIONS_ITEM_BUTTON = css("sidebar-actions__item-button");
