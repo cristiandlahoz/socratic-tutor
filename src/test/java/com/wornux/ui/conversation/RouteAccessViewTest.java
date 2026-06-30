@@ -21,6 +21,7 @@ import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
+import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.ingestion.DocumentIngestionState;
 import com.wornux.ui.ingestion.DocumentIngestionUiController;
 import com.wornux.ui.ingestion.DocumentIngestionView;
@@ -42,7 +43,7 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
         when(event.getLocation()).thenReturn(new Location("chat"));
-        when(viewModel.initializeFromRoute(null, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
+        when(viewModel.initializeFromRoute(null, false, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
         var view = new ConversationView(new ConversationState(),
                 viewModel,
@@ -71,7 +72,7 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
         when(event.getLocation()).thenReturn(new Location("chat"));
-        when(viewModel.initializeFromRoute(null, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
+        when(viewModel.initializeFromRoute(null, false, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
         var view = new ConversationView(new ConversationState(),
                 viewModel,
@@ -105,7 +106,7 @@ class RouteAccessViewTest {
 
         view.beforeEnter(event);
 
-        verify(event).forwardTo("no-access");
+        verify(event).forwardTo(NoAccessView.class);
     }
 
     @Test
@@ -123,6 +124,6 @@ class RouteAccessViewTest {
 
         view.beforeEnter(event);
 
-        verify(event).forwardTo("no-access");
+        verify(event).forwardTo(NoAccessView.class);
     }
 }
