@@ -5,8 +5,7 @@
   }
 
   .app-sidebar {
-    --sidebar-trail-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-m));
-    --sidebar-trail-line-x: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
+    --sidebar-divider-line-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-m));
     --sidebar-section-inline-end: var(--vaadin-gap-m);
   }
 
@@ -69,8 +68,7 @@
   }
 
   .app-sidebar {
-    --sidebar-trail-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
-    --sidebar-trail-line-x: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
+    --sidebar-divider-line-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
     --sidebar-section-inline-end: var(--vaadin-gap-s);
   }
 

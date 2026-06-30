@@ -1,6 +1,6 @@
 .conversation-history__header {
   min-width: 0;
-  margin-left: var(--sidebar-trail-gutter);
+  margin-left: var(--sidebar-divider-line-gutter);
   padding: 0.32rem var(--sidebar-section-inline-end) 0.38rem 0;
 }
 
@@ -41,7 +41,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin-left: var(--sidebar-trail-gutter);
+  margin-left: var(--sidebar-divider-line-gutter);
 }
 
 .conversations-history-body {

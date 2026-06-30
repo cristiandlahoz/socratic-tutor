@@ -55,14 +55,11 @@
   --trail-node-color: color-mix(in srgb, var(--vaadin-text-color-secondary) 78%, transparent);
   --trail-node-active-color: var(--aura-accent-text-color);
   --trail-node-size: calc(var(--vaadin-gap-xs) * 1.5);
-  --sidebar-trail-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
-  --sidebar-trail-line-x: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
-  --sidebar-trail-line-color: light-dark(
+  --sidebar-divider-line-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
+  --sidebar-divider-line-width: 25px;
+  --sidebar-divider-line-border-width: 0.5px;
+  --sidebar-divider-line-color: light-dark(
     color-mix(in srgb, var(--aura-blue) 62%, transparent),
     color-mix(in srgb, var(--aura-orange) 34%, transparent)
-  );
-  --sidebar-trail-hatch-color: light-dark(
-    color-mix(in srgb, var(--aura-blue) 58%, transparent),
-    color-mix(in srgb, var(--aura-orange) 30%, transparent)
   );
 }

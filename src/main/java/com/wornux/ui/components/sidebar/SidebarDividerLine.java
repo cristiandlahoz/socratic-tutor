@@ -4,7 +4,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 
-@Tag("sidebar-trail")
-@JsModule("./sidebar-trail.ts")
-public final class SidebarTrail extends Component {
+@Tag("sidebar-divider-line")
+@JsModule("./sidebar-divider-line.ts")
+public final class SidebarDividerLine extends Component {
 }

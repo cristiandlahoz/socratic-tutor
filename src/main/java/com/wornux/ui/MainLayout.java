@@ -24,7 +24,7 @@ import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.sidebar.ChatDrawerActions;
 import com.wornux.ui.components.sidebar.ConversationHistoryDrawer;
-import com.wornux.ui.components.sidebar.SidebarTrail;
+import com.wornux.ui.components.sidebar.SidebarDividerLine;
 import com.wornux.ui.components.sidebar.WorkspaceDrawerNavigation;
 import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.conversation.ConversationViewModel;
@@ -55,7 +55,7 @@ public class MainLayout extends AppLayout {
         UiCss.SHELL_DRAWER_CONTENT.addTo(drawerContent);
         UiCss.APP_SIDEBAR.addTo(drawerContent);
         drawerContent.setSizeFull();
-        drawerContent.add(new SidebarTrail());
+        drawerContent.add(new SidebarDividerLine());
 
         drawerContent.add(createBrandSection());
 
