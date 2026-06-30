@@ -1,0 +1,29 @@
+# llama-swap configuration for the Socratic Tutor inference engine.
+# Exposes one OpenAI-compatible endpoint; select the backend with the request `model`.
+
+# Some HF models take more than the default 120s to download/load on cold start.
+healthCheckTimeout: 600
+
+models:
+  "AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL":
+    cmd: |
+      ./start-llama-server.sh AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL ${PORT} 7000 8192
+
+  "unsloth/gemma-4-E4B-it-GGUF:IQ4_XS":
+    cmd: |
+      ./start-llama-server.sh unsloth/gemma-4-E4B-it-GGUF:IQ4_XS ${PORT} 4000 4096
+
+# Allow both models to remain loaded concurrently.
+matrix:
+  vars:
+    o: "AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL"
+    g: "unsloth/gemma-4-E4B-it-GGUF:IQ4_XS"
+  sets:
+    both: "o & g"
+
+# Load both models when llama-swap starts.
+hooks:
+  on_startup:
+    preload:
+      - "AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL"
+      - "unsloth/gemma-4-E4B-it-GGUF:IQ4_XS"
