@@ -19,11 +19,13 @@
   background-image: repeating-linear-gradient(135deg,
       transparent 0,
       transparent 4px,
-      var(--color-orange-400, oklch(75% 0.183 55.934)) 4px,
-      var(--color-orange-400, oklch(75% 0.183 55.934)) 4.5px,
+      light-dark(color-mix(in srgb, var(--aura-blue) 34%, transparent),
+        color-mix(in srgb, var(--aura-orange) 34%, transparent)) 4px,
+      light-dark(color-mix(in srgb, var(--aura-blue) 34%, transparent),
+        color-mix(in srgb, var(--aura-orange) 34%, transparent)) 4.5px,
       transparent 4.5px,
       transparent 8px);
-  opacity: 0.18;
+  opacity: var(--sidebar-divider-opacity);
 }
 
 .app-sidebar> :is(.app-sidebar__brand, .sidebar-actions, .profile-drawer-card) {
@@ -193,7 +195,9 @@ vaadin-button.theme-switcher__button:focus-within::part(label) {
   padding-bottom: 0.35rem;
   position: sticky;
   bottom: 0;
-  background: transparent;
+  z-index: 4;
+  isolation: isolate;
+  background: var(--aura-app-background);
 }
 
 .profile-drawer-card::before {
@@ -202,12 +206,15 @@ vaadin-button.theme-switcher__button:focus-within::part(label) {
   top: var(--vaadin-gap-s);
   left: 0;
   right: 0;
+  z-index: 4;
   height: var(--vaadin-input-field-border-width, 1px);
   background: var(--composer-border);
   pointer-events: none;
 }
 
 .profile-drawer-card__header {
+  position: relative;
+  z-index: 2;
   width: 100%;
   margin: 0;
   padding: 0.44rem 0.25rem;
@@ -289,10 +296,13 @@ vaadin-button.theme-switcher__button:focus-within::part(label) {
 }
 
 .profile-drawer-card__menu {
+  position: relative;
+  z-index: 3;
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
   transform: translateY(0.28rem);
+  pointer-events: none;
   transition:
     grid-template-rows 220ms cubic-bezier(0.25, 1, 0.5, 1),
     opacity 165ms ease,
@@ -303,6 +313,7 @@ vaadin-button.theme-switcher__button:focus-within::part(label) {
   grid-template-rows: 1fr;
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 .profile-drawer-card__menu-content {
@@ -311,11 +322,20 @@ vaadin-button.theme-switcher__button:focus-within::part(label) {
   display: flex;
   flex-direction: column;
   gap: var(--vaadin-gap-s);
+  margin-bottom: var(--vaadin-gap-xs);
   padding: 0 0.25rem 0;
+  border: 0 solid transparent;
+  border-radius: var(--vaadin-radius-m);
+  background: var(--vaadin-background-container-strong);
+  box-shadow: none;
 }
 
 .profile-drawer-card.is-expanded .profile-drawer-card__menu-content {
-  padding: 0.18rem 0.25rem var(--vaadin-gap-s);
+  padding: var(--vaadin-gap-s) var(--vaadin-gap-s);
+  border-width: var(--vaadin-input-field-border-width, 1px);
+  border-color: var(--vaadin-border-color-secondary);
+  border-radius: 0;
+  box-shadow: var(--aura-shadow-s);
 }
 
 .profile-drawer-card .theme-switcher {

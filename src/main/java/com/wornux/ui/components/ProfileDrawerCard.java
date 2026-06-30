@@ -1,5 +1,6 @@
 package com.wornux.ui.components;
 
+import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -15,6 +16,7 @@ public class ProfileDrawerCard extends Div {
 
     private final Div menu;
     private final Icon chevron;
+    private final NativeButton headerButton;
 
     public ProfileDrawerCard(Account account, Component themeControl, Runnable logoutAction) {
         UiCss.PROFILE_DRAWER_CARD.addTo(this);
@@ -28,7 +30,9 @@ public class ProfileDrawerCard extends Div {
         chevron = new Icon(VaadinIcon.CHEVRON_UP);
         UiCss.PROFILE_DRAWER_CARD_CHEVRON.addTo(chevron);
 
-        add(menu, createHeaderButton(account));
+        headerButton = createHeaderButton(account);
+        add(menu, headerButton);
+        closeOnOutsideClick();
     }
 
     private NativeButton createHeaderButton(Account account) {
@@ -63,6 +67,36 @@ public class ProfileDrawerCard extends Div {
         UiCss.PROFILE_DRAWER_CARD_LOGOUT.addTo(button);
         button.addClickListener(_ -> logoutAction.run());
         return button;
+    }
+
+    @ClientCallable
+    public void closeFromOutsideClick() {
+        setExpanded(false, headerButton);
+    }
+
+    private void closeOnOutsideClick() {
+        addAttachListener(_ -> getElement().executeJs("""
+                if (this.__profileDrawerOutsideClick) {
+                    return;
+                }
+                this.__profileDrawerOutsideClick = (event) => {
+                    if (!this.classList.contains($0)) {
+                        return;
+                    }
+                    const path = event.composedPath ? event.composedPath() : [];
+                    if (path.includes(this)) {
+                        return;
+                    }
+                    this.$server.closeFromOutsideClick();
+                };
+                document.addEventListener('pointerdown', this.__profileDrawerOutsideClick, true);
+                """, UiCss.EXPANDED.value()));
+        addDetachListener(event -> event.getUI().getPage().executeJs("""
+                if ($0.__profileDrawerOutsideClick) {
+                    document.removeEventListener('pointerdown', $0.__profileDrawerOutsideClick, true);
+                    delete $0.__profileDrawerOutsideClick;
+                }
+                """, getElement()));
     }
 
     private void setExpanded(boolean expanded, NativeButton button) {

@@ -58,8 +58,19 @@
   --sidebar-divider-line-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
   --sidebar-divider-line-width: 25px;
   --sidebar-divider-line-border-width: 0.5px;
-  --sidebar-divider-line-color: light-dark(
-    color-mix(in srgb, var(--aura-blue) 62%, transparent),
-    color-mix(in srgb, var(--aura-orange) 34%, transparent)
-  );
+  --sidebar-divider-opacity: 1;
+  --sidebar-divider-line-color: light-dark(color-mix(in srgb, var(--aura-blue) 34%, transparent),
+      color-mix(in srgb, var(--aura-orange) 34%, transparent));
+}
+
+@media (prefers-color-scheme: dark) {
+
+  html:not([data-theme-preference]),
+  html[data-theme-preference="system"] {
+    --sidebar-divider-opacity: 0.5;
+  }
+}
+
+html[data-theme-preference="dark"] {
+  --sidebar-divider-opacity: 0.5;
 }

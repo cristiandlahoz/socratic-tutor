@@ -28,7 +28,7 @@ class SidebarDividerLine extends LitElement {
           inset: 0;
           border-left: var(--sidebar-divider-line-border-width, 0.5px) solid var(--sidebar-divider-line-color);
           border-right: var(--sidebar-divider-line-border-width, 0.5px) solid var(--sidebar-divider-line-color);
-          opacity: 0.10;
+          opacity: calc(var(--sidebar-divider-opacity) * 0.7);
           pointer-events: none;
         }
       </style>
