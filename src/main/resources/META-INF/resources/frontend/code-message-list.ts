@@ -63,10 +63,16 @@ class CodeMessageList extends LitElement {
   declare markdown: boolean;
   declare thinkingSpinner: BrailleSpinnerName;
 
-  private readonly autoScrollThreshold = 50;
+  private readonly minAutoScrollThreshold = 72;
+  private readonly maxAutoScrollThresholdRatio = 0.12;
+  private readonly rapidScrollIntervalMs = 120;
+  private readonly smoothScrollReleaseMs = 260;
   private autoScrollEnabled = true;
   private programmaticScroll = false;
   private scrollTarget: HTMLElement | null = null;
+  private scrollFrame = 0;
+  private scrollReleaseTimer = 0;
+  private lastScrollAt = 0;
   private readonly handleScroll = () => this.updateAutoScrollState();
 
   constructor() {
@@ -132,7 +138,7 @@ class CodeMessageList extends LitElement {
     }
 
     this.updateComplete.then(() => {
-      requestAnimationFrame(() => this.scrollToBottom(scrollMode === 'auto' ? 'smooth' : 'auto'));
+      this.scheduleScrollToBottom(scrollMode === 'auto' ? this.resolveAutoScrollBehavior() : 'auto');
     });
   }
 
@@ -151,6 +157,14 @@ class CodeMessageList extends LitElement {
   private detachScrollTarget(): void {
     this.scrollTarget?.removeEventListener('scroll', this.handleScroll);
     this.scrollTarget = null;
+    if (this.scrollFrame) {
+      cancelAnimationFrame(this.scrollFrame);
+      this.scrollFrame = 0;
+    }
+    if (this.scrollReleaseTimer) {
+      window.clearTimeout(this.scrollReleaseTimer);
+      this.scrollReleaseTimer = 0;
+    }
   }
 
   private resolveScrollTarget(): HTMLElement {
@@ -163,8 +177,9 @@ class CodeMessageList extends LitElement {
 
   private isCloseToBottom(): boolean {
     const target = this.scrollTarget ?? this.resolveScrollTarget();
+    const threshold = Math.max(this.minAutoScrollThreshold, target.clientHeight * this.maxAutoScrollThresholdRatio);
     const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
-    return distanceToBottom <= this.autoScrollThreshold;
+    return distanceToBottom <= threshold;
   }
 
   private updateAutoScrollState(): void {
@@ -177,15 +192,43 @@ class CodeMessageList extends LitElement {
     }
   }
 
+  private scheduleScrollToBottom(behavior: ScrollBehavior): void {
+    if (this.scrollFrame) {
+      cancelAnimationFrame(this.scrollFrame);
+    }
+
+    this.scrollFrame = requestAnimationFrame(() => {
+      this.scrollFrame = 0;
+      this.scrollToBottom(behavior);
+    });
+  }
+
+  private resolveAutoScrollBehavior(): ScrollBehavior {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return 'auto';
+    }
+
+    const now = performance.now();
+    const rapidUpdate = now - this.lastScrollAt < this.rapidScrollIntervalMs;
+    this.lastScrollAt = now;
+    return rapidUpdate ? 'auto' : 'smooth';
+  }
+
   private scrollToBottom(behavior: ScrollBehavior): void {
     const target = this.scrollTarget ?? this.resolveScrollTarget();
     this.autoScrollEnabled = true;
     this.programmaticScroll = true;
     target.scrollTo({ top: target.scrollHeight, behavior });
-    requestAnimationFrame(() => {
+
+    if (this.scrollReleaseTimer) {
+      window.clearTimeout(this.scrollReleaseTimer);
+    }
+
+    this.scrollReleaseTimer = window.setTimeout(() => {
       this.programmaticScroll = false;
+      this.scrollReleaseTimer = 0;
       this.updateAutoScrollState();
-    });
+    }, behavior === 'smooth' ? this.smoothScrollReleaseMs : 0);
   }
 
   private renderMessage(item: MessageItem) {
