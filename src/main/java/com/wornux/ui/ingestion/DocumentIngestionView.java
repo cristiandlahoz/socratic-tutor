@@ -35,6 +35,7 @@ import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.components.ingestion.DocumentSegmentEditorList;
 import com.wornux.ui.components.ingestion.DocumentStatusPanel;
+import com.wornux.ui.css.UiCss;
 
 @Route(value = "documents", layout = MainLayout.class)
 public class DocumentIngestionView extends Composite<Div> implements BeforeEnterObserver {
@@ -60,28 +61,28 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         this.workspaceRoutingService = workspaceRoutingService;
 
         var eyebrow = new Span("Document ETL");
-        eyebrow.addClassName("document-ingest-eyebrow");
+        UiCss.DOCUMENT_INGEST_EYEBROW.addTo(eyebrow);
 
         var title = new H2("Ingestar información");
-        title.addClassName("document-ingest-title");
+        UiCss.DOCUMENT_INGEST_TITLE.addTo(title);
 
         var description = new Paragraph(
                 "Arrastra un PDF, deja que Docling lo transforme y segmente, valida los segmentos y luego indexalo para preguntas posteriores.");
-        description.addClassName("document-ingest-description");
+        UiCss.DOCUMENT_INGEST_DESCRIPTION.addTo(description);
 
         Button backToConversationButton = new Button("Volver a la conversación");
         backToConversationButton.setId("document-ingestion-back-to-chat");
         backToConversationButton.addThemeVariants(ButtonVariant.TERTIARY);
-        backToConversationButton.addClassName("document-ingest-back-button");
+        UiCss.DOCUMENT_INGEST_BACK_BUTTON.addTo(backToConversationButton);
         backToConversationButton.setIcon(new Icon(VaadinIcon.ARROW_LEFT));
         backToConversationButton.getThemeNames().remove("icon");
         backToConversationButton.addClickListener(_ -> controller.returnToConversation());
 
         var headerCopy = new Div(eyebrow, title, description);
-        headerCopy.addClassName("document-ingest-header-copy");
+        UiCss.DOCUMENT_INGEST_HEADER_COPY.addTo(headerCopy);
 
         var header = new HorizontalLayout(headerCopy, backToConversationButton);
-        header.addClassName("document-ingest-header");
+        UiCss.DOCUMENT_INGEST_HEADER.addTo(header);
         header.setWidthFull();
         header.setPadding(false);
         header.setSpacing(true);
@@ -89,7 +90,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         Upload upload = createUpload(properties);
         var uploadCard = new Div(uploadCardIntro(), upload);
         uploadCard.setId("document-ingestion-upload-card");
-        uploadCard.addClassName("document-ingest-upload-card");
+        UiCss.DOCUMENT_INGEST_UPLOAD_CARD.addTo(uploadCard);
 
         statusPanel = new DocumentStatusPanel();
 
@@ -102,13 +103,13 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         markdownEditor.setMinHeight("22rem");
         markdownEditor.setMaxLength(200_000);
         markdownEditor.setValueChangeMode(ValueChangeMode.EAGER);
-        markdownEditor.addClassName("document-ingest-markdown-editor");
+        UiCss.DOCUMENT_INGEST_MARKDOWN_EDITOR.addTo(markdownEditor);
         markdownEditor.addValueChangeListener(event -> controller.updateMarkdown(event.getValue()));
 
         var markdownShell = new Div(sectionHeader(
             "Fuente canonical",
             "Este markdown es el artefacto editable que después se segmenta e indexa."), markdownEditor);
-        markdownShell.addClassName("document-ingest-markdown-shell");
+        UiCss.DOCUMENT_INGEST_MARKDOWN_SHELL.addTo(markdownShell);
 
         segmentEditorList = new DocumentSegmentEditorList();
         segmentEditorList.setSegmentChangeListener(controller::updateSegment);
@@ -120,21 +121,21 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
                     "Docling HybridChunker crea estos segmentos con metadata de pagina, tokens y captions."),
                 segmentEditorList);
         segmentsShell.setId("document-ingestion-segments-shell");
-        segmentsShell.addClassName("document-ingest-segments-shell");
+        UiCss.DOCUMENT_INGEST_SEGMENTS_SHELL.addTo(segmentsShell);
 
         approveButton = new Button("Aprobar e indexar");
         approveButton.setId("document-ingestion-approve-button");
         approveButton.addThemeVariants(ButtonVariant.PRIMARY);
         approveButton.setIcon(new Icon(VaadinIcon.DATABASE));
         approveButton.getThemeNames().remove("icon");
-        approveButton.addClassName("document-ingest-approve-button");
+        UiCss.DOCUMENT_INGEST_APPROVE_BUTTON.addTo(approveButton);
         approveButton.addClickShortcut(Key.ENTER).listenOn(markdownEditor);
         approveButton.addClickListener(_ -> controller.approve(getUI().orElse(null)));
 
         retryButton = new Button("Reintentar");
         retryButton.setId("document-ingestion-retry-button");
         retryButton.addThemeVariants(ButtonVariant.TERTIARY);
-        retryButton.addClassName("document-ingest-retry-button");
+        UiCss.DOCUMENT_INGEST_RETRY_BUTTON.addTo(retryButton);
         retryButton.addClickListener(_ -> controller.retry(getUI().orElse(null)));
 
         deleteButton = new Button("Eliminar documento");
@@ -144,16 +145,16 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
         var actionBar = new Div(approveButton, retryButton, deleteButton);
         actionBar.setId("document-ingestion-action-bar");
-        actionBar.addClassName("document-ingest-action-bar");
+        UiCss.DOCUMENT_INGEST_ACTION_BAR.addTo(actionBar);
 
         var details = new Details("Visualizar todo el contenido", markdownShell);
         var reviewStack = new Div(details, segmentsShell, actionBar);
         reviewStack.setId("document-ingestion-review-stack");
-        reviewStack.addClassName("document-ingest-review-stack");
+        UiCss.DOCUMENT_INGEST_REVIEW_STACK.addTo(reviewStack);
 
         var root = getContent();
         root.setId("document-ingestion-view");
-        root.addClassName("document-ingest-view");
+        UiCss.DOCUMENT_INGEST_VIEW.addTo(root);
         root.add(header, topGrid, reviewStack);
 
         Signal.effect(
@@ -206,7 +207,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         var button = new Button("Subir PDF");
         button.setId("document-ingestion-upload-button");
         button.addThemeVariants(ButtonVariant.PRIMARY);
-        button.addClassName("document-ingest-upload-button");
+        UiCss.DOCUMENT_INGEST_UPLOAD_BUTTON.addTo(button);
         return button;
     }
 
@@ -238,26 +239,26 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
     private Div uploadCardIntro() {
         var title = new Span("PDF de entrada");
-        title.addClassName("document-ingest-upload-title");
+        UiCss.DOCUMENT_INGEST_UPLOAD_TITLE.addTo(title);
 
         var hint = new Paragraph(
                 "Solo PDF por ahora. Validamos tipo, tamaño y firma básica del archivo antes de llamar a Docling.");
-        hint.addClassName("document-ingest-upload-hint");
+        UiCss.DOCUMENT_INGEST_UPLOAD_HINT.addTo(hint);
 
         var wrapper = new Div(title, hint);
-        wrapper.addClassName("document-ingest-upload-copy");
+        UiCss.DOCUMENT_INGEST_UPLOAD_COPY.addTo(wrapper);
         return wrapper;
     }
 
     private Div sectionHeader(String titleText, String descriptionText) {
         var title = new Span(titleText);
-        title.addClassName("document-ingest-section-title");
+        UiCss.DOCUMENT_INGEST_SECTION_TITLE.addTo(title);
 
         var description = new Paragraph(descriptionText);
-        description.addClassName("document-ingest-section-description");
+        UiCss.DOCUMENT_INGEST_SECTION_DESCRIPTION.addTo(description);
 
         var wrapper = new Div(title, description);
-        wrapper.addClassName("document-ingest-section-header");
+        UiCss.DOCUMENT_INGEST_SECTION_HEADER.addTo(wrapper);
         return wrapper;
     }
 

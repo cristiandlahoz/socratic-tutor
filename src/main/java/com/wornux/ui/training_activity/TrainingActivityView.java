@@ -30,7 +30,6 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.services.context.SetupRequiredException;
@@ -40,6 +39,7 @@ import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
+import com.wornux.ui.css.UiCss;
 
 @Route(value = "evaluations", layout = MainLayout.class)
 public class TrainingActivityView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
@@ -70,7 +70,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         this.authenticatedAccountService = authenticatedAccountService;
 
         var content = getContent();
-        content.addClassName("evaluation-view");
+        UiCss.EVALUATION_VIEW.addTo(content);
         var layout = new VerticalLayout(buildHeader(), buildFormCard(), buildGridCard());
         layout.setPadding(false);
         layout.setSpacing(true);
@@ -80,12 +80,12 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
     private Div buildHeader() {
         var title = new H2("Formative Activities");
-        title.addClassNames(LumoUtility.Margin.NONE);
+        UiCss.UTILITY_MARGIN_NONE.addTo(title);
         var description = new Span(
                 "Manage class-scoped formative activity definitions on the target ERD. Assignment execution remains blocked until the target model can persist its data.");
-        description.addClassName("evaluation-description");
+        UiCss.EVALUATION_DESCRIPTION.addTo(description);
         var header = new Div(title, description);
-        header.addClassName("evaluation-header");
+        UiCss.EVALUATION_HEADER.addTo(header);
         return header;
     }
 
@@ -100,7 +100,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         saveButton.addClickShortcut(Key.ENTER).listenOn(instructionField);
         saveButton.addClickListener(_ -> onSave());
         var card = new Div(titleField, instructionField, saveButton);
-        card.addClassName("evaluation-form-card");
+        UiCss.EVALUATION_FORM_CARD.addTo(card);
         return card;
     }
 
@@ -127,7 +127,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         toolbar.setPadding(false);
 
         var card = new Div(grid, toolbar);
-        card.addClassName("evaluation-grid-card");
+        UiCss.EVALUATION_GRID_CARD.addTo(card);
         return card;
     }
 

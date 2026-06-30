@@ -33,6 +33,7 @@ import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
+import com.wornux.ui.css.UiCss;
 import com.wornux.ui.crunner.DebuggerPanel;
 import jakarta.annotation.security.PermitAll;
 import org.jspecify.annotations.NonNull;
@@ -90,11 +91,11 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 state.messages().get().stream().map(messageSignal -> toMessageListItem(messageSignal.get())).toList()));
 
         var conversationStack = new Div(emptyState, messageList);
-        ConversationCss.THREAD.addTo(conversationStack);
+        UiCss.CONVERSATION_THREAD.addTo(conversationStack);
 
         var historyScroller = new Div(conversationStack);
         historyScroller.setSizeFull();
-        ConversationCss.SCROLL_REGION.addTo(historyScroller);
+        UiCss.CONVERSATION_SCROLL_REGION.addTo(historyScroller);
 
         composer = new ConversationComposer(state, this::submitPrompt);
 
@@ -107,7 +108,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
         var root = getContent();
         root.setSizeFull();
-        ConversationCss.VIEW.addTo(root);
+        UiCss.CONVERSATION_VIEW.addTo(root);
 
         var chatPane = new Div(
                 debuggerToggleButton,
@@ -115,7 +116,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 createUsageBadge(state),
                 createInputShell(state));
         chatPane.setSizeFull();
-        ConversationCss.PANE.addTo(chatPane);
+        UiCss.CONVERSATION_PANE.addTo(chatPane);
 
         debuggerPanel = new DebuggerPanel(cProgramDebugService, cExamplePreparationService, cRunnerExecutor);
         debuggerPanel.setSizeFull();
@@ -124,7 +125,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         splitLayout = new SplitLayout(chatPane, debuggerPanel);
         splitLayout.setSizeFull();
         splitLayout.setSplitterPosition(58);
-        ConversationCss.DEBUG_SPLIT.addTo(splitLayout);
+        UiCss.CONVERSATION_DEBUG_SPLIT.addTo(splitLayout);
         splitLayout.addAttachListener(_ -> installResponsiveSplitBehavior(splitLayout));
         setDebuggerVisible(false);
 
@@ -170,20 +171,20 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private Div createEmptyState(ConversationState chatState) {
         var emptyState = new Div();
-        ConversationCss.EMPTY.addTo(emptyState);
+        UiCss.CONVERSATION_EMPTY.addTo(emptyState);
 
         var animation = new AsciiFrameAnimation("crow3-frames", 240, 30);
-        ConversationCss.EMPTY_ILLUSTRATION.addTo(animation);
+        UiCss.CONVERSATION_EMPTY_ILLUSTRATION.addTo(animation);
 
         var animationFrame = new Div(animation);
-        ConversationCss.EMPTY_FRAME.addTo(animationFrame);
+        UiCss.CONVERSATION_EMPTY_FRAME.addTo(animationFrame);
 
         var title = new H2("Haz tu primera pregunta");
-        ConversationCss.EMPTY_TITLE.addTo(title);
+        UiCss.CONVERSATION_EMPTY_TITLE.addTo(title);
 
         var description = new Paragraph(
                 "Escribe una pregunta y el tutor te ayudará a razonar paso a paso, aclarar conceptos y practicar con ejemplos.");
-        ConversationCss.EMPTY_DESCRIPTION.addTo(description);
+        UiCss.CONVERSATION_EMPTY_DESCRIPTION.addTo(description);
         com.vaadin.flow.signals.Signal.effect(
             title,
             () -> title.setText(
@@ -205,13 +206,13 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private static @NonNull HorizontalLayout getContentRow(H2 title, Paragraph description, Div animationFrame) {
         var textColumn = new VerticalLayout(title, description);
-        ConversationCss.EMPTY_CONTENT.addTo(textColumn);
+        UiCss.CONVERSATION_EMPTY_CONTENT.addTo(textColumn);
         textColumn.setPadding(false);
         textColumn.setSpacing(false);
         textColumn.setMargin(false);
 
         var contentRow = new HorizontalLayout(textColumn, animationFrame);
-        ConversationCss.EMPTY_LAYOUT.addTo(contentRow);
+        UiCss.CONVERSATION_EMPTY_LAYOUT.addTo(contentRow);
         contentRow.setPadding(false);
         contentRow.setSpacing(false);
         contentRow.setMargin(false);
@@ -221,7 +222,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private Div createInputShell(ConversationState state) {
         var inputShell = new Div();
-        ConversationCss.COMPOSER.addTo(inputShell);
+        UiCss.CONVERSATION_COMPOSER.addTo(inputShell);
 
         Signal.effect(inputShell, () -> {
             inputShell.removeAll();
@@ -233,34 +234,34 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private Div createUsageBadge(ConversationState state) {
         var usageText = new Span();
-        ConversationCss.USAGE_TEXT.addTo(usageText);
+        UiCss.CONVERSATION_USAGE_TEXT.addTo(usageText);
 
         var lineageText = new Span();
-        ConversationCss.USAGE_LINEAGE.addTo(lineageText);
+        UiCss.CONVERSATION_USAGE_LINEAGE.addTo(lineageText);
 
         var usageCopy = new Div(usageText, lineageText);
-        ConversationCss.USAGE_COPY.addTo(usageCopy);
+        UiCss.CONVERSATION_USAGE_COPY.addTo(usageCopy);
 
         var helpButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
         helpButton.addThemeVariants(ButtonVariant.TERTIARY);
-        ConversationCss.USAGE_HELP_BUTTON.addTo(helpButton);
+        UiCss.CONVERSATION_USAGE_HELP_BUTTON.addTo(helpButton);
         helpButton.setAriaLabel("Explicar uso del contexto");
 
         var helpPopover = new Popover();
         helpPopover.setTarget(helpButton);
         helpPopover.setModal(false);
-        helpPopover.addClassName("chat-sidebar-help-popover");
+        UiCss.USAGE_HELP_POPOVER.addTo(helpPopover);
 
         var helpTitle = new Span("Uso del contexto");
-        helpTitle.addClassName("chat-sidebar-help-title");
+        UiCss.USAGE_HELP_POPOVER_TITLE.addTo(helpTitle);
 
         var helpCopy = new Paragraph(
                 "Muestra los tokens de entrada del contexto activo y el porcentaje usado respecto al umbral de compactación configurado para resumir la conversación antes de perder calidad.");
-        helpCopy.addClassName("chat-sidebar-help-description");
+        UiCss.USAGE_HELP_POPOVER_DESCRIPTION.addTo(helpCopy);
         helpPopover.add(new Div(helpTitle, helpCopy));
 
         var usageBadge = new Div(usageCopy, helpButton);
-        ConversationCss.USAGE.addTo(usageBadge);
+        UiCss.CONVERSATION_USAGE.addTo(usageBadge);
         usageBadge.setVisible(false);
 
         Signal.effect(usageBadge, () -> {
@@ -314,7 +315,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private Button createDebuggerToggleButton() {
         var button = new Button(new Icon(VaadinIcon.ANGLE_LEFT));
         button.addThemeVariants(ButtonVariant.TERTIARY);
-        ConversationCss.DEBUGGER_TOGGLE.addTo(button);
+        UiCss.CONVERSATION_DEBUGGER_TOGGLE.addTo(button);
         button.setAriaLabel("Abrir depurador");
         button.getElement().setAttribute("title", "Abrir depurador");
         button.addClickListener(_ -> setDebuggerVisible(!debuggerVisible));
@@ -330,7 +331,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         debuggerVisible = visible;
         debuggerPanel.setVisible(visible);
         splitLayout.setSplitterPosition(visible ? 58 : 100);
-        ConversationCss.DEBUG_SPLIT_COLLAPSED.addTo(splitLayout, !visible);
+        UiCss.CONVERSATION_DEBUG_SPLIT_COLLAPSED.addTo(splitLayout, !visible);
         splitLayout.getElement()
                 .executeJs(
                     "const mobile = window.matchMedia('(max-width: 960px)').matches; this.splitterPosition = $0 ? (mobile ? 42 : 58) : 100;",
@@ -346,9 +347,9 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 message.createdAt(),
                 isUserMessage ? "Tú" : "Tutor Socrático");
         item.setUserColorIndex();
-        (isUserMessage ? ConversationCss.MESSAGE_USER : ConversationCss.MESSAGE_ASSISTANT).addTo(item);
+        item.addClass(isUserMessage ? UiCss.CONVERSATION_MESSAGE_USER : UiCss.CONVERSATION_MESSAGE_ASSISTANT);
         if (message.loading()) {
-            ConversationCss.MESSAGE_LOADING.addTo(item);
+            item.addClass(UiCss.CONVERSATION_MESSAGE_LOADING);
         }
         return item;
     }

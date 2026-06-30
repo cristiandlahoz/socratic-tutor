@@ -10,6 +10,7 @@ import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.signals.Signal;
 import com.wornux.ui.components.SidebarItem;
 import com.wornux.ui.conversation.ConversationState;
+import com.wornux.ui.css.UiCss;
 import com.wornux.ui.conversation.ConversationViewModel;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.layout.MainLayoutAccess;
@@ -20,13 +21,13 @@ public class ChatDrawerActions extends Div {
     private final NativeButton newConversationButton;
 
     public ChatDrawerActions(MainLayoutAccess access, ConversationState state, ConversationViewModel viewModel) {
-        addClassNames("chat-sidebar-actions-section", "sidebar-actions");
+        UiCss.SIDEBAR_ACTIONS.addTo(this);
 
         var actions = new Div();
-        actions.addClassNames("chat-sidebar-actions", "sidebar-actions__list");
+        UiCss.SIDEBAR_ACTIONS_LIST.addTo(actions);
 
         newConversationButton = createActionButton(viewModel);
-        newConversationButton.setId("sidebar-chat-action");
+        newConversationButton.setId("sidebar-new-conversation-action");
 
         if (access.canChat()) {
             actions.add(newConversationButton);
@@ -54,7 +55,7 @@ public class ChatDrawerActions extends Div {
 
     private NativeButton createActionButton(ConversationViewModel viewModel) {
         var button = new NativeButton();
-        button.addClassNames("chat-sidebar-action-button", "sidebar-actions__item-button");
+        UiCss.SIDEBAR_ACTIONS_ITEM_BUTTON.addTo(button);
         button.add(new SidebarItem(new Icon(VaadinIcon.PLUS), "Nueva conversación"));
         button.setAriaLabel("Nueva conversación");
         button.addClickListener(_ -> viewModel.onStartNewConversation());
@@ -67,7 +68,7 @@ public class ChatDrawerActions extends Div {
             Component iconComponent) {
         var link = new RouterLink();
         link.setRoute(navigationTarget);
-        link.addClassNames("chat-sidebar-action-link", "sidebar-actions__item-link");
+        UiCss.SIDEBAR_ACTIONS_ITEM_LINK.addTo(link);
         link.getElement().setAttribute("aria-label", label);
         link.add(new SidebarItem(iconComponent, label));
         return link;

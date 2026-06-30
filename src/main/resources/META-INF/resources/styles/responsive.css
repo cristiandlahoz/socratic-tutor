@@ -4,13 +4,13 @@
     padding: var(--vaadin-padding-s);
   }
 
-  .chat-sidebar-shell {
+  .app-sidebar {
     --sidebar-trail-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-m));
     --sidebar-trail-line-x: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
     --sidebar-section-inline-end: var(--vaadin-gap-m);
   }
 
-  .chat-sidebar-app-title {
+  .app-sidebar__brand-title {
     font-size: var(--aura-font-size-xl);
   }
 
@@ -68,7 +68,7 @@
     padding: var(--vaadin-padding-s);
   }
 
-  .chat-sidebar-shell {
+  .app-sidebar {
     --sidebar-trail-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
     --sidebar-trail-line-x: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
     --sidebar-section-inline-end: var(--vaadin-gap-s);
@@ -86,7 +86,7 @@
     grid-template-columns: 2rem minmax(0, 1fr);
   }
 
-  .chat-sidebar-app-title {
+  .app-sidebar__brand-title {
     font-size: var(--aura-font-size-xl);
   }
 

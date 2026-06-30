@@ -32,6 +32,7 @@ import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import jakarta.annotation.security.PermitAll;
+import com.wornux.ui.css.UiCss;
 
 @Route(value = "admin", layout = MainLayout.class)
 @PageTitle("Espacio de administración del sistema")
@@ -66,7 +67,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         this.workspaceRoutingService = workspaceRoutingService;
         this.systemAdminWorkspaceService = systemAdminWorkspaceService;
 
-        addClassName("workspace-view");
+        UiCss.WORKSPACE_VIEW.addTo(this);
         configureGrid();
 
         add(
@@ -90,19 +91,20 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         var heading = new H1(title);
         var copy = new Paragraph(description);
         var header = new Div(heading, copy);
-        header.addClassNames("workspace-hero", "workspace-hero-plain");
+        UiCss.WORKSPACE_HERO.addTo(header);
+        UiCss.WORKSPACE_HERO_PLAIN.addTo(header);
         return header;
     }
 
     private Component createToolbar() {
-        searchField.addClassName("workspace-field");
+        UiCss.WORKSPACE_FIELD.addTo(searchField);
         searchField.setPlaceholder("Nombre de la institución");
         searchField.setClearButtonVisible(true);
         searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(_ -> applyFilters());
 
-        adminFilter.addClassName("workspace-field");
+        UiCss.WORKSPACE_FIELD.addTo(adminFilter);
         adminFilter.setLabel("Filtro");
         adminFilter.setItems(AdminFilter.values());
         adminFilter.setItemLabelGenerator(filter -> filter.label);
@@ -113,7 +115,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         createButton.setIcon(new Icon(VaadinIcon.PLUS));
 
         var toolbar = new HorizontalLayout(searchField, adminFilter, createButton);
-        toolbar.addClassName("workspace-grid-toolbar");
+        UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
         toolbar.setPadding(false);
         toolbar.setMargin(false);
         toolbar.setSpacing(false);
@@ -121,7 +123,8 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
     }
 
     private void configureGrid() {
-        tenantGrid.addClassNames("workspace-grid", "workspace-tenant-grid");
+        UiCss.WORKSPACE_GRID.addTo(tenantGrid);
+        UiCss.WORKSPACE_TENANT_GRID.addTo(tenantGrid);
         tenantGrid.setWidthFull();
         tenantGrid.setSelectionMode(Grid.SelectionMode.NONE);
         tenantGrid.setEmptyStateText("No hay instituciones que coincidan con los filtros.");
@@ -163,17 +166,17 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private void openCreateTenantDialog() {
         var dialog = new Dialog();
-        dialog.addClassName("workspace-dialog");
+        UiCss.WORKSPACE_DIALOG.addTo(dialog);
         dialog.setHeaderTitle("Crear institución");
 
         var nameField = new TextField("Nombre");
-        nameField.addClassName("workspace-field");
+        UiCss.WORKSPACE_FIELD.addTo(nameField);
         nameField.setPlaceholder("Ej. Facultad de Ingeniería");
         nameField.setRequiredIndicatorVisible(true);
         nameField.setWidthFull();
 
         var help = new Paragraph("La institución se crea sin administrador asignado. Podrás enviar la invitación desde la columna de opciones.");
-        help.addClassName("workspace-dialog-copy");
+        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         dialog.add(new VerticalLayout(help, nameField));
 
         var cancel = secondaryButton("Cancelar", dialog::close);
@@ -185,16 +188,16 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private void openInviteDialog(Tenant tenant) {
         var dialog = new Dialog();
-        dialog.addClassName("workspace-dialog");
+        UiCss.WORKSPACE_DIALOG.addTo(dialog);
         dialog.setHeaderTitle("Enviar invitación");
 
         var tenantName = new Span(tenant.getName());
-        tenantName.addClassName("workspace-dialog-context");
+        UiCss.WORKSPACE_DIALOG_CONTEXT.addTo(tenantName);
         var help = new Paragraph("Escribe el correo de la persona que administrará esta institución. Hasta que acepte la invitación, la institución seguirá sin administrador activo.");
-        help.addClassName("workspace-dialog-copy");
+        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
 
         var emailField = new EmailField("Correo del administrador institucional");
-        emailField.addClassName("workspace-field");
+        UiCss.WORKSPACE_FIELD.addTo(emailField);
         emailField.setPlaceholder("nombre@institucion.edu");
         emailField.setRequiredIndicatorVisible(true);
         emailField.setErrorMessage("Escribe un correo válido.");

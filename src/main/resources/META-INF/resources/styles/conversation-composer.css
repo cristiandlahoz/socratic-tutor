@@ -67,16 +67,16 @@ vaadin-button.conversation-usage__help-button:focus-within::part(button) {
 vaadin-text-area.conversation-composer__input {
   display: block;
   overflow: hidden;
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--chat-composer-border);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-border);
   border-radius: var(--vaadin-radius-m);
-  background: var(--chat-composer-surface);
+  background: var(--composer-surface);
   box-shadow: var(--aura-shadow-xs);
 }
 
 vaadin-text-area.conversation-composer__input:hover,
 vaadin-text-area.conversation-composer__input[focused],
 vaadin-text-area.conversation-composer__input:focus-within {
-  border-color: var(--chat-composer-border-hover);
+  border-color: var(--composer-border-hover);
   box-shadow: var(--aura-shadow-s);
 }
 
@@ -94,15 +94,15 @@ vaadin-text-area.conversation-composer__input::part(input-field) {
 
 
 vaadin-text-area.conversation-composer__input>textarea {
-  color: var(--chat-composer-text, var(--vaadin-text-color));
+  color: var(--composer-text-color, var(--vaadin-text-color));
   font-family: var(--aura-font-family);
-  font-size: var(--chat-text-code);
+  font-size: var(--code-text-size);
   font-weight: var(--aura-font-weight-regular);
-  line-height: var(--chat-leading-code);
+  line-height: var(--code-line-height);
 }
 
 vaadin-text-area.conversation-composer__input>textarea::placeholder {
-  color: var(--chat-composer-placeholder);
+  color: var(--composer-placeholder-color);
 }
 
 vaadin-button.conversation-composer__send-button {
@@ -117,15 +117,15 @@ vaadin-button.conversation-composer__send-button::part(button) {
   width: 2.8rem;
   height: 2.8rem;
   border-radius: var(--vaadin-radius-m);
-  background: color-mix(in srgb, var(--chat-composer-surface) 82%, var(--aura-app-background));
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--chat-composer-border);
+  background: color-mix(in srgb, var(--composer-surface) 82%, var(--aura-app-background));
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-border);
   box-shadow: var(--aura-shadow-xs);
   color: color-mix(in srgb, var(--vaadin-text-color) 78%, var(--aura-accent-text-color));
   transition:
-    background var(--chat-transition-fast),
-    border-color var(--chat-transition-fast),
-    color var(--chat-transition-fast),
-    transform var(--chat-transition-fast);
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-fast);
 }
 
 vaadin-button.conversation-composer__send-button:hover::part(button) {
@@ -151,7 +151,7 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
 }
 
 .conversation-composer>* {
-  width: min(100%, var(--chat-content-max-width));
+  width: min(100%, var(--conversation-content-max-width));
   min-width: 0;
   margin: 0 auto;
   pointer-events: auto;
@@ -169,11 +169,11 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
   background: color-mix(in srgb, var(--aura-surface-color) 92%, var(--aura-app-background));
   transform: translateY(1rem);
   transition:
-    opacity var(--chat-transition-fast),
+    opacity var(--motion-fast),
     transform 0.24s ease,
     padding 0.24s ease,
-    border-color var(--chat-transition-fast),
-    box-shadow var(--chat-transition-fast);
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast);
 }
 
 .conversation-question--open {
@@ -291,9 +291,9 @@ vaadin-button.conversation-question__option::part(button) {
   color: var(--vaadin-text-color);
   text-align: left;
   transition:
-    border-color var(--chat-transition-fast),
-    transform var(--chat-transition-fast),
-    background var(--chat-transition-fast);
+    border-color var(--motion-fast),
+    transform var(--motion-fast),
+    background var(--motion-fast);
 }
 
 vaadin-button.conversation-question__option::part(label) {
@@ -427,10 +427,10 @@ vaadin-button.conversation-question__submit-button::part(button) {
   background: var(--vaadin-background-container);
   color: var(--vaadin-text-color-secondary);
   transition:
-    background var(--chat-transition-fast),
-    border-color var(--chat-transition-fast),
-    color var(--chat-transition-fast),
-    transform var(--chat-transition-fast);
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-fast);
 }
 
 vaadin-button.conversation-question__nav-button:hover::part(button) {

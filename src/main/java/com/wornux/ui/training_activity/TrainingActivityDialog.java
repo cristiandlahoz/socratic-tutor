@@ -13,6 +13,7 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.services.training_activity.TrainingActivityService;
+import com.wornux.ui.css.UiCss;
 
 public class TrainingActivityDialog extends Div {
 
@@ -33,14 +34,14 @@ public class TrainingActivityDialog extends Div {
         this.onSave = onSave;
         this.onClose = onClose;
 
-        addClassName("evaluation-overlay");
+        UiCss.EVALUATION_OVERLAY.addTo(this);
 
         var backdrop = new Div();
-        backdrop.addClassName("evaluation-overlay-backdrop");
+        UiCss.EVALUATION_OVERLAY_BACKDROP.addTo(backdrop);
         backdrop.addClickListener(_ -> close());
 
         var panel = new Div();
-        panel.addClassName("evaluation-overlay-panel");
+        UiCss.EVALUATION_OVERLAY_PANEL.addTo(panel);
 
         var title = new H3("Activity: %s".formatted(activity.getTitle()));
         title.getStyle().set("margin", "0");
@@ -74,7 +75,7 @@ public class TrainingActivityDialog extends Div {
         var closeButton = new Button("Close", _ -> close());
 
         var footer = new HorizontalLayout(saveButton, closeButton);
-        footer.addClassName("evaluation-overlay-footer");
+        UiCss.EVALUATION_OVERLAY_FOOTER.addTo(footer);
         footer.setPadding(false);
         footer.setSpacing(true);
 

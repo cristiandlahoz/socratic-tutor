@@ -4,7 +4,7 @@
   flex-direction: column;
   justify-content: flex-start;
   padding-top: clamp(6.4rem, 6.5vh, 7.1rem);
-  animation: chat-fade-up var(--chat-transition-fast);
+  animation: fade-up var(--motion-fast);
 }
 
 .conversation-empty__layout {
@@ -48,7 +48,7 @@
   font-size: clamp(2.2rem, 9.2vw, 3rem);
   line-height: 0.94;
   font-weight: var(--aura-font-weight-semibold);
-  letter-spacing: var(--chat-tracking-display);
+  letter-spacing: var(--display-letter-spacing);
   color: var(--vaadin-text-color);
   text-wrap: balance;
 }
@@ -64,7 +64,7 @@
   text-wrap: pretty;
 }
 
-@keyframes chat-fade-up {
+@keyframes fade-up {
   from {
     opacity: 0;
     transform: translateY(10px);

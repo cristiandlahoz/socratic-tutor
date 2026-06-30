@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import com.wornux.ui.css.CssClass;
 import lombok.Getter;
 
 public final class CodeMessageListItem {
@@ -43,7 +44,11 @@ public final class CodeMessageListItem {
         return classNames.isEmpty() ? null : String.join(" ", classNames);
     }
 
-    public void addClassNames(String... classNames) {
+    public void addClass(CssClass className) {
+        addClassValues(className.value());
+    }
+
+    private void addClassValues(String... classNames) {
         boolean changed = false;
         for (String className : classNames) {
             if (className != null && !className.isBlank()) {

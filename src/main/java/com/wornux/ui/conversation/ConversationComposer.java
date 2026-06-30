@@ -1,5 +1,7 @@
 package com.wornux.ui.conversation;
 
+import com.wornux.ui.css.UiCss;
+
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
@@ -18,19 +20,19 @@ public final class ConversationComposer extends Composite<Div> {
         field.setWidthFull();
         field.setPlaceholder("Escribe tu mensaje aquí...");
         field.setAriaLabel("Escribe tu mensaje aquí");
-        ConversationCss.COMPOSER_INPUT.addTo(field);
+        UiCss.CONVERSATION_COMPOSER_INPUT.addTo(field);
         field.bindValue(state.composerText(), state.composerText()::set);
         field.bindEnabled(state.composerEnabled());
         field.setValueChangeMode(ValueChangeMode.EAGER);
 
         sendButton = new Button(new Icon(VaadinIcon.ARROW_UP));
-        ConversationCss.COMPOSER_SEND_BUTTON.addTo(sendButton);
+        UiCss.CONVERSATION_COMPOSER_SEND_BUTTON.addTo(sendButton);
         sendButton.setAriaLabel("Enviar mensaje");
         sendButton.bindEnabled(state.sendEnabled());
         sendButton.addClickListener(_ -> submitHandler.run());
 
         var content = getContent();
-        ConversationCss.COMPOSER_FIELD_WRAP.addTo(content);
+        UiCss.CONVERSATION_COMPOSER_FIELD_WRAP.addTo(content);
         content.add(field, sendButton);
         content.addAttachListener(_ -> installEnterSubmitHandler());
     }

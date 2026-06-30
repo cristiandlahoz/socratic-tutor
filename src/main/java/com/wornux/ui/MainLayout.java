@@ -28,6 +28,8 @@ import com.wornux.ui.components.sidebar.SidebarTrail;
 import com.wornux.ui.components.sidebar.WorkspaceDrawerNavigation;
 import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.conversation.ConversationViewModel;
+import com.wornux.ui.css.CssClass;
+import com.wornux.ui.css.UiCss;
 import com.wornux.ui.layout.MainLayoutAccess;
 import jakarta.annotation.security.PermitAll;
 
@@ -45,12 +47,13 @@ public class MainLayout extends AppLayout {
             WorkspaceRoutingService workspaceRoutingService,
             AuthenticationContext authenticationContext) {
         setPrimarySection(Section.DRAWER);
-        addToNavbar(createDrawerToggle("shell-drawer-toggle", "Abrir menú"));
+        addToNavbar(createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE, "Abrir menú"));
         this.viewModel = viewModel;
         this.viewModel.initializeShellState();
 
         var drawerContent = new Div();
-        drawerContent.addClassNames("shell-drawer-content", "chat-sidebar-shell");
+        UiCss.SHELL_DRAWER_CONTENT.addTo(drawerContent);
+        UiCss.APP_SIDEBAR.addTo(drawerContent);
         drawerContent.setSizeFull();
         drawerContent.add(new SidebarTrail());
 
@@ -76,7 +79,7 @@ public class MainLayout extends AppLayout {
 
         var drawerScroller = new Scroller(drawerContent, Scroller.ScrollDirection.NONE);
         drawerScroller.setSizeFull();
-        drawerScroller.addClassName("shell-drawer-scroller");
+        UiCss.SHELL_DRAWER_SCROLLER.addTo(drawerScroller);
         addToDrawer(drawerScroller);
     }
 
@@ -90,51 +93,51 @@ public class MainLayout extends AppLayout {
 
     private Div createBrandSection() {
         var appTitle = new H1("Tutor Socrático");
-        appTitle.addClassName("chat-sidebar-app-title");
+        UiCss.APP_SIDEBAR_BRAND_TITLE.addTo(appTitle);
 
         var appDescription = "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia "
                 + "con conversaciones guiadas.";
         var appInfo = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
         appInfo.addThemeVariants(ButtonVariant.TERTIARY);
-        appInfo.addClassName("chat-sidebar-app-info");
+        UiCss.APP_SIDEBAR_BRAND_INFO.addTo(appInfo);
         appInfo.setAriaLabel("Acerca de Tutor Socrático");
         appInfo.setTooltipText(appDescription);
 
         var appTitleGroup = new Div(appTitle, appInfo);
-        appTitleGroup.addClassName("chat-sidebar-app-title-group");
+        UiCss.APP_SIDEBAR_BRAND_TITLE_GROUP.addTo(appTitleGroup);
 
-        var drawerToggle = createDrawerToggle("shell-drawer-toggle-inside", "Cerrar menú");
+        var drawerToggle = createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE_INSIDE, "Cerrar menú");
 
         var appTitleRow = new Div(appTitleGroup, drawerToggle);
-        appTitleRow.addClassName("chat-sidebar-app-title-row");
+        UiCss.APP_SIDEBAR_BRAND_ROW.addTo(appTitleRow);
 
         var appHeader = new Div(appTitleRow);
-        appHeader.addClassName("chat-sidebar-app-header");
+        UiCss.APP_SIDEBAR_BRAND.addTo(appHeader);
         return appHeader;
     }
 
-    private DrawerToggle createDrawerToggle(String className, String ariaLabel) {
+    private DrawerToggle createDrawerToggle(CssClass className, String ariaLabel) {
         var toggle = new DrawerToggle();
         toggle.setIcon(new ToggleIcon());
         toggle.addThemeVariants(ButtonVariant.TERTIARY);
-        toggle.addClassName(className);
+        className.addTo(toggle);
         toggle.setAriaLabel(ariaLabel);
         return toggle;
     }
 
     private Div createThemePreferenceControl(ConversationState state, ConversationViewModel viewModel) {
         var label = new Span("Tema");
-        label.addClassName("chat-sidebar-theme-label");
+        UiCss.THEME_SWITCHER_LABEL.addTo(label);
 
         var options = new Div();
-        options.addClassName("chat-sidebar-theme-options");
+        UiCss.THEME_SWITCHER_OPTIONS.addTo(options);
 
         for (var preference : ThemePreference.values()) {
             options.add(createThemePreferenceButton(preference, state, viewModel));
         }
 
         var control = new Div(label, options);
-        control.addClassName("chat-sidebar-theme-control");
+        UiCss.THEME_SWITCHER.addTo(control);
         return control;
     }
 
@@ -145,7 +148,7 @@ public class MainLayout extends AppLayout {
             case DARK -> "Oscuro";
         });
         button.addThemeVariants(ButtonVariant.TERTIARY);
-        button.addClassName("chat-sidebar-theme-button");
+        UiCss.THEME_SWITCHER_BUTTON.addTo(button);
         button.getThemeNames().remove("icon");
         button.getElement().setAttribute("aria-label", "Cambiar tema a %s".formatted(button.getText()));
         button.addClickListener(_ -> viewModel.onThemePreferenceChanged(preference));
@@ -154,10 +157,10 @@ public class MainLayout extends AppLayout {
             var active = state.themePreference().get() == preference;
             button.getElement().setAttribute("aria-pressed", Boolean.toString(active));
             if (active) {
-                button.addClassName("is-active");
+                UiCss.ACTIVE.addTo(button);
             }
             else {
-                button.removeClassName("is-active");
+                button.getElement().getClassList().remove(UiCss.ACTIVE.value());
             }
         });
 

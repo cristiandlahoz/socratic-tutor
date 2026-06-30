@@ -1,4 +1,4 @@
-.chat-sidebar-help-popover::part(content) {
+.usage-help-popover::part(content) {
   max-width: 16rem;
   padding: var(--vaadin-padding-s) var(--vaadin-padding-m);
   border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
@@ -8,7 +8,7 @@
   box-shadow: var(--aura-shadow-s);
 }
 
-.chat-sidebar-help-title {
+.usage-help-popover__title {
   display: block;
   margin-bottom: var(--vaadin-gap-xs);
   color: var(--vaadin-text-color);
@@ -18,7 +18,7 @@
   text-transform: uppercase;
 }
 
-.chat-sidebar-help-description {
+.usage-help-popover__description {
   margin: 0;
   color: var(--vaadin-text-color-secondary);
   font-family: var(--aura-font-family);

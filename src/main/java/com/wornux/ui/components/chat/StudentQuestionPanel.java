@@ -25,7 +25,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.local.ValueSignal;
 import com.wornux.dtos.chat.questions.*;
-import com.wornux.ui.conversation.ConversationCss;
+import com.wornux.ui.css.UiCss;
 import org.jspecify.annotations.NonNull;
 
 public class StudentQuestionPanel extends Composite<Div> {
@@ -50,33 +50,33 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     public StudentQuestionPanel() {
         var root = getContent();
-        ConversationCss.QUESTION.addTo(root);
+        UiCss.CONVERSATION_QUESTION.addTo(root);
 
-        ConversationCss.QUESTION_TITLE.addTo(title);
-        ConversationCss.QUESTION_PROGRESS.addTo(progress);
-        ConversationCss.QUESTION_VIEWPORT.addTo(questionViewport);
+        UiCss.CONVERSATION_QUESTION_TITLE.addTo(title);
+        UiCss.CONVERSATION_QUESTION_PROGRESS.addTo(progress);
+        UiCss.CONVERSATION_QUESTION_VIEWPORT.addTo(questionViewport);
 
         previousButton.addThemeVariants(ButtonVariant.TERTIARY);
-        ConversationCss.QUESTION_NAV_BUTTON.addTo(previousButton);
+        UiCss.CONVERSATION_QUESTION_NAV_BUTTON.addTo(previousButton);
         previousButton.setAriaLabel("Pregunta anterior");
         previousButton.addClickListener(_ -> showPreviousQuestion());
 
         nextButton.addThemeVariants(ButtonVariant.TERTIARY);
-        ConversationCss.QUESTION_NAV_BUTTON.addTo(nextButton);
+        UiCss.CONVERSATION_QUESTION_NAV_BUTTON.addTo(nextButton);
         nextButton.setAriaLabel("Pregunta siguiente");
         nextButton.addClickListener(_ -> showNextQuestion());
 
-        ConversationCss.QUESTION_SUBMIT_BUTTON.addTo(submitButton);
+        UiCss.CONVERSATION_QUESTION_SUBMIT_BUTTON.addTo(submitButton);
         submitButton.addThemeVariants(ButtonVariant.TERTIARY);
         submitButton.addClickListener(_ -> submitAnswers());
 
-        ConversationCss.QUESTION_COMPOSER_ACTIONS.addTo(composerActions);
+        UiCss.CONVERSATION_QUESTION_COMPOSER_ACTIONS.addTo(composerActions);
         composerActions.add(previousButton, nextButton, submitButton);
 
-        ConversationCss.QUESTION_COMPOSER.addTo(responseComposer);
+        UiCss.CONVERSATION_QUESTION_COMPOSER.addTo(responseComposer);
 
         var header = new Div(title, progress);
-        ConversationCss.QUESTION_HEADER_ROW.addTo(header);
+        UiCss.CONVERSATION_QUESTION_HEADER_ROW.addTo(header);
 
         root.add(header, questionViewport, responseComposer);
         updateSubmitEnabled();
@@ -93,7 +93,7 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     public void setSubmitting(boolean submitting) {
         this.submitting = submitting;
-        getContent().getElement().getClassList().set(ConversationCss.QUESTION_SUBMITTING.value(), submitting);
+        getContent().getElement().getClassList().set(UiCss.CONVERSATION_QUESTION_SUBMITTING.value(), submitting);
         updateSubmitEnabled();
     }
 
@@ -110,12 +110,12 @@ public class StudentQuestionPanel extends Composite<Div> {
         if (questionSet == null) {
             title.setText("");
             progress.setText("");
-            rootClasses.remove(ConversationCss.QUESTION_OPEN.value());
+            rootClasses.remove(UiCss.CONVERSATION_QUESTION_OPEN.value());
             updateSubmitEnabled();
             return;
         }
 
-        rootClasses.add(ConversationCss.QUESTION_OPEN.value());
+        rootClasses.add(UiCss.CONVERSATION_QUESTION_OPEN.value());
 
         for (int index = 0; index < questionSet.questions().size(); index++) {
             var questionKey = questionKey(index);
@@ -153,10 +153,10 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     private Div buildQuestionCard(StudentQuestion question, String questionKey) {
         var card = new Div();
-        ConversationCss.QUESTION_CARD.addTo(card);
+        UiCss.CONVERSATION_QUESTION_CARD.addTo(card);
 
         var options = new VerticalLayout();
-        ConversationCss.QUESTION_OPTIONS.addTo(options);
+        UiCss.CONVERSATION_QUESTION_OPTIONS.addTo(options);
         options.setPadding(false);
         options.setSpacing(false);
         options.setMargin(false);
@@ -175,28 +175,28 @@ public class StudentQuestionPanel extends Composite<Div> {
 
         var infoButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
         infoButton.addThemeVariants(ButtonVariant.TERTIARY);
-        ConversationCss.QUESTION_OPTION_INFO.addTo(infoButton);
+        UiCss.CONVERSATION_QUESTION_OPTION_INFO.addTo(infoButton);
         infoButton.setAriaLabel("Ver detalle de %s".formatted(option.label()));
 
         var infoPopover = new Popover();
         infoPopover.setTarget(infoButton);
         infoPopover.setModal(false);
-        ConversationCss.QUESTION_OPTION_POPOVER.addTo(infoPopover);
+        UiCss.CONVERSATION_QUESTION_OPTION_POPOVER.addTo(infoPopover);
         var popoverDescription = new Paragraph(option.description());
-        ConversationCss.QUESTION_OPTION_DESCRIPTION.addTo(popoverDescription);
-        ConversationCss.QUESTION_OPTION_DESCRIPTION_POPOVER.addTo(popoverDescription);
+        UiCss.CONVERSATION_QUESTION_OPTION_DESCRIPTION.addTo(popoverDescription);
+        UiCss.CONVERSATION_QUESTION_OPTION_DESCRIPTION_POPOVER.addTo(popoverDescription);
         infoPopover.add(popoverDescription);
 
         var button = new Button(optionCopy);
         button.addThemeVariants(ButtonVariant.TERTIARY);
-        ConversationCss.QUESTION_OPTION.addTo(button);
+        UiCss.CONVERSATION_QUESTION_OPTION.addTo(button);
         button.getElement().setAttribute("data-question-id", questionKey);
         button.getElement().setAttribute("data-option-index", Integer.toString(optionIndex));
         button.getElement().setAttribute("aria-pressed", Boolean.FALSE.toString());
         button.addClickListener(_ -> toggleOption(questionKey, optionKey));
 
         var mobileHeader = new HorizontalLayout(button, infoButton);
-        ConversationCss.QUESTION_OPTION_MOBILE_HEADER.addTo(mobileHeader);
+        UiCss.CONVERSATION_QUESTION_OPTION_MOBILE_HEADER.addTo(mobileHeader);
         mobileHeader.setPadding(false);
         mobileHeader.setSpacing(false);
         mobileHeader.setMargin(false);
@@ -204,7 +204,7 @@ public class StudentQuestionPanel extends Composite<Div> {
         mobileHeader.setAlignItems(Alignment.START);
 
         var row = new VerticalLayout(mobileHeader, infoPopover);
-        ConversationCss.QUESTION_OPTION_ROW.addTo(row);
+        UiCss.CONVERSATION_QUESTION_OPTION_ROW.addTo(row);
         row.setPadding(false);
         row.setSpacing(false);
         row.setMargin(false);
@@ -220,13 +220,13 @@ public class StudentQuestionPanel extends Composite<Div> {
         var selectedSignal = selectedOptionsByQuestion.get(questionId);
         Signal.effect(row, () -> {
             var isSelected = selectedSignal.get().contains(optionKey);
-            row.getElement().getClassList().set(ConversationCss.QUESTION_OPTION_SELECTED.value(), isSelected);
+            row.getElement().getClassList().set(UiCss.CONVERSATION_QUESTION_OPTION_SELECTED.value(), isSelected);
             applySelectedButtonStyle(button, isSelected);
         });
     }
 
     private void applySelectedButtonStyle(Button button, boolean isSelected) {
-        button.getElement().getClassList().set(ConversationCss.QUESTION_OPTION_SELECTED.value(), isSelected);
+        button.getElement().getClassList().set(UiCss.CONVERSATION_QUESTION_OPTION_SELECTED.value(), isSelected);
         button.getElement().setAttribute("aria-pressed", Boolean.toString(isSelected));
         if (isSelected) {
             button.addThemeVariants(ButtonVariant.WARNING);
@@ -238,14 +238,14 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     private static @NonNull VerticalLayout getOptionCopy(StudentQuestionOption option) {
         var label = new Span(option.label());
-        ConversationCss.QUESTION_OPTION_LABEL.addTo(label);
+        UiCss.CONVERSATION_QUESTION_OPTION_LABEL.addTo(label);
 
         var inlineDescription = new Paragraph(option.description());
-        ConversationCss.QUESTION_OPTION_DESCRIPTION.addTo(inlineDescription);
-        ConversationCss.QUESTION_OPTION_DESCRIPTION_INLINE.addTo(inlineDescription);
+        UiCss.CONVERSATION_QUESTION_OPTION_DESCRIPTION.addTo(inlineDescription);
+        UiCss.CONVERSATION_QUESTION_OPTION_DESCRIPTION_INLINE.addTo(inlineDescription);
 
         var optionCopy = new VerticalLayout(label, inlineDescription);
-        ConversationCss.QUESTION_OPTION_COPY.addTo(optionCopy);
+        UiCss.CONVERSATION_QUESTION_OPTION_COPY.addTo(optionCopy);
         optionCopy.setPadding(false);
         optionCopy.setSpacing(false);
         optionCopy.setMargin(false);
@@ -254,7 +254,7 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     private TextArea buildCustomTextArea(String questionId) {
         var customText = new TextArea();
-        ConversationCss.QUESTION_CUSTOM_TEXT.addTo(customText);
+        UiCss.CONVERSATION_QUESTION_CUSTOM_TEXT.addTo(customText);
         customText.setWidthFull();
         customText.getElement().setAttribute("data-question-id", questionId);
         customText.setValueChangeMode(ValueChangeMode.EAGER);
@@ -274,7 +274,7 @@ public class StudentQuestionPanel extends Composite<Div> {
 
     private Div buildResponseComposer(String questionKey) {
         var composer = new Div();
-        ConversationCss.QUESTION_COMPOSER_WRAP.addTo(composer);
+        UiCss.CONVERSATION_QUESTION_COMPOSER_WRAP.addTo(composer);
         composer.add(customTextByQuestion.get(questionKey));
         composer.add(composerActions);
         return composer;

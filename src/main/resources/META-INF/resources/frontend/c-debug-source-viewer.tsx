@@ -301,7 +301,7 @@ class CDebugSourceViewerElement extends HTMLElement {
             min-height: 0;
             background: var(--c-runner-editor-background, transparent) !important;
             color: var(--c-runner-editor-text, inherit);
-            font-family: var(--chat-font-mono);
+            font-family: var(--font-mono);
             font-size: var(--c-runner-editor-font-size, 14px);
             line-height: var(--c-runner-editor-line-height, 1.55);
           }
@@ -333,7 +333,7 @@ class CDebugSourceViewerElement extends HTMLElement {
 
           .cm-gutters {
             border: 0;
-            color: var(--c-runner-editor-gutter, var(--chat-text-secondary));
+            color: var(--c-runner-editor-gutter, var(--vaadin-text-color-secondary));
           }
 
           .cm-lineNumbers .cm-gutterElement {
@@ -355,7 +355,7 @@ class CDebugSourceViewerElement extends HTMLElement {
             border-radius: var(--vaadin-radius-xs, 3px);
             background: var(
               --c-runner-active-line-background,
-              color-mix(in srgb, var(--chat-accent) 16%, transparent)
+              color-mix(in srgb, var(--aura-accent-text-color) 16%, transparent)
             );
             color: var(--c-runner-active-line-foreground, inherit) !important;
             margin-inline-end: 0.2rem;
@@ -370,7 +370,7 @@ class CDebugSourceViewerElement extends HTMLElement {
             content: var(--c-runner-active-line-marker, "->");
             position: absolute;
             inset-inline-start: -1.05rem;
-            color: var(--c-runner-active-line-marker-color, var(--chat-accent));
+            color: var(--c-runner-active-line-marker-color, var(--aura-accent-text-color));
           }
 
           .cm-lintRange-error {
@@ -400,7 +400,7 @@ class CDebugSourceViewerElement extends HTMLElement {
             background: color-mix(in srgb, var(--vaadin-background-container) 94%, var(--color-black));
             box-shadow: var(--aura-shadow-m);
             color: var(--vaadin-text-color);
-            font-family: var(--chat-font-mono, monospace);
+            font-family: var(--font-mono, monospace);
             font-size: 12px;
             line-height: 1.45;
             white-space: pre-wrap;

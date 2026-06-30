@@ -7,6 +7,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
+import com.wornux.ui.css.UiCss;
 
 @Route(value = "no-access", autoLayout = false)
 @PageTitle("No access")
@@ -14,7 +15,7 @@ import jakarta.annotation.security.PermitAll;
 public class NoAccessView extends VerticalLayout {
 
     public NoAccessView() {
-        addClassName("onboarding-view");
+        UiCss.ONBOARDING_VIEW.addTo(this);
         setSizeFull();
         setJustifyContentMode(JustifyContentMode.CENTER);
         setDefaultHorizontalComponentAlignment(Alignment.CENTER);
@@ -23,7 +24,7 @@ public class NoAccessView extends VerticalLayout {
         var description = new Paragraph(
                 "This account does not have an active role or class context. Ask a system admin, tenant admin, or professor to invite you.");
         var shell = new Div(title, description);
-        shell.addClassName("onboarding-terminal-card");
+        UiCss.ONBOARDING_TERMINAL_CARD.addTo(shell);
         add(shell);
     }
 }

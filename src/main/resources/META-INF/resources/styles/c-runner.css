@@ -203,7 +203,7 @@ button.c-runner-panel-toggle svg path {
   border: var(--c-runner-border-width) solid var(--c-runner-card-border);
   border-radius: var(--vaadin-radius-s);
   color: var(--vaadin-text-color);
-  font-family: var(--chat-font-mono);
+  font-family: var(--font-mono);
   font-size: var(--aura-font-size-xs);
   line-height: 1;
 }
@@ -294,7 +294,7 @@ button.c-runner-panel-toggle svg path {
 
 .c-runner-vars-table td {
   color: var(--c-runner-code-text, var(--vaadin-text-color));
-  font-family: var(--chat-font-mono);
+  font-family: var(--font-mono);
   font-size: var(--aura-font-size-s);
 }
 
@@ -398,7 +398,7 @@ vaadin-button.c-runner-validate-button {
   border-radius: var(--vaadin-radius-s);
   background: var(--c-runner-code-surface);
   color: var(--c-runner-code-muted, var(--vaadin-text-color-secondary));
-  font-family: var(--chat-font-mono);
+  font-family: var(--font-mono);
   font-size: var(--aura-font-size-xs);
   line-height: 1.1;
   text-overflow: ellipsis;
@@ -483,7 +483,7 @@ vaadin-text-area.c-runner-stdin {
   --vaadin-input-field-value-color: var(--c-runner-code-text, var(--vaadin-text-color));
   --vaadin-input-field-placeholder-color: var(--c-runner-code-muted, var(--vaadin-text-color-disabled));
   --vaadin-input-field-border-radius: var(--vaadin-radius-xs, 3px);
-  font-family: var(--chat-font-mono);
+  font-family: var(--font-mono);
   font-size: var(--aura-font-size-xs);
 }
 
@@ -515,7 +515,7 @@ vaadin-text-area.c-runner-stdin::part(input-field) {
   border-radius: var(--vaadin-radius-xs, 3px);
   background: var(--c-runner-code-surface);
   color: var(--c-runner-code-text, var(--vaadin-text-color));
-  font-family: var(--chat-font-mono);
+  font-family: var(--font-mono);
   font-size: var(--aura-font-size-xs);
   line-height: 1.45;
   white-space: pre-wrap;
@@ -543,7 +543,7 @@ vaadin-text-area.c-runner-stdin::part(input-field) {
   margin: 0;
   overflow: auto;
   color: var(--c-runner-danger);
-  font-family: var(--chat-font-mono);
+  font-family: var(--font-mono);
   font-size: var(--aura-font-size-s);
   line-height: 1.45;
   white-space: pre-wrap;

@@ -1,26 +1,21 @@
-.chat-sidebar-actions,
 .sidebar-actions__list {
   display: flex;
   flex-direction: column;
   gap: var(--vaadin-gap-xs);
 }
 
-.chat-sidebar-actions-section,
 .sidebar-actions {
   min-width: 0;
   padding-right: var(--sidebar-section-inline-end);
 }
 
-.chat-sidebar-action-link,
 .sidebar-actions__item-link,
-.chat-sidebar-action-button,
 .sidebar-actions__item-button {
   display: block;
   color: inherit;
   text-decoration: none;
 }
 
-.chat-sidebar-action-button,
 .sidebar-actions__item-button {
   width: 100%;
   padding: 0;
@@ -33,9 +28,9 @@
   text-align: left;
 }
 
-.chat-sidebar-action-link-content,
 .sidebar-actions__item-content {
   width: 100%;
+  min-width: 0;
   min-height: 2.25rem;
   display: grid;
   grid-template-columns: 1rem minmax(0, 1fr);
@@ -52,24 +47,20 @@
   font-size: var(--aura-font-size-s);
   letter-spacing: -0.01em;
   text-transform: none;
-  transition: background var(--chat-transition-fast), color var(--chat-transition-fast), transform var(--chat-transition-fast);
+  transition: background var(--motion-fast), color var(--motion-fast), transform var(--motion-fast);
 }
 
-.sidebar-actions__item-content {
-  min-width: 0;
-}
-
-.chat-sidebar-action-button:hover .sidebar-actions__item-content,
-.chat-sidebar-action-button:focus-visible .sidebar-actions__item-content,
-.chat-sidebar-action-link:hover .chat-sidebar-action-link-content,
-.chat-sidebar-action-link:focus-visible .chat-sidebar-action-link-content,
-.chat-sidebar-action-link[aria-current="page"] .chat-sidebar-action-link-content {
+.sidebar-actions__item-button:hover .sidebar-actions__item-content,
+.sidebar-actions__item-button:focus-visible .sidebar-actions__item-content,
+.sidebar-actions__item-link:hover .sidebar-actions__item-content,
+.sidebar-actions__item-link:focus-visible .sidebar-actions__item-content,
+.sidebar-actions__item-link[aria-current="page"] .sidebar-actions__item-content {
   background: color-mix(in srgb, var(--vaadin-background-container-strong) 38%, transparent);
   color: var(--vaadin-text-color);
   transform: translateX(1px);
 }
 
-.chat-sidebar-action-link[aria-current="page"] .chat-sidebar-action-link-content {
+.sidebar-actions__item-link[aria-current="page"] .sidebar-actions__item-content {
   background: color-mix(in srgb, var(--aura-accent-text-color) 7%, transparent);
 }
 
@@ -83,19 +74,17 @@
   white-space: nowrap;
 }
 
-.chat-sidebar-action-button:disabled,
 .sidebar-actions__item-button:disabled {
   opacity: 0.45;
   cursor: default;
 }
 
-.chat-sidebar-action-button:focus-visible,
-.chat-sidebar-action-link:focus-visible {
+.sidebar-actions__item-button:focus-visible,
+.sidebar-actions__item-link:focus-visible {
   outline: var(--vaadin-focus-ring-width, 2px) solid var(--aura-accent-border-color);
   outline-offset: 2px;
 }
 
-.chat-sidebar-action-icon,
 .sidebar-actions__item-icon {
   flex: none;
   width: 0.9rem;

@@ -74,11 +74,11 @@ vaadin-drawer-toggle.shell-drawer-toggle::part(button) {
   color: var(--ui-toggle-color);
   backdrop-filter: blur(12px) saturate(1.04);
   transition:
-    background var(--chat-transition-fast),
-    border-color var(--chat-transition-fast),
-    color var(--chat-transition-fast),
-    opacity var(--chat-transition-fast),
-    transform var(--chat-transition-fast);
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast),
+    opacity var(--motion-fast),
+    transform var(--motion-fast);
 }
 
 vaadin-drawer-toggle.shell-drawer-toggle-inside::part(button) {
@@ -90,11 +90,11 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside::part(button) {
   box-shadow: var(--aura-shadow-s);
   color: var(--ui-toggle-color);
   transition:
-    background var(--chat-transition-fast),
-    border-color var(--chat-transition-fast),
-    color var(--chat-transition-fast),
-    opacity var(--chat-transition-fast),
-    transform var(--chat-transition-fast);
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast),
+    opacity var(--motion-fast),
+    transform var(--motion-fast);
 }
 
 vaadin-drawer-toggle.shell-drawer-toggle:hover,

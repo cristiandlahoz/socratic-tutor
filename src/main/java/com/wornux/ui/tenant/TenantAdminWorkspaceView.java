@@ -40,6 +40,7 @@ import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import jakarta.annotation.security.PermitAll;
+import com.wornux.ui.css.UiCss;
 
 @Route(value = "tenant", layout = MainLayout.class)
 @PageTitle("Espacio de administración institucional")
@@ -67,7 +68,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         this.workspaceRoutingService = workspaceRoutingService;
         this.tenantAdminWorkspaceService = tenantAdminWorkspaceService;
 
-        addClassName("workspace-view");
+        UiCss.WORKSPACE_VIEW.addTo(this);
         configureToolbarFields();
         configureGrid();
 
@@ -91,17 +92,17 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private void configureToolbarFields() {
         tenantSelector.setItemLabelGenerator(AccessibleTenant::tenantName);
-        tenantSelector.addClassName("workspace-context-select");
+        UiCss.WORKSPACE_CONTEXT_SELECT.addTo(tenantSelector);
         tenantSelector.addValueChangeListener(event -> switchTenant(event.getValue()));
 
-        searchField.addClassName("workspace-field");
+        UiCss.WORKSPACE_FIELD.addTo(searchField);
         searchField.setPlaceholder("Clase, código, asignatura o período");
         searchField.setClearButtonVisible(true);
         searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(_ -> applyFilters());
 
-        periodFilter.addClassName("workspace-field");
+        UiCss.WORKSPACE_FIELD.addTo(periodFilter);
         periodFilter.setLabel("Período");
         periodFilter.setEmptySelectionAllowed(true);
         periodFilter.setEmptySelectionCaption("Todos los períodos");
@@ -110,7 +111,8 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     }
 
     private void configureGrid() {
-        groupClassGrid.addClassNames("workspace-grid", "workspace-tenant-grid");
+        UiCss.WORKSPACE_GRID.addTo(groupClassGrid);
+        UiCss.WORKSPACE_TENANT_GRID.addTo(groupClassGrid);
         groupClassGrid.setWidthFull();
         groupClassGrid.setSelectionMode(Grid.SelectionMode.NONE);
         groupClassGrid.setEmptyStateText("No hay clases que coincidan con la búsqueda.");
@@ -175,7 +177,8 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         var heading = new H1(title);
         var copy = new Paragraph(description);
         var header = new Div(heading, copy);
-        header.addClassNames("workspace-hero", "workspace-hero-plain");
+        UiCss.WORKSPACE_HERO.addTo(header);
+        UiCss.WORKSPACE_HERO_PLAIN.addTo(header);
         return header;
     }
 
@@ -188,7 +191,8 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         createClass.setIcon(new Icon(VaadinIcon.PLUS));
 
         var toolbar = new HorizontalLayout(tenantSelector, searchField, periodFilter, createPeriod, createSubject, createClass);
-        toolbar.addClassNames("workspace-grid-toolbar", "workspace-tenant-admin-toolbar");
+        UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
+        UiCss.WORKSPACE_TENANT_ADMIN_TOOLBAR.addTo(toolbar);
         toolbar.setPadding(false);
         toolbar.setMargin(false);
         toolbar.setSpacing(false);
@@ -207,7 +211,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private void openCreatePeriodDialog() {
         var dialog = new Dialog();
-        dialog.addClassName("workspace-dialog");
+        UiCss.WORKSPACE_DIALOG.addTo(dialog);
         dialog.setHeaderTitle("Crear período académico");
 
         var code = new TextField("Código");
@@ -219,7 +223,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         addWorkspaceFieldClasses(code, name, startsAt, endsAt);
 
         var help = new Paragraph("Los períodos ordenan las clases y ayudan a encontrar rápido la oferta activa de la institución.");
-        help.addClassName("workspace-dialog-copy");
+        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         dialog.add(new VerticalLayout(help, formRow(code, name), formRow(startsAt, endsAt)));
         dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), primaryButton("Crear", () -> onCreatePeriod(dialog, code, name, startsAt, endsAt)));
         dialog.open();
@@ -228,7 +232,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private void openCreateSubjectDialog() {
         var dialog = new Dialog();
-        dialog.addClassName("workspace-dialog");
+        UiCss.WORKSPACE_DIALOG.addTo(dialog);
         dialog.setHeaderTitle("Crear asignatura");
 
         var code = new TextField("Código");
@@ -238,7 +242,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         addWorkspaceFieldClasses(code, name);
 
         var help = new Paragraph("Crea la asignatura una vez y reutilízala al abrir nuevas clases en distintos períodos.");
-        help.addClassName("workspace-dialog-copy");
+        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         dialog.add(new VerticalLayout(help, formRow(code, name)));
         dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), primaryButton("Crear", () -> onCreateSubject(dialog, code, name)));
         dialog.open();
@@ -247,7 +251,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private void openCreateClassDialog() {
         var dialog = new Dialog();
-        dialog.addClassName("workspace-dialog");
+        UiCss.WORKSPACE_DIALOG.addTo(dialog);
         dialog.setHeaderTitle("Crear clase");
 
         var subject = new ComboBox<Subject>("Asignatura");
@@ -263,7 +267,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         addWorkspaceFieldClasses(subject, period, code, name);
 
         var help = new Paragraph("La clase conecta una asignatura con un período. Después podrás invitar al profesor desde la fila creada.");
-        help.addClassName("workspace-dialog-copy");
+        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         dialog.add(new VerticalLayout(help, formRow(subject, period), formRow(code, name)));
         dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), primaryButton("Crear", () -> onCreateClass(dialog, subject, period, code, name)));
         dialog.open();
@@ -272,19 +276,19 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private void openInviteProfessorDialog(GroupClass groupClass) {
         var dialog = new Dialog();
-        dialog.addClassName("workspace-dialog");
+        UiCss.WORKSPACE_DIALOG.addTo(dialog);
         dialog.setHeaderTitle("Invitar profesor");
 
         var className = new Span("%s · %s".formatted(groupClass.getCode(), groupClass.getName()));
-        className.addClassName("workspace-dialog-context");
+        UiCss.WORKSPACE_DIALOG_CONTEXT.addTo(className);
         var help = new Paragraph("Escribe el correo de la persona que tendrá acceso docente a esta clase.");
-        help.addClassName("workspace-dialog-copy");
+        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         var email = new EmailField("Correo del profesor");
         email.setPlaceholder("profesor@institucion.edu");
         email.setRequiredIndicatorVisible(true);
         email.setErrorMessage("Escribe un correo válido.");
         email.setWidthFull();
-        email.addClassName("workspace-field");
+        UiCss.WORKSPACE_FIELD.addTo(email);
 
         var send = primaryButton("Enviar invitación", () -> onInviteProfessor(dialog, groupClass, email));
         send.setIcon(new Icon(VaadinIcon.PAPERPLANE));
@@ -296,7 +300,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private HorizontalLayout formRow(Component... children) {
         var row = new HorizontalLayout(children);
-        row.addClassName("workspace-form-row");
+        UiCss.WORKSPACE_FORM_ROW.addTo(row);
         row.setPadding(false);
         row.setMargin(false);
         row.setSpacing(false);
@@ -305,7 +309,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private void addWorkspaceFieldClasses(Component... fields) {
         for (var field : fields) {
-            field.addClassName("workspace-field");
+            UiCss.WORKSPACE_FIELD.addTo(field);
         }
     }
 

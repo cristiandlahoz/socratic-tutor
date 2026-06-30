@@ -29,6 +29,7 @@ import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.conversation.ConversationView;
 import jakarta.annotation.security.PermitAll;
+import com.wornux.ui.css.UiCss;
 
 @Route(value = "student", layout = MainLayout.class)
 @PageTitle("Espacio del estudiante")
@@ -49,7 +50,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         this.workspaceRoutingService = workspaceRoutingService;
         this.studentWorkspaceService = studentWorkspaceService;
 
-        addClassName("workspace-view");
+        UiCss.WORKSPACE_VIEW.addTo(this);
         configureToolbarFields();
         configureGrid();
 
@@ -75,13 +76,14 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         var heading = new H1(title);
         var copy = new Paragraph(description);
         var header = new Div(heading, copy);
-        header.addClassNames("workspace-hero", "workspace-hero-plain");
+        UiCss.WORKSPACE_HERO.addTo(header);
+        UiCss.WORKSPACE_HERO_PLAIN.addTo(header);
         return header;
     }
 
     private void configureToolbarFields() {
         classSelector.setItemLabelGenerator(value -> "%s - %s".formatted(value.classCode(), value.className()));
-        classSelector.addClassName("workspace-context-select");
+        UiCss.WORKSPACE_CONTEXT_SELECT.addTo(classSelector);
         classSelector.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 switchClass(event.getValue());
@@ -94,7 +96,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         openConversationButton.setIcon(new Icon(VaadinIcon.COMMENTS));
 
         var toolbar = new HorizontalLayout(classSelector, openConversationButton);
-        toolbar.addClassName("workspace-grid-toolbar");
+        UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
         toolbar.setPadding(false);
         toolbar.setMargin(false);
         toolbar.setSpacing(false);
@@ -102,7 +104,8 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     }
 
     private void configureGrid() {
-        assignmentsGrid.addClassNames("workspace-grid", "workspace-tenant-grid");
+        UiCss.WORKSPACE_GRID.addTo(assignmentsGrid);
+        UiCss.WORKSPACE_TENANT_GRID.addTo(assignmentsGrid);
         assignmentsGrid.setWidthFull();
         assignmentsGrid.setSelectionMode(Grid.SelectionMode.NONE);
         assignmentsGrid.setEmptyStateText("No hay actividades asignadas para la clase activa.");

@@ -35,6 +35,8 @@ import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CExamplePreparationStatus;
 import com.wornux.services.crunner.CProgramDebugService;
 import com.wornux.ui.components.ToggleIcon;
+import com.wornux.ui.css.CssClass;
+import com.wornux.ui.css.UiCss;
 
 @StyleSheet("styles/c-runner.css")
 public final class DebuggerPanel extends Composite<Div> implements HasSize {
@@ -72,7 +74,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         this.cRunnerExecutor = Objects.requireNonNull(cRunnerExecutor, "cRunnerExecutor must not be null");
 
         var title = new H2("Depurador Visual");
-        title.addClassName("c-runner-title");
+        UiCss.C_RUNNER_TITLE.addTo(title);
 
         toggle.addClickListener(_ -> closeHandler.run());
 
@@ -80,33 +82,33 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         header.setPadding(false);
         header.setSpacing(false);
         header.setWidthFull();
-        header.addClassName("c-runner-header");
+        UiCss.C_RUNNER_HEADER.addTo(header);
 
-        statusText.addClassName("c-runner-status-text");
+        UiCss.C_RUNNER_STATUS_TEXT.addTo(statusText);
         statusText.setText("Pega codigo C o abre un ejemplo del asistente para visualizar la ejecucion.");
-        localsLabel.addClassName("c-runner-group-label");
-        variableCount.addClassName("c-runner-state-pill");
+        UiCss.C_RUNNER_GROUP_LABEL.addTo(localsLabel);
+        UiCss.C_RUNNER_STATE_PILL.addTo(variableCount);
 
-        validateButton.addClassName("c-runner-validate-button");
+        UiCss.C_RUNNER_VALIDATE_BUTTON.addTo(validateButton);
         validateButton.addClickListener(_ -> debugCurrentSourceAsync());
         stepButton.addClickListener(_ -> stepActiveLine());
         resetButton.addClickListener(_ -> resetActiveLine());
-        stdinField.addClassName("c-runner-stdin");
+        UiCss.C_RUNNER_STDIN.addTo(stdinField);
         stdinField.setValueChangeMode(ValueChangeMode.EAGER);
         stdinField.setPlaceholder("stdin antes de ejecutar, ej: 42");
-        stdoutText.addClassName("c-runner-stdout");
+        UiCss.C_RUNNER_STDOUT.addTo(stdoutText);
 
         var controls = new HorizontalLayout(validateButton, stepButton, resetButton);
         controls.setPadding(false);
         controls.setSpacing(false);
-        controls.addClassName("c-runner-controls");
+        UiCss.C_RUNNER_CONTROLS.addTo(controls);
 
         sourceViewer.setValue("");
         sourceViewer.setEditable(true);
         sourceViewer.setDiagnostics(List.of());
         sourceViewer.setActiveLine(activeLine);
         sourceViewer.setSizeFull();
-        sourceViewer.addClassName("c-runner-source-viewer");
+        UiCss.C_RUNNER_SOURCE_VIEWER.addTo(sourceViewer);
         sourceViewer.addValueChangeListener(event -> {
             debugJobSequence++;
             currentSource = event.getValue();
@@ -126,19 +128,19 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         });
 
         var viewerShell = new Div(sourceViewer);
-        viewerShell.addClassName("c-runner-viewer-shell");
+        UiCss.C_RUNNER_VIEWER_SHELL.addTo(viewerShell);
 
         var codeFrame = new Div(viewerShell);
-        codeFrame.addClassName("c-runner-code-frame");
+        UiCss.C_RUNNER_CODE_FRAME.addTo(codeFrame);
 
         var root = getContent();
         root.setSizeFull();
         var content = new Div();
-        content.addClassName("c-runner-panel");
+        UiCss.C_RUNNER_PANEL.addTo(content);
         content.add(header, createStateCard(), controls, statusText, codeFrame, createTerminalCard());
         var scrollable = new Scroller(content, ScrollDirection.VERTICAL);
         scrollable.setSizeFull();
-        scrollable.addClassName("c-runner-scroll-shell");
+        UiCss.C_RUNNER_SCROLL_SHELL.addTo(scrollable);
         root.add(scrollable);
         renderLocals(List.of());
         renderStdout("");
@@ -382,7 +384,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
 
     private static Button createIconButton(VaadinIcon icon, String label) {
         var button = new Button(new Icon(icon));
-        button.addClassName("c-runner-control-button");
+        UiCss.C_RUNNER_CONTROL_BUTTON.addTo(button);
         button.getElement().setAttribute("aria-label", label);
         button.getElement().setAttribute("title", label);
         return button;
@@ -390,52 +392,52 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
 
     private static ToggleIcon createPanelToggleButton() {
         var toggle = new ToggleIcon();
-        toggle.addClassName("c-runner-panel-toggle");
+        UiCss.C_RUNNER_PANEL_TOGGLE.addTo(toggle);
         toggle.getElement().setAttribute("title", "Ocultar depurador");
         return toggle;
     }
 
     private VerticalLayout createStateCard() {
         var stateTitle = new Span("Estado");
-        stateTitle.addClassName("c-runner-state-title");
+        UiCss.C_RUNNER_STATE_TITLE.addTo(stateTitle);
 
         var stateHeader = new HorizontalLayout(stateTitle, variableCount);
         stateHeader.setPadding(false);
         stateHeader.setSpacing(false);
         stateHeader.setWidthFull();
         stateHeader.expand(stateTitle);
-        stateHeader.addClassName("c-runner-state-header");
+        UiCss.C_RUNNER_STATE_HEADER.addTo(stateHeader);
 
         var localsGroup = new HorizontalLayout(new Icon(VaadinIcon.EYE), localsLabel);
         localsGroup.setPadding(false);
         localsGroup.setSpacing(false);
         localsGroup.setWidthFull();
-        localsGroup.addClassName("c-runner-state-group");
+        UiCss.C_RUNNER_STATE_GROUP.addTo(localsGroup);
 
         var body = new VerticalLayout();
         body.setPadding(false);
         body.setSpacing(false);
         body.setWidthFull();
         body.add(localsGroup, createVariablesScroll());
-        body.addClassName("c-runner-state-body");
+        UiCss.C_RUNNER_STATE_BODY.addTo(body);
 
         var card = new VerticalLayout(stateHeader, body);
         card.setPadding(false);
         card.setSpacing(false);
         card.setWidthFull();
-        card.addClassName("c-runner-state-card");
+        UiCss.C_RUNNER_STATE_CARD.addTo(card);
         return card;
     }
 
     private Div createVariablesScroll() {
         var scroll = new Div(createVariablesTable());
-        scroll.addClassName("c-runner-vars-scroll");
+        UiCss.C_RUNNER_VARS_SCROLL.addTo(scroll);
         return scroll;
     }
 
     private HtmlContainer createVariablesTable() {
         var table = new HtmlContainer("table");
-        table.addClassName("c-runner-vars-table");
+        UiCss.C_RUNNER_VARS_TABLE.addTo(table);
 
         var thead = new HtmlContainer("thead", createHeaderRow());
         table.add(thead, localsBody);
@@ -444,16 +446,16 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
 
     private static HtmlContainer createHeaderRow() {
         return new HtmlContainer("tr",
-                createCell("th", "Name", "c-runner-col-name"),
-                createCell("th", "Value", "c-runner-col-value"));
+                createCell("th", "Name", UiCss.C_RUNNER_COL_NAME),
+                createCell("th", "Value", UiCss.C_RUNNER_COL_VALUE));
     }
 
     private static HtmlContainer createVariableRow(String name, String value) {
         var nameText = new Span(name);
-        nameText.addClassName("c-runner-var-name");
+        UiCss.C_RUNNER_VAR_NAME.addTo(nameText);
 
         var valueText = new Span(value);
-        valueText.addClassName("c-runner-var-value");
+        UiCss.C_RUNNER_VAR_VALUE.addTo(valueText);
         valueText.getElement().setAttribute("title", value == null ? "" : value);
         valueText.getElement().setAttribute("tabindex", "0");
         valueText.getElement().setAttribute("role", "button");
@@ -461,59 +463,55 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         attachValuePopover(name, value, valueText);
 
         return new HtmlContainer("tr",
-                createCell("td", nameText, "c-runner-col-name"),
-                createCell("td", valueText, "c-runner-col-value"));
+                createCell("td", nameText, UiCss.C_RUNNER_COL_NAME),
+                createCell("td", valueText, UiCss.C_RUNNER_COL_VALUE));
     }
 
     private Div createTerminalCard() {
         var title = new Span("Terminal");
-        title.addClassName("c-runner-terminal-title");
+        UiCss.C_RUNNER_TERMINAL_TITLE.addTo(title);
 
         var body = new Div(stdinField, createStdoutBlock());
-        body.addClassName("c-runner-terminal-body");
+        UiCss.C_RUNNER_TERMINAL_BODY.addTo(body);
 
         var card = new Div(title, body);
-        card.addClassName("c-runner-terminal-card");
+        UiCss.C_RUNNER_TERMINAL_CARD.addTo(card);
         return card;
     }
 
     private Div createStdoutBlock() {
         var label = new Span("stdout");
-        label.addClassName("c-runner-terminal-label");
+        UiCss.C_RUNNER_TERMINAL_LABEL.addTo(label);
 
         var block = new Div(label, stdoutText);
-        block.addClassName("c-runner-stdout-block");
+        UiCss.C_RUNNER_STDOUT_BLOCK.addTo(block);
         return block;
     }
 
     private static void attachValuePopover(String name, String value, Span target) {
         var title = new Span(name == null || name.isBlank() ? "value" : name);
-        title.addClassName("c-runner-value-popover-title");
+        UiCss.C_RUNNER_VALUE_POPOVER_TITLE.addTo(title);
 
         var fullValue = new Pre(value == null || value.isBlank() ? "(empty)" : value);
-        fullValue.addClassName("c-runner-value-popover-content");
+        UiCss.C_RUNNER_VALUE_POPOVER_CONTENT.addTo(fullValue);
 
         var popover = new Popover();
         popover.setTarget(target);
         popover.setModal(false);
-        popover.addClassName("c-runner-value-popover");
+        UiCss.C_RUNNER_VALUE_POPOVER.addTo(popover);
         popover.add(new Div(title, fullValue));
     }
 
-    private static HtmlContainer createCell(String tag, String text, String className) {
+    private static HtmlContainer createCell(String tag, String text, CssClass className) {
         var cell = new HtmlContainer(tag);
         cell.setText(text);
-        if (!className.isBlank()) {
-            cell.addClassName(className);
-        }
+        className.addTo(cell);
         return cell;
     }
 
-    private static HtmlContainer createCell(String tag, com.vaadin.flow.component.Component content, String className) {
+    private static HtmlContainer createCell(String tag, com.vaadin.flow.component.Component content, CssClass className) {
         var cell = new HtmlContainer(tag, content);
-        if (!className.isBlank()) {
-            cell.addClassName(className);
-        }
+        className.addTo(cell);
         return cell;
     }
 

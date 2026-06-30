@@ -32,13 +32,13 @@ class AsciiFrameAnimation extends LitElement {
     pre {
       margin: 0;
       white-space: pre;
-      font-family: var(--chat-font-mono, monospace);
+      font-family: var(--font-mono, monospace);
       font-size: var(--ascii-frame-font-size, clamp(2.3px, 0.3vw, 3.34px));
       line-height: 1;
-      color: var(--chat-ascii-animation-color, var(--aura-accent-text-color));
+      color: var(--ascii-animation-color, var(--aura-accent-text-color));
       text-shadow: var(
-        --chat-ascii-animation-shadow,
-        0 0 0.28rem color-mix(in srgb, var(--chat-ascii-animation-color, var(--aura-accent-text-color)) 20%, transparent)
+        --ascii-animation-shadow,
+        0 0 0.28rem color-mix(in srgb, var(--ascii-animation-color, var(--aura-accent-text-color)) 20%, transparent)
       );
       text-rendering: optimizeSpeed;
       transform: translateY(var(--ascii-frame-translate-y, 1%)) scale(var(--ascii-frame-scale, 1));
@@ -47,7 +47,7 @@ class AsciiFrameAnimation extends LitElement {
     }
 
     .status {
-      font-family: var(--chat-font-mono, monospace);
+      font-family: var(--font-mono, monospace);
       font-size: 0.75rem;
       color: var(--vaadin-text-color-disabled);
     }

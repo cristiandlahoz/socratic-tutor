@@ -107,7 +107,7 @@ class CodeBlockViewerElement extends HTMLElement {
             position: absolute;
             right: 0;
             top: 0;
-            transition: opacity var(--chat-transition-fast);
+            transition: opacity var(--motion-fast);
             z-index: 1;
           }
 
@@ -119,7 +119,7 @@ class CodeBlockViewerElement extends HTMLElement {
           .cm-editor {
             border: 0;
             background: transparent !important;
-            font-family: var(--chat-font-mono);
+            font-family: var(--font-mono);
             font-size: 0.75rem;
             line-height: 1rem;
           }
@@ -155,14 +155,14 @@ class CodeBlockViewerElement extends HTMLElement {
             background: color-mix(in srgb, var(--aura-accent-text-color) 10%, var(--vaadin-background-container));
             color: var(--vaadin-text-color);
             cursor: pointer;
-            font: 600 0.72rem var(--chat-font-mono);
+            font: 600 0.72rem var(--font-mono);
             letter-spacing: 0.02em;
             padding: 0.28rem 0.58rem;
             pointer-events: auto;
             transition:
-              background var(--chat-transition-fast),
-              border-color var(--chat-transition-fast),
-              color var(--chat-transition-fast);
+              background var(--motion-fast),
+              border-color var(--motion-fast),
+              color var(--motion-fast);
           }
 
           .code-block-viewer__debug-button:hover {

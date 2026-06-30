@@ -17,6 +17,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.wornux.ui.ingestion.EditableSegmentViewModel;
+import com.wornux.ui.css.UiCss;
 
 public class DocumentSegmentEditorList extends Composite<Div> {
 
@@ -29,11 +30,11 @@ public class DocumentSegmentEditorList extends Composite<Div> {
         list.setPadding(false);
         list.setSpacing(false);
         list.setMargin(false);
-        list.addClassName("document-ingest-segment-list");
+        UiCss.DOCUMENT_INGEST_SEGMENT_LIST.addTo(list);
 
         var root = getContent();
         root.setId("document-ingestion-segment-editor-list");
-        root.addClassName("document-ingest-segment-shell");
+        UiCss.DOCUMENT_INGEST_SEGMENT_SHELL.addTo(root);
         root.add(list);
     }
 
@@ -54,33 +55,33 @@ public class DocumentSegmentEditorList extends Composite<Div> {
 
     private Div createSegmentCard(EditableSegmentViewModel segment) {
         var ordinal = new Span("segmento %d".formatted(segment.ordinal()));
-        ordinal.addClassName("document-ingest-segment-ordinal");
+        UiCss.DOCUMENT_INGEST_SEGMENT_ORDINAL.addTo(ordinal);
 
         var deleteButton = new Button("Eliminar", new Icon(VaadinIcon.TRASH));
         deleteButton.setId("document-ingestion-segment-delete-%d".formatted(segment.ordinal()));
         deleteButton.addThemeVariants(ButtonVariant.ERROR, ButtonVariant.TERTIARY);
-        deleteButton.addClassName("document-ingest-segment-delete-button");
+        UiCss.DOCUMENT_INGEST_SEGMENT_DELETE_BUTTON.addTo(deleteButton);
         deleteButton.getElement().setAttribute("aria-label", "Eliminar segmento %d".formatted(segment.ordinal()));
         deleteButton.addClickListener(_ -> segmentDeleteListener.accept(segment.id()));
 
         var cardHeader = new HorizontalLayout(ordinal, deleteButton);
-        cardHeader.addClassName("document-ingest-segment-card-header");
+        UiCss.DOCUMENT_INGEST_SEGMENT_CARD_HEADER.addTo(cardHeader);
         cardHeader.setWidthFull();
         cardHeader.setPadding(false);
         cardHeader.setSpacing(true);
 
         var heading = new Span(
                 segment.headingPath() == null || segment.headingPath().isBlank() ? "Documento" : segment.headingPath());
-        heading.addClassName("document-ingest-segment-heading");
+        UiCss.DOCUMENT_INGEST_SEGMENT_HEADING.addTo(heading);
 
         var meta = new Paragraph("%d caracteres · %d tokens%s".formatted(
             segment.charCount() == null ? 0 : segment.charCount(),
             segment.tokenCount() == null ? 0 : segment.tokenCount(),
             pageSummary(segment)));
-        meta.addClassName("document-ingest-segment-meta");
+        UiCss.DOCUMENT_INGEST_SEGMENT_META.addTo(meta);
 
         var provenance = new Div();
-        provenance.addClassName("document-ingest-segment-provenance");
+        UiCss.DOCUMENT_INGEST_SEGMENT_PROVENANCE.addTo(provenance);
         if (segment.captions() != null && !segment.captions().isEmpty()) {
             provenance.add(new Span("captions: %s".formatted(String.join(" · ", segment.captions()))));
         }
@@ -97,13 +98,13 @@ public class DocumentSegmentEditorList extends Composite<Div> {
         area.setMinHeight("10rem");
         area.setMaxLength(8_000);
         area.setValueChangeMode(ValueChangeMode.EAGER);
-        area.addClassName("document-ingest-segment-text");
+        UiCss.DOCUMENT_INGEST_SEGMENT_TEXT.addTo(area);
         area.addValueChangeListener(event -> segmentChangeListener.accept(segment.id(), event.getValue()));
 
         var card = new Div(cardHeader, heading, meta, provenance, area);
         card.setId("document-ingestion-segment-card-%d".formatted(segment.ordinal()));
         card.getElement().setAttribute("data-segment-id", segment.id().toString());
-        card.addClassName("document-ingest-segment-card");
+        UiCss.DOCUMENT_INGEST_SEGMENT_CARD.addTo(card);
         card.setWidthFull();
         return card;
     }

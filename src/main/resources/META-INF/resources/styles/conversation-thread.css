@@ -2,7 +2,7 @@
   position: relative;
   min-height: 100%;
   box-sizing: border-box;
-  width: min(100%, var(--chat-content-max-width));
+  width: min(100%, var(--conversation-content-max-width));
   margin: 0 auto;
   padding: var(--vaadin-padding-xl) clamp(1.4rem, 4vw, 3rem) clamp(12rem, 26vh, 18rem);
   display: flex;
@@ -30,9 +30,9 @@ vaadin-message.conversation-message--assistant::part(content) {
 }
 
 vaadin-message {
-  --vaadin-message-font-size: var(--chat-message-font-size);
-  --vaadin-message-font-weight: var(--chat-message-font-weight);
-  --vaadin-message-line-height: var(--chat-message-line-height);
+  --vaadin-message-font-size: var(--message-font-size);
+  --vaadin-message-font-weight: var(--message-font-weight);
+  --vaadin-message-line-height: var(--message-line-height);
   --vaadin-message-name-color: transparent;
   --vaadin-message-time-color: transparent;
 }
@@ -42,12 +42,12 @@ vaadin-message.conversation-message--user {
 }
 
 vaadin-message.conversation-message--assistant {
-  --vaadin-message-text-color: var(--chat-message-assistant-text-color);
+  --vaadin-message-text-color: var(--message-assistant-text-color);
 }
 
 vaadin-message message-content-renderer {
-  font-size: var(--chat-message-font-size);
-  line-height: var(--chat-message-line-height);
+  font-size: var(--message-font-size);
+  line-height: var(--message-line-height);
 }
 
 message-code-renderer code-block-viewer {
@@ -62,10 +62,10 @@ message-code-renderer code-block-viewer {
 }
 
 vaadin-message.conversation-message--user::part(message) {
-  background: var(--chat-message-user-surface, var(--aura-surface-color));
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--chat-message-user-border, var(--vaadin-border-color));
+  background: var(--message-user-surface, var(--aura-surface-color));
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--message-user-border, var(--vaadin-border-color));
   border-radius: var(--vaadin-radius-m);
-  box-shadow: var(--chat-message-user-shadow, var(--aura-shadow-s));
+  box-shadow: var(--message-user-shadow, var(--aura-shadow-s));
   backdrop-filter: blur(18px) saturate(1.05);
   padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
 }
@@ -125,7 +125,7 @@ vaadin-message.is-loading braille-spinner {
 vaadin-message a {
   color: var(--aura-accent-text-color);
   text-decoration-color: color-mix(in srgb, var(--aura-accent-text-color) 35%, transparent);
-  transition: text-decoration-color var(--chat-transition-fast);
+  transition: text-decoration-color var(--motion-fast);
 }
 
 vaadin-message a:hover {

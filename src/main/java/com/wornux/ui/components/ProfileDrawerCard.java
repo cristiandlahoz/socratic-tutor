@@ -9,6 +9,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.wornux.data.entities.identity.Account;
+import com.wornux.ui.css.UiCss;
 
 public class ProfileDrawerCard extends Div {
 
@@ -16,60 +17,60 @@ public class ProfileDrawerCard extends Div {
     private final Icon chevron;
 
     public ProfileDrawerCard(Account account, Component themeControl, Runnable logoutAction) {
-        addClassName("profile-drawer-card");
+        UiCss.PROFILE_DRAWER_CARD.addTo(this);
 
         var menuContent = new Div(themeControl, createLogoutButton(logoutAction));
-        menuContent.addClassName("profile-drawer-card__menu-content");
+        UiCss.PROFILE_DRAWER_CARD_MENU_CONTENT.addTo(menuContent);
 
         menu = new Div(menuContent);
-        menu.addClassName("profile-drawer-card__menu");
+        UiCss.PROFILE_DRAWER_CARD_MENU.addTo(menu);
 
         chevron = new Icon(VaadinIcon.CHEVRON_UP);
-        chevron.addClassName("profile-drawer-card__chevron");
+        UiCss.PROFILE_DRAWER_CARD_CHEVRON.addTo(chevron);
 
         add(menu, createHeaderButton(account));
     }
 
     private NativeButton createHeaderButton(Account account) {
         var avatar = new Span(initials(account));
-        avatar.addClassName("profile-drawer-card__avatar");
+        UiCss.PROFILE_DRAWER_CARD_AVATAR.addTo(avatar);
         avatar.getElement().setAttribute("aria-hidden", "true");
 
         var name = new Span(displayName(account));
-        name.addClassName("profile-drawer-card__name");
+        UiCss.PROFILE_DRAWER_CARD_NAME.addTo(name);
 
         var email = new Span(safeText(account.getEmail()));
-        email.addClassName("profile-drawer-card__email");
+        UiCss.PROFILE_DRAWER_CARD_EMAIL.addTo(email);
 
         var identity = new Div(name, email);
-        identity.addClassName("profile-drawer-card__identity");
+        UiCss.PROFILE_DRAWER_CARD_IDENTITY.addTo(identity);
 
         var content = new Div(avatar, identity, chevron);
-        content.addClassName("profile-drawer-card__header-content");
+        UiCss.PROFILE_DRAWER_CARD_HEADER_CONTENT.addTo(content);
 
         var button = new NativeButton();
-        button.addClassName("profile-drawer-card__header");
+        UiCss.PROFILE_DRAWER_CARD_HEADER.addTo(button);
         button.add(content);
         button.setAriaLabel("Abrir opciones de perfil");
         button.getElement().setAttribute("aria-expanded", "false");
-        button.addClickListener(_ -> setExpanded(!hasClassName("is-expanded"), button));
+        button.addClickListener(_ -> setExpanded(!hasClassName(UiCss.EXPANDED.value()), button));
         return button;
     }
 
     private Button createLogoutButton(Runnable logoutAction) {
         var button = new Button("Cerrar sesión", new Icon(VaadinIcon.SIGN_OUT));
         button.addThemeVariants(ButtonVariant.TERTIARY);
-        button.addClassName("profile-drawer-card__logout");
+        UiCss.PROFILE_DRAWER_CARD_LOGOUT.addTo(button);
         button.addClickListener(_ -> logoutAction.run());
         return button;
     }
 
     private void setExpanded(boolean expanded, NativeButton button) {
         if (expanded) {
-            addClassName("is-expanded");
+            UiCss.EXPANDED.addTo(this);
         }
         else {
-            removeClassName("is-expanded");
+            getElement().getClassList().remove(UiCss.EXPANDED.value());
         }
         button.getElement().setAttribute("aria-expanded", Boolean.toString(expanded));
         chevron.getElement().setAttribute("icon", expanded ? "vaadin:chevron-down" : "vaadin:chevron-up");

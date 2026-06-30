@@ -26,6 +26,7 @@ import com.wornux.ui.conversation.ConversationView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.training_activity.TrainingActivityView;
 import jakarta.annotation.security.PermitAll;
+import com.wornux.ui.css.UiCss;
 
 @Route(value = "professor", layout = MainLayout.class)
 @PageTitle("Espacio del profesor")
@@ -48,7 +49,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
         this.workspaceRoutingService = workspaceRoutingService;
         this.professorWorkspaceService = professorWorkspaceService;
 
-        addClassName("workspace-view");
+        UiCss.WORKSPACE_VIEW.addTo(this);
         classSelector.setItemLabelGenerator(value -> "%s - %s".formatted(value.classCode(), value.className()));
         classSelector.addValueChangeListener(event -> {
             if (event.isFromClient()) {

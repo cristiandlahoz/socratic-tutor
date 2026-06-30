@@ -49,7 +49,7 @@
   font-family: var(--aura-font-family);
   font-size: clamp(2.5rem, 4vw, 3.4rem);
   line-height: 0.98;
-  letter-spacing: var(--chat-tracking-heading);
+  letter-spacing: var(--heading-letter-spacing);
   font-weight: var(--aura-font-weight-regular);
 }
 
@@ -189,10 +189,10 @@ vaadin-button.document-ingest-segment-delete-button::part(button) {
   color: var(--vaadin-text-color);
   box-shadow: var(--aura-shadow-s);
   transition:
-      background var(--chat-transition-fast),
-      border-color var(--chat-transition-fast),
-      color var(--chat-transition-fast),
-      transform var(--chat-transition-fast);
+      background var(--motion-fast),
+      border-color var(--motion-fast),
+      color var(--motion-fast),
+      transform var(--motion-fast);
 }
 
 vaadin-button.document-ingest-back-button:hover::part(button),

@@ -4,6 +4,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.html.Span;
+import com.wornux.ui.css.UiCss;
 
 /**
  * A reusable label that truncates its text according to the rendered width and replaces the last three visible
@@ -14,7 +15,7 @@ public class WidthAwareLabel extends Composite<Span> {
     private String fullText = "";
 
     public WidthAwareLabel() {
-        getContent().addClassName("width-aware-label");
+        UiCss.WIDTH_AWARE_LABEL.addTo(getContent());
     }
 
     public WidthAwareLabel(String text) {

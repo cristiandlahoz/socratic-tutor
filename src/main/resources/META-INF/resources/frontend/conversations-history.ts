@@ -105,7 +105,7 @@ class ConversationsHistory extends LitElement {
 
     return html`
       ${this.renderComponentStyles()}
-      <div class="chat-sidebar-header">
+      <div class="conversation-history__header">
         <div
           class="conversations-history-title-row"
           title="Hilos recientes ordenados por fecha y conectados como una sola ruta."
@@ -155,7 +155,7 @@ class ConversationsHistory extends LitElement {
           stroke-linecap: round;
           stroke-linejoin: round;
           opacity: 0.62;
-          transition: stroke var(--chat-transition-fast), opacity var(--chat-transition-fast);
+          transition: stroke var(--motion-fast), opacity var(--motion-fast);
         }
 
         .conversations-history-edge.touches-active {

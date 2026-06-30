@@ -1,4 +1,4 @@
-.chat-sidebar-header {
+.conversation-history__header {
   min-width: 0;
   margin-left: var(--sidebar-trail-gutter);
   padding: 0.32rem var(--sidebar-section-inline-end) 0.38rem 0;
@@ -110,7 +110,7 @@
   min-height: 2.45rem;
   padding: 0.08rem 0.55rem 0.08rem 0;
   border-radius: var(--vaadin-radius-m);
-  transition: background var(--chat-transition-fast);
+  transition: background var(--motion-fast);
 }
 
 .conversations-history-thread-row.is-active {
@@ -151,7 +151,7 @@ vaadin-button.conversations-history-item-button[disabled]::part(button) {
   border-radius: var(--vaadin-radius-l);
   background: var(--trail-node-color);
   box-shadow: var(--aura-shadow-xs);
-  transition: background var(--chat-transition-fast), box-shadow var(--chat-transition-fast), transform var(--chat-transition-fast);
+  transition: background var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
 }
 
 .conversations-history-divider-row .conversations-history-node {
@@ -189,7 +189,7 @@ vaadin-button.conversations-history-item-button[disabled]::part(button) {
   font-weight: var(--aura-font-weight-medium);
   line-height: 1.3;
   text-align: left;
-  transition: color var(--chat-transition-fast);
+  transition: color var(--motion-fast);
 }
 
 vaadin-button.conversations-history-item-button:hover .conversations-history-item-title,

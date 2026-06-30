@@ -25,6 +25,7 @@ import com.wornux.ui.admin.SystemAdminWorkspaceView;
 import com.wornux.ui.professor.ProfessorWorkspaceView;
 import com.wornux.ui.student.StudentWorkspaceView;
 import com.wornux.ui.tenant.TenantAdminWorkspaceView;
+import com.wornux.ui.css.UiCss;
 
 @Route(value = "invitations/accept", autoLayout = false)
 @PageTitle("Accept invitation")
@@ -46,7 +47,7 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         this.invitationService = invitationService;
         this.authenticatedAccountService = authenticatedAccountService;
 
-        addClassName("onboarding-view");
+        UiCss.ONBOARDING_VIEW.addTo(this);
         setSizeFull();
         setJustifyContentMode(JustifyContentMode.CENTER);
         setDefaultHorizontalComponentAlignment(Alignment.CENTER);
@@ -57,7 +58,7 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         lastNameField.setWidthFull();
         passwordField.setWidthFull();
         confirmPasswordField.setWidthFull();
-        content.addClassName("onboarding-terminal-card");
+        UiCss.ONBOARDING_TERMINAL_CARD.addTo(content);
         add(content);
     }
 

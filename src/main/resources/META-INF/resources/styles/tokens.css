@@ -12,51 +12,39 @@
   --color-olive-300: oklch(88% 0.011 106.6);
   --color-olive-950: oklch(15.3% 0.006 107.1);
   --color-mist-100: oklch(96.3% 0.002 197.1);
-  --color-mist-800: oklch(27.5% 0.011 216.9);
   --color-mist-900: oklch(21.8% 0.008 223.9);
   --color-mist-950: oklch(14.8% 0.004 228.8);
   --color-mauve-500: oklch(54.2% 0.034 322.5);
 
-  --chat-font-display: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
-  --chat-font-body: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
-  --chat-font-mono: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
+  --font-mono: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
 
-  --chat-text-subheading: var(--aura-font-size-l);
-  --chat-tracking-heading: 0;
-  --chat-tracking-display: 0;
-  --chat-text-ui-sm: var(--aura-font-size-s);
-  --chat-text-ui: var(--aura-font-size-m);
-  --chat-text-label: var(--aura-font-size-xs);
-  --chat-text-meta: var(--aura-font-size-xs);
-  --chat-font-weight-body: var(--aura-font-weight-regular);
-  --chat-font-weight-title: var(--aura-font-weight-semibold);
-  --chat-font-weight-title-strong: var(--aura-font-weight-semibold);
-  --chat-message-font-size: var(--aura-font-size-xs);
-  --chat-message-line-height: var(--aura-line-height-xs);
-  --chat-message-font-weight: var(--aura-font-weight-regular);
-  --chat-markdown-heading-font-weight: var(--aura-font-weight-semibold);
-  --chat-markdown-h1-font-size: var(--aura-font-size-m);
-  --chat-markdown-h2-font-size: var(--aura-font-size-s);
-  --chat-markdown-h3-font-size: var(--chat-message-font-size);
-  --chat-font-size: clamp(1rem, 0.34vw, 1.18rem);
-  --chat-text-code: clamp(1rem, 0.38vw, 1.08rem);
-  --chat-leading-chat-user: 1.58;
-  --chat-leading-chat-assistant: 1.62;
-  --chat-leading-code: 1.48;
+  --heading-letter-spacing: 0;
+  --display-letter-spacing: 0;
+  --text-meta: var(--aura-font-size-xs);
+  --font-weight-body: var(--aura-font-weight-regular);
+  --message-font-size: var(--aura-font-size-xs);
+  --message-line-height: var(--aura-line-height-xs);
+  --message-font-weight: var(--aura-font-weight-regular);
+  --markdown-heading-font-weight: var(--aura-font-weight-semibold);
+  --markdown-h1-font-size: var(--aura-font-size-m);
+  --markdown-h2-font-size: var(--aura-font-size-s);
+  --markdown-h3-font-size: var(--message-font-size);
+  --code-text-size: clamp(1rem, 0.38vw, 1.08rem);
+  --message-assistant-line-height: 1.62;
+  --code-line-height: 1.48;
 
-  --chat-content-max-width: 56rem;
-  --chat-transition-fast: 0.2s ease;
+  --conversation-content-max-width: 56rem;
+  --motion-fast: 0.2s ease;
 
-  --chat-text-prose: color-mix(in srgb, var(--vaadin-text-color) 76%, var(--vaadin-text-color-secondary));
-  --chat-message-assistant-text-color: var(--chat-text-prose);
-  --chat-message-prose-color: var(--chat-text-prose);
-  --chat-selection: color-mix(in srgb, var(--aura-accent-text-color) 18%, transparent);
-  --chat-composer-surface: oklch(16.38% 0.0079 145.2deg);
-  --chat-composer-surface-hover: color-mix(in srgb, var(--vaadin-background-container-strong) 78%, var(--aura-app-background));
-  --chat-composer-border: color-mix(in srgb, var(--vaadin-text-color) 24%, var(--aura-app-background));
-  --chat-composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 28%, var(--chat-composer-border));
-  --chat-composer-placeholder: color-mix(in srgb, var(--vaadin-text-color) 42%, var(--aura-app-background));
-  --chat-ascii-animation-shadow: 0 0 0.22rem color-mix(in srgb, var(--aura-accent-text-color) 18%, transparent);
+  --text-prose: color-mix(in srgb, var(--vaadin-text-color) 76%, var(--vaadin-text-color-secondary));
+  --message-assistant-text-color: var(--text-prose);
+  --message-prose-color: var(--text-prose);
+  --selection-background: color-mix(in srgb, var(--aura-accent-text-color) 18%, transparent);
+  --composer-surface: oklch(16.38% 0.0079 145.2deg);
+  --composer-border: color-mix(in srgb, var(--vaadin-text-color) 24%, var(--aura-app-background));
+  --composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 28%, var(--composer-border));
+  --composer-placeholder-color: color-mix(in srgb, var(--vaadin-text-color) 42%, var(--aura-app-background));
+  --ascii-animation-shadow: 0 0 0.22rem color-mix(in srgb, var(--aura-accent-text-color) 18%, transparent);
 
   --ui-toggle-color: var(--vaadin-text-color-secondary);
   --ui-toggle-hover-color: var(--vaadin-text-color);
@@ -67,7 +55,6 @@
   --trail-node-color: color-mix(in srgb, var(--vaadin-text-color-secondary) 78%, transparent);
   --trail-node-active-color: var(--aura-accent-text-color);
   --trail-node-size: calc(var(--vaadin-gap-xs) * 1.5);
-  --trail-node-radius: calc(var(--trail-node-size) / 2);
   --sidebar-trail-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
   --sidebar-trail-line-x: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
   --sidebar-trail-line-color: light-dark(

@@ -5,6 +5,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.wornux.ui.css.UiCss;
 
 public class DocumentStatusPanel extends Composite<Div> {
 
@@ -16,24 +17,24 @@ public class DocumentStatusPanel extends Composite<Div> {
 
     public DocumentStatusPanel() {
         badge.setId("document-ingestion-status-badge");
-        badge.addClassName("document-ingest-status-badge");
+        UiCss.DOCUMENT_INGEST_STATUS_BADGE.addTo(badge);
         title.setId("document-ingestion-status-title");
-        title.addClassName("document-ingest-status-title");
+        UiCss.DOCUMENT_INGEST_STATUS_TITLE.addTo(title);
         message.setId("document-ingestion-status-message");
-        message.addClassName("document-ingest-status-message");
+        UiCss.DOCUMENT_INGEST_STATUS_MESSAGE.addTo(message);
         failure.setId("document-ingestion-status-failure");
-        failure.addClassName("document-ingest-status-failure");
+        UiCss.DOCUMENT_INGEST_STATUS_FAILURE.addTo(failure);
         failure.setVisible(false);
 
         progressBar.setId("document-ingestion-status-progress");
         progressBar.setIndeterminate(true);
         progressBar.setVisible(false);
-        progressBar.addClassName("document-ingest-status-progress");
+        UiCss.DOCUMENT_INGEST_STATUS_PROGRESS.addTo(progressBar);
 
         var root = getContent();
         root.setWidthFull();
         root.setId("document-ingestion-status-panel");
-        root.addClassName("document-ingest-status-panel");
+        UiCss.DOCUMENT_INGEST_STATUS_PANEL.addTo(root);
         root.add(badge, title, message, progressBar, failure);
     }
 

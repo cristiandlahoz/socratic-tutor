@@ -7,6 +7,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.RouterLink;
 import com.wornux.ui.admin.SystemAdminWorkspaceView;
 import com.wornux.ui.components.SidebarItem;
+import com.wornux.ui.css.UiCss;
 import com.wornux.ui.layout.MainLayoutAccess;
 import com.wornux.ui.professor.ProfessorWorkspaceView;
 import com.wornux.ui.student.StudentWorkspaceView;
@@ -15,10 +16,10 @@ import com.wornux.ui.tenant.TenantAdminWorkspaceView;
 public class WorkspaceDrawerNavigation extends Div {
 
     public WorkspaceDrawerNavigation(MainLayoutAccess access) {
-        addClassNames("chat-sidebar-actions-section", "sidebar-actions");
+        UiCss.SIDEBAR_ACTIONS.addTo(this);
 
         var actions = new Div();
-        actions.addClassNames("chat-sidebar-actions", "sidebar-actions__list");
+        UiCss.SIDEBAR_ACTIONS_LIST.addTo(actions);
 
         if (access.systemAdmin()) {
             actions.add(createNavigationButton(SystemAdminWorkspaceView.class, "Inicio", new Icon(VaadinIcon.HOME)));
@@ -42,7 +43,7 @@ public class WorkspaceDrawerNavigation extends Div {
             Component iconComponent) {
         var link = new RouterLink();
         link.setRoute(navigationTarget);
-        link.addClassNames("chat-sidebar-action-link", "sidebar-actions__item-link");
+        UiCss.SIDEBAR_ACTIONS_ITEM_LINK.addTo(link);
         link.getElement().setAttribute("aria-label", label);
         link.add(new SidebarItem(iconComponent, label));
         return link;

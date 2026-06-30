@@ -23,18 +23,18 @@
   font-size: var(--aura-font-size-xs);
 }
 
-.evaluation-chat-bubble {
+.evaluation-message {
   box-sizing: border-box;
 }
 
-.evaluation-chat-evaluador {
+.evaluation-message--evaluator {
   padding: 0;
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);
-  line-height: var(--chat-leading-chat-assistant);
+  line-height: var(--message-assistant-line-height);
 }
 
-.evaluation-chat-evaluador .evaluation-chat-sender {
+.evaluation-message--evaluator .evaluation-message__sender {
   color: var(--aura-accent-text-color);
   text-transform: uppercase;
   font-size: var(--aura-font-size-xs);
@@ -42,7 +42,7 @@
   margin-bottom: var(--vaadin-gap-xs);
 }
 
-.evaluation-chat-estudiante {
+.evaluation-message--student {
   background: var(--aura-surface-color);
   color: var(--vaadin-text-color);
   border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
@@ -56,23 +56,23 @@
   margin-bottom: var(--vaadin-gap-s);
 }
 
-.evaluation-chat-estudiante .evaluation-chat-sender {
+.evaluation-message--student .evaluation-message__sender {
   color: var(--vaadin-text-color-disabled);
   font-size: var(--aura-font-size-xs);
   letter-spacing: 0.06em;
   margin-bottom: var(--vaadin-gap-xs);
 }
 
-.evaluation-chat-sender {
+.evaluation-message__sender {
   display: block;
   font-family: var(--aura-font-family);
 }
 
-.evaluation-chat-bubble:first-child {
+.evaluation-message:first-child {
   margin-top: 0;
 }
 
-.evaluation-chat-bubble:last-child {
+.evaluation-message:last-child {
   margin-bottom: 0;
 }
 
