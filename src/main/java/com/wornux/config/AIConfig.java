@@ -1,5 +1,7 @@
 package com.wornux.config;
 
+import com.wornux.ai.advisor.TutorGuardAdvisor;
+import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.prompt.TutorPromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import org.springframework.ai.chat.client.ChatClient;
@@ -25,6 +27,7 @@ public class AIConfig {
             ChatModel chatModel,
             SessionService sessionService,
             ChatProperties chatProperties,
+            GuardClassifierService guardClassifierService,
             RetrieveInformationTool retrieveInformationTool,
             TutorPromptResources promptResources) {
 
@@ -43,13 +46,17 @@ public class AIConfig {
                             .tokenCountEstimator(tokenCountEstimator)
                             .build())
                 .build();
+        var tutorGuardAdvisor = new TutorGuardAdvisor(
+            sessionMemoryAdvisor.getOrder() + 1,
+            guardClassifierService,
+            promptResources);
 
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
                 .defaultOptions(OpenAiChatOptions.builder()
                         .temperature(0.6)
                         .topP(0.95)
                         .topK(20))
-                .defaultAdvisors(sessionMemoryAdvisor)
+                .defaultAdvisors(sessionMemoryAdvisor, tutorGuardAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();
     }
