@@ -1,7 +1,9 @@
 package com.wornux.ui.student;
 
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -18,11 +20,13 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.training_activity.TrainingActivityLaunchBus;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -42,16 +46,20 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     private final AuthenticatedAccountService authenticatedAccountService;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
+    private final TrainingActivityLaunchBus trainingActivityLaunchBus;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<TrainingActivityAssignment> assignmentsGrid = new Grid<>(TrainingActivityAssignment.class, false);
+    private AutoCloseable assignmentLaunchSubscription;
 
     public StudentWorkspaceView(
             AuthenticatedAccountService authenticatedAccountService,
             WorkspaceRoutingService workspaceRoutingService,
-            StudentWorkspaceService studentWorkspaceService) {
+            StudentWorkspaceService studentWorkspaceService,
+            TrainingActivityLaunchBus trainingActivityLaunchBus) {
         this.authenticatedAccountService = authenticatedAccountService;
         this.workspaceRoutingService = workspaceRoutingService;
         this.studentWorkspaceService = studentWorkspaceService;
+        this.trainingActivityLaunchBus = trainingActivityLaunchBus;
 
         UiCss.WORKSPACE_VIEW.addTo(this);
         configureToolbarFields();
@@ -63,6 +71,42 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
                 "Mantén la clase activa en contexto, revisa las actividades asignadas y vuelve al tutor cuando necesites razonar con guía."),
             createToolbar(),
             assignmentsGrid);
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        subscribeToAssignmentLaunches(attachEvent.getUI());
+        refresh();
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        unsubscribeFromAssignmentLaunches();
+        super.onDetach(detachEvent);
+    }
+
+    private void subscribeToAssignmentLaunches(UI ui) {
+        unsubscribeFromAssignmentLaunches();
+        assignmentLaunchSubscription = trainingActivityLaunchBus.subscribe(event -> ui.access(() -> {
+            var selectedClass = classSelector.getValue();
+            if (selectedClass == null || !event.affectsGroupClassMember(selectedClass.groupClassMemberId())) {
+                return;
+            }
+            refreshAssignments();
+        }));
+    }
+
+    private void unsubscribeFromAssignmentLaunches() {
+        if (assignmentLaunchSubscription == null) {
+            return;
+        }
+        try {
+            assignmentLaunchSubscription.close();
+        } catch (Exception ignored) {
+            // AutoCloseable is used only as a subscription handle.
+        }
+        assignmentLaunchSubscription = null;
     }
 
     @Override
@@ -133,13 +177,13 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
                 .setAutoWidth(true)
                 .setFlexGrow(0);
         assignmentsGrid.addColumn(LitRenderer.<TrainingActivityAssignment>of("""
-                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${openTutor}" aria-label="Abrir tutor para ${item.title}">
+                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${openEvaluation}" aria-label="Abrir evaluación para ${item.title}">
                         <vaadin-icon icon="vaadin:comments" slot="prefix"></vaadin-icon>
-                        Abrir tutor
+                        Abrir evaluación
                     </vaadin-button>
                 """)
                 .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
-                .withFunction("openTutor", _ -> openConversation()))
+                .withFunction("openEvaluation", this::openEvaluation))
                 .setHeader("Opciones")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -169,6 +213,10 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         };
     }
 
+    private void openEvaluation(TrainingActivityAssignment assignment) {
+        UI.getCurrent().navigate("training-activity/assignments/%s".formatted(assignment.getId()));
+    }
+
     private void refresh() {
         var account = authenticatedAccountService.requireCurrentAccount();
         var classes = studentWorkspaceService.listStudentClasses(account);
@@ -176,6 +224,14 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         if (!classes.isEmpty() && classSelector.getValue() == null) {
             classSelector.setValue(classes.getFirst());
         }
+        refreshAssignments(account);
+    }
+
+    private void refreshAssignments() {
+        refreshAssignments(authenticatedAccountService.requireCurrentAccount());
+    }
+
+    private void refreshAssignments(Account account) {
         assignmentsGrid.setItems(studentWorkspaceService.listAssignments(account));
     }
 

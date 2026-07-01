@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.config.SocraticEmailProperties;
@@ -37,6 +38,7 @@ public class TrainingActivityService {
     private final EmailService emailService;
     private final SocraticEmailProperties emailProperties;
     private final ActiveAcademicContextResolver contextResolver;
+    private final TrainingActivityLaunchBus trainingActivityLaunchBus;
     private final TrainingActivityService self;
 
     public TrainingActivityService(
@@ -46,6 +48,7 @@ public class TrainingActivityService {
             EmailService emailService,
             SocraticEmailProperties emailProperties,
             ActiveAcademicContextResolver contextResolver,
+            TrainingActivityLaunchBus trainingActivityLaunchBus,
             @Lazy TrainingActivityService self) {
         this.trainingActivityRepository = trainingActivityRepository;
         this.trainingActivityAssignmentRepository = trainingActivityAssignmentRepository;
@@ -53,6 +56,7 @@ public class TrainingActivityService {
         this.emailService = emailService;
         this.emailProperties = emailProperties;
         this.contextResolver = contextResolver;
+        this.trainingActivityLaunchBus = trainingActivityLaunchBus;
         this.self = self;
     }
 
@@ -179,7 +183,27 @@ public class TrainingActivityService {
 
         var messages = launchMessages(activity, students);
         sendAfterCommit(messages);
+        publishAfterCommit(new TrainingActivityAssignmentLaunchedEvent(
+                activity.getId(),
+                activity.getGroupClass().getId(),
+                students.stream().map(GroupClassMember::getId).collect(Collectors.toUnmodifiableSet())));
         return students.size();
+    }
+
+    private void publishAfterCommit(TrainingActivityAssignmentLaunchedEvent event) {
+        if (event.groupClassMemberIds().isEmpty()) {
+            return;
+        }
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            trainingActivityLaunchBus.publish(event);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                trainingActivityLaunchBus.publish(event);
+            }
+        });
     }
 
     private List<EmailMessage> launchMessages(TrainingActivity activity, List<GroupClassMember> students) {
