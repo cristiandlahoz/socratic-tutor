@@ -17,6 +17,7 @@ public interface GroupClassMemberRepository extends JpaRepository<GroupClassMemb
     @EntityGraph(attributePaths = {"tenantAccount", "tenantAccount.tenant", "groupClass", "groupClass.tenant"})
     List<GroupClassMember> findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(UUID accountId);
 
+    @EntityGraph(attributePaths = {"tenantAccount", "tenantAccount.account"})
     List<GroupClassMember> findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(UUID groupClassId);
 
     Optional<GroupClassMember> findByGroupClass_IdAndTenantAccount_Account_IdAndRoleAndLockedFalse(

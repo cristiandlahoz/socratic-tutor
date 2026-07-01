@@ -15,6 +15,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
@@ -38,7 +39,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
     private final ProfessorWorkspaceService professorWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<com.wornux.data.entities.academic.GroupClassMember> studentsGrid =
-            new Grid<>(com.wornux.data.entities.academic.GroupClassMember.class, false);
+            new Grid<>(GroupClassMember.class, false);
     private final EmailField studentEmailField = new EmailField("Correo del estudiante");
 
     public ProfessorWorkspaceView(
