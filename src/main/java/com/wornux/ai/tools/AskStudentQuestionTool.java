@@ -24,10 +24,13 @@ public class AskStudentQuestionTool {
 
     @Tool(name = ASK_STUDENT_QUESTION,
             description = """
-                          Ask the student 1 to 3 short questions when their answer determines the next tutoring move.
-                          Collect observable progress: statement, attempt, code, error, wrong output, stuck point, or current idea.
-                          Options are optional; use them only for useful categories such as progress state or available material.
-                          Never offer options that mean solve it, write full code, provide complete logic, or do the assignment.
+                          Ask the student 1 to 3 short diagnostic questions when the next tutoring move depends on missing observable progress or clarification.
+
+                          Use this when the student asks for help with an exercise but has not provided the statement, attempt, code, error, wrong output, stuck point, or current idea.
+
+                          Also use this for doubts or conceptual questions when a brief clarification would make the response more precise, such as the topic, course context, specific confusion, example they are working on, or level of detail needed.
+
+                          Prefer open-ended questions. Use selectable options only for progress-state or context categories. Never offer options that mean: solve it, write full code, provide complete logic, or do the assignment.
                           """)
     public AskStudentQuestionResult askStudentQuestion(
             @ToolParam(

@@ -21,16 +21,19 @@ public class DocumentIngestionService {
 
     private final DoclingClientService doclingClientService;
     private final DocumentVectorIndexingService indexingService;
+    private final DocumentCatalogGenerationService catalogGenerationService;
     private final DocumentIngestionProperties properties;
     private final ActiveAcademicContextResolver contextResolver;
 
     public DocumentIngestionService(
             DoclingClientService doclingClientService,
             DocumentVectorIndexingService indexingService,
+            DocumentCatalogGenerationService catalogGenerationService,
             DocumentIngestionProperties properties,
             ActiveAcademicContextResolver contextResolver) {
         this.doclingClientService = doclingClientService;
         this.indexingService = indexingService;
+        this.catalogGenerationService = catalogGenerationService;
         this.properties = properties;
         this.contextResolver = contextResolver;
     }
@@ -67,6 +70,7 @@ public class DocumentIngestionService {
             context.groupClassMemberId(),
             ingestionId,
             command.title(),
+            command.catalog(),
             command.segments());
 
         return new DocumentReviewViewModel(ingestionId.toString(),
@@ -77,6 +81,11 @@ public class DocumentIngestionService {
                 command.segments(),
                 true,
                 vectorIds);
+    }
+
+    public CourseMaterialCatalog generateCatalog(String title, String catalogUseWhen, List<EditableSegmentViewModel> segments) {
+        requireProfessorContext();
+        return catalogGenerationService.generate(title, catalogUseWhen, segments);
     }
 
     public void delete(List<String> vectorIds) {
@@ -137,18 +146,41 @@ public class DocumentIngestionService {
     }
 
     private void validateReview(ApproveDocumentCommand command) {
+        requireTitle(command);
+        requireCatalogUseWhen(command);
+        requireReviewedMarkdown(command);
+        requireSegments(command);
+    }
+
+    private void requireTitle(ApproveDocumentCommand command) {
         if (command.title() == null || command.title().isBlank()) {
             throw new DocumentIngestionException("The document title cannot be empty before indexing.");
         }
+    }
+
+    private void requireCatalogUseWhen(ApproveDocumentCommand command) {
+        if (command.catalog() == null) {
+            throw new DocumentIngestionException("Generate and accept the catalog before indexing.");
+        }
+    }
+
+    private void requireReviewedMarkdown(ApproveDocumentCommand command) {
         if (command.reviewedMarkdown() == null || command.reviewedMarkdown().isBlank()) {
             throw new DocumentIngestionException("Reviewed markdown cannot be empty before indexing.");
         }
+    }
+
+    private void requireSegments(ApproveDocumentCommand command) {
         if (command.segments() == null || command.segments().isEmpty()) {
             throw new DocumentIngestionException("At least one chunk is required before indexing.");
         }
-        if (command.segments().stream().anyMatch(segment -> segment.content() == null || segment.content().isBlank())) {
+        if (command.segments().stream().anyMatch(this::isBlankSegment)) {
             throw new DocumentIngestionException("Every chunk must contain text before indexing.");
         }
+    }
+
+    private boolean isBlankSegment(EditableSegmentViewModel segment) {
+        return segment.content() == null || segment.content().isBlank();
     }
 
     private boolean looksLikePdf(byte[] content) {

@@ -1,9 +1,11 @@
 package com.wornux.ai.advisor;
 
 import java.util.List;
+import java.util.Map;
 
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.prompt.PromptResources;
+import com.wornux.ai.prompt.PromptUtil;
 import com.wornux.data.enums.GuardDecision;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -23,6 +25,18 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     private static final Logger log = LoggerFactory.getLogger(TutorGuardAdvisor.class);
 
     private static final int GUARD_MESSAGE_WINDOW = 4;
+    private static final String GUARD_POLICY_TEMPLATE = """
+            $system$
+
+            <guard-policy mode="$mode$">
+            $policy$
+            </guard-policy>
+            """;
+    private static final String STANDALONE_GUARD_POLICY_TEMPLATE = """
+            <guard-policy mode="$mode$">
+            $policy$
+            </guard-policy>
+            """;
 
     private final int order;
     private final GuardClassifierService guardClassifierService;
@@ -87,27 +101,30 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private ChatClientRequest applyGuardPolicy(ChatClientRequest request, String policyText, String policyMode) {
-        Prompt guardedPrompt = request.prompt().augmentSystemMessage(system -> {
-            String existing = system.getText();
-
-            String updatedText = existing == null || existing.isBlank()
-                    ? """
-                      <guard-policy mode="%s">
-                      %s
-                      </guard-policy>
-                      """.formatted(policyMode, policyText)
-                    : """
-                      %s
-
-                      <guard-policy mode="%s">
-                      %s
-                      </guard-policy>
-                      """.formatted(existing, policyMode, policyText);
-
-            return system.mutate().text(updatedText).build();
-        });
+        Prompt guardedPrompt = request.prompt().augmentSystemMessage(system -> system.mutate()
+                .text(systemWithGuardPolicy(system.getText(), policyMode, policyText))
+                .build());
 
         return request.mutate().prompt(guardedPrompt).build();
+    }
+
+    private String systemWithGuardPolicy(String systemText, String policyMode, String policyText) {
+        return PromptUtil.render(guardPolicyTemplate(systemText), guardPolicyVariables(systemText, policyMode, policyText));
+    }
+
+    private String guardPolicyTemplate(String systemText) {
+        return isBlank(systemText) ? STANDALONE_GUARD_POLICY_TEMPLATE : GUARD_POLICY_TEMPLATE;
+    }
+
+    private Map<String, Object> guardPolicyVariables(String systemText, String policyMode, String policyText) {
+        return Map.of(
+            "system", isBlank(systemText) ? "" : systemText,
+            "mode", policyMode,
+            "policy", policyText);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     @Override

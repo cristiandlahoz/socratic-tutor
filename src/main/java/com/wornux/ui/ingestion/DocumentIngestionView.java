@@ -2,6 +2,7 @@ package com.wornux.ui.ingestion;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
@@ -28,6 +29,7 @@ import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.services.document.CourseMaterialCatalog;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
@@ -37,18 +39,24 @@ import com.wornux.ui.components.ingestion.DocumentSegmentEditorList;
 import com.wornux.ui.components.ingestion.DocumentStatusPanel;
 import com.wornux.ui.css.UiCss;
 
+import jakarta.annotation.security.PermitAll;
+
 @Route(value = "documents", layout = MainLayout.class)
+@PermitAll
 public class DocumentIngestionView extends Composite<Div> implements BeforeEnterObserver {
 
     private final DocumentIngestionUiController controller;
     private final DocumentStatusPanel statusPanel;
     private final DocumentSegmentEditorList segmentEditorList;
     private final TextArea markdownEditor;
+    private final TextArea catalogUseWhenField;
+    private final Button generateCatalogButton;
+    private final Div generatedCatalogPreview;
     private final Button approveButton;
     private final Button retryButton;
     private final Button deleteButton;
-    private final AuthenticatedAccountService authenticatedAccountService;
-    private final WorkspaceRoutingService workspaceRoutingService;
+    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient WorkspaceRoutingService workspaceRoutingService;
 
     public DocumentIngestionView(
             @RouteScopeOwner(MainLayout.class) DocumentIngestionUiController controller,
@@ -111,6 +119,11 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
             "Este markdown es el artefacto editable que después se segmenta e indexa."), markdownEditor);
         UiCss.DOCUMENT_INGEST_MARKDOWN_SHELL.addTo(markdownShell);
 
+        catalogUseWhenField = createCatalogUseWhenField();
+        generateCatalogButton = createGenerateCatalogButton();
+        generatedCatalogPreview = createGeneratedCatalogPreview();
+        var catalogShell = createCatalogShell(catalogUseWhenField, generateCatalogButton, generatedCatalogPreview);
+
         segmentEditorList = new DocumentSegmentEditorList();
         segmentEditorList.setSegmentChangeListener(controller::updateSegment);
         segmentEditorList.setSegmentDeleteListener(controller::deleteSegment);
@@ -148,7 +161,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         UiCss.DOCUMENT_INGEST_ACTION_BAR.addTo(actionBar);
 
         var details = new Details("Visualizar todo el contenido", markdownShell);
-        var reviewStack = new Div(details, segmentsShell, actionBar);
+        var reviewStack = new Div(details, catalogShell, segmentsShell, actionBar);
         reviewStack.setId("document-ingestion-review-stack");
         UiCss.DOCUMENT_INGEST_REVIEW_STACK.addTo(reviewStack);
 
@@ -166,8 +179,11 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
                 state.indexed().get(),
                 state.failureMessage().get()));
         Signal.effect(markdownEditor, () -> syncMarkdownEditor(state.reviewedMarkdown().get()));
+        Signal.effect(catalogUseWhenField, () -> syncCatalogUseWhenField(state.catalogUseWhen().get()));
+        Signal.effect(generatedCatalogPreview, () -> renderGeneratedCatalog(state.generatedCatalog().get()));
         Signal.effect(segmentEditorList, () -> segmentEditorList.setSegments(state.segments().get()));
         Signal.effect(reviewStack, () -> reviewStack.setVisible(state.reviewVisible().get()));
+        Signal.effect(generateCatalogButton, () -> generateCatalogButton.setEnabled(state.canGenerateCatalog().get()));
         Signal.effect(approveButton, () -> approveButton.setEnabled(state.canApprove().get()));
         Signal.effect(retryButton, () -> retryButton.setVisible(state.retryAvailable().get()));
         Signal.effect(deleteButton, () -> deleteButton.setVisible(!state.indexedVectorIds().get().isEmpty()));
@@ -178,7 +194,6 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         var account = authenticatedAccountService.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
             event.forwardTo(NoAccessView.class);
-            return;
         }
     }
 
@@ -262,10 +277,70 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         return wrapper;
     }
 
+    private TextArea createCatalogUseWhenField() {
+        var field = new TextArea("Cuándo debe usarlo el tutor");
+        field.setId("document-ingestion-catalog-use-when");
+        field.setWidthFull();
+        field.setRequiredIndicatorVisible(true);
+        field.setMaxLength(200);
+        field.setValueChangeMode(ValueChangeMode.EAGER);
+        field.setHelperText("Máximo 200 caracteres. Sé específico: tarea, tema, unidad, conceptos o situaciones donde este material aplica.");
+        field.addValueChangeListener(event -> controller.updateCatalogUseWhen(event.getValue()));
+        UiCss.DOCUMENT_INGEST_CATALOG_USE_WHEN.addTo(field);
+        return field;
+    }
+
+    private Button createGenerateCatalogButton() {
+        var button = new Button("Generar catálogo");
+        button.setId("document-ingestion-generate-catalog-button");
+        button.addThemeVariants(ButtonVariant.PRIMARY);
+        button.addClickListener(_ -> controller.generateCatalog(getUI().orElse(null)));
+        UiCss.DOCUMENT_INGEST_GENERATE_CATALOG_BUTTON.addTo(button);
+        return button;
+    }
+
+    private Div createGeneratedCatalogPreview() {
+        var preview = new Div();
+        preview.setId("document-ingestion-generated-catalog-preview");
+        UiCss.DOCUMENT_INGEST_GENERATED_CATALOG_PREVIEW.addTo(preview);
+        preview.setVisible(false);
+        return preview;
+    }
+
+    private Div createCatalogShell(TextArea field, Button generateButton, Div preview) {
+        var shell = new Div(
+                sectionHeader(
+                    "criterio de uso",
+                    "Esta descripción alimenta el catálogo que ayuda al tutor a decidir cuándo buscar este material."),
+                field,
+                generateButton,
+                preview);
+        shell.setId("document-ingestion-catalog-shell");
+        UiCss.DOCUMENT_INGEST_CATALOG_SHELL.addTo(shell);
+        return shell;
+    }
+
+    private void renderGeneratedCatalog(Optional<CourseMaterialCatalog> catalog) {
+        generatedCatalogPreview.removeAll();
+        generatedCatalogPreview.setVisible(catalog.isPresent());
+        catalog.ifPresent(value -> generatedCatalogPreview.add(
+            new Span(value.label()),
+            new Paragraph(value.useWhen()),
+            new Paragraph("Alias: %s".formatted(String.join(", ", value.aliases())))));
+    }
+
     private void syncMarkdownEditor(String nextValue) {
+        syncTextArea(markdownEditor, nextValue);
+    }
+
+    private void syncCatalogUseWhenField(String nextValue) {
+        syncTextArea(catalogUseWhenField, nextValue);
+    }
+
+    private void syncTextArea(TextArea textArea, String nextValue) {
         String safeValue = nextValue == null ? "" : nextValue;
-        if (!Objects.equals(markdownEditor.getValue(), safeValue)) {
-            markdownEditor.setValue(safeValue);
+        if (!Objects.equals(textArea.getValue(), safeValue)) {
+            textArea.setValue(safeValue);
         }
     }
 }

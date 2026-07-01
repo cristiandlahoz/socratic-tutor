@@ -1,5 +1,6 @@
 package com.wornux.config;
 
+import com.wornux.ai.advisor.DynamicContextManagementAdvisor;
 import com.wornux.ai.advisor.TutorGuardAdvisor;
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.prompt.PromptResources;
@@ -20,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 @Configuration
 public class AIConfig {
@@ -36,7 +38,8 @@ public class AIConfig {
             ChatProperties chatProperties,
             GuardClassifierService guardClassifierService,
             RetrieveInformationTool retrieveInformationTool,
-            PromptResources promptResources) {
+            PromptResources promptResources,
+            JdbcClient jdbcClient) {
 
         var compactionClient = ChatClient.builder(chatModel).build();
         var tokenCountEstimator = new JTokkitTokenCountEstimator();
@@ -54,8 +57,11 @@ public class AIConfig {
                 .compactionTrigger(loggingCompactionTrigger(tokenCountTrigger, compactionThresholdTokens))
                 .compactionStrategy(loggingCompactionStrategy(compactionStrategy))
                 .build();
-        var tutorGuardAdvisor = new TutorGuardAdvisor(
+        var dynamicContextManagementAdvisor = new DynamicContextManagementAdvisor(
             sessionMemoryAdvisor.getOrder() + 1,
+            jdbcClient);
+        var tutorGuardAdvisor = new TutorGuardAdvisor(
+            sessionMemoryAdvisor.getOrder() + 2,
             guardClassifierService,
             promptResources);
 
@@ -64,7 +70,7 @@ public class AIConfig {
                         .temperature(0.6)
                         .topP(0.95)
                         .topK(20))
-                .defaultAdvisors(sessionMemoryAdvisor, tutorGuardAdvisor)
+                .defaultAdvisors(sessionMemoryAdvisor, dynamicContextManagementAdvisor, tutorGuardAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();
     }

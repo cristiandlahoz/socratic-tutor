@@ -87,6 +87,8 @@ app:
       routing-model: ${ROUTING_MODEL:${spring.ai.openai.chat.model}}
     title:
       model: ${TITLE_MODEL:unsloth/gemma-4-E4B-it-GGUF:IQ4_XS}
+    switzerland-knife:
+      model: ${SWITZERLAND_KNIFE_MODEL:unsloth/gemma-4-E4B-it-GGUF:IQ4_XS}
     c-example-preparation:
       model: ${C_EXAMPLE_PREPARATION_MODEL:unsloth/gemma-4-E4B-it-GGUF:IQ4_XS}
   document-ingest:

@@ -3,12 +3,14 @@ package com.wornux.ui.ingestion;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.local.ValueSignal;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.wornux.services.document.CourseMaterialCatalog;
 import com.wornux.ui.MainLayout;
 
 @SpringComponent
@@ -25,6 +27,8 @@ public class DocumentIngestionState implements Serializable {
     private final ValueSignal<String> stageLabel = new ValueSignal<>("Sube un PDF para comenzar.");
     private final ValueSignal<String> failureMessage = new ValueSignal<>("");
     private final ValueSignal<String> reviewedMarkdown = new ValueSignal<>("");
+    private final ValueSignal<String> catalogUseWhen = new ValueSignal<>("");
+    private final ValueSignal<Optional<CourseMaterialCatalog>> generatedCatalog = new ValueSignal<>(Optional.empty());
     private final ValueSignal<List<EditableSegmentViewModel>> segments = new ValueSignal<>(List.of());
     private final ValueSignal<Boolean> busy = new ValueSignal<>(false);
     private final ValueSignal<Boolean> indexed = new ValueSignal<>(false);
@@ -32,11 +36,19 @@ public class DocumentIngestionState implements Serializable {
     private final ValueSignal<Boolean> retryAvailable = new ValueSignal<>(false);
 
     private final Signal<Boolean> reviewVisible = Signal.computed(() -> activeIngestionId.get() != null);
+    private final Signal<Boolean> canGenerateCatalog = Signal.computed(
+        () -> !busy.get()
+                && activeIngestionId.get() != null
+                && !indexed.get()
+                && !catalogUseWhen.get().isBlank()
+                && catalogUseWhen.get().length() <= 200
+                && !segments.get().isEmpty());
     private final Signal<Boolean> canApprove = Signal.computed(
         () -> !busy.get()
                 && activeIngestionId.get() != null
                 && !indexed.get()
                 && !reviewedMarkdown.get().isBlank()
+                && generatedCatalog.get().isPresent()
                 && !segments.get().isEmpty()
                 && segments.get()
                         .stream()
@@ -66,6 +78,14 @@ public class DocumentIngestionState implements Serializable {
         return reviewedMarkdown;
     }
 
+    public ValueSignal<String> catalogUseWhen() {
+        return catalogUseWhen;
+    }
+
+    public ValueSignal<Optional<CourseMaterialCatalog>> generatedCatalog() {
+        return generatedCatalog;
+    }
+
     public ValueSignal<List<EditableSegmentViewModel>> segments() {
         return segments;
     }
@@ -90,6 +110,10 @@ public class DocumentIngestionState implements Serializable {
         return reviewVisible;
     }
 
+    public Signal<Boolean> canGenerateCatalog() {
+        return canGenerateCatalog;
+    }
+
     public Signal<Boolean> canApprove() {
         return canApprove;
     }
@@ -106,6 +130,8 @@ public class DocumentIngestionState implements Serializable {
         activeIngestionId.set(null);
         indexedVectorIds.set(List.of());
         reviewedMarkdown.set("");
+        catalogUseWhen.set("");
+        generatedCatalog.set(Optional.empty());
         segments.set(List.of());
         indexed.set(false);
         dirty.set(false);
@@ -119,6 +145,8 @@ public class DocumentIngestionState implements Serializable {
         stageLabel.set(reviewVm.stageLabel());
         failureMessage.set("");
         reviewedMarkdown.set(reviewVm.markdown());
+        catalogUseWhen.set("");
+        generatedCatalog.set(Optional.empty());
         segments.set(List.copyOf(reviewVm.segments()));
         busy.set(false);
         indexed.set(reviewVm.indexed());
@@ -140,6 +168,8 @@ public class DocumentIngestionState implements Serializable {
         stageLabel.set("Sube un PDF para comenzar.");
         failureMessage.set("");
         reviewedMarkdown.set("");
+        catalogUseWhen.set("");
+        generatedCatalog.set(Optional.empty());
         segments.set(List.of());
         busy.set(false);
         indexed.set(false);

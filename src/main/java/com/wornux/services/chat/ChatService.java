@@ -63,7 +63,8 @@ public class ChatService {
                                 sessionContext.get(SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY))
                             .param(
                                 SessionMemoryAdvisor.USER_ID_CONTEXT_KEY,
-                                sessionContext.get(SessionMemoryAdvisor.USER_ID_CONTEXT_KEY)))
+                                sessionContext.get(SessionMemoryAdvisor.USER_ID_CONTEXT_KEY))
+                            .param(ToolContextKeys.GROUP_CLASS_ID, academicCtx.groupClassId().toString()))
                 .toolContext(buildToolContext(Optional.of(academicCtx), conversationId, turnId))
                 .user(userInput);
         if (questionHandler != null) {

@@ -3,6 +3,7 @@ package com.wornux.ui.ingestion;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.QueryParameters;
@@ -10,6 +11,7 @@ import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.services.document.ApproveDocumentCommand;
+import com.wornux.services.document.CourseMaterialCatalog;
 import com.wornux.services.document.DocumentIngestionService;
 import com.wornux.services.document.StartIngestionCommand;
 import com.wornux.ui.MainLayout;
@@ -74,12 +76,7 @@ public class DocumentIngestionUiController implements Serializable {
         abortActiveTask();
         state.startProcessing(state.fileName().peek(), "Indexando segmentos para chat.");
         activeTask = Mono
-                .fromCallable(
-                    () -> documentIngestionService.approve(
-                        new ApproveDocumentCommand(state.activeIngestionId().peek(),
-                                state.fileName().peek(),
-                                state.reviewedMarkdown().peek(),
-                                state.segments().peek())))
+                .fromCallable(() -> documentIngestionService.approve(approveCommand()))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                     review -> runUi(ui, () -> applyReview(review)),
@@ -104,8 +101,25 @@ public class DocumentIngestionUiController implements Serializable {
     }
 
     public void updateMarkdown(String markdown) {
-        state.reviewedMarkdown().set(markdown == null ? "" : markdown);
-        state.dirty().set(true);
+        updateReviewedText(markdown);
+    }
+
+    public void updateCatalogUseWhen(String catalogUseWhen) {
+        updateCatalogDescription(catalogUseWhen);
+    }
+
+    public void generateCatalog(UI ui) {
+        abortActiveTask();
+        state.startProcessing(state.fileName().peek(), "Generando catálogo de búsqueda.");
+        activeTask = Mono
+                .fromCallable(() -> documentIngestionService.generateCatalog(
+                    state.fileName().peek(),
+                    state.catalogUseWhen().peek(),
+                    state.segments().peek()))
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                    catalog -> runUi(ui, () -> applyGeneratedCatalog(catalog)),
+                    error -> runUi(ui, () -> state.markFailure(message(error), lastUploadedFile != null)));
     }
 
     public void updateSegment(String segmentId, String content) {
@@ -114,8 +128,7 @@ public class DocumentIngestionUiController implements Serializable {
                 .stream()
                 .map(segment -> segment.id().equals(segmentId) ? segment.withContent(content) : segment)
                 .toList();
-        state.segments().set(nextSegments);
-        state.dirty().set(true);
+        updateSegments(nextSegments);
     }
 
     public void deleteSegment(String segmentId) {
@@ -127,8 +140,7 @@ public class DocumentIngestionUiController implements Serializable {
         if (nextSegments.size() == state.segments().peek().size()) {
             return;
         }
-        state.segments().set(nextSegments);
-        state.dirty().set(true);
+        updateSegments(nextSegments);
     }
 
     public void returnToConversation() {
@@ -140,6 +152,46 @@ public class DocumentIngestionUiController implements Serializable {
             return;
         }
         UI.getCurrent().navigate(com.wornux.ui.conversation.ConversationView.class);
+    }
+
+    private ApproveDocumentCommand approveCommand() {
+        return new ApproveDocumentCommand(
+                state.activeIngestionId().peek(),
+                state.fileName().peek(),
+                state.generatedCatalog().peek().orElseThrow(),
+                state.reviewedMarkdown().peek(),
+                state.segments().peek());
+    }
+
+    private void updateReviewedText(String markdown) {
+        state.reviewedMarkdown().set(safeText(markdown));
+        state.dirty().set(true);
+    }
+
+    private void updateCatalogDescription(String catalogUseWhen) {
+        state.catalogUseWhen().set(safeText(catalogUseWhen));
+        invalidateCatalog();
+    }
+
+    private void updateSegments(List<EditableSegmentViewModel> segments) {
+        state.segments().set(segments);
+        invalidateCatalog();
+    }
+
+    private void invalidateCatalog() {
+        state.generatedCatalog().set(Optional.empty());
+        state.dirty().set(true);
+    }
+
+    private String safeText(String value) {
+        return value == null ? "" : value;
+    }
+
+    private void applyGeneratedCatalog(CourseMaterialCatalog catalog) {
+        state.generatedCatalog().set(Optional.of(catalog));
+        state.busy().set(false);
+        state.stageLabel().set("Catálogo generado. Revisa y aprueba el indexado.");
+        state.failureMessage().set("");
     }
 
     private void applyReview(DocumentReviewViewModel review) {

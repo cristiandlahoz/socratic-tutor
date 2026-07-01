@@ -142,6 +142,10 @@ public final class UiCss {
     public static final CssClass DOCUMENT_INGEST_ACTION_BAR = css("document-ingest-action-bar");
     public static final CssClass DOCUMENT_INGEST_APPROVE_BUTTON = css("document-ingest-approve-button");
     public static final CssClass DOCUMENT_INGEST_BACK_BUTTON = css("document-ingest-back-button");
+    public static final CssClass DOCUMENT_INGEST_CATALOG_SHELL = css("document-ingest-catalog-shell");
+    public static final CssClass DOCUMENT_INGEST_CATALOG_USE_WHEN = css("document-ingest-catalog-use-when");
+    public static final CssClass DOCUMENT_INGEST_GENERATE_CATALOG_BUTTON = css("document-ingest-generate-catalog-button");
+    public static final CssClass DOCUMENT_INGEST_GENERATED_CATALOG_PREVIEW = css("document-ingest-generated-catalog-preview");
     public static final CssClass DOCUMENT_INGEST_DESCRIPTION = css("document-ingest-description");
     public static final CssClass DOCUMENT_INGEST_EYEBROW = css("document-ingest-eyebrow");
     public static final CssClass DOCUMENT_INGEST_HEADER = css("document-ingest-header");

@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class RetrieveInformationTool {
 
-    public static final String RETRIEVE_INFORMATION = "retrieveInformation";
-    public static final String READ_RETRIEVED_INFORMATION = "readRetrievedInformation";
+    public static final String SEARCH_COURSE_MATERIAL = "searchCourseMaterial";
+    public static final String READ_COURSE_MATERIAL_PAGE = "readCourseMaterialPage";
 
     private final DocumentRetrievalService documentRetrievalService;
     private final ToolUsageAuditService toolUsageAuditService;
@@ -27,14 +27,14 @@ public class RetrieveInformationTool {
         this.toolUsageAuditService = toolUsageAuditService;
     }
 
-    @Tool(name = RETRIEVE_INFORMATION,
-            description = "Search approved uploaded PDFs for factual course context. Returns short previews and read cursors. Use "
-                    + READ_RETRIEVED_INFORMATION + " when a preview is not enough to answer.")
-    public DocumentContextResult retrieveInformation(
-            @ToolParam(description = "The specific question or fact to search for in uploaded PDFs.") String query,
+    @Tool(name = SEARCH_COURSE_MATERIAL,
+            description = "Search stored course material for factual course context. Returns short previews and read cursors. Use "
+                    + READ_COURSE_MATERIAL_PAGE + " when a preview is not enough to answer.")
+    public DocumentContextResult searchCourseMaterial(
+            @ToolParam(description = "The specific question or fact to search for in stored course material.") String query,
             ToolContext toolContext) {
         return toolUsageAuditService.audit(
-            RETRIEVE_INFORMATION,
+            SEARCH_COURSE_MATERIAL,
             toolContext,
             "query_len=%d".formatted(query == null ? 0 : query.length()),
             () -> {
@@ -44,16 +44,16 @@ public class RetrieveInformationTool {
             });
     }
 
-    @Tool(name = READ_RETRIEVED_INFORMATION,
-            description = "Read uploaded PDF content from a cursor returned by " + RETRIEVE_INFORMATION
+    @Tool(name = READ_COURSE_MATERIAL_PAGE,
+            description = "Read stored course material from a cursor returned by " + SEARCH_COURSE_MATERIAL
                     + ". Use nextCursor or previousCursor to continue reading nearby chunks.")
-    public DocumentPageResult readRetrievedInformation(
-            @ToolParam(description = "A readCursor, nextCursor, or previousCursor returned by a document tool.") String cursor,
+    public DocumentPageResult readCourseMaterialPage(
+            @ToolParam(description = "A readCursor, nextCursor, or previousCursor returned by a course material tool.") String cursor,
             @ToolParam(required = false,
                     description = "Number of chunks to read. Default is 1; maximum is 3.") Integer pageSize,
             ToolContext toolContext) {
         return toolUsageAuditService.audit(
-            READ_RETRIEVED_INFORMATION,
+            READ_COURSE_MATERIAL_PAGE,
             toolContext,
             "cursor_present=%s page_size=%s".formatted(cursor != null && !cursor.isBlank(), pageSize),
             () -> {
