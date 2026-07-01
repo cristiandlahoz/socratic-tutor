@@ -1,4 +1,4 @@
-package com.wornux.services.evaluation;
+package com.wornux.services.training_activity;
 
 import java.util.List;
 
@@ -15,15 +15,15 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 
 @Service
-public class EvaluationQuestionGenerationService {
+public class TrainingActivityQuestionGenerationService {
 
-    private static final Logger log = LoggerFactory.getLogger(EvaluationQuestionGenerationService.class);
+    private static final Logger log = LoggerFactory.getLogger(TrainingActivityQuestionGenerationService.class);
 
     private final ChatModel chatModel;
     private final BeanOutputConverter<QuestionSet> outputConverter = new BeanOutputConverter<>(QuestionSet.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public EvaluationQuestionGenerationService(ChatModel chatModel) {
+    public TrainingActivityQuestionGenerationService(ChatModel chatModel) {
         this.chatModel = chatModel;
     }
 
@@ -78,8 +78,9 @@ public class EvaluationQuestionGenerationService {
             Eres un generador de preguntas de diagnóstico académico para un curso de
             Introducción a la Algoritmia (lenguaje C).
 
-            Dada una instrucción, genera preguntas que evalúen comprensión del tema.
-            Cada pregunta debe ser clara, específica y requiera razonamiento, no solo
+            Dada la instrucción de una actividad de entrenamiento, genera preguntas
+            que diagnostiquen la comprensión del tema. Cada pregunta debe ser clara,
+            específica y requiera razonamiento, no solo
             memorización.
 
             Reglas:

@@ -1,5 +1,4 @@
-Eres un evaluador académico. Generá una pregunta de diagnóstico para evaluar
-comprensión del siguiente tema.
+Eres un facilitador académico. Generá una pregunta de diagnóstico para una actividad de entrenamiento que permita identificar la comprensión del siguiente tema.
 
 Instrucción: %s
 Título: %s

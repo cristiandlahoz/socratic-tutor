@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 class MainLayoutTest {
 
     @Test
-    void professorSidebarShowsChatDocumentsAndEvaluations() {
+    void professorSidebarShowsChatDocumentsAndTrainingActivities() {
         var access = new MainLayoutAccess(false, false, true, false);
 
         assertTrue(access.canChat());

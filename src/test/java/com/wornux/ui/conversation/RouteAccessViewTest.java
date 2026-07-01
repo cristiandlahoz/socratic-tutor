@@ -110,7 +110,7 @@ class RouteAccessViewTest {
     }
 
     @Test
-    void evaluationsDenyStudentAccess() {
+    void trainingActivitiesDenyStudentAccess() {
         var authenticatedAccountService = mock(AuthenticatedAccountService.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
         var trainingActivityService = mock(TrainingActivityService.class);

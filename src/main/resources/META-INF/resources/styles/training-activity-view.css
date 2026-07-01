@@ -1,11 +1,11 @@
-.evaluation-view {
+.training-activity-view {
   width: min(100%, 96rem);
   margin: 0 auto;
   padding: var(--vaadin-padding-xl) clamp(1.25rem, 3vw, 2.5rem);
   box-sizing: border-box;
 }
 
-.evaluation-overlay {
+.training-activity-overlay {
   position: fixed;
   inset: 0;
   z-index: 2000;
@@ -16,13 +16,13 @@
   box-sizing: border-box;
 }
 
-.evaluation-overlay-backdrop {
+.training-activity-overlay-backdrop {
   position: absolute;
   inset: 0;
   background: var(--vaadin-overlay-backdrop-background);
 }
 
-.evaluation-overlay-panel {
+.training-activity-overlay-panel {
   position: relative;
   z-index: 1;
   width: min(48rem, 100%);
@@ -35,17 +35,17 @@
   padding: var(--vaadin-padding-l);
 }
 
-.evaluation-overlay-footer {
+.training-activity-overlay-footer {
   justify-content: flex-end;
 }
 
-.evaluation-view > vaadin-vertical-layout {
+.training-activity-view > vaadin-vertical-layout {
   width: 100%;
   max-width: none;
   align-items: stretch;
 }
 
-.evaluation-form-card {
+.training-activity-form-card {
   display: flex;
   flex-direction: column;
   gap: var(--vaadin-padding-m);
@@ -56,7 +56,7 @@
   box-shadow: var(--aura-shadow-xs);
 }
 
-.evaluation-grid-card {
+.training-activity-grid-card {
   display: flex;
   flex-direction: column;
   gap: var(--vaadin-padding-m);
@@ -67,28 +67,28 @@
   box-shadow: var(--aura-shadow-xs);
 }
 
-.evaluation-view vaadin-text-field,
-.evaluation-view vaadin-text-area {
+.training-activity-view vaadin-text-field,
+.training-activity-view vaadin-text-area {
   --vaadin-input-field-border-radius: var(--vaadin-radius-s);
 }
 
-.evaluation-view vaadin-button {
+.training-activity-view vaadin-button {
   border-radius: var(--vaadin-radius-s);
 }
 
-.evaluation-actions-row {
+.training-activity-actions-row {
   display: flex;
   gap: var(--vaadin-gap-xs);
 }
 
-.evaluation-description {
+.training-activity-description {
   color: var(--vaadin-text-color-secondary);
   font-size: var(--aura-font-size-xs);
   margin-top: var(--vaadin-gap-xs);
 }
 
 @media (max-width: 960px) {
-  .evaluation-view {
+  .training-activity-view {
     width: 100%;
     padding-inline: var(--vaadin-padding-m);
   }

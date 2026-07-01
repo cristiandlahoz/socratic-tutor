@@ -34,14 +34,14 @@ public class TrainingActivityDialog extends Div {
         this.onSave = onSave;
         this.onClose = onClose;
 
-        UiCss.EVALUATION_OVERLAY.addTo(this);
+        UiCss.TRAINING_ACTIVITY_OVERLAY.addTo(this);
 
         var backdrop = new Div();
-        UiCss.EVALUATION_OVERLAY_BACKDROP.addTo(backdrop);
+        UiCss.TRAINING_ACTIVITY_OVERLAY_BACKDROP.addTo(backdrop);
         backdrop.addClickListener(_ -> close());
 
         var panel = new Div();
-        UiCss.EVALUATION_OVERLAY_PANEL.addTo(panel);
+        UiCss.TRAINING_ACTIVITY_OVERLAY_PANEL.addTo(panel);
 
         var title = new H3("Activity: %s".formatted(activity.getTitle()));
         title.getStyle().set("margin", "0");
@@ -75,7 +75,7 @@ public class TrainingActivityDialog extends Div {
         var closeButton = new Button("Close", _ -> close());
 
         var footer = new HorizontalLayout(saveButton, closeButton);
-        UiCss.EVALUATION_OVERLAY_FOOTER.addTo(footer);
+        UiCss.TRAINING_ACTIVITY_OVERLAY_FOOTER.addTo(footer);
         footer.setPadding(false);
         footer.setSpacing(true);
 

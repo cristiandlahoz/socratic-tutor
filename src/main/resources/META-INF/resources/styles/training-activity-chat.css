@@ -1,4 +1,4 @@
-.evaluation-run-header {
+.training-activity-run-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -9,7 +9,7 @@
   backdrop-filter: blur(24px);
 }
 
-.evaluation-run-title {
+.training-activity-run-title {
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);
   font-size: var(--aura-font-size-l);
@@ -17,24 +17,24 @@
   margin: 0;
 }
 
-.evaluation-run-progress {
+.training-activity-run-progress {
   color: var(--vaadin-text-color-secondary);
   font-family: var(--aura-font-family);
   font-size: var(--aura-font-size-xs);
 }
 
-.evaluation-message {
+.training-activity-message {
   box-sizing: border-box;
 }
 
-.evaluation-message--evaluator {
+.training-activity-message--evaluator {
   padding: 0;
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);
   line-height: var(--message-assistant-line-height);
 }
 
-.evaluation-message--evaluator .evaluation-message__sender {
+.training-activity-message--evaluator .training-activity-message__sender {
   color: var(--aura-accent-text-color);
   text-transform: uppercase;
   font-size: var(--aura-font-size-xs);
@@ -42,7 +42,7 @@
   margin-bottom: var(--vaadin-gap-xs);
 }
 
-.evaluation-message--student {
+.training-activity-message--student {
   background: var(--aura-surface-color);
   color: var(--vaadin-text-color);
   border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
@@ -56,27 +56,27 @@
   margin-bottom: var(--vaadin-gap-s);
 }
 
-.evaluation-message--student .evaluation-message__sender {
+.training-activity-message--student .training-activity-message__sender {
   color: var(--vaadin-text-color-disabled);
   font-size: var(--aura-font-size-xs);
   letter-spacing: 0.06em;
   margin-bottom: var(--vaadin-gap-xs);
 }
 
-.evaluation-message__sender {
+.training-activity-message__sender {
   display: block;
   font-family: var(--aura-font-family);
 }
 
-.evaluation-message:first-child {
+.training-activity-message:first-child {
   margin-top: 0;
 }
 
-.evaluation-message:last-child {
+.training-activity-message:last-child {
   margin-bottom: 0;
 }
 
-.evaluation-loading-indicator {
+.training-activity-loading-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -84,44 +84,44 @@
   padding: var(--vaadin-padding-l);
 }
 
-.evaluation-loading-spinner {
+.training-activity-loading-spinner {
   flex-shrink: 0;
   --thinking-spinner-size: 1.1rem;
 }
 
-.evaluation-loading-label {
+.training-activity-loading-label {
   color: var(--vaadin-text-color-secondary);
   font-family: var(--aura-font-family);
   font-size: var(--aura-font-size-s);
   line-height: 1.3;
 }
 
-.evaluation-completion-dialog-content {
+.training-activity-completion-dialog-content {
   overflow-y: auto;
   max-height: calc(80vh - 10rem);
   padding: var(--vaadin-padding-m) 0;
 }
 
-.evaluation-report-markdown vaadin-markdown h1,
-.evaluation-report-markdown vaadin-markdown h2,
-.evaluation-report-markdown vaadin-markdown h3,
-.evaluation-report-markdown vaadin-markdown h4,
-.evaluation-report-markdown vaadin-markdown h5,
-.evaluation-report-markdown vaadin-markdown h6 {
+.training-activity-report-markdown vaadin-markdown h1,
+.training-activity-report-markdown vaadin-markdown h2,
+.training-activity-report-markdown vaadin-markdown h3,
+.training-activity-report-markdown vaadin-markdown h4,
+.training-activity-report-markdown vaadin-markdown h5,
+.training-activity-report-markdown vaadin-markdown h6 {
   margin-top: var(--vaadin-gap-l);
   margin-bottom: var(--vaadin-gap-s);
 }
 
-.evaluation-report-markdown vaadin-markdown p {
+.training-activity-report-markdown vaadin-markdown p {
   margin-bottom: var(--vaadin-gap-s);
 }
 
-.evaluation-report-markdown vaadin-markdown ul,
-.evaluation-report-markdown vaadin-markdown ol {
+.training-activity-report-markdown vaadin-markdown ul,
+.training-activity-report-markdown vaadin-markdown ol {
   margin-bottom: var(--vaadin-gap-s);
   padding-left: var(--vaadin-padding-l);
 }
 
-.evaluation-report-markdown vaadin-markdown li {
+.training-activity-report-markdown vaadin-markdown li {
   margin-bottom: var(--vaadin-gap-xs);
 }

@@ -1,7 +1,7 @@
-Eres un evaluador académico. Genera un reporte de evaluación completo
-en formato markdown.
+Eres un facilitador académico. Genera un reporte diagnóstico completo
+de una actividad de entrenamiento en formato markdown.
 
-Instrucción de la evaluación: %s
+Instrucción de la actividad de entrenamiento: %s
 Título: %s
 
 Todas las preguntas y respuestas del estudiante:

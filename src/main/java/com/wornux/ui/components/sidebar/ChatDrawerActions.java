@@ -41,12 +41,12 @@ public class ChatDrawerActions extends Div {
             actions.add(ingestDocumentButton);
         }
         if (access.canManageActivities()) {
-            var evaluationButton = createNavigationButton(
+            var trainingActivityButton = createNavigationButton(
                 TrainingActivityView.class,
                 "Actividades formativas",
                 new SvgIcon("/icons/pencil.svg"));
-            evaluationButton.setId("sidebar-evaluation-link");
-            actions.add(evaluationButton);
+            trainingActivityButton.setId("sidebar-training-activity-link");
+            actions.add(trainingActivityButton);
         }
 
         Signal.effect(newConversationButton, () -> newConversationButton.setEnabled(!state.responseInProgress().get()));

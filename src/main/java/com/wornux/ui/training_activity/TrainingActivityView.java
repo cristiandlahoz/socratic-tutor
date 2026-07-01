@@ -41,13 +41,13 @@ import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.css.UiCss;
 
-@Route(value = "evaluations", layout = MainLayout.class)
+@Route(value = "training-activities", layout = MainLayout.class)
 public class TrainingActivityView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
 
     private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", SPANISH_LOCALE);
-    public static final String OPEN_ACTIVITY_QUERY_PARAMETER = "evaluation";
+    public static final String OPEN_ACTIVITY_QUERY_PARAMETER = "trainingActivity";
 
     private final transient AuthenticatedAccountService authenticatedAccountService;
     private final transient TrainingActivityService trainingActivityService;
@@ -70,7 +70,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         this.authenticatedAccountService = authenticatedAccountService;
 
         var content = getContent();
-        UiCss.EVALUATION_VIEW.addTo(content);
+        UiCss.TRAINING_ACTIVITY_VIEW.addTo(content);
         var layout = new VerticalLayout(buildHeader(), buildFormCard(), buildGridCard());
         layout.setPadding(false);
         layout.setSpacing(true);
@@ -83,9 +83,9 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         UiCss.UTILITY_MARGIN_NONE.addTo(title);
         var description = new Span(
                 "Manage class-scoped formative activity definitions on the target ERD. Assignment execution remains blocked until the target model can persist its data.");
-        UiCss.EVALUATION_DESCRIPTION.addTo(description);
+        UiCss.TRAINING_ACTIVITY_DESCRIPTION.addTo(description);
         var header = new Div(title, description);
-        UiCss.EVALUATION_HEADER.addTo(header);
+        UiCss.TRAINING_ACTIVITY_HEADER.addTo(header);
         return header;
     }
 
@@ -100,7 +100,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         saveButton.addClickShortcut(Key.ENTER).listenOn(instructionField);
         saveButton.addClickListener(_ -> onSave());
         var card = new Div(titleField, instructionField, saveButton);
-        UiCss.EVALUATION_FORM_CARD.addTo(card);
+        UiCss.TRAINING_ACTIVITY_FORM_CARD.addTo(card);
         return card;
     }
 
@@ -127,7 +127,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         toolbar.setPadding(false);
 
         var card = new Div(grid, toolbar);
-        UiCss.EVALUATION_GRID_CARD.addTo(card);
+        UiCss.TRAINING_ACTIVITY_GRID_CARD.addTo(card);
         return card;
     }
 
@@ -249,7 +249,8 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     }
 
     private void clearDialogAddressBarState() {
-        getUI().ifPresent(
-            ui -> ui.getPage().getHistory().replaceState(null, new Location("evaluations", QueryParameters.empty())));
+        getUI().ifPresent(ui -> ui.getPage()
+                .getHistory()
+                .replaceState(null, new Location("training-activities", QueryParameters.empty())));
     }
 }
