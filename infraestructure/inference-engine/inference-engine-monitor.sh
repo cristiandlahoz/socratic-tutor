@@ -10,10 +10,20 @@ set -euo pipefail
 LLAMA_SWAP_URL="${LLAMA_SWAP_URL:-http://127.0.0.1:8080}"
 CHECK_INTERVAL_SECONDS="${CHECK_INTERVAL_SECONDS:-60}"
 PROMOTION_COOLDOWN_SECONDS="${PROMOTION_COOLDOWN_SECONDS:-300}"
+WARM_UP_TIMEOUT_SECONDS="${WARM_UP_TIMEOUT_SECONDS:-180}"
+WARM_UP_MAX_TOKENS="${WARM_UP_MAX_TOKENS:-1}"
+
 ORNITH_MODEL="${ORNITH_MODEL:-AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL}"
-ORNITH_MODEL_URL_ENCODED="AtomicChat%2Fornith-9b-GGUF%3AUD-Q4_K_XL"
+GEMMA_MODEL="${GEMMA_MODEL:-unsloth/gemma-4-E4B-it-GGUF:IQ4_XS}"
 ORNITH_MIN_FREE_VRAM_MB="${ORNITH_MIN_FREE_VRAM_MB:-7000}"
-LAST_PROMOTION_AT=0
+GEMMA_MIN_FREE_VRAM_MB="${GEMMA_MIN_FREE_VRAM_MB:-4000}"
+
+# Format: one model per line as "model_id|min_free_vram_mb".
+# Override this to monitor a different set without editing the script.
+MONITORED_MODELS="${MONITORED_MODELS:-${ORNITH_MODEL}|${ORNITH_MIN_FREE_VRAM_MB}
+${GEMMA_MODEL}|${GEMMA_MIN_FREE_VRAM_MB}}"
+
+declare -A LAST_PROMOTION_AT=()
 
 log() {
   printf '[monitor] %s %s\n' "$(date -Is)" "$*"
@@ -30,50 +40,89 @@ free_vram_mb() {
     || echo 0
 }
 
-ornith_pid() {
-  pgrep -u "${USER:-$(id -un)}" -f "llama-server .*${ORNITH_MODEL}" | head -n 1 || true
+model_pid() {
+  local model="$1"
+  pgrep -u "${USER:-$(id -un)}" -f "llama-server .*${model}" | head -n 1 || true
 }
 
-ornith_running_on_cpu() {
+model_running_on_cpu() {
   local pid="$1"
   [[ -n "$pid" ]] || return 1
   tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q -- '-ngl 0'
 }
 
-unload_ornith() {
-  curl -fsS -X POST "$LLAMA_SWAP_URL/api/models/unload/$ORNITH_MODEL_URL_ENCODED" >/dev/null
+url_encode() {
+  python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
 }
 
-warm_ornith() {
-  curl -fsS -m 120 "$LLAMA_SWAP_URL/v1/chat/completions" \
+json_escape() {
+  python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$1"
+}
+
+unload_model() {
+  local model="$1"
+  local encoded
+  encoded="$(url_encode "$model")"
+  curl -fsS -X POST "$LLAMA_SWAP_URL/api/models/unload/$encoded" >/dev/null
+}
+
+warm_model() {
+  local model="$1"
+  local model_json
+  model_json="$(json_escape "$model")"
+
+  curl -fsS -m "$WARM_UP_TIMEOUT_SECONDS" "$LLAMA_SWAP_URL/v1/chat/completions" \
     -H 'Content-Type: application/json' \
-    -d "{\"model\":\"$ORNITH_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply OK.\"}],\"max_tokens\":1,\"stream\":false}" \
+    -d "{\"model\":${model_json},\"messages\":[{\"role\":\"user\",\"content\":\"Reply OK.\"}],\"max_tokens\":${WARM_UP_MAX_TOKENS},\"stream\":false}" \
     >/dev/null
 }
 
-log "started; checking every ${CHECK_INTERVAL_SECONDS}s; Ornith GPU threshold=${ORNITH_MIN_FREE_VRAM_MB}MB"
+promote_if_needed() {
+  local model="$1"
+  local min_free_mb="$2"
+  local free_mb="$3"
+  local now="$4"
+  local pid
+  pid="$(model_pid "$model")"
+
+  if ! model_running_on_cpu "$pid"; then
+    return 0
+  fi
+
+  if ! [[ "$free_mb" =~ ^[0-9]+$ ]] || (( free_mb < min_free_mb )); then
+    log "${model} is on CPU; waiting for ${min_free_mb}MB free VRAM (currently ${free_mb}MB)"
+    return 0
+  fi
+
+  local last="${LAST_PROMOTION_AT[$model]:-0}"
+  if (( now - last < PROMOTION_COOLDOWN_SECONDS )); then
+    return 0
+  fi
+
+  log "promoting model to GPU; model=${model} pid=${pid} free_vram=${free_mb}MB threshold=${min_free_mb}MB"
+  if unload_model "$model"; then
+    sleep 2
+    if warm_model "$model"; then
+      LAST_PROMOTION_AT[$model]="$now"
+      log "promotion requested successfully; model=${model}"
+    else
+      log "warm request failed after unload; model=${model}; llama-swap may retry on next real request"
+    fi
+  else
+    log "unload request failed; model=${model}"
+  fi
+}
+
+log "started; checking every ${CHECK_INTERVAL_SECONDS}s; monitored models: $(echo "$MONITORED_MODELS" | tr '\n' '; ')"
 
 while true; do
-  pid="$(ornith_pid)"
   free_mb="$(free_vram_mb)"
   now="$(date +%s)"
 
-  if ornith_running_on_cpu "$pid" && [[ "$free_mb" =~ ^[0-9]+$ ]] && (( free_mb >= ORNITH_MIN_FREE_VRAM_MB )); then
-    if (( now - LAST_PROMOTION_AT >= PROMOTION_COOLDOWN_SECONDS )); then
-      log "promoting Ornith to GPU; pid=$pid free_vram=${free_mb}MB"
-      if unload_ornith; then
-        sleep 2
-        if warm_ornith; then
-          LAST_PROMOTION_AT="$now"
-          log "promotion requested successfully"
-        else
-          log "warm request failed after unload; llama-swap may retry on next real request"
-        fi
-      else
-        log "unload request failed"
-      fi
-    fi
-  fi
+  while IFS='|' read -r model min_free_mb; do
+    [[ -n "${model:-}" ]] || continue
+    promote_if_needed "$model" "$min_free_mb" "$free_mb" "$now"
+  done <<< "$MONITORED_MODELS"
 
   sleep "$CHECK_INTERVAL_SECONDS"
 done

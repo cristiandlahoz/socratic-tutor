@@ -11,7 +11,7 @@ models:
 
   "unsloth/gemma-4-E4B-it-GGUF:IQ4_XS":
     cmd: |
-      ./start-llama-server.sh unsloth/gemma-4-E4B-it-GGUF:IQ4_XS ${PORT} 4000 4096
+      ./start-llama-server.sh unsloth/gemma-4-E4B-it-GGUF:IQ4_XS ${PORT} 4000 2048
 
 # Allow both models to remain loaded concurrently.
 matrix:
@@ -21,9 +21,7 @@ matrix:
   sets:
     both: "o & g"
 
-# Load both models when llama-swap starts.
-hooks:
-  on_startup:
-    preload:
-      - "AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL"
-      - "unsloth/gemma-4-E4B-it-GGUF:IQ4_XS"
+# Startup warm-up is handled by run-inference-engine.sh with real
+# /v1/chat/completions requests. Do not use llama-swap's preload hook here:
+# llama-swap v233 preloads with GET /, which returns 404 when llama-server
+# is intentionally started with --no-ui.

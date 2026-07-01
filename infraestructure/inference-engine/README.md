@@ -15,7 +15,7 @@ It uses `llama-swap` as a single OpenAI-compatible endpoint and routes requests 
 ### Side-job model
 
 - `unsloth/gemma-4-E4B-it-GGUF:IQ4_XS`
-- Context window: `4096`
+- Context window: `2048`
 - Purpose: low/medium-stakes support jobs:
   - C runner scaffolding / example preparation
   - Chat title/name generation
@@ -27,6 +27,9 @@ Each backend is started through `start-llama-server.sh`, which checks free VRAM 
 
 - If enough VRAM is free, it starts with GPU offload: `-ngl 99`.
 - If not enough VRAM is free, it falls back to CPU: `-ngl 0` and disables flash attention.
+- CPU threads default to `auto`: GPU-offloaded backends use a conservative share of host cores to avoid oversubscribing multiple loaded models; CPU fallback uses most available cores.
+- KV cache defaults to `q8_0` for K and V to reduce VRAM use while preserving quality better than more aggressive 4-bit KV cache.
+- Batch size defaults to `1024` with physical micro-batch `512` for faster prompt ingestion when VRAM allows.
 
 Current thresholds:
 
@@ -49,9 +52,12 @@ The bootstrap script:
 1. Checks `llama-swap`; downloads it if missing.
 2. Checks `llama-server`; builds llama.cpp with CUDA and CURL/OpenSSL support if missing.
 3. Starts the inference engine.
-4. Starts `inference-engine-monitor.sh` in detached mode.
+4. Warms configured models with tiny `/v1/chat/completions` requests so the first real Spring AI request does not pay the cold-start cost.
+5. Starts `inference-engine-monitor.sh` in detached mode.
 
-The monitor handles CPU → GPU promotion. If Ornith was started on CPU because VRAM was busy, the monitor periodically checks free VRAM. When enough VRAM becomes available, it unloads Ornith from llama-swap and sends a tiny warm-up request so llama-swap restarts it; `start-llama-server.sh` then re-checks VRAM and starts it on GPU.
+The monitor handles CPU → GPU promotion for both configured models. If Ornith or Gemma was started on CPU because VRAM was busy, the monitor periodically checks free VRAM. When enough VRAM becomes available for that model, it unloads the model from llama-swap and sends a tiny warm-up request so llama-swap restarts it; `start-llama-server.sh` then re-checks VRAM and starts it on GPU.
+
+`llama-swap`'s built-in preload hook is intentionally not used because v233 preloads with `GET /`; this returns `404` when `llama-server` is started with `--no-ui`. The engine instead warms models through the same OpenAI-compatible chat endpoint used by the application.
 
 Logs and PID:
 
