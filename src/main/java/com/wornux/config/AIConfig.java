@@ -2,7 +2,7 @@ package com.wornux.config;
 
 import com.wornux.ai.advisor.TutorGuardAdvisor;
 import com.wornux.ai.guard.GuardClassifierService;
-import com.wornux.ai.prompt.TutorPromptResources;
+import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
@@ -36,7 +36,7 @@ public class AIConfig {
             ChatProperties chatProperties,
             GuardClassifierService guardClassifierService,
             RetrieveInformationTool retrieveInformationTool,
-            TutorPromptResources promptResources) {
+            PromptResources promptResources) {
 
         var compactionClient = ChatClient.builder(chatModel).build();
         var tokenCountEstimator = new JTokkitTokenCountEstimator();

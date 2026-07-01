@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import com.wornux.ai.prompt.TutorPromptResources;
+import com.wornux.ai.prompt.PromptResources;
 import com.wornux.data.enums.GuardDecision;
 import com.wornux.dtos.chat.GuardCheck;
 import org.springframework.ai.chat.messages.Message;
@@ -25,13 +25,13 @@ import org.springframework.util.Assert;
 public class GuardClassifierService {
 
     private final ChatModel chatModel;
-    private final TutorPromptResources promptResources;
+    private final PromptResources promptResources;
     private final BeanOutputConverter<GuardCheck> outputConverter = new BeanOutputConverter<>(GuardCheck.class);
 
     @Value("${app.ai.guard.model}")
     private String guardModel;
 
-    public GuardClassifierService(ChatModel chatModel, TutorPromptResources promptResources) {
+    public GuardClassifierService(ChatModel chatModel, PromptResources promptResources) {
         this.chatModel = chatModel;
         this.promptResources = promptResources;
     }

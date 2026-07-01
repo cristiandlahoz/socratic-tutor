@@ -3,7 +3,7 @@ package com.wornux.ai.advisor;
 import java.util.List;
 
 import com.wornux.ai.guard.GuardClassifierService;
-import com.wornux.ai.prompt.TutorPromptResources;
+import com.wornux.ai.prompt.PromptResources;
 import com.wornux.data.enums.GuardDecision;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -26,12 +26,12 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
     private final int order;
     private final GuardClassifierService guardClassifierService;
-    private final TutorPromptResources promptResources;
+    private final PromptResources promptResources;
 
     public TutorGuardAdvisor(
             int order,
             GuardClassifierService guardClassifierService,
-            TutorPromptResources promptResources) {
+            PromptResources promptResources) {
         this.order = order;
         this.guardClassifierService = guardClassifierService;
         this.promptResources = promptResources;

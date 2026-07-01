@@ -1,6 +1,6 @@
 package com.wornux;
 
-import com.wornux.ai.prompt.TutorPromptResources;
+import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.config.AIConfig;
@@ -41,8 +41,8 @@ class AiConfigToolTestSupport {
     }
 
     @Bean
-    TutorPromptResources tutorPromptResources(ResourceLoader resourceLoader) {
-        return new TutorPromptResources(resourceLoader);
+    PromptResources promptResources(ResourceLoader resourceLoader) {
+        return new PromptResources(resourceLoader);
     }
 
     @Bean
