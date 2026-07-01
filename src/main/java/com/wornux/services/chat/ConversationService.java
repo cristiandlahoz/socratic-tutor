@@ -16,6 +16,7 @@ import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.session.EventFilter;
 import org.springframework.ai.session.SessionEvent;
 import org.springframework.ai.session.SessionService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,14 +32,17 @@ public class ConversationService {
     private final ConversationRepository conversationRepository;
     private final ActiveAcademicContextResolver contextResolver;
     private final SessionService sessionService;
+    private final ConversationService self;
 
     public ConversationService(
             ConversationRepository conversationRepository,
             ActiveAcademicContextResolver contextResolver,
-            SessionService sessionService) {
+            SessionService sessionService,
+            @Lazy ConversationService self) {
         this.conversationRepository = conversationRepository;
         this.contextResolver = contextResolver;
         this.sessionService = sessionService;
+        this.self = self;
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +92,7 @@ public class ConversationService {
 
     @Transactional(readOnly = true)
     public ResolvedConversation resolveActiveConversation(UUID requestedConversationId) {
-        var conversations = listConversations();
+        var conversations = self.listConversations();
         var resolvedConversationId = requestedConversationId;
 
         if (resolvedConversationId != null) {
@@ -105,7 +109,7 @@ public class ConversationService {
 
         var messages = resolvedConversationId == null
                 ? List.<ConversationMessage>of()
-                : loadConversation(resolvedConversationId);
+                : self.loadConversation(resolvedConversationId);
 
         return new ResolvedConversation(resolvedConversationId, conversations, messages);
     }

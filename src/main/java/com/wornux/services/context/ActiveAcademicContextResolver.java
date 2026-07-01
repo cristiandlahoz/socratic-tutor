@@ -5,6 +5,7 @@ import java.util.Optional;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
 import com.wornux.services.security.AuthenticatedUserContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,14 +18,17 @@ public class ActiveAcademicContextResolver {
     private final AuthenticatedUserContext authenticatedUserContext;
     private final TenantAccountRepository tenantAccountRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
+    private final ActiveAcademicContextResolver self;
 
     public ActiveAcademicContextResolver(
             AuthenticatedUserContext authenticatedUserContext,
             TenantAccountRepository tenantAccountRepository,
-            GroupClassMemberRepository groupClassMemberRepository) {
+            GroupClassMemberRepository groupClassMemberRepository,
+            @Lazy ActiveAcademicContextResolver self) {
         this.authenticatedUserContext = authenticatedUserContext;
         this.tenantAccountRepository = tenantAccountRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
+        this.self = self;
     }
 
     @Transactional(readOnly = true)
@@ -65,6 +69,6 @@ public class ActiveAcademicContextResolver {
 
     @Transactional(readOnly = true)
     public ActiveAcademicContext requireCurrent() {
-        return resolveCurrent().orElseThrow(() -> new SetupRequiredException(SETUP_REQUIRED_MESSAGE));
+        return self.resolveCurrent().orElseThrow(() -> new SetupRequiredException(SETUP_REQUIRED_MESSAGE));
     }
 }

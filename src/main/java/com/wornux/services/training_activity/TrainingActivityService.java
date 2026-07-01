@@ -12,6 +12,7 @@ import com.wornux.data.repositories.training_activity.TrainingActivityRepository
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.context.SetupRequiredException;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,12 +21,15 @@ public class TrainingActivityService {
 
     private final TrainingActivityRepository trainingActivityRepository;
     private final ActiveAcademicContextResolver contextResolver;
+    private final TrainingActivityService self;
 
     public TrainingActivityService(
             TrainingActivityRepository trainingActivityRepository,
-            ActiveAcademicContextResolver contextResolver) {
+            ActiveAcademicContextResolver contextResolver,
+            @Lazy TrainingActivityService self) {
         this.trainingActivityRepository = trainingActivityRepository;
         this.contextResolver = contextResolver;
+        this.self = self;
     }
 
     @Transactional
@@ -95,12 +99,12 @@ public class TrainingActivityService {
 
     @Transactional
     public void delete(UUID activityId) {
-        trainingActivityRepository.delete(get(activityId));
+        trainingActivityRepository.delete(self.get(activityId));
     }
 
     @Transactional
     public TrainingActivity update(UUID activityId, String title, String instruction) {
-        var activity = get(activityId);
+        var activity = self.get(activityId);
         activity.setTitle(title);
         activity.setInstructions(instruction);
         activity.setUpdatedAt(Instant.now());
