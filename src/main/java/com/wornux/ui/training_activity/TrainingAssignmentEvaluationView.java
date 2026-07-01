@@ -47,7 +47,7 @@ public class TrainingAssignmentEvaluationView extends Composite<Div> implements 
 
         var content = getContent();
         content.addClassName("evaluation-view");
-        content.add(new VerticalLayout(question, answerField, submitButton));
+        content.add(new VerticalLayout(new H2("Training evaluation"), question, answerField, submitButton));
     }
 
     @Override
