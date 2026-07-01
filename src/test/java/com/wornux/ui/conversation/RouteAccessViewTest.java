@@ -44,7 +44,8 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
         when(event.getLocation()).thenReturn(new Location("chat"));
-        when(viewModel.initializeFromRoute(null, false, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
+        when(viewModel.initializeFromRoute(null, false, false))
+                .thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
         var view = new ConversationView(new ConversationState(),
                 viewModel,
@@ -74,7 +75,8 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
         when(event.getLocation()).thenReturn(new Location("chat"));
-        when(viewModel.initializeFromRoute(null, false, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
+        when(viewModel.initializeFromRoute(null, false, false))
+                .thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
         var view = new ConversationView(new ConversationState(),
                 viewModel,
