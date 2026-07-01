@@ -1,6 +1,7 @@
 package com.wornux.services.training_activity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +46,15 @@ class TrainingAssignmentEvaluationServiceTest {
                 .contains("I understand the basics.");
         assertThat(ReflectionTestUtils.getField(assignment, "questionCount")).isEqualTo(2);
         assertThat((String) ReflectionTestUtils.getField(assignment, "currentQuestion")).isNotBlank();
+    }
+
+    @Test
+    void answerRejectsBlankInput() {
+        var fixture = fixture();
+
+        assertThatThrownBy(() -> fixture.service.answer(fixture.assignmentId, "   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Evaluation answers cannot be blank.");
     }
 
     private static Fixture fixture() {
