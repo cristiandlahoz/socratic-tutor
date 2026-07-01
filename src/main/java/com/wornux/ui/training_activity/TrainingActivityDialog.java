@@ -4,14 +4,20 @@ import java.util.function.Consumer;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Pre;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.wornux.data.entities.training_activity.TrainingActivity;
+import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.ui.css.UiCss;
 
@@ -56,15 +62,15 @@ public class TrainingActivityDialog extends Div {
         instructionField.setMaxHeight("14rem");
         instructionField.setValue(activity.getInstructions());
 
-        var blocker = new Div();
-        blocker.setText(
-            "Formative activity definitions are available, but assignment execution and report persistence require an extended data model.");
-        blocker.getStyle()
-                .set("padding", "1rem")
-                .set("border-radius", "0.75rem")
-                .set("background", "color-mix(in srgb, var(--color-white) 4%, transparent)");
+        var assignmentsGrid = new Grid<>(TrainingActivityAssignment.class, false);
+        assignmentsGrid.addColumn(this::studentName).setHeader("Student").setAutoWidth(true).setFlexGrow(1);
+        assignmentsGrid.addColumn(assignment -> assignment.getStatus().name()).setHeader("Status").setAutoWidth(true);
+        assignmentsGrid.addColumn(new ComponentRenderer<>(this::reportButton)).setHeader("Report").setAutoWidth(true);
+        assignmentsGrid.setEmptyStateText("No student assignments yet.");
+        assignmentsGrid.setItems(trainingActivityService.listAssignments(activity.getId()));
+        assignmentsGrid.setWidthFull();
 
-        var body = new VerticalLayout(title, titleField, instructionField, blocker);
+        var body = new VerticalLayout(title, titleField, instructionField, assignmentsGrid);
         body.setPadding(false);
         body.setSpacing(true);
         body.setWidthFull();
@@ -102,5 +108,27 @@ public class TrainingActivityDialog extends Div {
             onSave.accept(updated);
         }
         close();
+    }
+
+    private String studentName(TrainingActivityAssignment assignment) {
+        var account = assignment.getGroupClassMember().getTenantAccount().getAccount();
+        return "%s %s".formatted(account.getFirstName(), account.getLastName()).trim();
+    }
+
+    private Button reportButton(TrainingActivityAssignment assignment) {
+        var button = new Button("View report", _ -> openReport(assignment));
+        button.setEnabled(assignment.getFinalReport() != null && !assignment.getFinalReport().isBlank());
+        return button;
+    }
+
+    private void openReport(TrainingActivityAssignment assignment) {
+        var dialog = new Dialog();
+        dialog.setHeaderTitle("Evaluation report");
+        var report = new Pre(assignment.getFinalReport());
+        report.addClassName("evaluation-report-markdown");
+        report.getStyle().set("white-space", "pre-wrap");
+        dialog.add(new Paragraph(studentName(assignment)), report);
+        dialog.getFooter().add(new Button("Close", _ -> dialog.close()));
+        dialog.open();
     }
 }
