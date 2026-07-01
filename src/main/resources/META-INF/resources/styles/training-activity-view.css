@@ -19,7 +19,7 @@
 .training-activity-overlay-backdrop {
   position: absolute;
   inset: 0;
-  background: var(--vaadin-overlay-backdrop-background);
+  background: color-mix(in srgb, var(--color-black) 64%, transparent);
 }
 
 .training-activity-overlay-panel {
