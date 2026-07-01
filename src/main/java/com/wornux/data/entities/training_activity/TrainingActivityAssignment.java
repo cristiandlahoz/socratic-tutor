@@ -46,6 +46,18 @@ public class TrainingActivityAssignment {
     @Column(name = "submitted_at")
     private Instant submittedAt;
 
+    @Column(name = "current_question")
+    private String currentQuestion;
+
+    @Column(name = "question_count", nullable = false)
+    private int questionCount;
+
+    @Column(name = "evaluation_transcript", nullable = false)
+    private String evaluationTranscript = "[]";
+
+    @Column(name = "final_report")
+    private String finalReport;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 }
