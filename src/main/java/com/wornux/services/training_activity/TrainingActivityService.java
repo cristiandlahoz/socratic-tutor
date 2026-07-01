@@ -2,6 +2,7 @@ package com.wornux.services.training_activity;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -24,6 +25,8 @@ import com.wornux.services.context.SetupRequiredException;
 import org.springframework.context.annotation.Lazy;
 import com.wornux.services.email.EmailMessage;
 import com.wornux.services.email.EmailService;
+import com.wornux.services.email.EmailTemplateService;
+import com.wornux.services.email.TemplatedEmailMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -36,6 +39,7 @@ public class TrainingActivityService {
     private final TrainingActivityAssignmentRepository trainingActivityAssignmentRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
     private final EmailService emailService;
+    private final EmailTemplateService emailTemplateService;
     private final SocraticEmailProperties emailProperties;
     private final ActiveAcademicContextResolver contextResolver;
     private final TrainingActivityLaunchBus trainingActivityLaunchBus;
@@ -46,6 +50,7 @@ public class TrainingActivityService {
             TrainingActivityAssignmentRepository trainingActivityAssignmentRepository,
             GroupClassMemberRepository groupClassMemberRepository,
             EmailService emailService,
+            EmailTemplateService emailTemplateService,
             SocraticEmailProperties emailProperties,
             ActiveAcademicContextResolver contextResolver,
             TrainingActivityLaunchBus trainingActivityLaunchBus,
@@ -54,6 +59,7 @@ public class TrainingActivityService {
         this.trainingActivityAssignmentRepository = trainingActivityAssignmentRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
         this.emailService = emailService;
+        this.emailTemplateService = emailTemplateService;
         this.emailProperties = emailProperties;
         this.contextResolver = contextResolver;
         this.trainingActivityLaunchBus = trainingActivityLaunchBus;
@@ -210,11 +216,28 @@ public class TrainingActivityService {
         var studentHomeUrl = "%s/student".formatted(emailProperties.getInvitationBaseUrl());
         var subject = "New formative activity: %s".formatted(activity.getTitle());
         var plainText = launchPlainText(activity, studentHomeUrl);
-        var html = launchHtml(activity, studentHomeUrl);
         return students.stream()
-                .map(student -> new EmailMessage(
-                    student.getTenantAccount().getAccount().getEmail(), subject, plainText, html))
+                .map(student -> launchMessage(activity, student, subject, plainText, studentHomeUrl))
                 .toList();
+    }
+
+    private EmailMessage launchMessage(
+            TrainingActivity activity,
+            GroupClassMember student,
+            String subject,
+            String plainText,
+            String studentHomeUrl) {
+        var model = new HashMap<String, Object>();
+        model.put("headline", "Complete %s".formatted(activity.getTitle()));
+        model.put("intro", "A new formative activity is available for %s.".formatted(activity.getGroupClass().getName()));
+        model.put("activityTitle", activity.getTitle());
+        model.put("instructions", activity.getInstructions());
+        model.put("activityUrl", studentHomeUrl);
+
+        var toAddress = student.getTenantAccount().getAccount().getEmail();
+        var html = emailTemplateService
+                .render(new TemplatedEmailMessage(toAddress, subject, "training-activity-invitation", model));
+        return new EmailMessage(toAddress, subject, plainText, html);
     }
 
     private void sendAfterCommit(List<EmailMessage> messages) {
@@ -263,25 +286,4 @@ public class TrainingActivityService {
                """.formatted(activity.getGroupClass().getName(), activity.getTitle(), activity.getInstructions(), studentHomeUrl);
     }
 
-    private String launchHtml(TrainingActivity activity, String studentHomeUrl) {
-        return """
-               <p>Hello,</p>
-               <p>A new formative activity is available for <strong>%s</strong>.</p>
-               <p><strong>Title:</strong> %s</p>
-               <p><strong>Instructions:</strong><br>%s</p>
-               <p><a href=\"%s\">Open your student home</a></p>
-               """.formatted(
-                escapeHtml(activity.getGroupClass().getName()),
-                escapeHtml(activity.getTitle()),
-                escapeHtml(activity.getInstructions()).replace("\n", "<br>"),
-                escapeHtml(studentHomeUrl));
-    }
-
-    private String escapeHtml(String rawValue) {
-        return rawValue.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
-    }
 }
