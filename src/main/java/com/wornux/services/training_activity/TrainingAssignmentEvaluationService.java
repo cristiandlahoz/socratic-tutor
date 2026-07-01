@@ -63,6 +63,9 @@ public class TrainingAssignmentEvaluationService {
 
     @Transactional
     public TrainingActivityAssignment answer(UUID assignmentId, String answer) {
+        if (answer == null || answer.isBlank()) {
+            throw new IllegalArgumentException("Evaluation answers cannot be blank.");
+        }
         var assignment = getForCurrentStudent(assignmentId);
         if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
             return assignment;
