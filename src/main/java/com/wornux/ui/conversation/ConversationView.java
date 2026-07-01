@@ -51,12 +51,8 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private final StudentQuestionPanel questionPanel;
     private final DebuggerPanel debuggerPanel;
     private final SplitLayout splitLayout;
-    private final ChatProperties chatProperties;
-    private final CProgramDebugService cProgramDebugService;
-    private final CExamplePreparationService cExamplePreparationService;
-    private final Executor cRunnerExecutor;
-    private final AuthenticatedAccountService authenticatedAccountService;
-    private final WorkspaceRoutingService workspaceRoutingService;
+    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient WorkspaceRoutingService workspaceRoutingService;
     private boolean debuggerVisible;
 
     public ConversationView(
@@ -69,10 +65,6 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             AuthenticatedAccountService authenticatedAccountService,
             WorkspaceRoutingService workspaceRoutingService) {
         this.viewModel = viewModel;
-        this.chatProperties = chatProperties;
-        this.cProgramDebugService = cProgramDebugService;
-        this.cExamplePreparationService = cExamplePreparationService;
-        this.cRunnerExecutor = cRunnerExecutor;
         this.authenticatedAccountService = authenticatedAccountService;
         this.workspaceRoutingService = workspaceRoutingService;
         this.viewModel.bindTurnUiAnchor(this);
@@ -97,7 +89,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         historyScroller.setSizeFull();
         UiCss.CONVERSATION_SCROLL_REGION.addTo(historyScroller);
 
-        composer = new ConversationComposer(state, this::submitPrompt);
+        composer = new ConversationComposer(state, chatProperties.composerPromptLimit(), this::submitPrompt);
 
         debuggerToggleButton = createDebuggerToggleButton();
 
@@ -165,7 +157,6 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             event.isRefreshEvent());
         if (initialization.rerouteRequired()) {
             rerouteToResolvedConversation(event, initialization.rerouteConversationId());
-            return;
         }
     }
 
@@ -226,7 +217,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
         Signal.effect(inputShell, () -> {
             inputShell.removeAll();
-            inputShell.add(state.questionPanelVisible().get() ? questionPanel : composer);
+            inputShell.add(Boolean.TRUE.equals(state.questionPanelVisible().get()) ? questionPanel : composer);
         });
 
         return inputShell;

@@ -5,6 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.chat")
 public class ChatProperties {
 
+    private static final double COMPOSER_PROMPT_LIMIT_RATIO = 0.40;
+
     private int contextWindowTokens;
     private double compactionThresholdRatio;
     private Ui ui = new Ui();
@@ -31,6 +33,14 @@ public class ChatProperties {
             throw new IllegalStateException("Chat compaction threshold must be greater than zero");
         }
         return threshold;
+    }
+
+    public int composerPromptLimit() {
+        int limit = (int) Math.floor(contextWindowTokens * COMPOSER_PROMPT_LIMIT_RATIO);
+        if (limit <= 0) {
+            throw new IllegalStateException("Composer prompt limit must be greater than zero");
+        }
+        return limit;
     }
 
     public Ui getUi() {

@@ -15,15 +15,18 @@ public final class ConversationComposer extends Composite<Div> {
     private final TextArea field;
     private final Button sendButton;
 
-    public ConversationComposer(ConversationState state, Runnable submitHandler) {
+    public ConversationComposer(ConversationState state, int promptLimit, Runnable submitHandler) {
         field = new TextArea();
         field.setWidthFull();
         field.setPlaceholder("Escribe tu mensaje aquí...");
         field.setAriaLabel("Escribe tu mensaje aquí");
+        field.setMaxLength(promptLimit);
+        updateHelperText(0, promptLimit);
         UiCss.CONVERSATION_COMPOSER_INPUT.addTo(field);
         field.bindValue(state.composerText(), state.composerText()::set);
         field.bindEnabled(state.composerEnabled());
         field.setValueChangeMode(ValueChangeMode.EAGER);
+        field.addValueChangeListener(event -> updateHelperText(event.getValue().length(), promptLimit));
 
         sendButton = new Button(new Icon(VaadinIcon.ARROW_UP));
         UiCss.CONVERSATION_COMPOSER_SEND_BUTTON.addTo(sendButton);
@@ -35,6 +38,10 @@ public final class ConversationComposer extends Composite<Div> {
         UiCss.CONVERSATION_COMPOSER_FIELD_WRAP.addTo(content);
         content.add(field, sendButton);
         content.addAttachListener(_ -> installEnterSubmitHandler());
+    }
+
+    private void updateHelperText(int currentLength, int promptLimit) {
+        field.setHelperText("%d/%d caracteres".formatted(currentLength, promptLimit));
     }
 
     private void installEnterSubmitHandler() {
