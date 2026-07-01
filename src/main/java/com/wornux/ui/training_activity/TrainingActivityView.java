@@ -60,7 +60,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     private final Button saveButton = new Button("Save draft");
     private final Grid<TrainingActivity> grid = new Grid<>(TrainingActivity.class, false);
     private final Button deleteButton = new Button("Delete");
-    private final Button launchButton = new Button("Execution is not supported yet");
+    private final Button launchButton = new Button("Launch activity");
     private UUID pendingDialogActivityId;
     private TrainingActivityDialog openDialog;
 
@@ -85,7 +85,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         var title = new H2("Formative Activities");
         UiCss.UTILITY_MARGIN_NONE.addTo(title);
         var description = new Span(
-                "Manage class-scoped formative activity definitions on the target ERD. Assignment execution remains blocked until the target model can persist its data.");
+                "Create formative activities, launch drafts for the active class, and notify enrolled students by email.");
         UiCss.TRAINING_ACTIVITY_DESCRIPTION.addTo(description);
         var header = new Div(title, description);
         UiCss.TRAINING_ACTIVITY_HEADER.addTo(header);
@@ -119,13 +119,20 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
         grid.setWidthFull();
         grid.addItemDoubleClickListener(event -> openActivityDialog(event.getItem(), false));
-        grid.asSingleSelect().addValueChangeListener(event -> deleteButton.setEnabled(event.getValue() != null));
+        grid.asSingleSelect().addValueChangeListener(event -> {
+            var selected = event.getValue();
+            deleteButton.setEnabled(selected != null);
+            launchButton.setEnabled(selected != null && selected.getStatus() == TrainingActivityLifecycleStatus.DRAFT);
+        });
 
         deleteButton.setEnabled(false);
         deleteButton.addThemeVariants(ButtonVariant.ERROR);
         deleteButton.addClickListener(_ -> onDeleteSelected());
 
         launchButton.setEnabled(false);
+        launchButton.addThemeVariants(ButtonVariant.PRIMARY);
+        launchButton.setIcon(new Icon(VaadinIcon.PLAY));
+        launchButton.addClickListener(_ -> onLaunchSelected());
         var toolbar = new HorizontalLayout(deleteButton, launchButton);
         toolbar.setPadding(false);
 
@@ -179,6 +186,21 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         refreshGrid();
     }
 
+    private void onLaunchSelected() {
+        var activity = grid.asSingleSelect().getValue();
+        if (activity == null) {
+            return;
+        }
+        try {
+            var launchedStudents = trainingActivityService.launch(activity.getId());
+            Notification.show("Formative activity launched for %d students".formatted(launchedStudents));
+            refreshGrid();
+        }
+        catch (RuntimeException exception) {
+            Notification.show(exception.getMessage());
+        }
+    }
+
     public void onActivityUpdated(TrainingActivity activity) {
         refreshGrid();
     }
@@ -209,6 +231,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
     private void refreshGrid() {
         grid.setItems(trainingActivityService.listAll());
+        grid.deselectAll();
     }
 
     private UUID parseUuid(String rawValue) {
@@ -252,8 +275,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     }
 
     private void clearDialogAddressBarState() {
-        getUI().ifPresent(ui -> ui.getPage()
-                .getHistory()
-                .replaceState(null, new Location("training-activities", QueryParameters.empty())));
+        getUI().ifPresent(
+            ui -> ui.getPage().getHistory().replaceState(null, new Location("training-activities", QueryParameters.empty())));
     }
 }
