@@ -14,6 +14,7 @@ import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.*;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
+import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.ui.MainLayout;
 
 @SpringComponent
@@ -26,6 +27,7 @@ public class ConversationState implements Serializable {
 
     private final ValueSignal<UUID> activeConversationId = new ValueSignal<>(null);
     private final ValueSignal<Boolean> responseInProgress = new ValueSignal<>(false);
+    private final ValueSignal<ChatSessionActivity> activity = new ValueSignal<>(ChatSessionActivity.IDLE);
     private final ValueSignal<String> composerText = new ValueSignal<>("");
     private final ValueSignal<StudentQuestionSet> pendingQuestionSet = new ValueSignal<>(null);
     private final ValueSignal<Boolean> questionSubmissionInProgress = new ValueSignal<>(false);
@@ -55,6 +57,10 @@ public class ConversationState implements Serializable {
 
     public ValueSignal<Boolean> responseInProgress() {
         return responseInProgress;
+    }
+
+    public ValueSignal<ChatSessionActivity> activity() {
+        return activity;
     }
 
     public ValueSignal<String> composerText() {

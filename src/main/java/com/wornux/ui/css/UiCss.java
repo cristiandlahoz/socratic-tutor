@@ -70,6 +70,11 @@ public final class UiCss {
     public static final CssClass CONVERSATION_COMPOSER_FIELD_WRAP = css("conversation-composer__field-wrap");
     public static final CssClass CONVERSATION_COMPOSER_INPUT = css("conversation-composer__input");
     public static final CssClass CONVERSATION_COMPOSER_SEND_BUTTON = css("conversation-composer__send-button");
+    public static final CssClass CONVERSATION_ACTIVITY_BLOCKER = css("conversation-composer__activity-blocker");
+    public static final CssClass CONVERSATION_ACTIVITY_SPINNER = css("conversation-composer__activity-spinner");
+    public static final CssClass CONVERSATION_ACTIVITY_COPY = css("conversation-composer__activity-copy");
+    public static final CssClass CONVERSATION_ACTIVITY_TITLE = css("conversation-composer__activity-title");
+    public static final CssClass CONVERSATION_ACTIVITY_DESCRIPTION = css("conversation-composer__activity-description");
     public static final CssClass CONVERSATION_USAGE = css("conversation-usage");
     public static final CssClass CONVERSATION_USAGE_COPY = css("conversation-usage__copy");
     public static final CssClass CONVERSATION_USAGE_TEXT = css("conversation-usage__text");

@@ -157,6 +157,56 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
   pointer-events: auto;
 }
 
+.conversation-composer__activity-blocker {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--vaadin-gap-m);
+  min-height: 4.8rem;
+  padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-border);
+  border-radius: var(--vaadin-radius-m);
+  background: var(--composer-surface);
+  box-shadow: var(--aura-shadow-s);
+  color: var(--composer-text-color, var(--vaadin-text-color));
+}
+
+.conversation-composer__activity-spinner {
+  flex: 0 0 auto;
+  --thinking-spinner-size: 1.8rem;
+  --thinking-spinner-weight: 500;
+  --thinking-spinner-color: var(--aura-accent-text-color);
+  --thinking-spinner-accent-color: var(--aura-red);
+}
+
+.conversation-composer__activity-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--vaadin-gap-xs);
+}
+
+.conversation-composer__activity-title {
+  color: var(--composer-text-color, var(--vaadin-text-color));
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-m);
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: 1.2;
+}
+
+.conversation-composer__activity-description {
+  color: var(--composer-placeholder-color, var(--vaadin-text-color-secondary));
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-s);
+  line-height: 1.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conversation-composer__activity-spinner {
+    display: none;
+  }
+}
+
 .conversation-question {
   box-sizing: border-box;
   width: min(70%, 52rem);

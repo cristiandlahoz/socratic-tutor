@@ -15,6 +15,7 @@ import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.StudentQuestionExchange;
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
 import com.wornux.services.chat.ChatService;
+import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ChatUsageService;
 import com.wornux.services.chat.ConversationService;
 import com.wornux.services.chat.ConversationTitleService;
@@ -106,6 +107,7 @@ public class ConversationViewModel implements Serializable {
 
         turnOrchestrator.abortActiveStream(questionExchange);
         state.responseInProgress().set(false);
+        state.activity().set(ChatSessionActivity.IDLE);
 
         if (draftRequested) {
             state.activeConversationId().set(null);

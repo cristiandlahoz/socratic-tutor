@@ -25,6 +25,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.ChatProperties;
+import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
 import com.wornux.services.security.AuthenticatedAccountService;
@@ -214,13 +215,74 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private Div createInputShell(ConversationState state) {
         var inputShell = new Div();
         UiCss.CONVERSATION_COMPOSER.addTo(inputShell);
+        var activityBlocker = createActivityBlocker(state);
 
-        Signal.effect(inputShell, () -> {
-            inputShell.removeAll();
-            inputShell.add(Boolean.TRUE.equals(state.questionPanelVisible().get()) ? questionPanel : composer);
-        });
+        Signal.effect(inputShell, () -> showCurrentInput(inputShell, state, activityBlocker));
 
         return inputShell;
+    }
+
+    private void showCurrentInput(Div inputShell, ConversationState state, Div activityBlocker) {
+        inputShell.removeAll();
+        if (Boolean.TRUE.equals(state.questionPanelVisible().get())) {
+            inputShell.add(questionPanel);
+            return;
+        }
+        inputShell.add(isComposerAvailable(state) ? composer : activityBlocker);
+    }
+
+    private boolean isComposerAvailable(ConversationState state) {
+        return state.activity().get() == ChatSessionActivity.IDLE;
+    }
+
+    private Div createActivityBlocker(ConversationState state) {
+        var spinner = createFillSweepSpinner();
+        var title = createActivityTitle();
+        var description = createActivityDescription();
+        var blocker = createActivityBlockerShell(spinner, title, description);
+
+        Signal.effect(blocker, () -> describeActivity(state.activity().get(), title, description));
+
+        return blocker;
+    }
+
+    private BrailleSpinner createFillSweepSpinner() {
+        var spinner = new BrailleSpinner("fillsweep");
+        UiCss.CONVERSATION_ACTIVITY_SPINNER.addTo(spinner);
+        return spinner;
+    }
+
+    private Span createActivityTitle() {
+        var title = new Span();
+        UiCss.CONVERSATION_ACTIVITY_TITLE.addTo(title);
+        return title;
+    }
+
+    private Span createActivityDescription() {
+        var description = new Span();
+        UiCss.CONVERSATION_ACTIVITY_DESCRIPTION.addTo(description);
+        return description;
+    }
+
+    private Div createActivityBlockerShell(BrailleSpinner spinner, Span title, Span description) {
+        var copy = new Div(title, description);
+        UiCss.CONVERSATION_ACTIVITY_COPY.addTo(copy);
+
+        var blocker = new Div(spinner, copy);
+        UiCss.CONVERSATION_ACTIVITY_BLOCKER.addTo(blocker);
+        blocker.getElement().setAttribute("aria-live", "polite");
+        blocker.getElement().setAttribute("aria-busy", "true");
+        return blocker;
+    }
+
+    private void describeActivity(ChatSessionActivity activity, Span title, Span description) {
+        if (activity == ChatSessionActivity.COMPACTING) {
+            title.setText("Compactando el contexto");
+            description.setText("Resumiendo el historial para mantener la conversación precisa.");
+            return;
+        }
+        title.setText("Generando respuesta");
+        description.setText("El tutor está razonando; el compositor se habilitará al terminar.");
     }
 
     private Div createUsageBadge(ConversationState state) {

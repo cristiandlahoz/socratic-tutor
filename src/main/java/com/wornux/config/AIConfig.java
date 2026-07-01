@@ -5,6 +5,8 @@ import com.wornux.ai.advisor.TutorGuardAdvisor;
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
+import com.wornux.services.chat.ChatSessionActivity;
+import com.wornux.services.chat.ChatSessionActivityBus;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -12,6 +14,7 @@ import org.springframework.ai.session.EventFilter;
 import org.springframework.ai.session.SessionService;
 import org.springframework.ai.session.advisor.SessionMemoryAdvisor;
 import org.springframework.ai.session.compaction.CompactionRequest;
+import org.springframework.ai.session.compaction.CompactionResult;
 import org.springframework.ai.session.compaction.CompactionStrategy;
 import org.springframework.ai.session.compaction.CompactionTrigger;
 import org.springframework.ai.session.compaction.RecursiveSummarizationCompactionStrategy;
@@ -39,6 +42,7 @@ public class AIConfig {
             GuardClassifierService guardClassifierService,
             RetrieveInformationTool retrieveInformationTool,
             PromptResources promptResources,
+            ChatSessionActivityBus activityBus,
             JdbcClient jdbcClient) {
 
         var compactionClient = ChatClient.builder(chatModel).build();
@@ -55,7 +59,7 @@ public class AIConfig {
         var sessionMemoryAdvisor = SessionMemoryAdvisor.builder(sessionService)
                 .eventFilter(EventFilter.active())
                 .compactionTrigger(loggingCompactionTrigger(tokenCountTrigger, compactionThresholdTokens))
-                .compactionStrategy(loggingCompactionStrategy(compactionStrategy))
+                .compactionStrategy(loggingCompactionStrategy(compactionStrategy, activityBus))
                 .build();
         var dynamicContextManagementAdvisor = new DynamicContextManagementAdvisor(
             sessionMemoryAdvisor.getOrder() + 1,
@@ -93,28 +97,48 @@ public class AIConfig {
         };
     }
 
-    private CompactionStrategy loggingCompactionStrategy(CompactionStrategy delegate) {
+    private CompactionStrategy loggingCompactionStrategy(
+            CompactionStrategy delegate,
+            ChatSessionActivityBus activityBus) {
         return request -> {
-            log.info(
-                "Chat session compaction started: sessionId={}, userId={}, events={}, turns={}",
-                sessionId(request),
-                userId(request),
-                request.currentEventCount(),
-                request.currentTurnCount());
-
-            var result = delegate.compact(request);
-
-            log.info(
-                "Chat session compaction completed: sessionId={}, userId={}, compactedEvents={}, archivedEvents={}, eventsRemoved={}, estimatedTokensSaved={}",
-                sessionId(request),
-                userId(request),
-                result.compactedEvents().size(),
-                result.archivedEvents().size(),
-                result.eventsRemoved(),
-                result.tokensEstimatedSaved());
-
-            return result;
+            var requestSessionId = sessionId(request);
+            announceCompactionStarted(request, activityBus, requestSessionId);
+            try {
+                var result = delegate.compact(request);
+                logCompactionCompleted(request, requestSessionId, result);
+                return result;
+            }
+            finally {
+                activityBus.publish(requestSessionId, ChatSessionActivity.GENERATING);
+            }
         };
+    }
+
+    private void announceCompactionStarted(
+            CompactionRequest request,
+            ChatSessionActivityBus activityBus,
+            String requestSessionId) {
+        log.info(
+            "Chat session compaction started: sessionId={}, userId={}, events={}, turns={}",
+            requestSessionId,
+            userId(request),
+            request.currentEventCount(),
+            request.currentTurnCount());
+        activityBus.publish(requestSessionId, ChatSessionActivity.COMPACTING);
+    }
+
+    private void logCompactionCompleted(
+            CompactionRequest request,
+            String requestSessionId,
+            CompactionResult result) {
+        log.info(
+            "Chat session compaction completed: sessionId={}, userId={}, compactedEvents={}, archivedEvents={}, eventsRemoved={}, estimatedTokensSaved={}",
+            requestSessionId,
+            userId(request),
+            result.compactedEvents().size(),
+            result.archivedEvents().size(),
+            result.eventsRemoved(),
+            result.tokensEstimatedSaved());
     }
 
     private static String sessionId(CompactionRequest request) {

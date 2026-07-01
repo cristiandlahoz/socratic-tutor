@@ -16,6 +16,8 @@ import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.dtos.chat.StudentQuestionExchange;
 import com.wornux.services.chat.ChatService;
+import com.wornux.services.chat.ChatSessionActivity;
+import com.wornux.services.chat.ChatSessionActivityBus;
 import com.wornux.services.chat.ChatStreamTimeoutException;
 import com.wornux.services.chat.ConversationService;
 import com.wornux.services.chat.ConversationTitleService;
@@ -33,9 +35,15 @@ public class ConversationTurnOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(ConversationTurnOrchestrator.class);
     private final AtomicLong streamGeneration = new AtomicLong();
+    private final ChatSessionActivityBus activityBus;
     private transient Disposable activeStream;
+    private transient AutoCloseable activeActivitySubscription;
     private transient Component uiAnchor;
     private transient VaadinSession vaadinSession;
+
+    public ConversationTurnOrchestrator(ChatSessionActivityBus activityBus) {
+        this.activityBus = activityBus;
+    }
 
     public void bindUiAnchor(Component uiAnchor) {
         this.uiAnchor = uiAnchor;
@@ -44,6 +52,7 @@ public class ConversationTurnOrchestrator {
 
     public void abortActiveStream(StudentQuestionExchange questionExchange) {
         streamGeneration.incrementAndGet();
+        closeActiveActivitySubscription();
         if (activeStream != null) {
             activeStream.dispose();
             activeStream = null;
@@ -63,63 +72,177 @@ public class ConversationTurnOrchestrator {
 
         var streamId = streamGeneration.incrementAndGet();
         var firstTokenReceived = new AtomicBoolean(false);
-        vaadinSession = VaadinSession.getCurrent();
-        if (context.newConversation()) {
-            conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> runUiSideEffect(() -> {
-                conversationService.renameConversationIfTitleMatches(
-                    context.conversationId(),
-                    context.fallbackTitle(),
-                    generatedTitle);
-                refreshConversationHistory.run();
-            }));
-        }
+        rememberCurrentVaadinSession();
+        generateTitleForNewConversation(
+            context,
+            conversationService,
+            conversationTitleService,
+            refreshConversationHistory);
+        markTurnAsGenerating(context, streamId);
 
-        context.state().responseInProgress().set(true);
-        var userMessage = context.state().messages().insertLast(MessageState.user(context.prompt(), Instant.now()));
-        context.state().composerText().set("");
-        var responseMessage = context.state().messages().insertLast(MessageState.assistantLoading(Instant.now()));
+        var userMessage = appendUserMessage(context);
+        var responseMessage = appendLoadingAssistantMessage(context);
 
         activeStream = chatService
                 .chatStream(context.turnId(), context.prompt(), context.conversationId(), questionExchange::ask)
-                .subscribe(token -> runUiSideEffect(() -> {
-                    if (streamGeneration.get() != streamId) {
-                        return;
-                    }
-                    if (firstTokenReceived.compareAndSet(false, true)) {
-                        responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
-                    }
-                    responseMessage.update(message -> Objects.requireNonNull(message).append(token));
-                }), exception -> {
-                    if (streamGeneration.get() != streamId) {
-                        return;
-                    }
-                    logStreamFailure(context, exception);
-                    if (exception instanceof ChatStreamTimeoutException) {
-                        handleOpenAiStreamTimeout(context, userMessage, responseMessage);
-                    }
-                    else {
-                        runUiSideEffect(() -> responseMessage.update(
-                            message -> Objects.requireNonNull(message)
-                                    .fallback(
-                                        "Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente.")));
-                    }
-                    finishResponse(
-                        context.state(),
+                .subscribe(
+                    token -> appendAssistantToken(streamId, firstTokenReceived, responseMessage, token),
+                    exception -> handleStreamFailure(
+                        context,
+                        streamId,
+                        userMessage,
+                        responseMessage,
+                        exception,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
-                        refreshCompactionStatus);
-                }, () -> runUiSideEffect(() -> {
-                    if (streamGeneration.get() != streamId) {
-                        return;
-                    }
-                    responseMessage.update(messageVm -> Objects.requireNonNull(messageVm).stopLoading());
-                    finalizeTurn(
+                        refreshCompactionStatus),
+                    () -> finishStreamedMessage(
                         context,
+                        streamId,
+                        responseMessage,
                         chatService,
                         refreshConversationHistory,
                         refreshConversationTokenUsage,
-                        refreshCompactionStatus);
-                }));
+                        refreshCompactionStatus));
+    }
+
+    private void rememberCurrentVaadinSession() {
+        vaadinSession = VaadinSession.getCurrent();
+    }
+
+    private void generateTitleForNewConversation(
+            TurnContext context,
+            ConversationService conversationService,
+            ConversationTitleService conversationTitleService,
+            Runnable refreshConversationHistory) {
+        if (!context.newConversation()) {
+            return;
+        }
+
+        conversationTitleService.generateTitle(context.prompt()).subscribe(generatedTitle -> runUiSideEffect(() -> {
+            conversationService.renameConversationIfTitleMatches(
+                context.conversationId(),
+                context.fallbackTitle(),
+                generatedTitle);
+            refreshConversationHistory.run();
+        }));
+    }
+
+    private void markTurnAsGenerating(TurnContext context, long streamId) {
+        context.state().responseInProgress().set(true);
+        context.state().activity().set(ChatSessionActivity.GENERATING);
+        activeActivitySubscription = activityBus.subscribe(
+            context.conversationId().toString(),
+            activity -> setActivityForCurrentStream(context, streamId, activity));
+    }
+
+    private void setActivityForCurrentStream(
+            TurnContext context,
+            long streamId,
+            ChatSessionActivity activity) {
+        runUiSideEffect(() -> {
+            if (isStaleStream(streamId)) {
+                return;
+            }
+            context.state().activity().set(activity);
+        });
+    }
+
+    private ValueSignal<MessageState> appendUserMessage(TurnContext context) {
+        var userMessage = context.state().messages().insertLast(MessageState.user(context.prompt(), Instant.now()));
+        context.state().composerText().set("");
+        return userMessage;
+    }
+
+    private ValueSignal<MessageState> appendLoadingAssistantMessage(TurnContext context) {
+        return context.state().messages().insertLast(MessageState.assistantLoading(Instant.now()));
+    }
+
+    private void appendAssistantToken(
+            long streamId,
+            AtomicBoolean firstTokenReceived,
+            ValueSignal<MessageState> responseMessage,
+            String token) {
+        runUiSideEffect(() -> {
+            if (isStaleStream(streamId)) {
+                return;
+            }
+            stopLoadingOnFirstToken(firstTokenReceived, responseMessage);
+            responseMessage.update(message -> Objects.requireNonNull(message).append(token));
+        });
+    }
+
+    private void stopLoadingOnFirstToken(
+            AtomicBoolean firstTokenReceived,
+            ValueSignal<MessageState> responseMessage) {
+        if (firstTokenReceived.compareAndSet(false, true)) {
+            responseMessage.update(message -> Objects.requireNonNull(message).stopLoading());
+        }
+    }
+
+    private void handleStreamFailure(
+            TurnContext context,
+            long streamId,
+            ValueSignal<MessageState> userMessage,
+            ValueSignal<MessageState> responseMessage,
+            Throwable exception,
+            Runnable refreshConversationHistory,
+            Runnable refreshConversationTokenUsage,
+            Runnable refreshCompactionStatus) {
+        if (isStaleStream(streamId)) {
+            return;
+        }
+        logStreamFailure(context, exception);
+        recoverFromStreamFailure(context, userMessage, responseMessage, exception);
+        finishResponse(
+            context.state(),
+            refreshConversationHistory,
+            refreshConversationTokenUsage,
+            refreshCompactionStatus);
+    }
+
+    private void recoverFromStreamFailure(
+            TurnContext context,
+            ValueSignal<MessageState> userMessage,
+            ValueSignal<MessageState> responseMessage,
+            Throwable exception) {
+        if (exception instanceof ChatStreamTimeoutException) {
+            handleOpenAiStreamTimeout(context, userMessage, responseMessage);
+            return;
+        }
+        showAssistantFailure(responseMessage);
+    }
+
+    private void showAssistantFailure(ValueSignal<MessageState> responseMessage) {
+        runUiSideEffect(() -> responseMessage.update(
+            message -> Objects.requireNonNull(message)
+                    .fallback("Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente.")));
+    }
+
+    private void finishStreamedMessage(
+            TurnContext context,
+            long streamId,
+            ValueSignal<MessageState> responseMessage,
+            ChatService chatService,
+            Runnable refreshConversationHistory,
+            Runnable refreshConversationTokenUsage,
+            Runnable refreshCompactionStatus) {
+        runUiSideEffect(() -> {
+            if (isStaleStream(streamId)) {
+                return;
+            }
+            responseMessage.update(message -> Objects.requireNonNull(message).stopLoading());
+            finalizeTurn(
+                context,
+                chatService,
+                refreshConversationHistory,
+                refreshConversationTokenUsage,
+                refreshCompactionStatus);
+        });
+    }
+
+    private boolean isStaleStream(long streamId) {
+        return streamGeneration.get() != streamId;
     }
 
     private void finalizeTurn(
@@ -151,11 +274,26 @@ public class ConversationTurnOrchestrator {
             Runnable refreshCompactionStatus) {
         runUiSideEffect(() -> {
             state.responseInProgress().set(false);
+            state.activity().set(ChatSessionActivity.IDLE);
+            closeActiveActivitySubscription();
             refreshConversationHistory.run();
             refreshConversationTokenUsage.run();
             refreshCompactionStatus.run();
             activeStream = null;
         });
+    }
+
+    private void closeActiveActivitySubscription() {
+        if (activeActivitySubscription == null) {
+            return;
+        }
+        try {
+            activeActivitySubscription.close();
+        }
+        catch (Exception exception) {
+            log.debug("chat_ui_activity_subscription_close_failed", exception);
+        }
+        activeActivitySubscription = null;
     }
 
     private void runUiSideEffect(Runnable callback) {
