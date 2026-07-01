@@ -1,6 +1,9 @@
 package com.wornux.ai.tools;
 
+import java.util.UUID;
+
 import com.wornux.dtos.document.DocumentContextResult;
+import com.wornux.dtos.document.DocumentPageResult;
 import com.wornux.services.document.DocumentRetrievalService;
 
 import org.springframework.ai.chat.model.ToolContext;
@@ -10,6 +13,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class RetrieveInformationTool {
+
+    public static final String RETRIEVE_INFORMATION = "retrieveInformation";
+    public static final String READ_RETRIEVED_INFORMATION = "readRetrievedInformation";
 
     private final DocumentRetrievalService documentRetrievalService;
     private final ToolUsageAuditService toolUsageAuditService;
@@ -21,39 +27,47 @@ public class RetrieveInformationTool {
         this.toolUsageAuditService = toolUsageAuditService;
     }
 
-    @Tool(name = "searchUploadedDocuments",
-            description = """
-                          Searches approved text segments extracted from PDFs uploaded by the current user.
-                          The search is scoped to the active class. Use this when the user refers to uploaded
-                          material, reports, PDFs, topics, entities, or document-specific facts.
-                          """)
-    public DocumentContextResult searchUploadedDocuments(
-            @ToolParam(description = "The user question or the fact to look up inside uploaded PDFs.") String query,
-            @ToolParam(required = false,
-                    description = "Optional ingestion ID to narrow the search.") String ingestionIdHint,
-            @ToolParam(required = false,
-                    description = "Optional exact uploaded filename to narrow the search.") String filenameHint,
-            @ToolParam(required = false, description = "Optional topic from the document inventory.") String topicHint,
-            @ToolParam(required = false, description = "Optional tag from the document inventory.") String tagHint,
+    @Tool(name = RETRIEVE_INFORMATION,
+            description = "Search approved uploaded PDFs for factual course context. Returns short previews and read cursors. Use "
+                    + READ_RETRIEVED_INFORMATION + " when a preview is not enough to answer.")
+    public DocumentContextResult retrieveInformation(
+            @ToolParam(description = "The specific question or fact to search for in uploaded PDFs.") String query,
             ToolContext toolContext) {
         return toolUsageAuditService.audit(
-            "searchUploadedDocuments",
+            RETRIEVE_INFORMATION,
             toolContext,
-            "query_len=%d ingestion_id_hint=%s filename_hint=%s topic_hint=%s tag_hint=%s".formatted(
-                query == null ? 0 : query.length(),
-                ingestionIdHint == null ? "none" : ingestionIdHint,
-                filenameHint == null ? "none" : filenameHint,
-                topicHint == null ? "none" : topicHint,
-                tagHint == null ? "none" : tagHint),
+            "query_len=%d".formatted(query == null ? 0 : query.length()),
             () -> {
-                var rawGroupClassId = toolContext.getContext().get(ToolContextKeys.GROUP_CLASS_ID);
-                var groupClassId = rawGroupClassId == null || String.valueOf(rawGroupClassId).isBlank()
-                        ? null
-                        : java.util.UUID.fromString(String.valueOf(rawGroupClassId));
-                var result = documentRetrievalService
-                        .search(groupClassId, query, ingestionIdHint, filenameHint, topicHint, tagHint);
+                var result = documentRetrievalService.search(groupClassId(toolContext), query);
                 return new ToolUsageAuditService.ToolResult<>(result,
                         "hits=%d context_found=%s".formatted(result.hits().size(), result.contextFound()));
             });
+    }
+
+    @Tool(name = READ_RETRIEVED_INFORMATION,
+            description = "Read uploaded PDF content from a cursor returned by " + RETRIEVE_INFORMATION
+                    + ". Use nextCursor or previousCursor to continue reading nearby chunks.")
+    public DocumentPageResult readRetrievedInformation(
+            @ToolParam(description = "A readCursor, nextCursor, or previousCursor returned by a document tool.") String cursor,
+            @ToolParam(required = false,
+                    description = "Number of chunks to read. Default is 1; maximum is 3.") Integer pageSize,
+            ToolContext toolContext) {
+        return toolUsageAuditService.audit(
+            READ_RETRIEVED_INFORMATION,
+            toolContext,
+            "cursor_present=%s page_size=%s".formatted(cursor != null && !cursor.isBlank(), pageSize),
+            () -> {
+                var result = documentRetrievalService.readPage(groupClassId(toolContext), cursor, pageSize);
+                return new ToolUsageAuditService.ToolResult<>(result,
+                        "content_found=%s has_previous=%s has_next=%s".formatted(
+                            !result.content().isBlank(), result.hasPrevious(), result.hasNext()));
+            });
+    }
+
+    private UUID groupClassId(ToolContext toolContext) {
+        var rawGroupClassId = toolContext.getContext().get(ToolContextKeys.GROUP_CLASS_ID);
+        return rawGroupClassId == null || String.valueOf(rawGroupClassId).isBlank()
+                ? null
+                : UUID.fromString(String.valueOf(rawGroupClassId));
     }
 }
