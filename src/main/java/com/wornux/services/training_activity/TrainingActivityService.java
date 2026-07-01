@@ -1,36 +1,57 @@
 package com.wornux.services.training_activity;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-
 import com.wornux.data.entities.academic.GroupClass;
+import com.wornux.config.SocraticEmailProperties;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.data.entities.training_activity.TrainingActivity;
+import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
+import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
+import com.wornux.data.repositories.academic.GroupClassMemberRepository;
+import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityRepository;
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.context.SetupRequiredException;
 import org.springframework.context.annotation.Lazy;
+import com.wornux.services.email.EmailMessage;
+import com.wornux.services.email.EmailService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class TrainingActivityService {
 
     private final TrainingActivityRepository trainingActivityRepository;
+    private final TrainingActivityAssignmentRepository trainingActivityAssignmentRepository;
+    private final GroupClassMemberRepository groupClassMemberRepository;
+    private final EmailService emailService;
+    private final SocraticEmailProperties emailProperties;
     private final ActiveAcademicContextResolver contextResolver;
     private final TrainingActivityService self;
 
     public TrainingActivityService(
             TrainingActivityRepository trainingActivityRepository,
+            TrainingActivityAssignmentRepository trainingActivityAssignmentRepository,
+            GroupClassMemberRepository groupClassMemberRepository,
+            EmailService emailService,
+            SocraticEmailProperties emailProperties,
             ActiveAcademicContextResolver contextResolver,
             @Lazy TrainingActivityService self) {
         this.trainingActivityRepository = trainingActivityRepository;
+        this.trainingActivityAssignmentRepository = trainingActivityAssignmentRepository;
+        this.groupClassMemberRepository = groupClassMemberRepository;
+        this.emailService = emailService;
+        this.emailProperties = emailProperties;
         this.contextResolver = contextResolver;
         this.self = self;
     }
@@ -71,6 +92,12 @@ public class TrainingActivityService {
                     activity -> activity.getGroupClass() != null
                             && context.groupClassId().equals(activity.getGroupClass().getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Unknown training activity %s".formatted(activityId)));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrainingActivityAssignment> listAssignments(UUID activityId) {
+        var activity = get(activityId);
+        return trainingActivityAssignmentRepository.findByTrainingActivity_IdOrderByUpdatedAtDesc(activity.getId());
     }
 
     @Transactional
@@ -116,6 +143,78 @@ public class TrainingActivityService {
         return trainingActivityRepository.save(activity);
     }
 
+    @Transactional
+    public int launch(UUID activityId) {
+        var activity = get(activityId);
+        if (activity.getStatus() != TrainingActivityLifecycleStatus.DRAFT) {
+            throw new IllegalStateException("Only draft training activities can be launched.");
+        }
+
+        var now = Instant.now();
+        var students = groupClassMemberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(
+                activity.getGroupClass().getId())
+                .stream()
+                .filter(member -> member.getMemberKind() == GroupClassMemberKind.STUDENT)
+                .toList();
+
+        var assignments = new ArrayList<TrainingActivityAssignment>(students.size());
+        for (var student : students) {
+            var assignment = new TrainingActivityAssignment();
+            assignment.setId(UUID.randomUUID());
+            assignment.setTrainingActivity(activity);
+            assignment.setGroupClassMember(student);
+            assignment.setStatus(TrainingActivityAssignmentStatus.ASSIGNED);
+            assignment.setAssignedAt(now);
+            assignment.setUpdatedAt(now);
+            assignments.add(assignment);
+        }
+        if (!assignments.isEmpty()) {
+            trainingActivityAssignmentRepository.saveAll(assignments);
+        }
+
+        activity.setStatus(TrainingActivityLifecycleStatus.PUBLISHED);
+        activity.setOpensAt(now);
+        activity.setUpdatedAt(now);
+        trainingActivityRepository.save(activity);
+
+        var messages = launchMessages(activity, students);
+        sendAfterCommit(messages);
+        return students.size();
+    }
+
+    private List<EmailMessage> launchMessages(TrainingActivity activity, List<GroupClassMember> students) {
+        var studentHomeUrl = "%s/student".formatted(emailProperties.getInvitationBaseUrl());
+        var subject = "New formative activity: %s".formatted(activity.getTitle());
+        var plainText = launchPlainText(activity, studentHomeUrl);
+        var html = launchHtml(activity, studentHomeUrl);
+        return students.stream()
+                .map(student -> new EmailMessage(
+                    student.getTenantAccount().getAccount().getEmail(), subject, plainText, html))
+                .toList();
+    }
+
+    private void sendAfterCommit(List<EmailMessage> messages) {
+        if (messages.isEmpty()) {
+            return;
+        }
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            send(messages);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                send(messages);
+            }
+        });
+    }
+
+    private void send(List<EmailMessage> messages) {
+        for (var message : messages) {
+            emailService.send(message);
+        }
+    }
+
     private ActiveAcademicContext requireProfessorContext() {
         var context = contextResolver.requireCurrent();
         if (context.groupClassKind() != GroupClassMemberKind.PROFESSOR) {
@@ -123,5 +222,42 @@ public class TrainingActivityService {
                     "An active professor class context is required before managing training activities.");
         }
         return context;
+    }
+
+    private String launchPlainText(TrainingActivity activity, String studentHomeUrl) {
+        return """
+               Hello,
+
+               A new formative activity is available for %s.
+
+               Title: %s
+               Instructions:
+               %s
+
+               Open your student home:
+               %s
+               """.formatted(activity.getGroupClass().getName(), activity.getTitle(), activity.getInstructions(), studentHomeUrl);
+    }
+
+    private String launchHtml(TrainingActivity activity, String studentHomeUrl) {
+        return """
+               <p>Hello,</p>
+               <p>A new formative activity is available for <strong>%s</strong>.</p>
+               <p><strong>Title:</strong> %s</p>
+               <p><strong>Instructions:</strong><br>%s</p>
+               <p><a href=\"%s\">Open your student home</a></p>
+               """.formatted(
+                escapeHtml(activity.getGroupClass().getName()),
+                escapeHtml(activity.getTitle()),
+                escapeHtml(activity.getInstructions()).replace("\n", "<br>"),
+                escapeHtml(studentHomeUrl));
+    }
+
+    private String escapeHtml(String rawValue) {
+        return rawValue.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 }
