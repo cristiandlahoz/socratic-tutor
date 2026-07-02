@@ -4,6 +4,7 @@ import com.wornux.ai.advisor.DynamicContextManagementAdvisor;
 import com.wornux.ai.advisor.TutorGuardAdvisor;
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.prompt.PromptResources;
+import com.wornux.ai.session.TokenBudgetRecursiveSummarizationCompactionStrategy;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ChatSessionActivityBus;
@@ -17,7 +18,6 @@ import org.springframework.ai.session.compaction.CompactionRequest;
 import org.springframework.ai.session.compaction.CompactionResult;
 import org.springframework.ai.session.compaction.CompactionStrategy;
 import org.springframework.ai.session.compaction.CompactionTrigger;
-import org.springframework.ai.session.compaction.RecursiveSummarizationCompactionStrategy;
 import org.springframework.ai.session.compaction.TokenCountTrigger;
 import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
 import org.slf4j.Logger;
@@ -30,8 +30,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 public class AIConfig {
 
     private static final Logger log = LoggerFactory.getLogger(AIConfig.class);
-
-    private static final int RETAINED_SESSION_EVENT_COUNT = 4;
 
     @Bean
     ChatClient chatClient(
@@ -52,8 +50,10 @@ public class AIConfig {
                 .threshold(compactionThresholdTokens)
                 .tokenCountEstimator(tokenCountEstimator)
                 .build();
-        var compactionStrategy = RecursiveSummarizationCompactionStrategy.builder(compactionClient)
-                .maxEventsToKeep(RETAINED_SESSION_EVENT_COUNT)
+        var compactionStrategy = TokenBudgetRecursiveSummarizationCompactionStrategy.builder(compactionClient)
+                .recentHistoryTokenBudget(chatProperties.recentHistoryRetentionTokens())
+                .systemPrompt(promptResources.compactionSystem())
+                .userPromptTemplate(promptResources.compactionUser())
                 .tokenCountEstimator(tokenCountEstimator)
                 .build();
         var sessionMemoryAdvisor = SessionMemoryAdvisor.builder(sessionService)

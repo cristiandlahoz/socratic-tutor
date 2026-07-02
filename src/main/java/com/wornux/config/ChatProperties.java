@@ -9,6 +9,7 @@ public class ChatProperties {
 
     private int contextWindowTokens;
     private double compactionThresholdRatio;
+    private double recentHistoryRetentionRatio;
     private Ui ui = new Ui();
 
     public int getContextWindowTokens() {
@@ -27,6 +28,14 @@ public class ChatProperties {
         this.compactionThresholdRatio = compactionThresholdRatio;
     }
 
+    public double getRecentHistoryRetentionRatio() {
+        return recentHistoryRetentionRatio;
+    }
+
+    public void setRecentHistoryRetentionRatio(double recentHistoryRetentionRatio) {
+        this.recentHistoryRetentionRatio = recentHistoryRetentionRatio;
+    }
+
     public int compactionThresholdTokens() {
         int threshold = (int) Math.floor(contextWindowTokens * compactionThresholdRatio);
         if (threshold <= 0) {
@@ -39,6 +48,14 @@ public class ChatProperties {
         int limit = (int) Math.floor(contextWindowTokens * COMPOSER_PROMPT_LIMIT_RATIO);
         if (limit <= 0) {
             throw new IllegalStateException("Composer prompt limit must be greater than zero");
+        }
+        return limit;
+    }
+
+    public int recentHistoryRetentionTokens() {
+        int limit = (int) Math.floor(contextWindowTokens * recentHistoryRetentionRatio);
+        if (limit <= 0) {
+            throw new IllegalStateException("Recent history retention must be greater than zero");
         }
         return limit;
     }
