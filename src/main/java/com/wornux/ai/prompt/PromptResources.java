@@ -25,6 +25,10 @@ public class PromptResources {
     private static final String FALLBACK_QUESTION = "classpath:/prompt/training_activity/fallback-question.st";
     private static final String REPORT_PROMPT = "classpath:/prompt/training_activity/report-prompt.st";
     private static final String ANTI_LOOP_BLOCKED = "classpath:/prompt/training_activity/anti-loop-blocked.st";
+    private static final String DOCUMENT_CATALOG_SYSTEM = "classpath:/prompt/document/catalog-generation-system.st";
+    private static final String DOCUMENT_CATALOG_USER = "classpath:/prompt/document/catalog-generation-user.st";
+    private static final String DOCUMENT_SPECIFICITY_SYSTEM = "classpath:/prompt/document/specificity-classifier-system.st";
+    private static final String DOCUMENT_SPECIFICITY_USER = "classpath:/prompt/document/specificity-classifier-user.st";
 
     private final ResourceLoader resourceLoader;
     private final Map<String, String> cache = new ConcurrentHashMap<>();
@@ -75,6 +79,22 @@ public class PromptResources {
 
     public String antiLoopBlocked() {
         return load(ANTI_LOOP_BLOCKED);
+    }
+
+    public String documentCatalogSystem() {
+        return load(DOCUMENT_CATALOG_SYSTEM);
+    }
+
+    public String documentCatalogUser() {
+        return load(DOCUMENT_CATALOG_USER);
+    }
+
+    public String documentSpecificitySystem() {
+        return load(DOCUMENT_SPECIFICITY_SYSTEM);
+    }
+
+    public String documentSpecificityUser() {
+        return load(DOCUMENT_SPECIFICITY_USER);
     }
 
     private String load(String location) {

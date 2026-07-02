@@ -2,15 +2,16 @@ package com.wornux.services.document;
 
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
+import java.util.Map;
 
+import com.wornux.ai.prompt.PromptResources;
+import com.wornux.ai.prompt.PromptUtil;
 import com.wornux.dtos.document.DocumentIngestionException;
 import com.wornux.ui.ingestion.EditableSegmentViewModel;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -23,60 +24,18 @@ public class DocumentCatalogGenerationService {
     private static final int MAX_USE_WHEN_LENGTH = 200;
     private static final int MAX_ALIASES = 8;
     private static final int MAX_ALIAS_LENGTH = 48;
-    private static final Set<String> GENERIC_TERMS = Set.of(
-        "programming",
-        "homework",
-        "exercise",
-        "class",
-        "course",
-        "document",
-        "material",
-        "pdf",
-        "notes",
-        "code",
-        "study",
-        "topic",
-        "assignment",
-        "programacion",
-        "programación",
-        "tarea",
-        "ejercicio",
-        "clase",
-        "curso",
-        "documento",
-        "material",
-        "codigo",
-        "código",
-        "estudio",
-        "tema");
-    private static final String SYSTEM_PROMPT = """
-            You create tiny retrieval catalogs for course material.
-            Return JSON only.
-
-            Goal:
-            - Help a tutor decide when stored course material is worth searching.
-            - Be specific or fail. Generic catalogs are worse than no catalog.
-
-            Rules:
-            - Use the professor instruction as the source of truth.
-            - Use the source label and first chunk only as supporting evidence.
-            - Do not invent topics, assignments, rubrics, or document purpose.
-            - Avoid generic terms at all cost.
-            - Never use aliases such as: programming, homework, exercise, class, course, document, material, pdf, notes, code, study, topic, assignment.
-            - If the professor instruction and first chunk are not specific enough, set createCatalog=false.
-            - label: short specific name, max 60 chars.
-            - useWhen: one specific sentence, max 200 chars.
-            - aliases: 3 to 8 specific phrases, each max 48 chars.
-            """;
 
     private final ChatModel chatModel;
+    private final PromptResources promptResources;
     private final BeanOutputConverter<GeneratedCatalog> outputConverter = new BeanOutputConverter<>(GeneratedCatalog.class);
+    private final BeanOutputConverter<SpecificityClassification> specificityOutputConverter = new BeanOutputConverter<>(SpecificityClassification.class);
 
     @Value("${app.ai.switzerland-knife.model:${app.ai.guard.model}}")
     private String model;
 
-    public DocumentCatalogGenerationService(ChatModel chatModel) {
+    public DocumentCatalogGenerationService(ChatModel chatModel, PromptResources promptResources) {
         this.chatModel = chatModel;
+        this.promptResources = promptResources;
     }
 
     public CourseMaterialCatalog generate(String title, String useWhen, List<EditableSegmentViewModel> segments) {
@@ -87,31 +46,17 @@ public class DocumentCatalogGenerationService {
 
     private GeneratedCatalog generatedCatalog(String title, String useWhen, String firstChunk) {
         var prompt = Prompt.builder()
-                .messages(new SystemMessage(SYSTEM_PROMPT), new UserMessage(userPrompt(title, useWhen, firstChunk)))
-                .chatOptions(
-                    OpenAiChatOptions.builder()
-                            .model(model)
-                            .temperature(0.0)
-                            .outputSchema(outputConverter.getJsonSchema())
-                            .build())
+                .messages(new SystemMessage(promptResources.documentCatalogSystem()), new UserMessage(userPrompt(title, useWhen, firstChunk)))
+                .chatOptions(chatOptions(outputConverter))
                 .build();
 
-        var response = chatModel.call(prompt);
-        var content = Objects.requireNonNull(response.getResult().getOutput().getText());
-        return outputConverter.convert(content);
+        return outputConverter.convert(responseText(chatModel.call(prompt)));
     }
 
     private String userPrompt(String title, String useWhen, String firstChunk) {
-        return """
-               Source label:
-               %s
-
-               Professor use instruction:
-               %s
-
-               First chunk:
-               %s
-               """.formatted(title, useWhen, firstChunk);
+        return PromptUtil.render(
+            promptResources.documentCatalogUser(),
+            Map.of("title", normalize(title), "useWhen", normalize(useWhen), "firstChunk", firstChunk));
     }
 
     private CourseMaterialCatalog validate(GeneratedCatalog generated) {
@@ -137,7 +82,7 @@ public class DocumentCatalogGenerationService {
                 .map(this::normalize)
                 .filter(alias -> !alias.isBlank())
                 .filter(alias -> alias.length() <= MAX_ALIAS_LENGTH)
-                .filter(this::isSpecific)
+                .filter(alias -> isSpecific(alias, "catalog alias"))
                 .limit(MAX_ALIASES)
                 .collect(java.util.stream.Collectors.collectingAndThen(
                     java.util.stream.Collectors.toCollection(LinkedHashSet::new),
@@ -146,7 +91,7 @@ public class DocumentCatalogGenerationService {
 
     private String requireSpecificText(String value, String fieldName) {
         var normalized = normalize(value);
-        if (normalized.isBlank() || !isSpecific(normalized)) {
+        if (normalized.isBlank() || !isSpecific(normalized, fieldName)) {
             throw new DocumentIngestionException("The generated %s is too generic. Improve the usage description and generate again.".formatted(fieldName));
         }
         return normalized;
@@ -160,7 +105,7 @@ public class DocumentCatalogGenerationService {
         if (normalized.length() > MAX_USE_WHEN_LENGTH) {
             throw new DocumentIngestionException("The usage description cannot exceed 200 characters.");
         }
-        if (!isSpecific(normalized)) {
+        if (!isSpecific(normalized, "professor usage instruction")) {
             throw genericCatalogMessage();
         }
     }
@@ -176,12 +121,42 @@ public class DocumentCatalogGenerationService {
                 .orElseThrow(() -> new DocumentIngestionException("At least one non-empty chunk is required before generating the catalog."));
     }
 
-    private boolean isSpecific(String value) {
-        var normalized = normalize(value).toLowerCase(Locale.ROOT);
-        if (GENERIC_TERMS.contains(normalized)) {
-            return false;
+    private boolean isSpecific(String value, String fieldName) {
+        var prompt = Prompt.builder()
+                .messages(
+                    new SystemMessage(promptResources.documentSpecificitySystem()),
+                    new UserMessage(specificityUserPrompt(fieldName, value)))
+                .chatOptions(chatOptions(specificityOutputConverter))
+                .build();
+
+        var classification = specificityOutputConverter.convert(responseText(chatModel.call(prompt)));
+        return classification != null && classification.specific();
+    }
+
+    private String specificityUserPrompt(String fieldName, String value) {
+        return PromptUtil.render(
+            promptResources.documentSpecificityUser(),
+            Map.of("fieldName", fieldName, "value", value));
+    }
+
+    private OpenAiChatOptions chatOptions(BeanOutputConverter<?> converter) {
+        return OpenAiChatOptions.builder()
+                .model(model)
+                .temperature(0.0)
+                .outputSchema(converter.getJsonSchema())
+                .build();
+    }
+
+    private String responseText(ChatResponse response) {
+        if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
+            throw new DocumentIngestionException("The AI model did not return a usable response. Try generating again.");
         }
-        return GENERIC_TERMS.stream().noneMatch(term -> normalized.equals("use for " + term));
+
+        var text = response.getResult().getOutput().getText();
+        if (text == null || text.isBlank()) {
+            throw new DocumentIngestionException("The AI model returned an empty response. Try generating again.");
+        }
+        return text;
     }
 
     private String normalize(String value) {
@@ -194,4 +169,6 @@ public class DocumentCatalogGenerationService {
     }
 
     private record GeneratedCatalog(boolean createCatalog, String label, String useWhen, List<String> aliases) {}
+
+    private record SpecificityClassification(boolean specific, String reason) {}
 }
