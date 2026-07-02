@@ -1,0 +1,507 @@
+*socratic-tutor-compaction.txt*        Socratic Tutor chat compaction
+
+===============================================================================
+CONTENTS                                                *compaction-contents*
+
+  1. Purpose ....................................... |compaction-purpose|
+  2. Budgets ....................................... |compaction-budgets|
+  3. Runtime flow .................................. |compaction-flow|
+  4. Before/after shape ............................ |compaction-shape|
+  5. Retention algorithm ........................... |compaction-retention|
+  6. Summarization call ............................ |compaction-call|
+  7. Prompt templates .............................. |compaction-prompts|
+  8. Repeated compaction ........................... |compaction-repeated|
+  9. Tool output handling .......................... |compaction-tools|
+ 10. Storage semantics ............................. |compaction-storage|
+ 11. Implementation map ............................ |compaction-implementation|
+ 12. Future improvements ........................... |compaction-future|
+
+===============================================================================
+1. PURPOSE                                             *compaction-purpose*
+
+Chat compaction keeps long tutoring sessions inside the model context window.
+
+It does not delete the transcript. It changes what the model sees:
+
+    before:  full active history
+    after:   summary of older history + recent raw turns
+
+The implementation preserves tutoring state rather than raw chat volume:
+
+  - learning goal
+  - current task/topic
+  - student misconceptions and demonstrated understanding
+  - hints, questions, examples, and explanations already used
+  - course material or retrieved facts already referenced
+  - constraints and preferences
+  - next best Socratic step
+
+===============================================================================
+2. BUDGETS                                             *compaction-budgets*
+
+Configuration:
+
+>
+    app:
+      chat:
+        context-window-tokens: ${CHAT_CONTEXT_WINDOW_TOKENS:8192}
+        compaction-threshold-ratio: ${CHAT_COMPACTION_THRESHOLD_RATIO:0.70}
+        recent-history-retention-ratio: ${CHAT_RECENT_HISTORY_RETENTION_RATIO:0.25}
+<
+
+Default budget with an 8192-token context window:
+
+>
+    +----------------------+---------+---------+-----------------------------+
+    | Area                 | Ratio   | Tokens  | Meaning                     |
+    +----------------------+---------+---------+-----------------------------+
+    | Context window       | 100%    | 8192    | Full model context          |
+    | Compaction trigger   |  70%    | 5734    | Run compaction above this   |
+    | Recent raw history   |  25%    | 2048    | Keep after compaction       |
+    +----------------------+---------+---------+-----------------------------+
+<
+
+Formula:
+
+>
+    compactionThresholdTokens      = contextWindowTokens * 0.70
+    recentHistoryRetentionTokens   = contextWindowTokens * 0.25
+
+    For 8192:
+
+    compactionThresholdTokens      = 5734
+    recentHistoryRetentionTokens   = 2048
+<
+
+===============================================================================
+3. RUNTIME FLOW                                         *compaction-flow*
+
+Compaction is wired into Spring AI's SessionMemoryAdvisor.
+
+>
+  Student submits prompt
+          |
+          v
+  +-------------------------------+
+  | ChatService.chatStream(...)    |
+  | - conversationId is sessionId  |
+  | - userId is memberId           |
+  +-------------------------------+
+          |
+          v
+  +-----------------------------------------------+
+  | SessionMemoryAdvisor.before(...)              |
+  |                                               |
+  |  1. find/create session                       |
+  |  2. load active events                        |
+  |  3. prepend active history to model prompt    |
+  |  4. append current UserMessage to session     |
+  +-----------------------------------------------+
+          |
+          v
+  +-------------------------------+
+  | Model streams assistant reply  |
+  +-------------------------------+
+          |
+          v
+  +-----------------------------------------------+
+  | SessionMemoryAdvisor.after(...)               |
+  |                                               |
+  |  1. append AssistantMessage to session        |
+  |  2. estimate active context tokens            |
+  |  3. if above threshold: compact               |
+  +-----------------------------------------------+
+          |
+          v
+  Active context becomes:
+
+        Synthetic summary turn + retained recent real turns
+<
+
+===============================================================================
+4. BEFORE/AFTER SHAPE                                  *compaction-shape*
+
+Before compaction, the active model context may contain many real events:
+
+>
+  ACTIVE EVENTS BEFORE COMPACTION
+
+  entry:   0      1      2      3      4      5      6      7      8
+         +------+------+------+------+------+------+------+------+------+
+         | user | asst | user | asst | tool | asst | user | asst | asst |
+         +------+------+------+------+------+------+------+------+------+
+          `--------------------+-------------------' `---------+-------'
+                    summarize, then archive           keep verbatim
+<
+
+After compaction, older real events are archived and replaced in the active
+context by a synthetic summary turn.
+
+>
+  ACTIVE EVENTS AFTER COMPACTION
+
+  entry:   S0        S1        6       7       8
+         +---------+---------+-------+-------+-------+
+         | Synth   | Synth   | User  | Asst  | Asst  |
+         | User    | Asst    | real  | real  | real  |
+         +---------+---------+-------+-------+-------+
+          `----+--' `---+---'  `--------+--------'
+            shadow    summary       keep verbatim
+<
+
+The archived events remain in the session event log:
+
+>
+  STORED EVENT LOG AFTER COMPACTION
+
+  entry:   0      1      2      3      4      5      6      7      8      9     10
+         +------+------+------+------+------+------+------+------+------+-----+-----+
+         | user | asst | user | asst | tool | asst | user | asst | asst | syn | syn |
+         | real | real | real | real | real | real | real | real | real | usr | ast |
+         +------+------+------+------+------+------+------+------+------+-----+-----+
+          `--------------------+-------------------' `---------+-------'  `---+----'
+                    archived real events              active real events  summary turn
+<
+
+===============================================================================
+5. RETENTION ALGORITHM                              *compaction-retention*
+
+Core class:
+
+>
+    com.wornux.ai.session.TokenBudgetRecursiveSummarizationCompactionStrategy
+<
+
+The strategy keeps recent history by token budget, not by event count.
+
+Algorithm:
+
+>
+    1. Split events:
+
+         syntheticEvents = events where event.isSynthetic()
+         realEvents      = events where !event.isSynthetic()
+
+    2. Walk backward from newest real event.
+
+    3. Estimate formatted-event tokens.
+
+    4. Stop once accumulated tokens >= recentHistoryRetentionTokens.
+
+    5. Snap backward to the nearest root UserMessage.
+
+    6. Archive everything before that cut point.
+
+    7. Keep everything from that cut point onward verbatim.
+<
+
+Diagram:
+
+>
+  Walk backward by token budget:
+
+       old                                                        new
+       -------------------------------------------------------------\>
+
+       0       1       2       3       4       5       6       7
+     +-------+-------+-------+-------+-------+-------+-------+-------+
+     | User  | Asst  | Tool  | Asst  | User  | Asst  | User  | Asst  |
+     +-------+-------+-------+-------+-------+-------+-------+-------+
+                                                     ^       ^
+                                                     |       |
+                                   budget reached <--'       |
+                                                             |
+                                                newest event-'
+
+  Snap backward to complete turn:
+
+       0       1       2       3       4       5       6       7
+     +-------+-------+-------+-------+-------+-------+-------+-------+
+     | User  | Asst  | Tool  | Asst  | User  | Asst  | User  | Asst  |
+     +-------+-------+-------+-------+-------+-------+-------+-------+
+                                     ^
+                                     |
+                         first retained root UserMessage
+
+     archive: 0..3
+     keep:    4..7
+<
+
+Why snap backward?
+
+A retained window should start with a full turn. Keeping an assistant answer
+without the user's preceding question produces confusing model context.
+
+===============================================================================
+6. SUMMARIZATION CALL                                  *compaction-call*
+
+Compaction makes one model call to generate the summary.
+
+That one call contains two chat messages:
+
+>
+    SYSTEM message:
+      contents of src/main/resources/prompt/compaction/system.st
+
+    USER message:
+      rendered contents of src/main/resources/prompt/compaction/user.st
+<
+
+Call shape:
+
+>
+    chatClient.prompt()
+        .system(systemPrompt)
+        .user(renderedUserPrompt)
+        .call()
+        .content();
+<
+
+Expanded view:
+
+>
+  +----------------------------- one LLM request -----------------------------+
+  |                                                                           |
+  |  SYSTEM                                                                   |
+  |  +---------------------------------------------------------------------+  |
+  |  | Instructions for how to summarize tutoring state.                   |  |
+  |  +---------------------------------------------------------------------+  |
+  |                                                                           |
+  |  USER                                                                     |
+  |  +---------------------------------------------------------------------+  |
+  |  | <prior-summary>...</prior-summary>                                  |  |
+  |  | <conversation-to-summarize>...</conversation-to-summarize>          |  |
+  |  | <upcoming-context purpose="continuity-only">...</upcoming-context>  |  |
+  |  +---------------------------------------------------------------------+  |
+  |                                                                           |
+  +---------------------------------------------------------------------------+
+                                      |
+                                      v
+                              summary string
+<
+
+===============================================================================
+7. PROMPT TEMPLATES                                  *compaction-prompts*
+
+Prompt files:
+
+>
+    src/main/resources/prompt/compaction/system.st
+    src/main/resources/prompt/compaction/user.st
+<
+
+Resource access:
+
+>
+    src/main/java/com/wornux/ai/prompt/PromptResources.java
+<
+
+Template rendering:
+
+>
+    src/main/java/com/wornux/ai/prompt/PromptUtil.java
+<
+
+The user template is rendered with:
+
+>
+    priorSummary
+    conversationToSummarize
+    upcomingContext
+<
+
+Template shape:
+
+>
+    <prior-summary>
+    $priorSummary$
+    </prior-summary>
+
+    <conversation-to-summarize>
+    $conversationToSummarize$
+    </conversation-to-summarize>
+
+    <upcoming-context purpose="continuity-only">
+    $upcomingContext$
+    </upcoming-context>
+<
+
+Meaning:
+
+>
+    priorSummary
+      Previous synthetic assistant summaries, if the conversation was compacted
+      before.
+
+    conversationToSummarize
+      Older real events that will be archived after this compaction.
+
+    upcomingContext
+      First retained recent events. These help continuity, but the prompt tells
+      the model not to summarize them as if they were old context.
+<
+
+===============================================================================
+8. REPEATED COMPACTION                              *compaction-repeated*
+
+Compaction is recursive/rolling.
+
+First compaction:
+
+>
+    real events A
+        |
+        v
+    summary A + retained raw events
+<
+
+Later compaction:
+
+>
+    prior summary A
+    + more old real events B
+        |
+        v
+    summary B + retained raw events
+<
+
+Timeline:
+
+>
+  t0
+    +---------+---------+---------+---------+
+    | User A  | Asst A  | User B  | Asst B  |
+    +---------+---------+---------+---------+
+
+  first compaction
+    +-----------+-----------+---------+---------+
+    | Synth U   | Summary A | User B  | Asst B  |
+    +-----------+-----------+---------+---------+
+
+  more conversation
+    +-----------+-----------+---------+---------+---------+---------+
+    | Synth U   | Summary A | User B  | Asst B  | User C  | Asst C  |
+    +-----------+-----------+---------+---------+---------+---------+
+
+  second compaction
+    +-----------+-----------+---------+---------+
+    | Synth U   | Summary B | User C  | Asst C  |
+    +-----------+-----------+---------+---------+
+<
+
+`Summary B` incorporates `Summary A` plus newly archived events.
+
+===============================================================================
+9. TOOL OUTPUT HANDLING                                *compaction-tools*
+
+Tool events can be very large. Retrieved course material is especially risky.
+
+Before events are sent to the summarizer, each event is formatted into text.
+Formatted events are truncated at 2000 characters.
+
+Example:
+
+>
+    Tool [responses: searchCourseMaterial -> The first 2000 chars...
+    ... [truncated 18342 chars]]
+<
+
+This prevents the summarization request itself from becoming too large.
+
+===============================================================================
+10. STORAGE SEMANTICS                                *compaction-storage*
+
+Compaction changes active context, not the existence of real history.
+
+>
+    archived event
+      - not sent to the model by EventFilter.active()
+      - still stored in Spring AI Session
+      - still available to display/history queries that do not exclude archived
+
+    synthetic event
+      - generated by compaction
+      - useful for model context
+      - excluded from student-facing transcript
+<
+
+Model and UI intentionally read the same session differently:
+
+>
+  +---------------------------+
+  | Spring AI Session storage |
+  +---------------------------+
+              |
+              +----------------------------+
+              |                            |
+              v                            v
+  +--------------------------+  +------------------------------+
+  | Model context            |  | Chat UI transcript           |
+  | EventFilter.active()     |  | excludeSynthetic(true)       |
+  |                          |  | plus display-only filtering  |
+  +--------------------------+  +------------------------------+
+              |                            |
+              v                            v
+  summary + recent real turns     full real user/assistant transcript
+<
+
+===============================================================================
+11. IMPLEMENTATION MAP                           *compaction-implementation*
+
+Core strategy:
+
+>
+    src/main/java/com/wornux/ai/session/
+    TokenBudgetRecursiveSummarizationCompactionStrategy.java
+<
+
+Wiring:
+
+>
+    src/main/java/com/wornux/config/AIConfig.java
+<
+
+Properties:
+
+>
+    src/main/java/com/wornux/config/ChatProperties.java
+    src/main/resources/application.yml
+<
+
+Prompt resources:
+
+>
+    src/main/java/com/wornux/ai/prompt/PromptResources.java
+    src/main/java/com/wornux/ai/prompt/PromptUtil.java
+    src/main/resources/prompt/compaction/system.st
+    src/main/resources/prompt/compaction/user.st
+<
+
+Focused test:
+
+>
+    src/test/java/com/wornux/ai/session/
+    TokenBudgetRecursiveSummarizationCompactionStrategyTest.java
+<
+
+===============================================================================
+12. FUTURE IMPROVEMENTS                              *compaction-future*
+
+Potential next steps:
+
+  - Preflight compaction before model calls when estimated request size is too
+    large.
+
+  - Overflow recovery: if provider returns a context-length error, compact and
+    retry the turn.
+
+  - Adaptive retention: keep 20-35% recent history depending on current prompt
+    size and dynamic context size.
+
+  - Metrics: compaction count, latency, tokens saved, summary size, and failure
+    count.
+
+  - Summary quality tests using representative tutoring conversations.
+
+===============================================================================
+ vim:tw=78:ts=8:ft=help:norl:
