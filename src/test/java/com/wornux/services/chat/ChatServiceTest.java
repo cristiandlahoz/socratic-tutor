@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.wornux.ai.tools.ToolContextKeys;
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.services.context.ActiveAcademicContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.session.advisor.SessionMemoryAdvisor;
@@ -26,7 +26,7 @@ class ChatServiceTest {
                 tenantAccountId,
                 groupClassMemberId,
                 groupClassId,
-                GroupClassMemberRole.PROFESSOR);
+                GroupClassMemberKind.PROFESSOR);
 
         var toolContext = ChatService.buildToolContext(Optional.of(context), conversationId, turnId);
 
@@ -42,7 +42,7 @@ class ChatServiceTest {
         var groupClassMemberId = UUID.randomUUID();
         var conversationId = UUID.randomUUID();
         var context = new ActiveAcademicContext(UUID
-                .randomUUID(), UUID.randomUUID(), groupClassMemberId, UUID.randomUUID(), GroupClassMemberRole.STUDENT);
+                .randomUUID(), UUID.randomUUID(), groupClassMemberId, UUID.randomUUID(), GroupClassMemberKind.STUDENT);
 
         assertThat(ChatService.buildSessionContext(context, conversationId)).containsExactlyInAnyOrderEntriesOf(
             java.util.Map.of(

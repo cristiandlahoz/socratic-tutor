@@ -3,7 +3,7 @@ package com.wornux.services.workspace;
 import java.util.List;
 import java.util.UUID;
 
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
@@ -25,12 +25,12 @@ public class StudentWorkspaceService {
 
     @Transactional(readOnly = true)
     public List<AccessibleClass> listStudentClasses(Account account) {
-        return workspaceRoutingService.listAccessibleClasses(account, GroupClassMemberRole.STUDENT);
+        return workspaceRoutingService.listAccessibleClasses(account, GroupClassMemberKind.STUDENT);
     }
 
     @Transactional(readOnly = true)
     public List<TrainingActivityAssignment> listAssignments(Account account) {
-        var membership = workspaceRoutingService.currentClassMembership(account, GroupClassMemberRole.STUDENT)
+        var membership = workspaceRoutingService.currentClassMembership(account, GroupClassMemberKind.STUDENT)
                 .orElseThrow(() -> new SecurityException("An active student class context is required."));
         return trainingActivityAssignmentRepository.findByGroupClassMember_IdOrderByUpdatedAtDesc(membership.getId());
     }

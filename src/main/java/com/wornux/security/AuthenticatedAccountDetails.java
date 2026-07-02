@@ -24,11 +24,11 @@ public class AuthenticatedAccountDetails implements UserDetails {
     }
 
     public Optional<TenantAccount> currentTenantAccount() {
-        return Optional.ofNullable(account.getLastTenantAccount());
+        return Optional.empty();
     }
 
     public Optional<GroupClassMember> currentGroupClassMember() {
-        return Optional.ofNullable(account.getLastGroupClassMember());
+        return Optional.empty();
     }
 
     @Override

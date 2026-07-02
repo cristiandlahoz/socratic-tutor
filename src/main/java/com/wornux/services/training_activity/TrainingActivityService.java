@@ -4,8 +4,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+
+import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
+import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.data.repositories.training_activity.TrainingActivityRepository;
@@ -37,8 +40,10 @@ public class TrainingActivityService {
         var context = requireProfessorContext();
         var activity = new TrainingActivity();
         activity.setId(UUID.randomUUID());
-        activity.setGroupClass(new com.wornux.data.entities.academic.GroupClass());
+        activity.setGroupClass(new GroupClass());
         activity.getGroupClass().setId(context.groupClassId());
+        activity.setCreatedByTenantAccount(new TenantAccount());
+        activity.getCreatedByTenantAccount().setId(context.tenantAccountId());
         activity.setCreatedByGroupClassMember(new GroupClassMember());
         activity.getCreatedByGroupClassMember().setId(context.groupClassMemberId());
         activity.setTitle(title);
@@ -113,7 +118,7 @@ public class TrainingActivityService {
 
     private ActiveAcademicContext requireProfessorContext() {
         var context = contextResolver.requireCurrent();
-        if (context.groupClassRole() != GroupClassMemberRole.PROFESSOR) {
+        if (context.groupClassKind() != GroupClassMemberKind.PROFESSOR) {
             throw new SetupRequiredException(
                     "An active professor class context is required before managing training activities.");
         }

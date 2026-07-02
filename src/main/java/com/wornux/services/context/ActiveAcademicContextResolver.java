@@ -3,6 +3,7 @@ package com.wornux.services.context;
 import java.util.Optional;
 
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
+import com.wornux.data.repositories.identity.AccountContextPreferenceRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
 import com.wornux.services.security.AuthenticatedUserContext;
 import org.springframework.context.annotation.Lazy;
@@ -16,16 +17,19 @@ public class ActiveAcademicContextResolver {
             "Academic setup is required before using persisted tutor features.";
 
     private final AuthenticatedUserContext authenticatedUserContext;
+    private final AccountContextPreferenceRepository accountContextPreferenceRepository;
     private final TenantAccountRepository tenantAccountRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
     private final ActiveAcademicContextResolver self;
 
     public ActiveAcademicContextResolver(
             AuthenticatedUserContext authenticatedUserContext,
+            AccountContextPreferenceRepository accountContextPreferenceRepository,
             TenantAccountRepository tenantAccountRepository,
             GroupClassMemberRepository groupClassMemberRepository,
             @Lazy ActiveAcademicContextResolver self) {
         this.authenticatedUserContext = authenticatedUserContext;
+        this.accountContextPreferenceRepository = accountContextPreferenceRepository;
         this.tenantAccountRepository = tenantAccountRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
         this.self = self;
@@ -33,38 +37,30 @@ public class ActiveAcademicContextResolver {
 
     @Transactional(readOnly = true)
     public Optional<ActiveAcademicContext> resolveCurrent() {
-        return authenticatedUserContext.currentAccount().flatMap(account -> {
-            if (account.getLastGroupClassMember() == null
-                    || account.getLastTenantAccount() == null
-                    || account.getLastGroupClassMember().getGroupClass() == null) {
-                return Optional.empty();
-            }
+        return authenticatedUserContext.currentAccount().flatMap(account -> accountContextPreferenceRepository
+                .findById(account.getId())
+                .filter(preference -> preference.getTenant() != null && preference.getGroupClass() != null)
+                .flatMap(preference -> {
+                    var tenantAccount = tenantAccountRepository
+                            .findByTenant_IdAndAccount_Id(preference.getTenant().getId(), account.getId())
+                            .orElse(null);
+                    if (tenantAccount == null || tenantAccount.isLocked()) {
+                        return Optional.empty();
+                    }
 
-            var tenantAccount = tenantAccountRepository
-                    .findByIdAndAccount_Id(account.getLastTenantAccount().getId(), account.getId())
-                    .orElse(null);
-            if (tenantAccount == null || tenantAccount.isLocked()) {
-                return Optional.empty();
-            }
+                    var groupClassMember = groupClassMemberRepository
+                            .findByGroupClass_IdAndTenantAccount_Id(preference.getGroupClass().getId(), tenantAccount.getId())
+                            .orElse(null);
+                    if (groupClassMember == null || groupClassMember.isLocked()) {
+                        return Optional.empty();
+                    }
 
-            var groupClassMember = groupClassMemberRepository
-                    .findByIdAndTenantAccount_Id(account.getLastGroupClassMember().getId(), tenantAccount.getId())
-                    .orElse(null);
-            if (groupClassMember == null
-                    || groupClassMember.isLocked()
-                    || groupClassMember.getGroupClass() == null
-                    || groupClassMember.getGroupClass().getTenant() == null
-                    || !groupClassMember.getGroupClass().getTenant().getId().equals(tenantAccount.getTenant().getId())) {
-                return Optional.empty();
-            }
-
-            return Optional.of(
-                new ActiveAcademicContext(account.getId(),
-                        tenantAccount.getId(),
-                        groupClassMember.getId(),
-                        groupClassMember.getGroupClass().getId(),
-                        groupClassMember.getRole()));
-        });
+                    return Optional.of(new ActiveAcademicContext(account.getId(),
+                            tenantAccount.getId(),
+                            groupClassMember.getId(),
+                            groupClassMember.getGroupClass().getId(),
+                            groupClassMember.getMemberKind()));
+                }));
     }
 
     @Transactional(readOnly = true)

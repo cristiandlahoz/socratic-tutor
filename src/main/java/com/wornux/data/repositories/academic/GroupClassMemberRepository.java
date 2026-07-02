@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.wornux.data.entities.academic.GroupClassMember;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -20,8 +21,12 @@ public interface GroupClassMemberRepository extends JpaRepository<GroupClassMemb
     @EntityGraph(attributePaths = {"tenantAccount", "tenantAccount.account"})
     List<GroupClassMember> findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(UUID groupClassId);
 
-    Optional<GroupClassMember> findByGroupClass_IdAndTenantAccount_Account_IdAndRoleAndLockedFalse(
+    Optional<GroupClassMember> findByGroupClass_IdAndTenantAccount_Account_IdAndLockedFalse(
+            UUID groupClassId,
+            UUID accountId);
+
+    Optional<GroupClassMember> findByGroupClass_IdAndTenantAccount_Account_IdAndMemberKindAndLockedFalse(
             UUID groupClassId,
             UUID accountId,
-            com.wornux.data.entities.academic.GroupClassMemberRole role);
+            GroupClassMemberKind memberKind);
 }

@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
+import com.wornux.data.entities.identity.TenantAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -31,7 +32,11 @@ public class TrainingActivity {
     private GroupClass groupClass;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_group_class_member_id", nullable = false)
+    @JoinColumn(name = "created_by_tenant_account_id", nullable = false)
+    private TenantAccount createdByTenantAccount;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_group_class_member_id")
     private GroupClassMember createdByGroupClassMember;
 
     @Column(nullable = false)

@@ -57,13 +57,10 @@ public class TenantAdminWorkspaceService {
 
     @Transactional(readOnly = true)
     public UUID requireActiveTenantAccount(Account account) {
-        var tenantAccount = account.getLastTenantAccount();
-        if (tenantAccount == null) {
-            throw new SecurityException("A tenant admin tenant context is required.");
-        }
-        tenantAccountRepository.findByIdAndAccount_Id(tenantAccount.getId(), account.getId())
+        return listAccessibleTenants(account).stream()
+                .findFirst()
+                .map(AccessibleTenant::tenantAccountId)
                 .orElseThrow(() -> new SecurityException("A tenant admin tenant context is required."));
-        return tenantAccount.getId();
     }
 
     @Transactional(readOnly = true)

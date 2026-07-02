@@ -14,13 +14,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "account_role")
+@Table(name = "account_platform_role")
 @Getter
 @Setter
-public class AccountRole {
+public class AccountPlatformRole {
 
     @EmbeddedId
-    private AccountRoleId id;
+    private AccountPlatformRoleId id;
 
     @MapsId("accountId")
     @ManyToOne(optional = false)

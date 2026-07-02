@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.enums.DocumentStatus;
 import com.wornux.dtos.document.DoclingSegmentDraft;
 import com.wornux.dtos.document.DocumentIngestionException;
@@ -112,7 +112,7 @@ public class DocumentIngestionService {
 
     private ActiveAcademicContext requireProfessorContext() {
         var context = contextResolver.requireCurrent();
-        if (context.groupClassRole() != GroupClassMemberRole.PROFESSOR) {
+        if (context.groupClassKind() != GroupClassMemberKind.PROFESSOR) {
             throw new SetupRequiredException("An active professor class context is required for grounding uploads.");
         }
         return context;

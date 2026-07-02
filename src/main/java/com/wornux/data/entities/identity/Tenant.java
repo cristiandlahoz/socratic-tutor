@@ -3,6 +3,7 @@ package com.wornux.data.entities.identity;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.wornux.data.entities.authorization.RoleNamespace;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -25,6 +26,10 @@ public class Tenant {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_account_id")
     private Account createdByAccount;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_namespace_id", nullable = false)
+    private RoleNamespace roleNamespace;
 
     @Column(nullable = false)
     private String name;

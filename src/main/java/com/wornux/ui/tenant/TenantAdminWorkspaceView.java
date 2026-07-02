@@ -32,6 +32,7 @@ import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.academic.AcademicPeriod;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.Subject;
+import com.wornux.data.entities.identity.Account;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleTenant;
 import com.wornux.services.workspace.TenantAdminWorkspaceService;
@@ -340,7 +341,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     public static AccessibleTenant determineSelectedTenant(
             java.util.List<AccessibleTenant> tenants,
             AccessibleTenant currentValue,
-            com.wornux.data.entities.identity.Account account) {
+            Account account) {
         if (tenants == null || tenants.isEmpty()) {
             return null;
         }
@@ -348,12 +349,6 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
                 && tenants.stream()
                         .anyMatch(tenant -> tenant.tenantAccountId().equals(currentValue.tenantAccountId()))) {
             return currentValue;
-        }
-        if (account.getLastTenantAccount() != null) {
-            return tenants.stream()
-                    .filter(tenant -> tenant.tenantAccountId().equals(account.getLastTenantAccount().getId()))
-                    .findFirst()
-                    .orElse(tenants.getFirst());
         }
         return tenants.getFirst();
     }
@@ -363,10 +358,6 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
             return;
         }
         var account = authenticatedAccountService.requireCurrentAccount();
-        if (account.getLastTenantAccount() != null
-                && account.getLastTenantAccount().getId().equals(tenant.tenantAccountId())) {
-            return;
-        }
         workspaceRoutingService.switchTenant(account, tenant.tenantAccountId());
         refresh();
     }

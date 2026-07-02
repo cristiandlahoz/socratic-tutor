@@ -1,17 +1,23 @@
 package com.wornux.services.workspace;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.authorization.TenantAccountRole;
 import com.wornux.data.entities.identity.Account;
+import com.wornux.data.entities.identity.AccountContextPreference;
+import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.identity.Tenant;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
-import com.wornux.data.repositories.authorization.AccountRoleRepository;
+import com.wornux.data.repositories.authorization.AccountPlatformRoleRepository;
 import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
+import com.wornux.data.repositories.identity.AccountContextPreferenceRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
 import com.wornux.services.security.AuthenticatedAccountService;
@@ -26,7 +32,8 @@ public class WorkspaceRoutingService {
     private final AuthenticatedUserContext authenticatedUserContext;
     private final AccountRepository accountRepository;
     private final TenantAccountRepository tenantAccountRepository;
-    private final AccountRoleRepository accountRoleRepository;
+    private final AccountContextPreferenceRepository accountContextPreferenceRepository;
+    private final AccountPlatformRoleRepository accountPlatformRoleRepository;
     private final TenantAccountRoleRepository tenantAccountRoleRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
 
@@ -35,14 +42,16 @@ public class WorkspaceRoutingService {
             AuthenticatedUserContext authenticatedUserContext,
             AccountRepository accountRepository,
             TenantAccountRepository tenantAccountRepository,
-            AccountRoleRepository accountRoleRepository,
+            AccountContextPreferenceRepository accountContextPreferenceRepository,
+            AccountPlatformRoleRepository accountPlatformRoleRepository,
             TenantAccountRoleRepository tenantAccountRoleRepository,
             GroupClassMemberRepository groupClassMemberRepository) {
         this.authenticatedAccountService = authenticatedAccountService;
         this.authenticatedUserContext = authenticatedUserContext;
         this.accountRepository = accountRepository;
         this.tenantAccountRepository = tenantAccountRepository;
-        this.accountRoleRepository = accountRoleRepository;
+        this.accountContextPreferenceRepository = accountContextPreferenceRepository;
+        this.accountPlatformRoleRepository = accountPlatformRoleRepository;
         this.tenantAccountRoleRepository = tenantAccountRoleRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
     }
@@ -57,38 +66,28 @@ public class WorkspaceRoutingService {
     @Transactional
     public WorkspaceDecision resolveForAccount(Account account) {
         if (hasGlobalRole(account, "SYSTEM_ADMIN")) {
-            return new WorkspaceDecision(WorkspaceDestination.SYSTEM_ADMIN,
-                    account.getLastTenantAccount() == null ? null : account.getLastTenantAccount().getId(),
-                    null);
+            setContext(account, ContextLevel.PLATFORM, null, null);
+            return new WorkspaceDecision(WorkspaceDestination.SYSTEM_ADMIN, null, null);
         }
 
-        var tenantRoles =
-                tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId());
-        var tenantAdmin = tenantRoles.stream()
-                .filter(role -> "TENANT_ADMIN".equals(role.getRole().getCode()))
-                .min(Comparator.comparing(role -> role.getTenantAccount().getJoinedAt()));
+        var tenantAdmin = findTenantAdminRoles(account).stream().findFirst();
         if (tenantAdmin.isPresent()) {
-            ensureLastTenantAccount(account, tenantAdmin.get());
-            return new WorkspaceDecision(WorkspaceDestination.TENANT_ADMIN,
-                    tenantAdmin.get().getTenantAccount().getId(),
-                    null);
+            var tenantAccount = tenantAdmin.get().getTenantAccount();
+            setContext(account, ContextLevel.TENANT, tenantAccount.getTenant(), null);
+            return new WorkspaceDecision(WorkspaceDestination.TENANT_ADMIN, tenantAccount.getId(), null);
         }
 
-        var activeMembers = groupClassMemberRepository
-                .findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId());
-        var professorMember =
-                activeMembers.stream().filter(member -> member.getRole() == GroupClassMemberRole.PROFESSOR).findFirst();
+        var professorMember = findActiveMembers(account, GroupClassMemberKind.PROFESSOR).stream().findFirst();
         if (professorMember.isPresent()) {
-            ensureLastClassContext(account, professorMember.get());
+            setClassContext(account, professorMember.get());
             return new WorkspaceDecision(WorkspaceDestination.PROFESSOR,
                     professorMember.get().getTenantAccount().getId(),
                     professorMember.get().getId());
         }
 
-        var studentMember =
-                activeMembers.stream().filter(member -> member.getRole() == GroupClassMemberRole.STUDENT).findFirst();
+        var studentMember = findActiveMembers(account, GroupClassMemberKind.STUDENT).stream().findFirst();
         if (studentMember.isPresent()) {
-            ensureLastClassContext(account, studentMember.get());
+            setClassContext(account, studentMember.get());
             return new WorkspaceDecision(WorkspaceDestination.STUDENT,
                     studentMember.get().getTenantAccount().getId(),
                     studentMember.get().getId());
@@ -102,8 +101,8 @@ public class WorkspaceRoutingService {
         return switch (destination) {
             case SYSTEM_ADMIN -> hasGlobalRole(account, "SYSTEM_ADMIN");
             case TENANT_ADMIN -> !findTenantAdminRoles(account).isEmpty();
-            case PROFESSOR -> !findActiveMembers(account, GroupClassMemberRole.PROFESSOR).isEmpty();
-            case STUDENT -> !findActiveMembers(account, GroupClassMemberRole.STUDENT).isEmpty();
+            case PROFESSOR -> !findActiveMembers(account, GroupClassMemberKind.PROFESSOR).isEmpty();
+            case STUDENT -> !findActiveMembers(account, GroupClassMemberKind.STUDENT).isEmpty();
             case NO_ACCESS -> true;
         };
     }
@@ -113,8 +112,8 @@ public class WorkspaceRoutingService {
         return switch (destination) {
             case SYSTEM_ADMIN -> hasGlobalRole(account, "SYSTEM_ADMIN");
             case TENANT_ADMIN -> prepareTenantAdminAccess(account);
-            case PROFESSOR -> prepareGroupClassAccess(account, GroupClassMemberRole.PROFESSOR);
-            case STUDENT -> prepareGroupClassAccess(account, GroupClassMemberRole.STUDENT);
+            case PROFESSOR -> prepareGroupClassAccess(account, GroupClassMemberKind.PROFESSOR);
+            case STUDENT -> prepareGroupClassAccess(account, GroupClassMemberKind.STUDENT);
             case NO_ACCESS -> true;
         };
     }
@@ -126,29 +125,27 @@ public class WorkspaceRoutingService {
                 .collect(java.util.stream.Collectors.groupingBy(TenantAccountRole::getTenantAccount))
                 .entrySet()
                 .stream()
-                .map(
-                    entry -> new AccessibleTenant(entry.getKey().getTenant().getId(),
-                            entry.getKey().getId(),
-                            entry.getKey().getTenant().getName(),
-                            entry.getValue().stream().map(role -> role.getRole().getCode()).sorted().toList()))
+                .map(entry -> new AccessibleTenant(entry.getKey().getTenant().getId(),
+                        entry.getKey().getId(),
+                        entry.getKey().getTenant().getName(),
+                        entry.getValue().stream().map(role -> role.getRole().getCode()).sorted().toList()))
                 .sorted(Comparator.comparing(AccessibleTenant::tenantName))
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<AccessibleClass> listAccessibleClasses(Account account, GroupClassMemberRole role) {
+    public List<AccessibleClass> listAccessibleClasses(Account account, GroupClassMemberKind memberKind) {
         return groupClassMemberRepository
                 .findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId())
                 .stream()
-                .filter(member -> member.getRole() == role)
-                .map(
-                    member -> new AccessibleClass(member.getGroupClass().getId(),
-                            member.getId(),
-                            member.getTenantAccount().getId(),
-                            member.getGroupClass().getTenant().getName(),
-                            member.getGroupClass().getCode(),
-                            member.getGroupClass().getName(),
-                            member.getRole()))
+                .filter(member -> member.getMemberKind() == memberKind)
+                .map(member -> new AccessibleClass(member.getGroupClass().getId(),
+                        member.getId(),
+                        member.getTenantAccount().getId(),
+                        member.getGroupClass().getTenant().getName(),
+                        member.getGroupClass().getCode(),
+                        member.getGroupClass().getName(),
+                        member.getMemberKind()))
                 .toList();
     }
 
@@ -156,56 +153,40 @@ public class WorkspaceRoutingService {
     public void switchTenant(Account account, UUID tenantAccountId) {
         var tenantAccount = tenantAccountRepository.findByIdAndAccount_Id(tenantAccountId, account.getId())
                 .orElseThrow(() -> new SecurityException("The tenant context is not available for this account."));
-        account.setLastTenantAccount(tenantAccount);
-        accountRepository.save(account);
+        setContext(account, ContextLevel.TENANT, tenantAccount.getTenant(), null);
         authenticatedUserContext.refreshCurrentAuthentication(account.getId());
     }
 
     @Transactional
     public void switchGroupClass(Account account, UUID groupClassMemberId) {
-        var membership = groupClassMemberRepository
-                .findById(account.getLastGroupClassMember() == null ? groupClassMemberId : groupClassMemberId)
+        var membership = groupClassMemberRepository.findById(groupClassMemberId)
                 .orElseThrow(() -> new SecurityException("The class context is not available for this account."));
         if (membership.isLocked() || !membership.getTenantAccount().getAccount().getId().equals(account.getId())) {
             throw new SecurityException("The class context is not available for this account.");
         }
-        account.setLastTenantAccount(membership.getTenantAccount());
-        account.setLastGroupClassMember(membership);
-        accountRepository.save(account);
+        setClassContext(account, membership);
         authenticatedUserContext.refreshCurrentAuthentication(account.getId());
     }
 
     @Transactional(readOnly = true)
-    public boolean canAccessGroupClass(Account account, UUID groupClassId, GroupClassMemberRole requiredRole) {
+    public boolean canAccessGroupClass(Account account, UUID groupClassId, GroupClassMemberKind requiredKind) {
         return groupClassMemberRepository
                 .findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId())
                 .stream()
-                .anyMatch(
-                    member -> member.getGroupClass().getId().equals(groupClassId)
-                            && (requiredRole == null || member.getRole() == requiredRole));
+                .anyMatch(member -> member.getGroupClass().getId().equals(groupClassId)
+                        && (requiredKind == null || member.getMemberKind() == requiredKind));
     }
 
     @Transactional(readOnly = true)
-    public Optional<GroupClassMember> currentClassMembership(Account account, GroupClassMemberRole requiredRole) {
-        var membership = account.getLastGroupClassMember();
-        if (membership == null) {
-            return Optional.empty();
-        }
-        return groupClassMemberRepository.findById(membership.getId())
-                .filter(
-                    found -> !found.isLocked()
-                            && found.getTenantAccount().getAccount().getId().equals(account.getId())
-                            && (requiredRole == null || found.getRole() == requiredRole));
-    }
-
-    private void ensureLastTenantAccount(Account account, TenantAccountRole tenantAdminRole) {
-        if (account.getLastTenantAccount() != null
-                && account.getLastTenantAccount().getId().equals(tenantAdminRole.getTenantAccount().getId())) {
-            return;
-        }
-        account.setLastTenantAccount(tenantAdminRole.getTenantAccount());
-        accountRepository.save(account);
-        authenticatedUserContext.refreshCurrentAuthentication(account.getId());
+    public Optional<GroupClassMember> currentClassMembership(Account account, GroupClassMemberKind requiredKind) {
+        return accountContextPreferenceRepository.findById(account.getId())
+                .filter(preference -> preference.getGroupClass() != null)
+                .flatMap(preference -> requiredKind == null
+                        ? groupClassMemberRepository.findByGroupClass_IdAndTenantAccount_Account_IdAndLockedFalse(
+                                preference.getGroupClass().getId(), account.getId())
+                        : groupClassMemberRepository
+                                .findByGroupClass_IdAndTenantAccount_Account_IdAndMemberKindAndLockedFalse(
+                                        preference.getGroupClass().getId(), account.getId(), requiredKind));
     }
 
     private boolean prepareTenantAdminAccess(Account account) {
@@ -213,31 +194,33 @@ public class WorkspaceRoutingService {
         if (tenantAdminRoles.isEmpty()) {
             return false;
         }
-        var currentTenantAccount = account.getLastTenantAccount();
-        if (currentTenantAccount != null
-                && tenantAdminRoles.stream()
-                        .anyMatch(role -> role.getTenantAccount().getId().equals(currentTenantAccount.getId()))) {
+        var currentTenant = accountContextPreferenceRepository.findById(account.getId())
+                .map(AccountContextPreference::getTenant);
+        if (currentTenant.isPresent()
+                && tenantAdminRoles.stream().anyMatch(role -> role.getTenantAccount().getTenant().getId()
+                        .equals(currentTenant.get().getId()))) {
             return true;
         }
-        ensureLastTenantAccount(account, tenantAdminRoles.getFirst());
+        var tenantAccount = tenantAdminRoles.getFirst().getTenantAccount();
+        setContext(account, ContextLevel.TENANT, tenantAccount.getTenant(), null);
         return true;
     }
 
-    private boolean prepareGroupClassAccess(Account account, GroupClassMemberRole requiredRole) {
-        var activeMembers = findActiveMembers(account, requiredRole);
+    private boolean prepareGroupClassAccess(Account account, GroupClassMemberKind requiredKind) {
+        var activeMembers = findActiveMembers(account, requiredKind);
         if (activeMembers.isEmpty()) {
             return false;
         }
-        var currentMembership = currentClassMembership(account, requiredRole);
+        var currentMembership = currentClassMembership(account, requiredKind);
         if (currentMembership.isPresent()) {
             return true;
         }
-        ensureLastClassContext(account, activeMembers.getFirst());
+        setClassContext(account, activeMembers.getFirst());
         return true;
     }
 
     private boolean hasGlobalRole(Account account, String roleCode) {
-        return accountRoleRepository.findByAccount_IdAndRole_CodeAndRole_ActiveTrue(account.getId(), roleCode).isPresent();
+        return accountPlatformRoleRepository.findByAccount_IdAndRole_CodeAndRole_ActiveTrue(account.getId(), roleCode).isPresent();
     }
 
     private List<TenantAccountRole> findTenantAdminRoles(Account account) {
@@ -248,24 +231,30 @@ public class WorkspaceRoutingService {
                 .toList();
     }
 
-    private List<GroupClassMember> findActiveMembers(Account account, GroupClassMemberRole requiredRole) {
+    private List<GroupClassMember> findActiveMembers(Account account, GroupClassMemberKind requiredKind) {
         return groupClassMemberRepository
                 .findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId())
                 .stream()
-                .filter(member -> member.getRole() == requiredRole)
+                .filter(member -> member.getMemberKind() == requiredKind)
                 .toList();
     }
 
-    private void ensureLastClassContext(Account account, GroupClassMember member) {
-        if (account.getLastGroupClassMember() != null
-                && account.getLastTenantAccount() != null
-                && account.getLastGroupClassMember().getId().equals(member.getId())
-                && account.getLastTenantAccount().getId().equals(member.getTenantAccount().getId())) {
-            return;
-        }
-        account.setLastTenantAccount(member.getTenantAccount());
-        account.setLastGroupClassMember(member);
+    private void setClassContext(Account account, GroupClassMember member) {
+        setContext(account, ContextLevel.GROUP_CLASS, member.getGroupClass().getTenant(), member.getGroupClass());
+    }
+
+    private void setContext(Account account, ContextLevel level, Tenant tenant, GroupClass groupClass) {
+        var preference = accountContextPreferenceRepository.findById(account.getId()).orElseGet(() -> {
+            var created = new AccountContextPreference();
+            created.setAccount(account);
+            return created;
+        });
+        preference.setContextLevel(level);
+        preference.setTenant(tenant);
+        preference.setGroupClass(groupClass);
+        preference.setUpdatedAt(Instant.now());
+        accountContextPreferenceRepository.save(preference);
+        account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
-        authenticatedUserContext.refreshCurrentAuthentication(account.getId());
     }
 }

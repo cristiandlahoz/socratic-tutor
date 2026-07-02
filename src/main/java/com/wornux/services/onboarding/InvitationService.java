@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.UUID;
 
 import com.wornux.config.SocraticEmailProperties;
+import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
+import com.wornux.data.entities.authorization.GroupClassMemberRole;
+import com.wornux.data.entities.authorization.GroupClassMemberRoleId;
 import com.wornux.data.entities.authorization.TenantAccountRole;
 import com.wornux.data.entities.authorization.TenantAccountRoleId;
 import com.wornux.data.entities.identity.Account;
@@ -16,6 +19,7 @@ import com.wornux.data.entities.onboarding.InvitationStatus;
 import com.wornux.data.entities.onboarding.InvitationTargetRole;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.academic.GroupClassRepository;
+import com.wornux.data.repositories.authorization.GroupClassMemberRoleRepository;
 import com.wornux.data.repositories.authorization.RoleRepository;
 import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
@@ -41,6 +45,7 @@ public class InvitationService {
     private final GroupClassRepository groupClassRepository;
     private final RoleRepository roleRepository;
     private final TenantAccountRoleRepository tenantAccountRoleRepository;
+    private final GroupClassMemberRoleRepository groupClassMemberRoleRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
     private final InvitationTokenService invitationTokenService;
     private final InvitationEmailService invitationEmailService;
@@ -58,6 +63,7 @@ public class InvitationService {
             GroupClassRepository groupClassRepository,
             RoleRepository roleRepository,
             TenantAccountRoleRepository tenantAccountRoleRepository,
+            GroupClassMemberRoleRepository groupClassMemberRoleRepository,
             GroupClassMemberRepository groupClassMemberRepository,
             InvitationTokenService invitationTokenService,
             InvitationEmailService invitationEmailService,
@@ -73,6 +79,7 @@ public class InvitationService {
         this.groupClassRepository = groupClassRepository;
         this.roleRepository = roleRepository;
         this.tenantAccountRoleRepository = tenantAccountRoleRepository;
+        this.groupClassMemberRoleRepository = groupClassMemberRoleRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
         this.invitationTokenService = invitationTokenService;
         this.invitationEmailService = invitationEmailService;
@@ -207,9 +214,8 @@ public class InvitationService {
         if (invitation.getTargetRole() == InvitationTargetRole.PROFESSOR
                 || invitation.getTargetRole() == InvitationTargetRole.STUDENT) {
             groupClassMember = createOrReuseMembership(tenantAccount, invitation);
-            account.setLastGroupClassMember(groupClassMember);
+            assignGroupClassRoleIfNeeded(groupClassMember, invitation.getTargetRole(), invitation.getInvitedByGroupClassMember());
         }
-        account.setLastTenantAccount(tenantAccount);
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
 
@@ -257,8 +263,8 @@ public class InvitationService {
         var tenantAccount = new TenantAccount();
         tenantAccount.setId(UUID.randomUUID());
         tenantAccount.setAccount(account);
-        tenantAccount.setTenant(new com.wornux.data.entities.identity.Tenant());
-        tenantAccount.getTenant().setId(tenantId);
+        tenantAccount.setTenant(tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("The target tenant was not found.")));
         tenantAccount.setLocked(false);
         tenantAccount.setJoinedAt(Instant.now());
         tenantAccount.setUpdatedAt(Instant.now());
@@ -270,7 +276,8 @@ public class InvitationService {
             InvitationTargetRole targetRole,
             TenantAccount assignedBy) {
         var roleCode = targetRole.name();
-        var role = roleRepository.findByCode(roleCode)
+        var role = roleRepository.findByRoleNamespace_IdAndCode(
+                tenantAccount.getTenant().getRoleNamespace().getId(), roleCode)
                 .orElseThrow(() -> new IllegalStateException("Missing role %s".formatted(roleCode)));
         if (tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(tenantAccount.getId(), roleCode)
                 .isPresent()) {
@@ -288,16 +295,41 @@ public class InvitationService {
         tenantAccountRoleRepository.save(tenantAccountRole);
     }
 
+    private void assignGroupClassRoleIfNeeded(
+            GroupClassMember groupClassMember,
+            InvitationTargetRole targetRole,
+            GroupClassMember assignedBy) {
+        var roleCode = targetRole.name();
+        var role = roleRepository.findByRoleNamespace_IdAndCode(
+                groupClassMember.getTenantAccount().getTenant().getRoleNamespace().getId(), roleCode)
+                .orElseThrow(() -> new IllegalStateException("Missing role %s".formatted(roleCode)));
+        if (groupClassMemberRoleRepository
+                .findByGroupClassMember_IdAndRole_Code(groupClassMember.getId(), roleCode)
+                .isPresent()) {
+            return;
+        }
+        var groupClassMemberRole = new GroupClassMemberRole();
+        var id = new GroupClassMemberRoleId();
+        id.setGroupClassMemberId(groupClassMember.getId());
+        id.setRoleId(role.getId());
+        groupClassMemberRole.setId(id);
+        groupClassMemberRole.setGroupClassMember(groupClassMember);
+        groupClassMemberRole.setRole(role);
+        groupClassMemberRole.setAssignedByGroupClassMember(assignedBy);
+        groupClassMemberRole.setAssignedAt(Instant.now());
+        groupClassMemberRoleRepository.save(groupClassMemberRole);
+    }
+
     private GroupClassMember createOrReuseMembership(TenantAccount tenantAccount, Invitation invitation) {
         if (invitation.getGroupClass() == null) {
             throw new InvitationStateException("A class invitation must include a target class.");
         }
         var memberRole = invitation.getTargetRole() == InvitationTargetRole.PROFESSOR
-                ? GroupClassMemberRole.PROFESSOR
-                : GroupClassMemberRole.STUDENT;
+                ? GroupClassMemberKind.PROFESSOR
+                : GroupClassMemberKind.STUDENT;
         return groupClassMemberRepository
                 .findByGroupClass_IdAndTenantAccount_Id(invitation.getGroupClass().getId(), tenantAccount.getId())
-                .filter(existing -> existing.getRole() == memberRole)
+                .filter(existing -> existing.getMemberKind() == memberRole)
                 .map(existing -> {
                     existing.setLocked(false);
                     existing.setUpdatedAt(Instant.now());
@@ -309,13 +341,13 @@ public class InvitationService {
     private GroupClassMember createMembership(
             TenantAccount tenantAccount,
             UUID groupClassId,
-            GroupClassMemberRole memberRole) {
+            GroupClassMemberKind memberRole) {
         var membership = new GroupClassMember();
         membership.setId(UUID.randomUUID());
-        membership.setGroupClass(new com.wornux.data.entities.academic.GroupClass());
+        membership.setGroupClass(new GroupClass());
         membership.getGroupClass().setId(groupClassId);
         membership.setTenantAccount(tenantAccount);
-        membership.setRole(memberRole);
+        membership.setMemberKind(memberRole);
         membership.setLocked(false);
         membership.setJoinedAt(Instant.now());
         membership.setUpdatedAt(Instant.now());

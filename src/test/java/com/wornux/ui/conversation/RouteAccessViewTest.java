@@ -17,6 +17,7 @@ import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
+import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -52,7 +53,8 @@ class RouteAccessViewTest {
                 mock(CExamplePreparationService.class),
                 mock(Executor.class),
                 authenticatedAccountService,
-                workspaceRoutingService);
+                workspaceRoutingService,
+                mock(ModelAvailabilityService.class));
 
         assertDoesNotThrow(() -> view.beforeEnter(event));
 
@@ -81,7 +83,8 @@ class RouteAccessViewTest {
                 mock(CExamplePreparationService.class),
                 mock(Executor.class),
                 authenticatedAccountService,
-                workspaceRoutingService);
+                workspaceRoutingService,
+                mock(ModelAvailabilityService.class));
 
         assertDoesNotThrow(() -> view.beforeEnter(event));
 

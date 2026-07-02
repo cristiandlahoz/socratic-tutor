@@ -2,6 +2,7 @@ package com.wornux.data.entities.academic;
 
 import java.time.Instant;
 
+import com.wornux.data.entities.identity.TenantAccount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -29,7 +30,11 @@ public class GroupClassJoinCode {
     private GroupClass groupClass;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_group_class_member_id", nullable = false)
+    @JoinColumn(name = "created_by_tenant_account_id", nullable = false)
+    private TenantAccount createdByTenantAccount;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_group_class_member_id")
     private GroupClassMember createdByGroupClassMember;
 
     @Column(nullable = false)

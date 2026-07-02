@@ -34,8 +34,8 @@ public class GroupClassMember {
     private TenantAccount tenantAccount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private GroupClassMemberRole role;
+    @Column(name = "member_kind", nullable = false)
+    private GroupClassMemberKind memberKind;
 
     @Column(nullable = false)
     private boolean locked;

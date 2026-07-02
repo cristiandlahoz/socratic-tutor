@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.conversation.Conversation;
 import com.wornux.data.repositories.conversation.ConversationRepository;
 import com.wornux.services.context.ActiveAcademicContext;
@@ -54,7 +54,7 @@ class ConversationServiceTest {
     void setUp() {
         conversationService = new ConversationService(conversationRepository, contextResolver, sessionService, self);
         context = new ActiveAcademicContext(UUID
-                .randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
+                .randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberKind.STUDENT);
     }
 
     @Test
@@ -66,7 +66,9 @@ class ConversationServiceTest {
 
         var conversation = ArgumentCaptor.forClass(Conversation.class);
         verify(conversationRepository).save(conversation.capture());
-        assertThat(conversation.getValue().getGroupClassMember().getId()).isEqualTo(context.groupClassMemberId());
+        assertThat(conversation.getValue().getCreatedByGroupClassMember().getId()).isEqualTo(context.groupClassMemberId());
+        assertThat(conversation.getValue().getCreatedByTenantAccount().getId()).isEqualTo(context.tenantAccountId());
+        assertThat(conversation.getValue().getGroupClass().getId()).isEqualTo(context.groupClassId());
         assertThat(conversation.getValue().getTitle()).isEqualTo("explain recursion");
         assertThat(summary.id()).isEqualTo(conversation.getValue().getId());
     }
@@ -76,7 +78,7 @@ class ConversationServiceTest {
         var conversationId = UUID.randomUUID();
         var conversation = ownedConversation(conversationId);
         when(contextResolver.resolveCurrent()).thenReturn(Optional.of(context));
-        when(conversationRepository.findByIdAndGroupClassMember_Id(conversationId, context.groupClassMemberId()))
+        when(conversationRepository.findByIdAndCreatedByGroupClassMember_Id(conversationId, context.groupClassMemberId()))
                 .thenReturn(Optional.of(conversation));
         when(sessionService.findById(conversationId.toString())).thenReturn(
             Session.builder().id(conversationId.toString()).userId(context.groupClassMemberId().toString()).build());
@@ -109,7 +111,7 @@ class ConversationServiceTest {
     void rejectsHistoryBeforeReadingSessionEventsWhenConversationIsNotOwned() {
         var conversationId = UUID.randomUUID();
         when(contextResolver.resolveCurrent()).thenReturn(Optional.of(context));
-        when(conversationRepository.findByIdAndGroupClassMember_Id(conversationId, context.groupClassMemberId()))
+        when(conversationRepository.findByIdAndCreatedByGroupClassMember_Id(conversationId, context.groupClassMemberId()))
                 .thenReturn(Optional.empty());
 
         assertThat(conversationService.loadConversation(conversationId)).isEmpty();

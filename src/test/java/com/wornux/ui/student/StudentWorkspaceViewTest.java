@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.vaadin.flow.router.BeforeEnterEvent;
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleClass;
@@ -36,7 +36,7 @@ class StudentWorkspaceViewTest {
                 "Tenant",
                 "MATH-101",
                 "Math",
-                GroupClassMemberRole.STUDENT);
+                GroupClassMemberKind.STUDENT);
 
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
         when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT)).thenReturn(true);

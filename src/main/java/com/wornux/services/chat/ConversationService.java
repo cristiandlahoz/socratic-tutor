@@ -5,7 +5,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import com.wornux.data.entities.academic.GroupClass;
+import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.conversation.Conversation;
+import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.data.repositories.conversation.ConversationRepository;
 import com.wornux.dtos.chat.ConversationMessage;
 import com.wornux.dtos.chat.ConversationSummary;
@@ -49,7 +52,7 @@ public class ConversationService {
         return contextResolver.resolveCurrent()
                 .map(
                     context -> conversationRepository
-                            .findByGroupClassMember_IdOrderByUpdatedAtDesc(context.groupClassMemberId())
+                            .findByCreatedByGroupClassMember_IdOrderByUpdatedAtDesc(context.groupClassMemberId())
                             .stream()
                             .map(this::toConversationSummary)
                             .toList())
@@ -80,8 +83,12 @@ public class ConversationService {
         var context = contextResolver.requireCurrent();
         var conversation = new Conversation();
         conversation.setId(UUID.randomUUID());
-        conversation.setGroupClassMember(new com.wornux.data.entities.academic.GroupClassMember());
-        conversation.getGroupClassMember().setId(context.groupClassMemberId());
+        conversation.setGroupClass(new GroupClass());
+        conversation.getGroupClass().setId(context.groupClassId());
+        conversation.setCreatedByTenantAccount(new TenantAccount());
+        conversation.getCreatedByTenantAccount().setId(context.tenantAccountId());
+        conversation.setCreatedByGroupClassMember(new GroupClassMember());
+        conversation.getCreatedByGroupClassMember().setId(context.groupClassMemberId());
         conversation.setTitle(toConversationTitle(firstUserPrompt));
         conversation.setVersion(0L);
         conversation.setCreatedAt(Instant.now());
@@ -175,6 +182,6 @@ public class ConversationService {
         return contextResolver.resolveCurrent()
                 .flatMap(
                     context -> conversationRepository
-                            .findByIdAndGroupClassMember_Id(conversationId, context.groupClassMemberId()));
+                            .findByIdAndCreatedByGroupClassMember_Id(conversationId, context.groupClassMemberId()));
     }
 }

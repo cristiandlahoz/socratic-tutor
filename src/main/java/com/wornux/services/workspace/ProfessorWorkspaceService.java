@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.wornux.data.entities.academic.GroupClassMember;
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.onboarding.InvitationTargetRole;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
@@ -35,12 +35,12 @@ public class ProfessorWorkspaceService {
 
     @Transactional(readOnly = true)
     public List<AccessibleClass> listProfessorClasses(Account account) {
-        return workspaceRoutingService.listAccessibleClasses(account, GroupClassMemberRole.PROFESSOR);
+        return workspaceRoutingService.listAccessibleClasses(account, GroupClassMemberKind.PROFESSOR);
     }
 
     @Transactional(readOnly = true)
     public GroupClassMember requireProfessorMembership(Account account) {
-        return workspaceRoutingService.currentClassMembership(account, GroupClassMemberRole.PROFESSOR)
+        return workspaceRoutingService.currentClassMembership(account, GroupClassMemberKind.PROFESSOR)
                 .orElseThrow(() -> new SecurityException("An active professor class context is required."));
     }
 
@@ -50,7 +50,7 @@ public class ProfessorWorkspaceService {
         return groupClassMemberRepository
                 .findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(professorMembership.getGroupClass().getId())
                 .stream()
-                .filter(member -> member.getRole() == GroupClassMemberRole.STUDENT)
+                .filter(member -> member.getMemberKind() == GroupClassMemberKind.STUDENT)
                 .toList();
     }
 
@@ -72,7 +72,7 @@ public class ProfessorWorkspaceService {
         var professorMembership = self.requireProfessorMembership(account);
         var studentMembership = groupClassMemberRepository.findById(studentMembershipId)
                 .filter(member -> member.getGroupClass().getId().equals(professorMembership.getGroupClass().getId()))
-                .filter(member -> member.getRole() == GroupClassMemberRole.STUDENT)
+                .filter(member -> member.getMemberKind() == GroupClassMemberKind.STUDENT)
                 .orElseThrow(() -> new SecurityException("You cannot manage that student membership."));
         studentMembership.setLocked(true);
         studentMembership.setUpdatedAt(Instant.now());
