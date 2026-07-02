@@ -11,7 +11,6 @@ import com.wornux.dtos.chat.ConversationMessage;
 import com.wornux.dtos.chat.ConversationSummary;
 import com.wornux.dtos.chat.ResolvedConversation;
 import com.wornux.services.context.ActiveAcademicContextResolver;
-import com.wornux.services.context.SetupRequiredException;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.session.EventFilter;
 import org.springframework.ai.session.SessionEvent;

@@ -44,12 +44,15 @@ class ConversationServiceTest {
     @Mock
     private SessionService sessionService;
 
+    @Mock
+    private ConversationService self;
+
     private ConversationService conversationService;
     private ActiveAcademicContext context;
 
     @BeforeEach
     void setUp() {
-        conversationService = new ConversationService(conversationRepository, contextResolver, sessionService);
+        conversationService = new ConversationService(conversationRepository, contextResolver, sessionService, self);
         context = new ActiveAcademicContext(UUID
                 .randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), GroupClassMemberRole.STUDENT);
     }
