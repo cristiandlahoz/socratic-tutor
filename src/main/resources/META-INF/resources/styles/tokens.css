@@ -44,6 +44,12 @@
   --composer-border: color-mix(in srgb, var(--vaadin-text-color) 24%, var(--aura-app-background));
   --composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 28%, var(--composer-border));
   --composer-placeholder-color: color-mix(in srgb, var(--vaadin-text-color) 42%, var(--aura-app-background));
+  --composer-helper-color: color-mix(in srgb, var(--vaadin-text-color-secondary) 76%, var(--aura-app-background));
+  --composer-helper-font-size: var(--aura-font-size-xs);
+  --composer-helper-font-weight: var(--aura-font-weight-medium);
+  --composer-helper-line-height: var(--aura-line-height-xs);
+  --composer-header-height: 2.35rem;
+  --composer-header-border: color-mix(in srgb, var(--composer-border) 72%, transparent);
   --ascii-animation-shadow: 0 0 0.22rem color-mix(in srgb, var(--aura-accent-text-color) 18%, transparent);
 
   --ui-toggle-color: var(--vaadin-text-color-secondary);

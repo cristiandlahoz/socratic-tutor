@@ -9,12 +9,14 @@ import com.vaadin.flow.theme.aura.Aura;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Push
 @BodySize(height = "100vh", width = "100vw")
 @StyleSheet(Aura.STYLESHEET)
 @StyleSheet("styles.css")
 @ConfigurationPropertiesScan
+@EnableScheduling
 @SpringBootApplication
 public class Application implements AppShellConfigurator {
 

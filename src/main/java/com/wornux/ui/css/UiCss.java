@@ -68,6 +68,7 @@ public final class UiCss {
     public static final CssClass CONVERSATION_EMPTY_DESCRIPTION = css("conversation-empty__description");
     public static final CssClass CONVERSATION_COMPOSER = css("conversation-composer");
     public static final CssClass CONVERSATION_COMPOSER_FIELD_WRAP = css("conversation-composer__field-wrap");
+    public static final CssClass CONVERSATION_COMPOSER_MODEL_STATUS = css("conversation-composer__model-status");
     public static final CssClass CONVERSATION_COMPOSER_INPUT = css("conversation-composer__input");
     public static final CssClass CONVERSATION_COMPOSER_SEND_BUTTON = css("conversation-composer__send-button");
     public static final CssClass CONVERSATION_ACTIVITY_BLOCKER = css("conversation-composer__activity-blocker");

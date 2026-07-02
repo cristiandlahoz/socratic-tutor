@@ -15,6 +15,7 @@ import com.wornux.data.enums.ThemePreference;
 import com.wornux.dtos.chat.*;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
 import com.wornux.services.chat.ChatSessionActivity;
+import com.wornux.services.chat.ModelAvailabilityStatus;
 import com.wornux.ui.MainLayout;
 
 @SpringComponent
@@ -35,6 +36,8 @@ public class ConversationState implements Serializable {
     private final ValueSignal<Integer> usagePercent = new ValueSignal<>(null);
     private final ValueSignal<Boolean> conversationCompacted = new ValueSignal<>(false);
     private final ValueSignal<Boolean> setupRequired = new ValueSignal<>(false);
+    private final ValueSignal<ModelAvailabilityStatus> modelAvailabilityStatus =
+            new ValueSignal<>(ModelAvailabilityStatus.CHECKING);
     private final ValueSignal<String> setupMessage =
             new ValueSignal<>("Academic setup is required before persisted tutor features can be used.");
     private final ValueSignal<ThemePreference> themePreference = new ValueSignal<>(ThemePreference.SYSTEM);
@@ -93,6 +96,10 @@ public class ConversationState implements Serializable {
 
     public ValueSignal<String> setupMessage() {
         return setupMessage;
+    }
+
+    public ValueSignal<ModelAvailabilityStatus> modelAvailabilityStatus() {
+        return modelAvailabilityStatus;
     }
 
     public ValueSignal<ThemePreference> themePreference() {

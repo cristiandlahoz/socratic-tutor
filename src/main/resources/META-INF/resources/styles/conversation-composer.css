@@ -65,12 +65,31 @@ vaadin-button.conversation-usage__help-button:focus-within::part(button) {
 }
 
 vaadin-text-area.conversation-composer__input {
+  position: relative;
   display: block;
   overflow: hidden;
+  --vaadin-input-field-helper-color: var(--composer-helper-color);
+  --vaadin-input-field-helper-font-size: var(--composer-helper-font-size);
+  --vaadin-input-field-helper-font-weight: var(--composer-helper-font-weight);
+  --vaadin-input-field-helper-line-height: var(--composer-helper-line-height);
   border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-border);
   border-radius: var(--vaadin-radius-m);
   background: var(--composer-surface);
   box-shadow: var(--aura-shadow-xs);
+  transition:
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+vaadin-text-area.conversation-composer__input::before {
+  content: "";
+  position: absolute;
+  top: var(--composer-header-height);
+  left: 0;
+  right: 0;
+  z-index: 1;
+  border-top: var(--vaadin-input-field-border-width, 1px) solid var(--composer-header-border);
+  pointer-events: none;
 }
 
 vaadin-text-area.conversation-composer__input:hover,
@@ -83,15 +102,102 @@ vaadin-text-area.conversation-composer__input:focus-within {
 vaadin-text-area.conversation-composer__input::part(input-field) {
   min-height: 7.5rem;
   max-height: 30vh;
+  margin-top: var(--composer-header-height);
   scrollbar-width: none;
   background: transparent;
   border: 0;
-  border-radius: inherit;
+  border-radius: 0;
   box-shadow: none;
   outline: none;
   backdrop-filter: none;
 }
 
+vaadin-text-area.conversation-composer__input[has-helper]::part(helper-text),
+vaadin-text-area.conversation-composer__input[has-error-message]::part(error-message) {
+  box-sizing: border-box;
+  position: absolute;
+  top: 0;
+  right: var(--vaadin-padding-m);
+  z-index: 2;
+  width: auto;
+  max-width: min(46%, 18rem);
+  height: var(--composer-header-height);
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-family: var(--aura-font-family);
+  font-size: var(--composer-helper-font-size);
+  font-weight: var(--composer-helper-font-weight);
+  line-height: 1;
+}
+
+vaadin-text-area.conversation-composer__input[has-helper]::part(helper-text) {
+  color: var(--composer-helper-color);
+  text-align: right;
+}
+
+vaadin-text-area.conversation-composer__input[has-helper] > [slot="helper"] {
+  color: var(--composer-helper-color);
+  letter-spacing: -0.01em;
+}
+
+vaadin-text-area.conversation-composer__input[invalid] {
+  border-color: var(--aura-red-text);
+}
+
+vaadin-text-area.conversation-composer__input[has-error-message]::part(error-message),
+vaadin-text-area.conversation-composer__input[has-error-message] > [slot="error-message"] {
+  color: var(--aura-red-text);
+  font-weight: var(--aura-font-weight-semibold);
+}
+
+.conversation-composer__model-status {
+  position: absolute;
+  top: 0;
+  left: var(--vaadin-padding-m);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vaadin-gap-xs);
+  max-width: min(46%, 18rem);
+  height: var(--composer-header-height);
+  overflow: hidden;
+  color: var(--composer-helper-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--composer-helper-font-size);
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.conversation-composer__model-status::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--vaadin-text-color-disabled);
+}
+
+.conversation-composer__model-status.is-connected {
+  color: var(--composer-text-color, var(--vaadin-text-color));
+}
+
+.conversation-composer__model-status.is-connected::before {
+  background: var(--aura-green);
+}
+
+.conversation-composer__model-status.is-offline::before {
+  background: var(--aura-red);
+}
+
+.conversation-composer__model-status.is-checking::before {
+  background: var(--aura-orange);
+}
 
 vaadin-text-area.conversation-composer__input>textarea {
   color: var(--composer-text-color, var(--vaadin-text-color));

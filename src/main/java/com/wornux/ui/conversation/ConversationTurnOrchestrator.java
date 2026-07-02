@@ -20,6 +20,7 @@ import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ChatSessionActivityBus;
 import com.wornux.services.chat.ChatStreamTimeoutException;
 import com.wornux.services.chat.ConversationService;
+import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.chat.ConversationTitleService;
 import com.wornux.ui.MainLayout;
 import org.slf4j.Logger;
@@ -36,13 +37,17 @@ public class ConversationTurnOrchestrator {
     private static final Logger log = LoggerFactory.getLogger(ConversationTurnOrchestrator.class);
     private final AtomicLong streamGeneration = new AtomicLong();
     private final ChatSessionActivityBus activityBus;
+    private final ModelAvailabilityService modelAvailabilityService;
     private transient Disposable activeStream;
     private transient AutoCloseable activeActivitySubscription;
     private transient Component uiAnchor;
     private transient VaadinSession vaadinSession;
 
-    public ConversationTurnOrchestrator(ChatSessionActivityBus activityBus) {
+    public ConversationTurnOrchestrator(
+            ChatSessionActivityBus activityBus,
+            ModelAvailabilityService modelAvailabilityService) {
         this.activityBus = activityBus;
+        this.modelAvailabilityService = modelAvailabilityService;
     }
 
     public void bindUiAnchor(Component uiAnchor) {
@@ -168,6 +173,7 @@ public class ConversationTurnOrchestrator {
                 return;
             }
             stopLoadingOnFirstToken(firstTokenReceived, responseMessage);
+            modelAvailabilityService.markConnected();
             responseMessage.update(message -> Objects.requireNonNull(message).append(token));
         });
     }
@@ -193,6 +199,7 @@ public class ConversationTurnOrchestrator {
             return;
         }
         logStreamFailure(context, exception);
+        modelAvailabilityService.markOffline();
         recoverFromStreamFailure(context, userMessage, responseMessage, exception);
         finishResponse(
             context.state(),
@@ -232,6 +239,7 @@ public class ConversationTurnOrchestrator {
                 return;
             }
             responseMessage.update(message -> Objects.requireNonNull(message).stopLoading());
+            modelAvailabilityService.markConnected();
             finalizeTurn(
                 context,
                 chatService,

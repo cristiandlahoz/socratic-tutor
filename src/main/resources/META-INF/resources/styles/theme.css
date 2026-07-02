@@ -145,6 +145,7 @@ vaadin-markdown strong {
     --composer-border: color-mix(in srgb, var(--vaadin-text-color) 52%, transparent);
     --composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 42%, var(--composer-border));
     --composer-placeholder-color: color-mix(in srgb, var(--color-white) 48%, var(--color-neutral-900));
+    --composer-helper-color: color-mix(in srgb, var(--color-white) 54%, var(--color-neutral-900));
     --composer-text-color: var(--color-mist-100);
     --message-user-surface: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
     --message-user-border: color-mix(in srgb, var(--vaadin-text-color) 30%, transparent);
@@ -164,6 +165,7 @@ body[data-theme-preference="light"] {
   --composer-border: color-mix(in srgb, var(--vaadin-text-color) 52%, transparent);
   --composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 42%, var(--composer-border));
   --composer-placeholder-color: color-mix(in srgb, var(--color-white) 48%, var(--color-neutral-900));
+  --composer-helper-color: color-mix(in srgb, var(--color-white) 54%, var(--color-neutral-900));
   --composer-text-color: var(--color-mist-100);
   --message-user-surface: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
   --message-user-border: color-mix(in srgb, var(--vaadin-text-color) 30%, transparent);
@@ -178,6 +180,7 @@ body[data-theme-preference="light"] {
   body[data-theme-preference="system"] {
     --vaadin-border-color-secondary: oklch(26.59% 0.0100 196.6deg);
     --composer-surface: var(--color-olive-950);
+    --composer-helper-color: color-mix(in srgb, var(--vaadin-text-color-secondary) 72%, var(--color-olive-950));
   }
 }
 
@@ -189,4 +192,5 @@ html[data-theme-preference="dark"],
 body[data-theme-preference="dark"] {
   --vaadin-border-color-secondary: oklch(26.59% 0.0100 196.6deg);
   --composer-surface: var(--color-olive-950);
+  --composer-helper-color: color-mix(in srgb, var(--vaadin-text-color-secondary) 72%, var(--color-olive-950));
 }

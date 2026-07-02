@@ -26,6 +26,7 @@ import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.ChatProperties;
 import com.wornux.services.chat.ChatSessionActivity;
+import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
 import com.wornux.services.security.AuthenticatedAccountService;
@@ -54,6 +55,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private final SplitLayout splitLayout;
     private final transient AuthenticatedAccountService authenticatedAccountService;
     private final transient WorkspaceRoutingService workspaceRoutingService;
+    private transient AutoCloseable modelAvailabilitySubscription;
     private boolean debuggerVisible;
 
     public ConversationView(
@@ -64,10 +66,12 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             CExamplePreparationService cExamplePreparationService,
             @Qualifier("cRunnerExecutor") Executor cRunnerExecutor,
             AuthenticatedAccountService authenticatedAccountService,
-            WorkspaceRoutingService workspaceRoutingService) {
+            WorkspaceRoutingService workspaceRoutingService,
+            ModelAvailabilityService modelAvailabilityService) {
         this.viewModel = viewModel;
         this.authenticatedAccountService = authenticatedAccountService;
         this.workspaceRoutingService = workspaceRoutingService;
+        bindModelAvailability(state, modelAvailabilityService);
         this.viewModel.bindTurnUiAnchor(this);
 
         Div emptyState = createEmptyState(state);
@@ -123,6 +127,34 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         setDebuggerVisible(false);
 
         root.add(splitLayout);
+    }
+
+    private void bindModelAvailability(ConversationState state, ModelAvailabilityService modelAvailabilityService) {
+        state.modelAvailabilityStatus().set(modelAvailabilityService.currentStatus());
+        getContent().addAttachListener(event -> {
+            closeModelAvailabilitySubscription();
+            var ui = event.getUI();
+            modelAvailabilitySubscription = modelAvailabilityService.subscribe(status -> {
+                if (!getContent().isAttached()) {
+                    return;
+                }
+                ui.access(() -> state.modelAvailabilityStatus().set(status));
+            });
+        });
+        getContent().addDetachListener(_ -> closeModelAvailabilitySubscription());
+    }
+
+    private void closeModelAvailabilitySubscription() {
+        if (modelAvailabilitySubscription == null) {
+            return;
+        }
+        try {
+            modelAvailabilitySubscription.close();
+        }
+        catch (Exception _) {
+            // Nothing to do: the status listener is best-effort UI state.
+        }
+        modelAvailabilitySubscription = null;
     }
 
     @Override
