@@ -22,9 +22,9 @@ vaadin-app-layout {
 }
 
 vaadin-app-layout::part(drawer) {
-  top: calc(var(--vaadin-padding-s) + var(--vaadin-input-field-border-width, 1px));
-  bottom: calc(var(--vaadin-padding-s) + var(--vaadin-input-field-border-width, 1px));
-  left: calc(var(--vaadin-padding-s) + var(--vaadin-input-field-border-width, 1px));
+  top: calc(var(--vaadin-padding-l) + var(--vaadin-input-field-border-width, 1px));
+  bottom: calc(var(--vaadin-padding-l) + var(--vaadin-input-field-border-width, 1px));
+  left: calc(var(--vaadin-padding-l) + var(--vaadin-input-field-border-width, 1px));
   overflow: hidden;
   border-radius: var(--vaadin-radius-l) 0 0 var(--vaadin-radius-l);
   background: var(--aura-app-background);
@@ -52,8 +52,8 @@ vaadin-app-layout::part(navbar) {
 vaadin-drawer-toggle.shell-drawer-toggle {
   pointer-events: auto;
   position: fixed;
-  top: var(--vaadin-padding-m);
-  left: var(--vaadin-padding-m);
+  top: var(--vaadin-padding-l);
+  left: var(--vaadin-padding-l);
   z-index: 40;
   color: var(--ui-toggle-color);
 }
@@ -126,6 +126,8 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
 
 vaadin-drawer-toggle:is(.shell-drawer-toggle, .shell-drawer-toggle-inside) vaadin-icon,
 vaadin-drawer-toggle:is(.shell-drawer-toggle, .shell-drawer-toggle-inside) svg {
+  width: 1.35rem;
+  height: 1.35rem;
   color: currentColor;
   stroke: currentColor;
 }

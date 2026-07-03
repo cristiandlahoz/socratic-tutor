@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class NavigationRegistry {
     private final List<NavigationEntry> entries = List.of(
             new NavigationEntry("Administración", SystemAdminWorkspaceView.class, ContextLevel.PLATFORM, AppPermission.TENANT_VIEW, 10),
-            new NavigationEntry("Institución", TenantAdminWorkspaceView.class, ContextLevel.TENANT, AppPermission.GROUP_CLASS_VIEW, 20),
+            new NavigationEntry("Institución", TenantAdminWorkspaceView.class, ContextLevel.TENANT, AppPermission.GROUP_CLASS_CREATE, 20),
             new NavigationEntry("Matriz de roles", RoleMatrixView.class, ContextLevel.PLATFORM, AppPermission.ROLE_VIEW, 22),
             new NavigationEntry("Roles de tenant", TenantMemberRoleAssignmentView.class, ContextLevel.TENANT, AppPermission.ROLE_ASSIGN, 24),
             new NavigationEntry("Roles de clase", GroupClassMemberRoleAssignmentView.class, ContextLevel.TENANT, AppPermission.ROLE_ASSIGN, 26),

@@ -279,7 +279,6 @@ public class RoleAdministrationService {
                     AppResource.GROUP_CLASS,
                     AppResource.GROUP_CLASS_MEMBER,
                     AppResource.GROUP_CLASS_JOIN_CODE,
-                    AppResource.GROUNDING,
                     AppResource.CONVERSATION,
                     AppResource.TRAINING_ACTIVITY,
                     AppResource.TRAINING_ACTIVITY_ASSIGNMENT,

@@ -36,6 +36,12 @@ public final class UiCss {
     public static final CssClass PROFILE_DRAWER_CARD = css("profile-drawer-card");
     public static final CssClass PROFILE_DRAWER_CARD_AVATAR = css("profile-drawer-card__avatar");
     public static final CssClass PROFILE_DRAWER_CARD_CHEVRON = css("profile-drawer-card__chevron");
+    public static final CssClass PROFILE_DRAWER_CARD_CONTEXT = css("profile-drawer-card__context");
+    public static final CssClass PROFILE_DRAWER_CARD_CONTEXT_BADGE = css("profile-drawer-card__context-badge");
+    public static final CssClass PROFILE_DRAWER_CARD_CONTEXT_LABEL = css("profile-drawer-card__context-label");
+    public static final CssClass PROFILE_DRAWER_CARD_CONTEXT_SELECT = css("profile-drawer-card__context-select");
+    public static final CssClass PROFILE_DRAWER_CARD_CONTEXT_SUMMARY = css("profile-drawer-card__context-summary");
+    public static final CssClass PROFILE_DRAWER_CARD_CONTEXT_VALUE = css("profile-drawer-card__context-value");
     public static final CssClass PROFILE_DRAWER_CARD_EMAIL = css("profile-drawer-card__email");
     public static final CssClass PROFILE_DRAWER_CARD_HEADER = css("profile-drawer-card__header");
     public static final CssClass PROFILE_DRAWER_CARD_HEADER_CONTENT = css("profile-drawer-card__header-content");
@@ -55,6 +61,7 @@ public final class UiCss {
     public static final CssClass CONVERSATION_DEBUG_SPLIT = css("conversation-view__debug-split");
     public static final CssClass CONVERSATION_DEBUG_SPLIT_COLLAPSED = css("conversation-view__debug-split--collapsed");
     public static final CssClass CONVERSATION_DEBUGGER_TOGGLE = css("conversation-view__debugger-toggle");
+    public static final CssClass CONVERSATION_DEBUGGER_TOGGLE_HIDDEN = css("conversation-view__debugger-toggle--hidden");
     public static final CssClass CONVERSATION_THREAD = css("conversation-thread");
     public static final CssClass CONVERSATION_MESSAGE_USER = css("conversation-message--user");
     public static final CssClass CONVERSATION_MESSAGE_ASSISTANT = css("conversation-message--assistant");

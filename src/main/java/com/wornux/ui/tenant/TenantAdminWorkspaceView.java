@@ -48,7 +48,7 @@ import com.wornux.ui.css.UiCss;
 @Route(value = "tenant", layout = MainLayout.class)
 @PageTitle("Espacio de administración institucional")
 @PermitAll
-@RequiresPermission(AppPermission.GROUP_CLASS_VIEW)
+@RequiresPermission(AppPermission.GROUP_CLASS_CREATE)
 public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");

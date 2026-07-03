@@ -417,16 +417,55 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private void setDebuggerVisible(boolean visible) {
         debuggerVisible = visible;
-        debuggerPanel.setVisible(visible);
-        splitLayout.setSplitterPosition(visible ? 58 : 100);
         UiCss.CONVERSATION_DEBUG_SPLIT_COLLAPSED.addTo(splitLayout, !visible);
         splitLayout.getElement()
                 .executeJs(
-                    "const mobile = window.matchMedia('(max-width: 960px)').matches; this.splitterPosition = $0 ? (mobile ? 42 : 58) : 100;",
+                    """
+                    clearTimeout(this.__debuggerAnimationTimer);
+                    cancelAnimationFrame(this.__debuggerAnimationFrame);
+                    const collapsedClass = 'conversation-view__debug-split--collapsed';
+                    const animatingClass = 'conversation-view__debug-split--animating';
+                    const primary = this.querySelector('[slot="primary"]');
+                    const secondary = this.querySelector('[slot="secondary"]');
+                    const setSplit = (primaryPercent) => {
+                      if (!primary || !secondary) {
+                        return;
+                      }
+                      primary.style.flex = `1 1 ${primaryPercent}%`;
+                      secondary.style.flex = `1 1 ${100 - primaryPercent}%`;
+                    };
+                    const collapse = () => {
+                      if (!primary || !secondary) {
+                        return;
+                      }
+                      primary.style.flex = '1 1 100%';
+                      secondary.style.flex = '0 1 0%';
+                    };
+                    this.classList.add(animatingClass);
+                    const mobile = window.matchMedia('(max-width: 960px)').matches;
+                    const openPosition = mobile ? 42 : 58;
+                    if ($0) {
+                      this.classList.add(collapsedClass);
+                      collapse();
+                      this.__debuggerAnimationFrame = requestAnimationFrame(() => {
+                        this.classList.remove(collapsedClass);
+                        setSplit(openPosition);
+                      });
+                    } else {
+                      this.classList.remove(collapsedClass);
+                      this.__debuggerAnimationFrame = requestAnimationFrame(() => {
+                        this.classList.add(collapsedClass);
+                        collapse();
+                      });
+                    }
+                    this.__debuggerAnimationTimer = setTimeout(() => {
+                      this.classList.remove(animatingClass);
+                    }, 220);
+                    """,
                     visible);
         debuggerToggleButton.setAriaLabel(visible ? "Ocultar depurador" : "Abrir depurador");
         debuggerToggleButton.getElement().setAttribute("title", visible ? "Ocultar depurador" : "Abrir depurador");
-        debuggerToggleButton.setVisible(!visible);
+        UiCss.CONVERSATION_DEBUGGER_TOGGLE_HIDDEN.addTo(debuggerToggleButton, visible);
     }
 
     private CodeMessageListItem toMessageListItem(MessageState message) {
@@ -464,8 +503,28 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
                     const media = window.matchMedia('(max-width: 960px)');
                     const update = () => {
+                      const primary = this.querySelector('[slot="primary"]');
+                      const secondary = this.querySelector('[slot="secondary"]');
+                      const setSplit = (primaryPercent) => {
+                        if (!primary || !secondary) {
+                          return;
+                        }
+                        primary.style.flex = `1 1 ${primaryPercent}%`;
+                        secondary.style.flex = `1 1 ${100 - primaryPercent}%`;
+                      };
+                      const collapse = () => {
+                        if (!primary || !secondary) {
+                          return;
+                        }
+                        primary.style.flex = '1 1 100%';
+                        secondary.style.flex = '0 1 0%';
+                      };
                       this.orientation = 'horizontal';
-                      this.splitterPosition = this.classList.contains('conversation-view__debug-split--collapsed') ? 100 : (media.matches ? 42 : 58);
+                      if (this.classList.contains('conversation-view__debug-split--collapsed')) {
+                        collapse();
+                      } else {
+                        setSplit(media.matches ? 42 : 58);
+                      }
                     };
                     media.addEventListener?.('change', update);
                     media.addListener?.(update);

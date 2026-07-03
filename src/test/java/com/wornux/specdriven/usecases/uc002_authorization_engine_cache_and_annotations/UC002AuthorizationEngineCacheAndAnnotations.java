@@ -97,14 +97,14 @@ class UC002AuthorizationEngineCacheAndAnnotations {
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, ALGORITHMS_CLASS_ID));
         var tenantAdminSnapshot = authorizationService.snapshot();
-        assertThat(tenantAdminSnapshot.permissionCodes()).contains("role:update", "group-class:create", "grounding:create");
+        assertThat(tenantAdminSnapshot.permissionCodes()).contains("role:update", "group-class:create", "training-activity:create");
         assertThat(tenantAdminSnapshot.groupClassMemberId()).isNull();
 
         authenticate(PROFESSOR_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, ALGORITHMS_CLASS_ID));
-        assertThat(authorizationService.can(AppPermission.GROUNDING_CREATE)).isTrue();
+        assertThat(authorizationService.can(AppPermission.TRAINING_ACTIVITY_CREATE)).isTrue();
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, DISCRETE_MATH_CLASS_ID));
-        assertThat(authorizationService.can(AppPermission.GROUNDING_CREATE)).isFalse();
+        assertThat(authorizationService.can(AppPermission.TRAINING_ACTIVITY_CREATE)).isFalse();
     }
 
     @Test
@@ -125,10 +125,6 @@ class UC002AuthorizationEngineCacheAndAnnotations {
                 "group-class-join-code:create",
                 "group-class-join-code:update",
                 "group-class-join-code:delete",
-                "grounding:view",
-                "grounding:create",
-                "grounding:update",
-                "grounding:delete",
                 "training-activity:view",
                 "training-activity:create",
                 "training-activity:update",

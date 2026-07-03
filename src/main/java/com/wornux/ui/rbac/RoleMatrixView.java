@@ -56,7 +56,6 @@ public class RoleMatrixView extends VerticalLayout {
             Map.entry(AppResource.GROUP_CLASS, "Group Class"),
             Map.entry(AppResource.GROUP_CLASS_MEMBER, "Group Class Member"),
             Map.entry(AppResource.GROUP_CLASS_JOIN_CODE, "Group Class Join Code"),
-            Map.entry(AppResource.GROUNDING, "Grounding"),
             Map.entry(AppResource.CONVERSATION, "Conversation"),
             Map.entry(AppResource.TRAINING_ACTIVITY, "Training Activity"),
             Map.entry(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, "Training Activity Assignment"),

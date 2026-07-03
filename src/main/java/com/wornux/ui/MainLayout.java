@@ -17,19 +17,14 @@ import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.security.AuthenticationContext;
 import java.util.Comparator;
 
-import com.vaadin.flow.component.combobox.ComboBox;
-import com.wornux.data.entities.identity.Account;
-import com.wornux.data.entities.identity.ContextLevel;
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.security.authorization.AuthorizationService;
-import com.wornux.services.context.AvailableContextOption;
 import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionService;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.ToggleIcon;
-import com.wornux.ui.components.sidebar.ChatDrawerActions;
 import com.wornux.ui.components.sidebar.ConversationHistoryDrawer;
 import com.wornux.ui.components.sidebar.SidebarDividerLine;
 import com.wornux.ui.components.sidebar.WorkspaceDrawerNavigation;
@@ -75,7 +70,6 @@ public class MainLayout extends AppLayout {
 
         if (currentAccount.isPresent()) {
             var account = currentAccount.get();
-            drawerContent.add(createContextSwitcher(account, activeContextHolder, contextDiscoveryService, contextSelectionService));
             var entries = navigationRegistry.entries().stream()
                     .filter(entry -> activeContextHolder.current()
                             .map(context -> context.level().ordinal() >= entry.minimumContextLevel().ordinal())
@@ -85,12 +79,14 @@ public class MainLayout extends AppLayout {
                     .toList();
             drawerContent.add(new WorkspaceDrawerNavigation(entries));
             if (entries.stream().anyMatch(entry -> entry.requiredPermission().code().startsWith("conversation:"))) {
-                drawerContent.add(new ChatDrawerActions(new com.wornux.ui.layout.MainLayoutAccess(false, false, true, true), state, this.viewModel));
                 drawerContent.add(new ConversationHistoryDrawer(state, this.viewModel));
             }
             currentAccount.map(user -> new ProfileDrawerCard(
                 user,
                 createThemePreferenceControl(state, this.viewModel),
+                activeContextHolder,
+                contextDiscoveryService,
+                contextSelectionService,
                 authenticationContext::logout))
                     .ifPresent(drawerContent::add);
         }
@@ -99,37 +95,6 @@ public class MainLayout extends AppLayout {
         drawerScroller.setSizeFull();
         UiCss.SHELL_DRAWER_SCROLLER.addTo(drawerScroller);
         addToDrawer(drawerScroller);
-    }
-
-    private Div createContextSwitcher(
-            Account account,
-            ActiveContextHolder activeContextHolder,
-            ContextDiscoveryService contextDiscoveryService,
-            ContextSelectionService contextSelectionService) {
-        var options = contextDiscoveryService.discover(account);
-        var active = activeContextHolder.current();
-        var tenantOptions = options.stream().filter(option -> option.level() == ContextLevel.TENANT).toList();
-        var classOptions = options.stream().filter(option -> option.level() == ContextLevel.GROUP_CLASS).toList();
-        var container = new Div();
-        UiCss.THEME_SWITCHER.addTo(container);
-        if (!tenantOptions.isEmpty()) {
-            container.add(new Span(tenantOptions.getFirst().label()));
-        }
-        if (classOptions.size() > 1 || active.map(context -> context.level() == ContextLevel.GROUP_CLASS).orElse(false)) {
-            var selector = new ComboBox<AvailableContextOption>("Clase");
-            selector.setItems(classOptions);
-            selector.setItemLabelGenerator(AvailableContextOption::label);
-            active.flatMap(context -> classOptions.stream().filter(option -> option.matches(context)).findFirst())
-                    .ifPresent(selector::setValue);
-            selector.addValueChangeListener(event -> {
-                if (event.isFromClient() && event.getValue() != null) {
-                    var selected = contextSelectionService.select(account, event.getValue());
-                    getUI().ifPresent(ui -> ui.navigate(contextSelectionService.defaultRoute(selected)));
-                }
-            });
-            container.add(selector);
-        }
-        return container;
     }
 
     private Div createBrandSection() {

@@ -106,15 +106,15 @@ class UC004RoleMatrixAndAssignmentUi {
         activeContextHolder.set(ActiveContext.tenant(TENANT_ID));
 
         var role = roleAdministrationService.createRole(new CreateRoleCommand(
-                "Grounding Reviewer",
-                "Can review grounding material inside a class.",
+                "Activity Reviewer",
+                "Can review training activities inside a class.",
                 RoleAssignmentLevel.GROUP_CLASS,
                 10,
-                Set.of("grounding:view")));
+                Set.of("training-activity:view")));
 
         assertThat(role.getAssignmentLevel()).isEqualTo(RoleAssignmentLevel.GROUP_CLASS);
-        assertThat(role.getPermissions()).containsExactly("grounding:view");
-        assertThat(roleRepository.findByRoleNamespace_IdAndCode(role.getRoleNamespace().getId(), "grounding-reviewer")).isPresent();
+        assertThat(role.getPermissions()).containsExactly("training-activity:view");
+        assertThat(roleRepository.findByRoleNamespace_IdAndCode(role.getRoleNamespace().getId(), "activity-reviewer")).isPresent();
         assertThat(eventProbe.events()).contains(role.getRoleNamespace().getId());
     }
 
@@ -158,7 +158,7 @@ class UC004RoleMatrixAndAssignmentUi {
                 null,
                 RoleAssignmentLevel.GROUP_CLASS,
                 10,
-                Set.of("grounding:view"))))
+                Set.of("training-activity:view"))))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining(AppPermission.ROLE_CREATE.code());
     }
@@ -168,11 +168,11 @@ class UC004RoleMatrixAndAssignmentUi {
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.tenant(TENANT_ID));
         var role = roleAdministrationService.createRole(new CreateRoleCommand(
-                "Student Grounding Viewer",
+                "Student Activity Creator",
                 null,
                 RoleAssignmentLevel.GROUP_CLASS,
                 10,
-                Set.of("grounding:view")));
+                Set.of("training-activity:create")));
         var memberKindBefore = groupClassMemberRepository.findById(STUDENT_MEMBER_ID).orElseThrow().getMemberKind();
 
         roleAdministrationService.setGroupClassRole(STUDENT_MEMBER_ID, role.getId(), true);
@@ -180,7 +180,7 @@ class UC004RoleMatrixAndAssignmentUi {
         assertThat(groupClassMemberRepository.findById(STUDENT_MEMBER_ID).orElseThrow().getMemberKind()).isEqualTo(memberKindBefore).isEqualTo(GroupClassMemberKind.STUDENT);
         authenticate(STUDENT_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, ALGORITHMS_CLASS_ID));
-        assertThat(authorizationService.can(AppPermission.GROUNDING_VIEW)).isTrue();
+        assertThat(authorizationService.can(AppPermission.TRAINING_ACTIVITY_CREATE)).isTrue();
     }
 
     @Test
@@ -196,7 +196,7 @@ class UC004RoleMatrixAndAssignmentUi {
                 null,
                 RoleAssignmentLevel.GROUP_CLASS,
                 10,
-                Set.of("grounding:view")));
+                Set.of("training-activity:view")));
 
         authenticate(STUDENT_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, ALGORITHMS_CLASS_ID));

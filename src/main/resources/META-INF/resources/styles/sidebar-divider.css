@@ -263,6 +263,16 @@ vaadin-button.theme-switcher__button:focus-within::part(label) {
   gap: 0.05rem;
 }
 
+.profile-drawer-card__context-badge {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vaadin-text-color-secondary);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-medium);
+}
+
 .profile-drawer-card__name,
 .profile-drawer-card__email {
   overflow: hidden;
@@ -336,6 +346,68 @@ vaadin-button.theme-switcher__button:focus-within::part(label) {
   border-color: var(--vaadin-border-color-secondary);
   border-radius: 0;
   box-shadow: var(--aura-shadow-s);
+}
+
+.profile-drawer-card__context {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-xs);
+  padding-bottom: var(--vaadin-gap-xs);
+  border-bottom: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+}
+
+.profile-drawer-card__context-summary {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.profile-drawer-card__context-label {
+  color: var(--composer-helper-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-2xs);
+  font-weight: var(--aura-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.profile-drawer-card__context-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--composer-text-color, var(--color-white));
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-s);
+  font-weight: var(--aura-font-weight-semibold);
+}
+
+vaadin-combo-box.profile-drawer-card__context-select {
+  width: 100%;
+}
+
+vaadin-combo-box.profile-drawer-card__context-select::part(input-field) {
+  min-height: 2.25rem;
+  border-radius: var(--vaadin-radius-m);
+  background: color-mix(in srgb, var(--vaadin-background-container-strong) 56%, transparent);
+  color: var(--composer-text-color, var(--color-white));
+  box-shadow: none;
+}
+
+vaadin-combo-box.profile-drawer-card__context-select::part(label),
+vaadin-combo-box.profile-drawer-card__context-select > label {
+  color: var(--composer-helper-color);
+  font-weight: var(--aura-font-weight-semibold);
+}
+
+vaadin-combo-box.profile-drawer-card__context-select > input {
+  color: var(--composer-text-color, var(--color-white));
+  -webkit-text-fill-color: var(--composer-text-color, var(--color-white));
+}
+
+vaadin-combo-box.profile-drawer-card__context-select::part(toggle-button),
+vaadin-combo-box.profile-drawer-card__context-select::part(field-button) {
+  color: var(--composer-helper-color);
 }
 
 .profile-drawer-card .theme-switcher {

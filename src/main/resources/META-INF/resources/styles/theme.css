@@ -85,7 +85,7 @@ body>* {
 
 #outlet {
   box-sizing: border-box;
-  padding: var(--vaadin-padding-s);
+  padding: var(--vaadin-padding-l);
   background: var(--color-black);
 }
 

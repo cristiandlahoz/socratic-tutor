@@ -72,12 +72,13 @@ public class RoleSeedService {
                 AppPermission.GROUP_CLASS_MEMBER_UPDATE, AppPermission.GROUP_CLASS_MEMBER_DELETE,
                 AppPermission.GROUP_CLASS_JOIN_CODE_VIEW, AppPermission.GROUP_CLASS_JOIN_CODE_CREATE,
                 AppPermission.GROUP_CLASS_JOIN_CODE_UPDATE, AppPermission.GROUP_CLASS_JOIN_CODE_DELETE,
-                AppPermission.GROUNDING_VIEW, AppPermission.GROUNDING_CREATE, AppPermission.GROUNDING_UPDATE,
-                AppPermission.GROUNDING_DELETE, AppPermission.TRAINING_ACTIVITY_VIEW,
+                AppPermission.TRAINING_ACTIVITY_VIEW,
                 AppPermission.TRAINING_ACTIVITY_CREATE, AppPermission.TRAINING_ACTIVITY_UPDATE,
                 AppPermission.TRAINING_ACTIVITY_DELETE, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW,
                 AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_CREATE, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_UPDATE,
-                AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_DELETE, AppPermission.CONVERSATION_VIEW);
+                AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_DELETE, AppPermission.COURSE_MATERIAL_VIEW,
+                AppPermission.COURSE_MATERIAL_CREATE, AppPermission.COURSE_MATERIAL_UPDATE,
+                AppPermission.COURSE_MATERIAL_DELETE, AppPermission.CONVERSATION_VIEW);
     }
 
     private String[] professorPermissions() {
@@ -85,12 +86,13 @@ public class RoleSeedService {
                 AppPermission.GROUP_CLASS_MEMBER_VIEW, AppPermission.GROUP_CLASS_MEMBER_INVITE,
                 AppPermission.GROUP_CLASS_MEMBER_UPDATE, AppPermission.GROUP_CLASS_JOIN_CODE_VIEW,
                 AppPermission.GROUP_CLASS_JOIN_CODE_CREATE, AppPermission.GROUP_CLASS_JOIN_CODE_UPDATE,
-                AppPermission.GROUP_CLASS_JOIN_CODE_DELETE, AppPermission.GROUNDING_VIEW, AppPermission.GROUNDING_CREATE,
-                AppPermission.GROUNDING_UPDATE, AppPermission.GROUNDING_DELETE, AppPermission.TRAINING_ACTIVITY_VIEW,
+                AppPermission.GROUP_CLASS_JOIN_CODE_DELETE, AppPermission.TRAINING_ACTIVITY_VIEW,
                 AppPermission.TRAINING_ACTIVITY_CREATE, AppPermission.TRAINING_ACTIVITY_UPDATE,
                 AppPermission.TRAINING_ACTIVITY_DELETE, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW,
                 AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_CREATE, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_UPDATE,
-                AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_DELETE, AppPermission.CONVERSATION_VIEW);
+                AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_DELETE, AppPermission.COURSE_MATERIAL_VIEW,
+                AppPermission.COURSE_MATERIAL_CREATE, AppPermission.COURSE_MATERIAL_UPDATE,
+                AppPermission.COURSE_MATERIAL_DELETE, AppPermission.CONVERSATION_VIEW);
     }
 
     private String[] studentPermissions() {

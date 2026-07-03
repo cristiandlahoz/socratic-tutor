@@ -9,7 +9,6 @@ public enum AppResource {
     GROUP_CLASS("group-class"),
     GROUP_CLASS_MEMBER("group-class-member"),
     GROUP_CLASS_JOIN_CODE("group-class-join-code"),
-    GROUNDING("grounding"),
     CONVERSATION("conversation"),
     TRAINING_ACTIVITY("training-activity"),
     TRAINING_ACTIVITY_ASSIGNMENT("training-activity-assignment"),

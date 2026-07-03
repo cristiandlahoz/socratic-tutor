@@ -1,14 +1,22 @@
 package com.wornux.ui.components;
 
+import java.util.List;
+
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.SvgIcon;
 import com.wornux.data.entities.identity.Account;
+import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.security.authorization.ActiveContextHolder;
+import com.wornux.services.context.AvailableContextOption;
+import com.wornux.services.context.ContextDiscoveryService;
+import com.wornux.services.context.ContextSelectionService;
 import com.wornux.ui.css.UiCss;
 
 public class ProfileDrawerCard extends Div {
@@ -17,10 +25,19 @@ public class ProfileDrawerCard extends Div {
     private final SvgIcon chevron;
     private final NativeButton headerButton;
 
-    public ProfileDrawerCard(Account account, Component themeControl, Runnable logoutAction) {
+    public ProfileDrawerCard(
+            Account account,
+            Component themeControl,
+            ActiveContextHolder activeContextHolder,
+            ContextDiscoveryService contextDiscoveryService,
+            ContextSelectionService contextSelectionService,
+            Runnable logoutAction) {
         UiCss.PROFILE_DRAWER_CARD.addTo(this);
 
-        var menuContent = new Div(themeControl, createLogoutButton(logoutAction));
+        var menuContent = new Div(
+                createContextControl(account, activeContextHolder, contextDiscoveryService, contextSelectionService),
+                themeControl,
+                createLogoutButton(logoutAction));
         UiCss.PROFILE_DRAWER_CARD_MENU_CONTENT.addTo(menuContent);
 
         menu = new Div(menuContent);
@@ -29,12 +46,62 @@ public class ProfileDrawerCard extends Div {
         chevron = new SvgIcon("/icons/chevron.svg");
         UiCss.PROFILE_DRAWER_CARD_CHEVRON.addTo(chevron);
 
-        headerButton = createHeaderButton(account);
+        headerButton = createHeaderButton(account, activeContextHolder, contextDiscoveryService);
         add(menu, headerButton);
         closeOnOutsideClick();
     }
 
-    private NativeButton createHeaderButton(Account account) {
+    private Component createContextControl(
+            Account account,
+            ActiveContextHolder activeContextHolder,
+            ContextDiscoveryService contextDiscoveryService,
+            ContextSelectionService contextSelectionService) {
+        var options = contextDiscoveryService.discover(account);
+        var active = activeContextHolder.current();
+        var tenantOptions = options.stream().filter(option -> option.level() == ContextLevel.TENANT).toList();
+        var classOptions = options.stream().filter(option -> option.level() == ContextLevel.GROUP_CLASS).toList();
+
+        var container = new Div();
+        UiCss.PROFILE_DRAWER_CARD_CONTEXT.addTo(container);
+
+        if (!tenantOptions.isEmpty()) {
+            container.add(contextSummary("Institución", tenantOptions.getFirst().label()));
+        }
+
+        if (classOptions.size() > 1 || active.map(context -> context.level() == ContextLevel.GROUP_CLASS).orElse(false)) {
+            var selector = new ComboBox<AvailableContextOption>("Clase");
+            UiCss.PROFILE_DRAWER_CARD_CONTEXT_SELECT.addTo(selector);
+            selector.setItems(classOptions);
+            selector.setItemLabelGenerator(AvailableContextOption::label);
+            selector.setWidthFull();
+            active.flatMap(context -> classOptions.stream().filter(option -> option.matches(context)).findFirst())
+                    .ifPresent(selector::setValue);
+            selector.addValueChangeListener(event -> {
+                if (event.isFromClient() && event.getValue() != null) {
+                    var selected = contextSelectionService.select(account, event.getValue());
+                    getUI().ifPresent(ui -> ui.navigate(contextSelectionService.defaultRoute(selected)));
+                }
+            });
+            container.add(selector);
+        }
+
+        return container;
+    }
+
+    private Div contextSummary(String labelText, String valueText) {
+        var label = new Span(labelText);
+        UiCss.PROFILE_DRAWER_CARD_CONTEXT_LABEL.addTo(label);
+        var value = new Span(valueText);
+        UiCss.PROFILE_DRAWER_CARD_CONTEXT_VALUE.addTo(value);
+        var summary = new Div(label, value);
+        UiCss.PROFILE_DRAWER_CARD_CONTEXT_SUMMARY.addTo(summary);
+        return summary;
+    }
+
+    private NativeButton createHeaderButton(
+            Account account,
+            ActiveContextHolder activeContextHolder,
+            ContextDiscoveryService contextDiscoveryService) {
         var avatar = new Span(initials(account));
         UiCss.PROFILE_DRAWER_CARD_AVATAR.addTo(avatar);
         avatar.getElement().setAttribute("aria-hidden", "true");
@@ -45,7 +112,17 @@ public class ProfileDrawerCard extends Div {
         var email = new Span(safeText(account.getEmail()));
         UiCss.PROFILE_DRAWER_CARD_EMAIL.addTo(email);
 
-        var identity = new Div(name, email);
+        var identityChildren = new java.util.ArrayList<Component>(List.of(name, email));
+        activeContextHolder.current()
+                .flatMap(context -> contextDiscoveryService.discover(account).stream().filter(option -> option.matches(context)).findFirst())
+                .map(AvailableContextOption::label)
+                .ifPresent(contextLabel -> {
+                    var context = new Span(contextLabel);
+                    UiCss.PROFILE_DRAWER_CARD_CONTEXT_BADGE.addTo(context);
+                    identityChildren.add(context);
+                });
+
+        var identity = new Div(identityChildren.toArray(Component[]::new));
         UiCss.PROFILE_DRAWER_CARD_IDENTITY.addTo(identity);
 
         var content = new Div(avatar, identity, chevron);
