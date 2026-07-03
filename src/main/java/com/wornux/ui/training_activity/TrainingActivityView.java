@@ -44,7 +44,7 @@ import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.css.UiCss;
 
 @Route(value = "training-activities", layout = MainLayout.class)
-@RequiresPermission(AppPermission.TRAINING_ACTIVITY_VIEW)
+@RequiresPermission(AppPermission.TRAINING_ACTIVITY_CREATE)
 public class TrainingActivityView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
 
     private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");

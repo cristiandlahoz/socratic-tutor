@@ -4,8 +4,6 @@ import java.util.List;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.RouterLink;
 import com.wornux.ui.components.SidebarItem;
 import com.wornux.ui.css.UiCss;
@@ -22,23 +20,9 @@ public class WorkspaceDrawerNavigation extends Div {
         entries.forEach(entry -> actions.add(createNavigationButton(
                 entry.routeTarget(),
                 entry.label(),
-                new Icon(iconFor(entry.label())))));
+                entry.createIcon())));
 
         add(actions);
-    }
-
-    private VaadinIcon iconFor(String label) {
-        return switch (label) {
-            case "Administración" -> VaadinIcon.HOME;
-            case "Institución" -> VaadinIcon.INSTITUTION;
-            case "Panel profesoral" -> VaadinIcon.ACADEMY_CAP;
-            case "Panel estudiantil" -> VaadinIcon.USER;
-            case "Matriz de roles" -> VaadinIcon.TABLE;
-            case "Roles de tenant", "Roles de clase" -> VaadinIcon.KEY;
-            case "Documentos" -> VaadinIcon.FILE_TEXT;
-            case "Actividades" -> VaadinIcon.TASKS;
-            default -> VaadinIcon.COMMENTS;
-        };
     }
 
     private RouterLink createNavigationButton(

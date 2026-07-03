@@ -2,6 +2,9 @@ package com.wornux.ui.navigation;
 
 import java.util.List;
 
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.SvgIcon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.wornux.data.entities.identity.ContextLevel;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.ui.admin.SystemAdminWorkspaceView;
@@ -19,16 +22,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class NavigationRegistry {
     private final List<NavigationEntry> entries = List.of(
-            new NavigationEntry("Administración", SystemAdminWorkspaceView.class, ContextLevel.PLATFORM, AppPermission.TENANT_VIEW, 10),
-            new NavigationEntry("Panel profesoral", ProfessorWorkspaceView.class, ContextLevel.GROUP_CLASS, AppPermission.GROUP_CLASS_MEMBER_VIEW, 11),
-            new NavigationEntry("Panel estudiantil", StudentWorkspaceView.class, ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, 12),
-            new NavigationEntry("Institución", TenantAdminWorkspaceView.class, ContextLevel.TENANT, AppPermission.GROUP_CLASS_CREATE, 20),
-            new NavigationEntry("Matriz de roles", RoleMatrixView.class, ContextLevel.PLATFORM, AppPermission.ROLE_VIEW, 22),
-            new NavigationEntry("Roles de tenant", TenantMemberRoleAssignmentView.class, ContextLevel.TENANT, AppPermission.ROLE_ASSIGN, 24),
-            new NavigationEntry("Roles de clase", GroupClassMemberRoleAssignmentView.class, ContextLevel.TENANT, AppPermission.ROLE_ASSIGN, 26),
-            new NavigationEntry("Conversación", ConversationView.class, ContextLevel.GROUP_CLASS, AppPermission.CONVERSATION_VIEW, 30),
-            new NavigationEntry("Documentos", DocumentIngestionView.class, ContextLevel.GROUP_CLASS, AppPermission.COURSE_MATERIAL_VIEW, 40),
-            new NavigationEntry("Actividades", TrainingActivityView.class, ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_VIEW, 50));
+            new NavigationEntry("Administración", SystemAdminWorkspaceView.class, () -> new Icon(VaadinIcon.HOME), ContextLevel.PLATFORM, AppPermission.TENANT_VIEW, 10),
+            new NavigationEntry("Panel profesoral", ProfessorWorkspaceView.class, () -> new Icon(VaadinIcon.ACADEMY_CAP), ContextLevel.GROUP_CLASS, AppPermission.GROUP_CLASS_MEMBER_VIEW, 11),
+            new NavigationEntry("Panel estudiantil", StudentWorkspaceView.class, () -> new Icon(VaadinIcon.USER), ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, 12),
+            new NavigationEntry("Institución", TenantAdminWorkspaceView.class, () -> new Icon(VaadinIcon.INSTITUTION), ContextLevel.TENANT, AppPermission.GROUP_CLASS_CREATE, 20),
+            new NavigationEntry("Matriz de roles", RoleMatrixView.class, () -> new Icon(VaadinIcon.TABLE), ContextLevel.PLATFORM, AppPermission.ROLE_VIEW, 22),
+            new NavigationEntry("Roles de tenant", TenantMemberRoleAssignmentView.class, () -> new Icon(VaadinIcon.KEY), ContextLevel.TENANT, AppPermission.ROLE_ASSIGN, 24),
+            new NavigationEntry("Roles de clase", GroupClassMemberRoleAssignmentView.class, () -> new Icon(VaadinIcon.KEY), ContextLevel.TENANT, AppPermission.ROLE_ASSIGN, 26),
+            new NavigationEntry("Conversación", ConversationView.class, () -> new SvgIcon("/icons/pencil.svg"), ContextLevel.GROUP_CLASS, AppPermission.CONVERSATION_VIEW, 30),
+            new NavigationEntry("Documentos", DocumentIngestionView.class, () -> new Icon(VaadinIcon.FILE_TEXT), ContextLevel.GROUP_CLASS, AppPermission.COURSE_MATERIAL_VIEW, 40),
+            new NavigationEntry("Actividades", TrainingActivityView.class, () -> new Icon(VaadinIcon.TASKS), ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_CREATE, 50));
 
     public List<NavigationEntry> entries() {
         return entries;

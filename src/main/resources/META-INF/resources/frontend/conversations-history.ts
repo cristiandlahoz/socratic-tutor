@@ -182,7 +182,7 @@ class ConversationsHistory extends LitElement {
   private renderEmptyState() {
     return html`
       <div class="conversations-history-empty">
-        <span class="conversations-history-empty-title">Sin conversaciones todavía</span>
+        <span class="conversations-history-empty-title">No hay conversaciones</span>
         <p class="conversations-history-empty-description">
           Inicia una nueva conversación para empezar a construir tu historial del tutor.
         </p>

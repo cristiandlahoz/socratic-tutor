@@ -95,10 +95,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     }
 
     private Component createToolbar() {
-        var openConversationButton = primaryButton("Abrir conversación", this::openConversation);
-        openConversationButton.setIcon(new Icon(VaadinIcon.COMMENTS));
-
-        var toolbar = new HorizontalLayout(classSelector, openConversationButton);
+        var toolbar = new HorizontalLayout(classSelector);
         UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
         toolbar.setPadding(false);
         toolbar.setMargin(false);
@@ -106,6 +103,9 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         return toolbar;
     }
 
+    private void openConversation() {
+        UI.getCurrent().navigate(ConversationView.class);
+    }
     private void configureGrid() {
         UiCss.WORKSPACE_GRID.addTo(assignmentsGrid);
         UiCss.WORKSPACE_TENANT_GRID.addTo(assignmentsGrid);
@@ -167,10 +167,6 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
             case STARTED, SUBMITTED -> "is-active";
             case ASSIGNED, SKIPPED, EXPIRED, EXCUSED -> "is-open";
         };
-    }
-
-    private void openConversation() {
-        UI.getCurrent().navigate(ConversationView.class);
     }
 
     private void refresh() {

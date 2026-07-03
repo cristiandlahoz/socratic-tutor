@@ -4,6 +4,9 @@ import com.vaadin.flow.server.auth.AccessCheckResult;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.server.auth.NavigationAccessChecker;
 import com.vaadin.flow.server.auth.NavigationContext;
+import com.wornux.services.context.ContextSelectionResult;
+import com.wornux.services.context.ContextSelectionService;
+import com.wornux.services.security.AuthenticatedAccountService;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.security.access.AccessDeniedException;
@@ -12,10 +15,20 @@ import org.springframework.stereotype.Component;
 @Component
 public class PermissionNavigationAccessChecker implements NavigationAccessChecker {
 
-    private final AuthorizationService authorizationService;
+    private final transient AuthorizationService authorizationService;
+    private final transient ActiveContextHolder activeContextHolder;
+    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient ContextSelectionService contextSelectionService;
 
-    public PermissionNavigationAccessChecker(AuthorizationService authorizationService) {
+    public PermissionNavigationAccessChecker(
+            AuthorizationService authorizationService,
+            ActiveContextHolder activeContextHolder,
+            AuthenticatedAccountService authenticatedAccountService,
+            ContextSelectionService contextSelectionService) {
         this.authorizationService = authorizationService;
+        this.activeContextHolder = activeContextHolder;
+        this.authenticatedAccountService = authenticatedAccountService;
+        this.contextSelectionService = contextSelectionService;
     }
 
     @Override
@@ -33,6 +46,10 @@ public class PermissionNavigationAccessChecker implements NavigationAccessChecke
         var permission = AnnotationUtils.findAnnotation(target, RequiresPermission.class);
         if (permission != null) {
             try {
+                var contextResult = ensureActiveContext();
+                if (contextResult != null) {
+                    return contextResult;
+                }
                 return authorizationService.can(permission.value())
                         ? AccessCheckResult.allow()
                         : AccessCheckResult.deny("Missing permission " + permission.value().code());
@@ -46,5 +63,20 @@ public class PermissionNavigationAccessChecker implements NavigationAccessChecke
             return AccessCheckResult.allow();
         }
         return AccessCheckResult.deny("Protected routes require @RequiresPermission");
+    }
+
+    private AccessCheckResult ensureActiveContext() {
+        if (activeContextHolder.current().isPresent()) {
+            return null;
+        }
+        var account = authenticatedAccountService.currentAccount().orElse(null);
+        if (account == null) {
+            return AccessCheckResult.deny("Authentication is required");
+        }
+        return switch (contextSelectionService.resolveLoginContext(account)) {
+            case ContextSelectionResult.Selected _ -> null;
+            case ContextSelectionResult.NoAccess _ -> AccessCheckResult.deny("No available context");
+            case ContextSelectionResult.SelectionRequired _ -> AccessCheckResult.deny("Context selection is required");
+        };
     }
 }
