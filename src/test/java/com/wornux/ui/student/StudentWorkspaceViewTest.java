@@ -15,6 +15,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.training_activity.TrainingActivityLaunchBus;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -28,6 +29,7 @@ class StudentWorkspaceViewTest {
         var authenticatedAccountService = mock(AuthenticatedAccountService.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
         var studentWorkspaceService = mock(StudentWorkspaceService.class);
+        var trainingActivityLaunchBus = mock(TrainingActivityLaunchBus.class);
         var beforeEnterEvent = mock(BeforeEnterEvent.class);
         var account = new Account();
         var accessibleClass = new AccessibleClass(UUID.randomUUID(),
@@ -44,7 +46,11 @@ class StudentWorkspaceViewTest {
         when(studentWorkspaceService.listAssignments(account)).thenReturn(List.of());
 
         var view =
-                new StudentWorkspaceView(authenticatedAccountService, workspaceRoutingService, studentWorkspaceService);
+                new StudentWorkspaceView(
+                    authenticatedAccountService,
+                    workspaceRoutingService,
+                    studentWorkspaceService,
+                    trainingActivityLaunchBus);
 
         assertDoesNotThrow(() -> view.beforeEnter(beforeEnterEvent));
 

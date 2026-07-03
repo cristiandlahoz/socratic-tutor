@@ -1,9 +1,9 @@
 package com.wornux.ui.student;
 
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -11,20 +11,20 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
+import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.training_activity.TrainingActivityLaunchBus;
 import com.wornux.services.workspace.AccessibleClass;
@@ -33,20 +33,20 @@ import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
-import com.wornux.ui.conversation.ConversationView;
-import jakarta.annotation.security.PermitAll;
 import com.wornux.ui.css.UiCss;
+import jakarta.annotation.security.PermitAll;
 
 @Route(value = "student", layout = MainLayout.class)
 @PageTitle("Espacio del estudiante")
 @PermitAll
 @RequiresPermission(AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW)
-public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterObserver, AfterNavigationObserver {
 
     private final AuthenticatedAccountService authenticatedAccountService;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
     private final TrainingActivityLaunchBus trainingActivityLaunchBus;
+    private final Div content = new Div();
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<TrainingActivityAssignment> assignmentsGrid = new Grid<>(TrainingActivityAssignment.class, false);
     private AutoCloseable assignmentLaunchSubscription;
@@ -65,19 +65,26 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         configureToolbarFields();
         configureGrid();
 
-        add(
+        content.add(
             createHeader(
                 "Espacio del estudiante",
                 "Mantén la clase activa en contexto, revisa las actividades asignadas y vuelve al tutor cuando necesites razonar con guía."),
             createToolbar(),
             assignmentsGrid);
+        content.setWidthFull();
+        add(content);
     }
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         subscribeToAssignmentLaunches(attachEvent.getUI());
-        refresh();
+        refreshDashboard();
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        refreshDashboard();
     }
 
     @Override
@@ -116,7 +123,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
             event.forwardTo(NoAccessView.class);
             return;
         }
-        refresh();
+        refreshDashboard();
     }
 
     private Div createHeader(String title, String description) {
@@ -147,9 +154,6 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         return toolbar;
     }
 
-    private void openConversation() {
-        UI.getCurrent().navigate(ConversationView.class);
-    }
     private void configureGrid() {
         UiCss.WORKSPACE_GRID.addTo(assignmentsGrid);
         UiCss.WORKSPACE_TENANT_GRID.addTo(assignmentsGrid);
@@ -217,7 +221,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         UI.getCurrent().navigate("training-activity/assignments/%s".formatted(assignment.getId()));
     }
 
-    private void refresh() {
+    private void refreshDashboard() {
         var account = authenticatedAccountService.requireCurrentAccount();
         var classes = studentWorkspaceService.listStudentClasses(account);
         classSelector.setItems(classes);
@@ -241,6 +245,6 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         }
         studentWorkspaceService
                 .switchClass(authenticatedAccountService.requireCurrentAccount(), accessibleClass.groupClassMemberId());
-        refresh();
+        refreshDashboard();
     }
 }
