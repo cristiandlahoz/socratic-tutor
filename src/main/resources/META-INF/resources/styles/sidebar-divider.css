@@ -37,11 +37,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--vaadin-gap-s);
+  background: light-dark(color(srgb 0.844314 0.845098 0.830196), transparent);
+  border-radius: var(--vaadin-radius-m);
 }
 
 .app-sidebar__brand-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--vaadin-gap-s);
 }
@@ -54,14 +56,11 @@
 }
 
 .app-sidebar__brand-title {
-  margin: 0;
-  color: var(--vaadin-text-color);
-  font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-l);
-  line-height: 1.15;
-  font-weight: var(--aura-font-weight-semibold);
-  letter-spacing: -0.02em;
-  text-wrap: balance;
+  flex: 0 0 auto;
+  width: 6.25rem;
+  height: 2.8rem;
+  margin-block: var(--vaadin-gap-xs);
+  color: light-dark(rgb(11, 13, 11), var(--drawer-foreground-strong));
 }
 
 vaadin-button.app-sidebar__brand-info {

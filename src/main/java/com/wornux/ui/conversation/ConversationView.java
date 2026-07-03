@@ -427,12 +427,12 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                     const animatingClass = 'conversation-view__debug-split--animating';
                     const primary = this.querySelector('[slot="primary"]');
                     const secondary = this.querySelector('[slot="secondary"]');
-                    const setSplit = (primaryPercent) => {
+                    const setSplit = () => {
                       if (!primary || !secondary) {
                         return;
                       }
-                      primary.style.flex = `1 1 ${primaryPercent}%`;
-                      secondary.style.flex = `1 1 ${100 - primaryPercent}%`;
+                      primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
+                      secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
                     };
                     const collapse = () => {
                       if (!primary || !secondary) {
@@ -442,14 +442,12 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                       secondary.style.flex = '0 1 0%';
                     };
                     this.classList.add(animatingClass);
-                    const mobile = window.matchMedia('(max-width: 960px)').matches;
-                    const openPosition = mobile ? 42 : 58;
                     if ($0) {
                       this.classList.add(collapsedClass);
                       collapse();
                       this.__debuggerAnimationFrame = requestAnimationFrame(() => {
                         this.classList.remove(collapsedClass);
-                        setSplit(openPosition);
+                        setSplit();
                       });
                     } else {
                       this.classList.remove(collapsedClass);
@@ -505,12 +503,12 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                     const update = () => {
                       const primary = this.querySelector('[slot="primary"]');
                       const secondary = this.querySelector('[slot="secondary"]');
-                      const setSplit = (primaryPercent) => {
+                      const setSplit = () => {
                         if (!primary || !secondary) {
                           return;
                         }
-                        primary.style.flex = `1 1 ${primaryPercent}%`;
-                        secondary.style.flex = `1 1 ${100 - primaryPercent}%`;
+                        primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
+                        secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
                       };
                       const collapse = () => {
                         if (!primary || !secondary) {
@@ -523,7 +521,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                       if (this.classList.contains('conversation-view__debug-split--collapsed')) {
                         collapse();
                       } else {
-                        setSplit(media.matches ? 42 : 58);
+                        setSplit();
                       }
                     };
                     media.addEventListener?.('change', update);

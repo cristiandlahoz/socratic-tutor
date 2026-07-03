@@ -23,12 +23,12 @@ html {
   --aura-app-layout-inset: 0px;
   --aura-app-layout-border-width: 0px;
   --aura-app-layout-radius: 0px;
-  --vaadin-app-layout-drawer-width: clamp(
-    calc(var(--vaadin-padding-xl) * 12),
-    29vw,
-    calc(var(--vaadin-padding-xl) * 14)
-  );
+  --vaadin-app-layout-drawer-width: clamp(calc(var(--vaadin-padding-xl) * 12),
+      29vw,
+      calc(var(--vaadin-padding-xl) * 14));
   --vaadin-app-layout-drawer-background: var(--aura-app-background);
+  --outlet-inset-padding: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
+  --outlet-inset-radius: var(--vaadin-radius-m);
   --vaadin-overlay-shadow: var(--aura-shadow-s);
   --vaadin-overlay-backdrop-background: color-mix(in srgb, var(--color-black) 36%, transparent);
   --vaadin-message-font-size: var(--message-font-size);
@@ -85,8 +85,8 @@ body>* {
 
 #outlet {
   box-sizing: border-box;
-  padding: var(--vaadin-padding-l);
-  background: var(--color-black);
+  padding: var(--outlet-inset-padding);
+  background: light-dark(oklch(0.92971 0.01478 132.48), var(--color-black));
 }
 
 #outlet>[id^="ROOT-"] {
@@ -95,7 +95,7 @@ body>* {
   width: 100%;
   height: 100%;
   border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 20%, var(--color-black));
-  border-radius: var(--vaadin-radius-l);
+  border-radius: var(--outlet-inset-radius);
   outline: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 10%, transparent);
   box-shadow: var(--aura-shadow-s);
   overflow: hidden;

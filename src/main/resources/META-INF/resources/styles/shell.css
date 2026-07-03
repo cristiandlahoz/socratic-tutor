@@ -22,11 +22,11 @@ vaadin-app-layout {
 }
 
 vaadin-app-layout::part(drawer) {
-  top: calc(var(--vaadin-padding-l) + var(--vaadin-input-field-border-width, 1px));
-  bottom: calc(var(--vaadin-padding-l) + var(--vaadin-input-field-border-width, 1px));
-  left: calc(var(--vaadin-padding-l) + var(--vaadin-input-field-border-width, 1px));
+  top: calc(var(--outlet-inset-padding) + var(--vaadin-input-field-border-width, 1px));
+  bottom: calc(var(--outlet-inset-padding) + var(--vaadin-input-field-border-width, 1px));
+  left: calc(var(--outlet-inset-padding) + var(--vaadin-input-field-border-width, 1px));
   overflow: hidden;
-  border-radius: var(--vaadin-radius-l) 0 0 var(--vaadin-radius-l);
+  border-radius: var(--outlet-inset-radius) 0 0 var(--outlet-inset-radius);
   background: var(--aura-app-background);
   border-inline-end: var(--vaadin-input-field-border-width, 2px) solid var(--vaadin-border-color-secondary);
 }

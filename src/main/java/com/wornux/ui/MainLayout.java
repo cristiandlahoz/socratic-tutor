@@ -5,9 +5,9 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.Layout;
@@ -97,8 +97,9 @@ public class MainLayout extends AppLayout {
     }
 
     private Div createBrandSection() {
-        var appTitle = new H1("Tutor Socrático");
+        var appTitle = new SvgIcon("/icons/tutor-socratico-logo-vector.svg");
         UiCss.APP_SIDEBAR_BRAND_TITLE.addTo(appTitle);
+        appTitle.getElement().setAttribute("aria-label", "Tutor Socrático");
 
         var appDescription = "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia "
                 + "con conversaciones guiadas.";
