@@ -7,7 +7,11 @@ import java.util.UUID;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
@@ -20,7 +24,7 @@ import com.wornux.ui.MainLayout;
 import com.wornux.ui.conversation.CodeMessageList;
 import com.wornux.ui.conversation.CodeMessageListItem;
 import com.wornux.ui.conversation.ConversationComposer;
-import com.wornux.ui.conversation.ConversationCss;
+import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "training-activity/assignments", layout = MainLayout.class)
@@ -29,7 +33,10 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
 
     private static final String TUTOR_NAME = "Tutor Socrático";
     private static final String STUDENT_NAME = "Tú";
-    private static final String SUBMITTED_MESSAGE = "Evaluation submitted. Your professor can now review the report.";
+    private static final String ANSWER_PLACEHOLDER = "Escribe tu respuesta aquí...";
+    private static final String SUBMITTED_PLACEHOLDER = "Actividad finalizada";
+    private static final String SUBMITTED_MESSAGE =
+            "La actividad formativa ha finalizado. Tu profesor ya puede revisar el reporte.";
 
     private final TrainingAssignmentEvaluationService evaluationService;
     private final CodeMessageList messageList = new CodeMessageList();
@@ -48,30 +55,30 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         messageList.setWidthFull();
 
         composer = new ConversationComposer(
-                "Write your answer here...",
-                "Write your answer here",
-                "Submit answer",
+                ANSWER_PLACEHOLDER,
+                "Escribe tu respuesta aquí",
+                "Enviar respuesta",
                 this::submitAnswer);
         composer.addValueChangeListener(this::updateComposerState);
         composer.setSubmitEnabled(false);
 
-        ConversationCss.COMPOSER.addTo(inputShell);
+        UiCss.CONVERSATION_COMPOSER.addTo(inputShell);
         inputShell.add(composer);
 
         var conversationStack = new Div(messageList);
-        ConversationCss.THREAD.addTo(conversationStack);
+        UiCss.CONVERSATION_THREAD.addTo(conversationStack);
 
         var historyScroller = new Div(conversationStack);
         historyScroller.setSizeFull();
-        ConversationCss.SCROLL_REGION.addTo(historyScroller);
+        UiCss.CONVERSATION_SCROLL_REGION.addTo(historyScroller);
 
         var chatPane = new Div(historyScroller, inputShell);
         chatPane.setSizeFull();
-        ConversationCss.PANE.addTo(chatPane);
+        UiCss.CONVERSATION_PANE.addTo(chatPane);
 
         var content = getContent();
         content.setSizeFull();
-        ConversationCss.VIEW.addTo(content);
+        UiCss.CONVERSATION_VIEW.addTo(content);
         content.add(chatPane);
     }
 
@@ -91,10 +98,14 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     private void renderAssignment() {
         messageList.setItems(toMessages(assignment));
         if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
-            inputShell.setVisible(false);
+            inputShell.setVisible(true);
+            composer.clear();
+            composer.setPlaceholder(SUBMITTED_PLACEHOLDER);
+            updateComposerState();
             return;
         }
         inputShell.setVisible(true);
+        composer.setPlaceholder(ANSWER_PLACEHOLDER);
         composer.clear();
         updateComposerState();
     }
@@ -103,8 +114,26 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         if (assignmentId == null || composer.getValue().trim().isBlank()) {
             return;
         }
+        var wasSubmitted = assignment != null && assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED;
         assignment = evaluationService.answer(assignmentId, composer.getValue());
         renderAssignment();
+        if (!wasSubmitted && assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
+            showCompletionDialog();
+        }
+    }
+
+    private void showCompletionDialog() {
+        var dialog = new Dialog();
+        dialog.setHeaderTitle("Actividad finalizada");
+        dialog.add(new Paragraph(SUBMITTED_MESSAGE));
+
+        var homeButton = new Button("Volver al inicio", _ -> {
+            dialog.close();
+            UI.getCurrent().getPage().setLocation("/student");
+        });
+        homeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        dialog.getFooter().add(homeButton);
+        dialog.open();
     }
 
     private void updateComposerState() {
@@ -141,14 +170,14 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     private CodeMessageListItem assistantMessage(String content, Instant createdAt) {
         var item = new CodeMessageListItem(content, createdAt, TUTOR_NAME);
         item.setUserColorIndex();
-        ConversationCss.MESSAGE_ASSISTANT.addTo(item);
+        item.addClass(UiCss.CONVERSATION_MESSAGE_ASSISTANT);
         return item;
     }
 
     private CodeMessageListItem userMessage(String content, Instant createdAt) {
         var item = new CodeMessageListItem(content, createdAt, STUDENT_NAME);
         item.setUserColorIndex();
-        ConversationCss.MESSAGE_USER.addTo(item);
+        item.addClass(UiCss.CONVERSATION_MESSAGE_USER);
         return item;
     }
 }
