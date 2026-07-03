@@ -1,15 +1,16 @@
 package com.wornux.ui.training_activity;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.function.Consumer;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.html.Pre;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -19,14 +20,18 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.services.training_activity.TrainingActivityService;
+import com.wornux.ui.conversation.CodeMessageList;
+import com.wornux.ui.conversation.CodeMessageListItem;
 import com.wornux.ui.css.UiCss;
 
 public class TrainingActivityDialog extends Div {
 
-    private final TrainingActivity original;
-    private final TrainingActivityService trainingActivityService;
-    private final Consumer<TrainingActivity> onSave;
-    private final Runnable onClose;
+    private final transient TrainingActivity original;
+    private final transient TrainingActivityService trainingActivityService;
+    private final transient Consumer<TrainingActivity> onSave;
+    private final transient Runnable onClose;
+
+    private final Div panel = new Div();
     private final TextField titleField;
     private final TextArea instructionField;
 
@@ -46,67 +51,110 @@ public class TrainingActivityDialog extends Div {
         UiCss.TRAINING_ACTIVITY_OVERLAY_BACKDROP.addTo(backdrop);
         backdrop.addClickListener(_ -> close());
 
-        var panel = new Div();
         UiCss.TRAINING_ACTIVITY_OVERLAY_PANEL.addTo(panel);
 
-        var title = new H3("Activity: %s".formatted(activity.getTitle()));
-        title.getStyle().set("margin", "0");
-
-        titleField = new TextField("Title");
+        titleField = new TextField("Título");
         titleField.setWidthFull();
         titleField.setValue(activity.getTitle());
 
-        instructionField = new TextArea("Instructions");
+        instructionField = new TextArea("Instrucciones");
         instructionField.setWidthFull();
         instructionField.setMinHeight("9rem");
         instructionField.setMaxHeight("14rem");
         instructionField.setValue(activity.getInstructions());
 
-        var assignmentsGrid = new Grid<>(TrainingActivityAssignment.class, false);
-        assignmentsGrid.addColumn(this::studentName).setHeader("Student").setAutoWidth(true).setFlexGrow(1);
-        assignmentsGrid.addColumn(assignment -> assignment.getStatus().name()).setHeader("Status").setAutoWidth(true);
-        assignmentsGrid.addColumn(new ComponentRenderer<>(this::reportButton)).setHeader("Report").setAutoWidth(true);
-        assignmentsGrid.setEmptyStateText("No student assignments yet.");
-        assignmentsGrid.setItems(trainingActivityService.listAssignments(activity.getId()));
-        assignmentsGrid.setWidthFull();
+        add(backdrop, panel);
+        renderActivityMode();
+    }
 
-        var body = new VerticalLayout(title, titleField, instructionField, assignmentsGrid);
+    private void renderActivityMode() {
+        panel.removeAll();
+        panel.removeClassName("training-activity-overlay-panel--report");
+        panel.addClassName("training-activity-overlay-panel--activity");
+
+        var title = new H3("Actividad: %s".formatted(original.getTitle()));
+        title.getStyle().set("margin", "0");
+
+        titleField.setValue(original.getTitle());
+        instructionField.setValue(original.getInstructions());
+
+        var body = new VerticalLayout(title, titleField, instructionField, assignmentsGrid());
         body.setPadding(false);
         body.setSpacing(true);
         body.setWidthFull();
+        body.addClassName("training-activity-overlay-body");
 
-        var saveButton = new Button("Save changes", _ -> onSaveClick());
+        var saveButton = new Button("Guardar cambios", _ -> onSaveClick());
         saveButton.addThemeVariants(ButtonVariant.PRIMARY);
 
-        var closeButton = new Button("Close", _ -> close());
+        var closeButton = new Button("Cerrar", _ -> close());
 
         var footer = new HorizontalLayout(saveButton, closeButton);
         UiCss.TRAINING_ACTIVITY_OVERLAY_FOOTER.addTo(footer);
         footer.setPadding(false);
-        footer.setSpacing(true);
+        footer.setSpacing(false);
 
         panel.add(body, footer);
-        add(backdrop, panel);
     }
 
-    public void close() {
-        if (onClose != null) {
-            onClose.run();
-        }
+    private Grid<TrainingActivityAssignment> assignmentsGrid() {
+        var grid = new Grid<>(TrainingActivityAssignment.class, false);
+
+        grid.addColumn(this::studentName)
+                .setHeader("Estudiante")
+                .setWidth("0")
+                .setFlexGrow(1)
+                .setAutoWidth(false);
+
+        grid.addColumn(this::assignmentStatusLabel)
+                .setHeader("Estado")
+                .setWidth("7rem")
+                .setFlexGrow(0)
+                .setAutoWidth(false);
+
+        grid.addColumn(new ComponentRenderer<>(this::reportButton))
+                .setHeader("Reporte")
+                .setWidth("6.5rem")
+                .setFlexGrow(0)
+                .setAutoWidth(false);
+
+        grid.setEmptyStateText("No hay asignaciones todavía.");
+        grid.setItems(trainingActivityService.listAssignments(original.getId()));
+        grid.setWidthFull();
+
+        // Más alto para clases reales con más estudiantes.
+        grid.setHeight("min(34rem, 50vh)");
+
+        return grid;
+    }
+
+    private String assignmentStatusLabel(TrainingActivityAssignment assignment) {
+        return switch (assignment.getStatus()) {
+            case ASSIGNED -> "Asignada";
+            case STARTED -> "Iniciada";
+            case SUBMITTED -> "Enviada";
+            case SKIPPED -> "Omitida";
+            case EXPIRED -> "Vencida";
+            case EXCUSED -> "Eximida";
+        };
     }
 
     private void onSaveClick() {
         var title = titleField.getValue().trim();
         var instruction = instructionField.getValue().trim();
+
         if (title.isBlank() || instruction.isBlank()) {
-            Notification.show("Title and instructions are required");
+            Notification.show("El título y las instrucciones son obligatorios");
             return;
         }
+
         var updated = trainingActivityService.update(original.getId(), title, instruction);
-        Notification.show("Formative activity updated");
+        Notification.show("Actividad formativa actualizada");
+
         if (onSave != null) {
             onSave.accept(updated);
         }
+
         close();
     }
 
@@ -116,19 +164,78 @@ public class TrainingActivityDialog extends Div {
     }
 
     private Button reportButton(TrainingActivityAssignment assignment) {
-        var button = new Button("View report", _ -> openReport(assignment));
+        var button = new Button("Ver", _ -> renderReportMode(assignment));
         button.setEnabled(assignment.getFinalReport() != null && !assignment.getFinalReport().isBlank());
+        button.setWidthFull();
         return button;
     }
 
-    private void openReport(TrainingActivityAssignment assignment) {
-        var dialog = new Dialog();
-        dialog.setHeaderTitle("Evaluation report");
-        var report = new Pre(assignment.getFinalReport());
-        report.addClassName("evaluation-report-markdown");
-        report.getStyle().set("white-space", "pre-wrap");
-        dialog.add(new Paragraph(studentName(assignment)), report);
-        dialog.getFooter().add(new Button("Close", _ -> dialog.close()));
-        dialog.open();
+    private void renderReportMode(TrainingActivityAssignment assignment) {
+        panel.removeAll();
+        panel.removeClassName("training-activity-overlay-panel--activity");
+        panel.addClassName("training-activity-overlay-panel--report");
+
+        panel.add(reportHeader(assignment), reportBody(assignment), reportFooter());
+    }
+
+    private Component reportHeader(TrainingActivityAssignment assignment) {
+        var title = new H3("Reporte de evaluación");
+        title.getStyle().set("margin", "0");
+
+        var student = new Paragraph(studentName(assignment));
+        student.getStyle().set("margin", "0");
+
+        var activity = new Paragraph(assignment.getTrainingActivity().getTitle());
+        activity.getStyle()
+                .set("margin", "0")
+                .set("opacity", "0.72");
+
+        var header = new Div(title, student, activity);
+        header.addClassName("training-activity-report-header");
+
+        return header;
+    }
+
+    private Component reportBody(TrainingActivityAssignment assignment) {
+        var reportList = new CodeMessageList();
+        reportList.setMarkdown(true);
+        reportList.setWidthFull();
+
+        var createdAt = assignment.getSubmittedAt() != null
+                ? assignment.getSubmittedAt()
+                : Instant.now();
+
+        var reportItem = new CodeMessageListItem(
+                assignment.getFinalReport(),
+                createdAt,
+                "Tutor Socrático");
+
+        reportItem.addClass(UiCss.CONVERSATION_MESSAGE_ASSISTANT);
+        reportList.setItems(List.of(reportItem));
+
+        var reportContent = new Div(reportList);
+        reportContent.addClassName("training-activity-report-content");
+
+        return reportContent;
+    }
+
+    private Component reportFooter() {
+        var backButton = new Button("Volver a la actividad", _ -> renderActivityMode());
+
+        var closeButton = new Button("Cerrar", _ -> close());
+        closeButton.addThemeVariants(ButtonVariant.PRIMARY);
+
+        var footer = new HorizontalLayout(backButton, closeButton);
+        footer.addClassName("training-activity-report-footer");
+        footer.setPadding(false);
+        footer.setSpacing(false);
+        
+        return footer;
+    }
+
+    public void close() {
+        if (onClose != null) {
+            onClose.run();
+        }
     }
 }
