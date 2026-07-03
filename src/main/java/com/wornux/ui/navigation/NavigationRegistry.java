@@ -7,9 +7,11 @@ import com.wornux.security.permission.AppPermission;
 import com.wornux.ui.admin.SystemAdminWorkspaceView;
 import com.wornux.ui.conversation.ConversationView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
+import com.wornux.ui.professor.ProfessorWorkspaceView;
 import com.wornux.ui.rbac.GroupClassMemberRoleAssignmentView;
 import com.wornux.ui.rbac.RoleMatrixView;
 import com.wornux.ui.rbac.TenantMemberRoleAssignmentView;
+import com.wornux.ui.student.StudentWorkspaceView;
 import com.wornux.ui.tenant.TenantAdminWorkspaceView;
 import com.wornux.ui.training_activity.TrainingActivityView;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Component;
 public class NavigationRegistry {
     private final List<NavigationEntry> entries = List.of(
             new NavigationEntry("Administración", SystemAdminWorkspaceView.class, ContextLevel.PLATFORM, AppPermission.TENANT_VIEW, 10),
+            new NavigationEntry("Panel profesoral", ProfessorWorkspaceView.class, ContextLevel.GROUP_CLASS, AppPermission.GROUP_CLASS_MEMBER_VIEW, 11),
+            new NavigationEntry("Panel estudiantil", StudentWorkspaceView.class, ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, 12),
             new NavigationEntry("Institución", TenantAdminWorkspaceView.class, ContextLevel.TENANT, AppPermission.GROUP_CLASS_CREATE, 20),
             new NavigationEntry("Matriz de roles", RoleMatrixView.class, ContextLevel.PLATFORM, AppPermission.ROLE_VIEW, 22),
             new NavigationEntry("Roles de tenant", TenantMemberRoleAssignmentView.class, ContextLevel.TENANT, AppPermission.ROLE_ASSIGN, 24),

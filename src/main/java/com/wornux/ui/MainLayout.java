@@ -69,7 +69,6 @@ public class MainLayout extends AppLayout {
         var currentAccount = authenticatedAccountService.currentAccount();
 
         if (currentAccount.isPresent()) {
-            var account = currentAccount.get();
             var entries = navigationRegistry.entries().stream()
                     .filter(entry -> activeContextHolder.current()
                             .map(context -> context.level().ordinal() >= entry.minimumContextLevel().ordinal())

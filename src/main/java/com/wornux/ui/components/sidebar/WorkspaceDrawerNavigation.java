@@ -29,7 +29,12 @@ public class WorkspaceDrawerNavigation extends Div {
 
     private VaadinIcon iconFor(String label) {
         return switch (label) {
-            case "Administración", "Institución" -> VaadinIcon.HOME;
+            case "Administración" -> VaadinIcon.HOME;
+            case "Institución" -> VaadinIcon.INSTITUTION;
+            case "Panel profesoral" -> VaadinIcon.ACADEMY_CAP;
+            case "Panel estudiantil" -> VaadinIcon.USER;
+            case "Matriz de roles" -> VaadinIcon.TABLE;
+            case "Roles de tenant", "Roles de clase" -> VaadinIcon.KEY;
             case "Documentos" -> VaadinIcon.FILE_TEXT;
             case "Actividades" -> VaadinIcon.TASKS;
             default -> VaadinIcon.COMMENTS;
