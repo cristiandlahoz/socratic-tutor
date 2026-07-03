@@ -113,7 +113,9 @@ public class TrainingAssignmentEvaluationService {
             assignment.setStatus(TrainingActivityAssignmentStatus.SUBMITTED);
             assignment.setSubmittedAt(Instant.now());
             assignment.setCurrentQuestion(null);
-            assignment.setFinalReport(tutorService.finalReport(assignment));
+            assignment.setFinalReport(
+                tutorService.finalReport(assignment, transcriptMarkdown(transcript))
+            );
         } else {
             assignment.setStatus(TrainingActivityAssignmentStatus.STARTED);
             assignment.setCurrentQuestion(nextQuestion);
@@ -154,6 +156,21 @@ public class TrainingAssignmentEvaluationService {
                 exception
             );
         }
+    }
+
+    private String transcriptMarkdown(List<EvaluationExchange> transcript) {
+        if (transcript == null || transcript.isEmpty()) {
+            return "No hay respuestas registradas.";
+        }
+        var markdown = new StringBuilder();
+        for (var index = 0; index < transcript.size(); index++) {
+            var exchange = transcript.get(index);
+            markdown.append("### Pregunta ").append(index + 1).append("\n");
+            markdown.append(exchange.question()).append("\n\n");
+            markdown.append("**Respuesta del estudiante:**  \n");
+            markdown.append(exchange.answer()).append("\n\n");
+        }
+        return markdown.toString().trim();
     }
 
     public record EvaluationExchange(String question, String answer) {}

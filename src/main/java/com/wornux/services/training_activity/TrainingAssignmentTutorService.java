@@ -22,7 +22,7 @@ public class TrainingAssignmentTutorService {
         };
     }
 
-    public String finalReport(TrainingActivityAssignment assignment) {
+    public String finalReport(TrainingActivityAssignment assignment, String transcriptMarkdown) {
         return """
                # Evaluation report
 
@@ -36,6 +36,6 @@ public class TrainingAssignmentTutorService {
                """.formatted(
                 assignment.getTrainingActivity().getTitle(),
                 assignment.getQuestionCount(),
-                assignment.getEvaluationTranscript());
+                transcriptMarkdown);
     }
 }
