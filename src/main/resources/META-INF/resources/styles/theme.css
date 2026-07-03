@@ -83,6 +83,24 @@ body>* {
   z-index: 1;
 }
 
+#outlet {
+  box-sizing: border-box;
+  padding: var(--vaadin-padding-s);
+  background: var(--color-black);
+}
+
+#outlet>[id^="ROOT-"] {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 20%, var(--color-black));
+  border-radius: var(--vaadin-radius-l);
+  outline: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 10%, transparent);
+  box-shadow: var(--aura-shadow-s);
+  overflow: hidden;
+}
+
 vaadin-markdown {
   display: block;
   color: var(--message-prose-color);
@@ -170,6 +188,10 @@ body[data-theme-preference="light"] {
   --message-user-surface: color-mix(in srgb, var(--color-neutral-900) 10%, transparent);
   --message-user-border: color-mix(in srgb, var(--vaadin-text-color) 30%, transparent);
   --message-user-shadow: color-mix(in srgb, var(--color-black) 8%, transparent) 0px 2px 8px 0px;
+  --drawer-foreground: color-mix(in srgb, var(--vaadin-text-color) 86%, var(--aura-app-background));
+  --drawer-foreground-muted: color-mix(in srgb, var(--vaadin-text-color) 68%, var(--aura-app-background));
+  --drawer-foreground-strong: var(--vaadin-text-color);
+  --drawer-label-color: color-mix(in srgb, var(--vaadin-text-color) 74%, var(--aura-app-background));
 }
 
 @media (prefers-color-scheme: dark) {

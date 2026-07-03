@@ -1,5 +1,5 @@
 .login-view {
-  min-height: 100vh;
+  min-height: 100%;
   overflow: hidden;
   background:
     radial-gradient(circle at 16% 16%, color-mix(in srgb, var(--aura-accent-text-color) 5%, transparent), transparent 28rem),
@@ -12,7 +12,7 @@
   position: relative;
   isolation: isolate;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1.22fr) minmax(22rem, 0.78fr);
 }
@@ -437,7 +437,7 @@
   }
 
   .login-view__shell {
-    min-height: 100vh;
+    min-height: 100%;
     grid-template-columns: 1fr;
   }
 
