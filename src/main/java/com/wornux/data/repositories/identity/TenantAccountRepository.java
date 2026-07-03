@@ -16,4 +16,7 @@ public interface TenantAccountRepository extends JpaRepository<TenantAccount, UU
     Optional<TenantAccount> findByTenant_IdAndAccount_Id(UUID tenantId, UUID accountId);
 
     List<TenantAccount> findByAccount_IdAndLockedFalse(UUID accountId);
+
+    @EntityGraph(attributePaths = {"account", "tenant"})
+    List<TenantAccount> findByTenant_IdAndLockedFalseOrderByJoinedAtAsc(UUID tenantId);
 }

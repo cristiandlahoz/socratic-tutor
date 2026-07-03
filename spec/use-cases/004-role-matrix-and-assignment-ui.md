@@ -1,6 +1,6 @@
 # Spec 004 — Role Matrix and Assignment UI
 
-**Status:** Ready for implementation  
+**Status:** Implemented
 **Date:** 2026-07-02  
 **Depends on:** Specs 001, 002, and 003  
 **Do not:** start the app, use Playwright, or run full tests. Manual UI verification happens later.
