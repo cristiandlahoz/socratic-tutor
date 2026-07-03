@@ -1,6 +1,6 @@
 # Spec 001 — RBAC Schema and Domain Model Replacement
 
-**Status:** Ready for implementation  
+**Status:** Verified  
 **Date:** 2026-07-02  
 **Depends on:** none  
 **Do not:** start the app, run migrations manually, or run the full test suite. The implementer may add small Testcontainers integration tests only where listed.

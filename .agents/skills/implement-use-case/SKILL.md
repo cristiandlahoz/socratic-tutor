@@ -40,10 +40,15 @@ The following steps are mandatory and sequential. **Do not skip or reorder them.
 ### Step 5: Iterate
 - Keep iterating until everything looks and works great. Prefer great results over finishing quickly.
 
-### Step 6: Commit
+### Step 6: Mark the use case done
+- Once implementation, visual verification, and automated tests are complete, update the use case document status in `spec/use-cases/` to `Implemented`.
+- Update `spec/use-cases/README.md` so the spec index shows the same completed status.
+- If you performed a manual review against every acceptance check, use `Verified` instead of `Implemented`.
+
+### Step 7: Commit
 - Once all steps are complete and everything works, create a git commit with the changes.
 
-### Step 7: Squash to main and clean up
+### Step 8: Squash to main and clean up
 - After the implementation branch is committed and verified, switch to `main`.
 - Squash the use-case branch into `main`.
 - Create the final squash commit on `main`.

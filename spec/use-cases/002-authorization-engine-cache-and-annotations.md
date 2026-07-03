@@ -1,6 +1,6 @@
 # Spec 002 — Authorization Engine, Snapshot Cache, and Annotations
 
-**Status:** Ready for implementation  
+**Status:** Verified  
 **Date:** 2026-07-02  
 **Depends on:** Spec 001  
 **Do not:** start the app or run full tests. Add only the small integration tests listed here.
