@@ -55,15 +55,16 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     private final transient AuthenticatedAccountService authenticatedAccountService;
     private final transient TrainingActivityService trainingActivityService;
     private final transient WorkspaceRoutingService workspaceRoutingService;
-    private final TextField titleField = new TextField("Title");
-    private final TextArea instructionField = new TextArea("Instructions");
-    private final Button saveButton = new Button("Save draft");
-    private final Grid<TrainingActivity> grid = new Grid<>(TrainingActivity.class, false);
-    private final Button deleteButton = new Button("Delete");
-    private final Button launchButton = new Button("Launch activity");
-    private UUID pendingDialogActivityId;
-    private TrainingActivityDialog openDialog;
 
+    private final TextField titleField = new TextField("Título");
+    private final TextArea instructionField = new TextArea("Instrucciones");
+    private final Button saveButton = new Button("Guardar borrador");
+    private final Button deleteButton = new Button("Eliminar");
+    private final Button launchButton = new Button("Lanzar actividad");
+    private final Grid<TrainingActivity> grid = new Grid<>(TrainingActivity.class, false);
+
+    private UUID pendingDialogActivityId;
+    private TrainingActivityDialog activeDialog;
     public TrainingActivityView(
             TrainingActivityService trainingActivityService,
             WorkspaceRoutingService workspaceRoutingService,
@@ -74,18 +75,24 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
         var content = getContent();
         UiCss.TRAINING_ACTIVITY_VIEW.addTo(content);
+
         var layout = new VerticalLayout(buildHeader(), buildFormCard(), buildGridCard());
+        layout.addClassName("training-activity-content");
+        layout.setWidthFull();
         layout.setPadding(false);
         layout.setSpacing(true);
-        content.add(layout);
+
+        var pageContent = new Div(layout);
+        pageContent.setWidthFull();
+
+        content.add(pageContent);
         refreshGrid();
     }
 
     private Div buildHeader() {
-        var title = new H2("Formative Activities");
-        UiCss.UTILITY_MARGIN_NONE.addTo(title);
+        var title = new H2("Actividades formativas");
         var description = new Span(
-                "Create formative activities, launch drafts for the active class, and notify enrolled students by email.");
+                "Crea actividades formativas, lanza borradores para la clase activa y notifica a los estudiantes por correo.");
         UiCss.TRAINING_ACTIVITY_DESCRIPTION.addTo(description);
         var header = new Div(title, description);
         UiCss.TRAINING_ACTIVITY_HEADER.addTo(header);
@@ -96,7 +103,8 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         titleField.setWidthFull();
         titleField.setValueChangeMode(ValueChangeMode.EAGER);
         instructionField.setWidthFull();
-        instructionField.setMinHeight("8rem");
+        instructionField.setMinHeight("5rem");
+        instructionField.setMaxHeight("5rem");
         instructionField.setValueChangeMode(ValueChangeMode.EAGER);
         saveButton.addThemeVariants(ButtonVariant.PRIMARY);
         saveButton.setIcon(new Icon(VaadinIcon.PLUS));
@@ -108,17 +116,42 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     }
 
     private Div buildGridCard() {
-        grid.addColumn(TrainingActivity::getTitle).setHeader("Title").setAutoWidth(true).setSortable(true);
-        grid.addColumn(TrainingActivity::getInstructions).setHeader("Instructions").setWidth("24rem").setFlexGrow(1);
-        grid.addColumn(new ComponentRenderer<>(this::renderStatusBadge)).setHeader("Status").setWidth("8rem");
-        grid.addColumn(
-            act -> act.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_FORMATTER))
-                .setHeader("Created")
-                .setWidth("12rem");
+        grid.addColumn(TrainingActivity::getTitle)
+                .setHeader("Título")
+                .setWidth("0")
+                .setFlexGrow(1)
+                .setSortable(true)
+                .setAutoWidth(false);
+
+        grid.addColumn(TrainingActivity::getInstructions)
+                .setHeader("Instrucciones")
+                .setWidth("0")
+                .setFlexGrow(2)
+                .setAutoWidth(false);
+
+        grid.addColumn(new ComponentRenderer<>(this::renderStatusBadge))
+                .setHeader("Estado")
+                .setWidth("8rem")
+                .setFlexGrow(0)
+                .setAutoWidth(false);
+
+        grid.addColumn(act -> act.getCreatedAt()
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDateTime()
+                        .format(DATE_FORMATTER))
+                .setHeader("Creado")
+                .setWidth("11rem")
+                .setFlexGrow(0)
+                .setAutoWidth(false);
+
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
+        grid.addClassName("training-activity-main-grid");
         grid.setWidthFull();
+        grid.setHeightFull();
+
         grid.addItemDoubleClickListener(event -> openActivityDialog(event.getItem(), false));
+
         grid.asSingleSelect().addValueChangeListener(event -> {
             var selected = event.getValue();
             deleteButton.setEnabled(selected != null);
@@ -133,8 +166,11 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         launchButton.addThemeVariants(ButtonVariant.PRIMARY);
         launchButton.setIcon(new Icon(VaadinIcon.PLAY));
         launchButton.addClickListener(_ -> onLaunchSelected());
+
         var toolbar = new HorizontalLayout(deleteButton, launchButton);
+        toolbar.addClassName("training-activity-actions-row");
         toolbar.setPadding(false);
+        toolbar.setSpacing(true);
 
         var card = new Div(grid, toolbar);
         UiCss.TRAINING_ACTIVITY_GRID_CARD.addTo(card);
@@ -143,17 +179,19 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
     private Span renderStatusBadge(TrainingActivity activity) {
         var badge = new Span(switch (activity.getStatus()) {
-            case DRAFT -> "Draft";
-            case PUBLISHED -> "Published";
-            case CLOSED -> "Closed";
-            case ARCHIVED -> "Archived";
+            case DRAFT -> "Borrador";
+            case PUBLISHED -> "Publicada";
+            case CLOSED -> "Cerrada";
+            case ARCHIVED -> "Archivada";
         });
+
         badge.getElement().getThemeList().add(switch (activity.getStatus()) {
             case DRAFT -> "badge";
             case PUBLISHED -> "badge primary";
             case CLOSED -> "badge contrast";
             case ARCHIVED -> "badge success";
         });
+
         return badge;
     }
 
@@ -161,12 +199,12 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         var title = titleField.getValue().trim();
         var instruction = instructionField.getValue().trim();
         if (title.isBlank() || instruction.isBlank()) {
-            Notification.show("Complete the title and instructions before saving");
+            Notification.show("Completa el título y las instrucciones antes de guardar");
             return;
         }
         try {
             trainingActivityService.createPending(title, instruction);
-            Notification.show("Formative activity saved");
+            Notification.show("Actividad formativa guardada");
             titleField.clear();
             instructionField.clear();
             refreshGrid();
@@ -182,7 +220,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
             return;
         }
         trainingActivityService.delete(activity.getId());
-        Notification.show("Formative activity deleted");
+        Notification.show("Actividad formativa eliminada");
         refreshGrid();
     }
 
@@ -193,7 +231,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         }
         try {
             var launchedStudents = trainingActivityService.launch(activity.getId());
-            Notification.show("Formative activity launched for %d students".formatted(launchedStudents));
+            Notification.show("Actividad formativa lanzada para %d estudiantes".formatted(launchedStudents));
             refreshGrid();
         }
         catch (RuntimeException exception) {
@@ -238,37 +276,40 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         try {
             return UUID.fromString(rawValue);
         }
-        catch (IllegalArgumentException ignored) {
+        catch (IllegalArgumentException _) {
             return null;
         }
     }
 
     private void openActivityDialogFromRoute(UUID activityId) {
-        if (activityId == null || openDialog != null) {
+        if (activityId == null || activeDialog != null) {
             clearDialogAddressBarState();
             return;
         }
+
         try {
             openActivityDialog(trainingActivityService.get(activityId), true);
         }
-        catch (IllegalArgumentException ignored) {
+        catch (IllegalArgumentException _) {
             clearDialogAddressBarState();
         }
     }
 
     private void openActivityDialog(TrainingActivity activity, boolean clearAddressBarOnClose) {
-        openDialog = new TrainingActivityDialog(activity,
+        closeActivityDialog(false);
+        activeDialog = new TrainingActivityDialog(activity,
                 trainingActivityService,
                 this::onActivityUpdated,
                 () -> closeActivityDialog(clearAddressBarOnClose));
-        getContent().add(openDialog);
+        getContent().add(activeDialog);
     }
 
     private void closeActivityDialog(boolean clearAddressBarOnClose) {
-        if (openDialog != null) {
-            getContent().remove(openDialog);
-            openDialog = null;
+        if (activeDialog != null) {
+            getContent().remove(activeDialog);
+            activeDialog = null;
         }
+        refreshGrid();
         if (clearAddressBarOnClose) {
             clearDialogAddressBarState();
         }
