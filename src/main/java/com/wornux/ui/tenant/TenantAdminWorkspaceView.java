@@ -2,6 +2,7 @@ package com.wornux.ui.tenant;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -97,7 +98,11 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void configureToolbarFields() {
         tenantSelector.setItemLabelGenerator(AccessibleTenant::tenantName);
         UiCss.WORKSPACE_CONTEXT_SELECT.addTo(tenantSelector);
-        tenantSelector.addValueChangeListener(event -> switchTenant(event.getValue()));
+        tenantSelector.addValueChangeListener(event -> {
+            if (event.isFromClient()) {
+                switchTenant(event.getValue());
+            }
+        });
 
         UiCss.WORKSPACE_FIELD.addTo(searchField);
         searchField.setPlaceholder("Clase, código, asignatura o período");
@@ -322,7 +327,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         var tenants = tenantAdminWorkspaceService.listAccessibleTenants(account);
         tenantSelector.setItems(tenants);
         var selectedTenant = determineSelectedTenant(tenants, tenantSelector.getValue(), account);
-        if (selectedTenant != null && tenantSelector.getValue() != selectedTenant) {
+        if (selectedTenant != null && !Objects.equals(tenantSelector.getValue(), selectedTenant)) {
             tenantSelector.setValue(selectedTenant);
         }
         var activeTenant = tenantSelector.getValue();
@@ -348,10 +353,11 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         if (tenants == null || tenants.isEmpty()) {
             return null;
         }
-        if (currentValue != null
-                && tenants.stream()
-                        .anyMatch(tenant -> tenant.tenantAccountId().equals(currentValue.tenantAccountId()))) {
-            return currentValue;
+        if (currentValue != null) {
+            return tenants.stream()
+                    .filter(tenant -> tenant.tenantAccountId().equals(currentValue.tenantAccountId()))
+                    .findFirst()
+                    .orElseGet(tenants::getFirst);
         }
         return tenants.getFirst();
     }
