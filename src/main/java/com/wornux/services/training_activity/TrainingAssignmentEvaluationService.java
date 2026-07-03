@@ -1,6 +1,6 @@
 package com.wornux.services.training_activity;
 
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
@@ -42,7 +42,7 @@ public class TrainingAssignmentEvaluationService {
     @Transactional(readOnly = true)
     public TrainingActivityAssignment getForCurrentStudent(UUID assignmentId) {
         var context = contextResolver.requireCurrent();
-        if (context.groupClassRole() != GroupClassMemberRole.STUDENT) {
+        if (context.groupClassKind() != GroupClassMemberKind.STUDENT) {
             throw new SecurityException(
                 "Only students can complete assigned evaluations."
             );

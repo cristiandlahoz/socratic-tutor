@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.wornux.data.entities.academic.GroupClassMember;
-import com.wornux.data.entities.academic.GroupClassMemberRole;
+import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
@@ -116,7 +116,7 @@ class TrainingAssignmentEvaluationServiceTest {
                 UUID.randomUUID(),
                 memberId,
                 groupClassId,
-                GroupClassMemberRole.STUDENT
+                GroupClassMemberKind.STUDENT
             )
         );
 
