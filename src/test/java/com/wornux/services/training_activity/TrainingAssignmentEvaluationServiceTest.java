@@ -5,11 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberRole;
 import com.wornux.data.entities.training_activity.TrainingActivity;
@@ -18,8 +13,12 @@ import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStat
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+import tools.jackson.databind.json.JsonMapper;
 
 class TrainingAssignmentEvaluationServiceTest {
 
@@ -29,10 +28,18 @@ class TrainingAssignmentEvaluationServiceTest {
 
         var assignment = fixture.service.start(fixture.assignmentId);
 
-        assertThat(ReflectionTestUtils.getField(assignment, "status")).isEqualTo(TrainingActivityAssignmentStatus.STARTED);
-        assertThat(ReflectionTestUtils.getField(assignment, "questionCount")).isEqualTo(1);
-        assertThat((String) ReflectionTestUtils.getField(assignment, "currentQuestion")).isNotBlank();
-        assertThat(ReflectionTestUtils.getField(assignment, "startedAt")).isNotNull();
+        assertThat(
+            ReflectionTestUtils.getField(assignment, "status")
+        ).isEqualTo(TrainingActivityAssignmentStatus.STARTED);
+        assertThat(
+            ReflectionTestUtils.getField(assignment, "questionCount")
+        ).isEqualTo(1);
+        assertThat(
+            (String) ReflectionTestUtils.getField(assignment, "currentQuestion")
+        ).isNotBlank();
+        assertThat(
+            ReflectionTestUtils.getField(assignment, "startedAt")
+        ).isNotNull();
     }
 
     @Test
@@ -40,21 +47,34 @@ class TrainingAssignmentEvaluationServiceTest {
         var fixture = fixture();
         fixture.service.start(fixture.assignmentId);
 
-        var assignment = fixture.service.answer(fixture.assignmentId, "I understand the basics.");
+        var assignment = fixture.service.answer(
+            fixture.assignmentId,
+            "I understand the basics."
+        );
 
-        assertThat((String) ReflectionTestUtils.getField(assignment, "evaluationTranscript"))
-                .contains("I understand the basics.");
-        assertThat(ReflectionTestUtils.getField(assignment, "questionCount")).isEqualTo(2);
-        assertThat((String) ReflectionTestUtils.getField(assignment, "currentQuestion")).isNotBlank();
+        assertThat(
+            (String) ReflectionTestUtils.getField(
+                assignment,
+                "evaluationTranscript"
+            )
+        ).contains("I understand the basics.");
+        assertThat(
+            ReflectionTestUtils.getField(assignment, "questionCount")
+        ).isEqualTo(2);
+        assertThat(
+            (String) ReflectionTestUtils.getField(assignment, "currentQuestion")
+        ).isNotBlank();
     }
 
     @Test
     void answerRejectsBlankInput() {
         var fixture = fixture();
 
-        assertThatThrownBy(() -> fixture.service.answer(fixture.assignmentId, "   "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Evaluation answers cannot be blank.");
+        assertThatThrownBy(() ->
+            fixture.service.answer(fixture.assignmentId, "   ")
+        )
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Evaluation answers cannot be blank.");
     }
 
     private static Fixture fixture() {
@@ -73,22 +93,44 @@ class TrainingAssignmentEvaluationServiceTest {
         ReflectionTestUtils.setField(assignment, "id", assignmentId);
         ReflectionTestUtils.setField(assignment, "trainingActivity", activity);
         ReflectionTestUtils.setField(assignment, "groupClassMember", member);
-        ReflectionTestUtils.setField(assignment, "status", TrainingActivityAssignmentStatus.ASSIGNED);
+        ReflectionTestUtils.setField(
+            assignment,
+            "status",
+            TrainingActivityAssignmentStatus.ASSIGNED
+        );
         ReflectionTestUtils.setField(assignment, "assignedAt", Instant.now());
         ReflectionTestUtils.setField(assignment, "updatedAt", Instant.now());
 
         var repository = mock(TrainingActivityAssignmentRepository.class);
-        when(repository.findWithTrainingActivityById(assignmentId)).thenReturn(Optional.of(assignment));
-        when(repository.save(assignment)).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findWithTrainingActivityById(assignmentId)).thenReturn(
+            Optional.of(assignment)
+        );
+        when(repository.save(assignment)).thenAnswer(invocation ->
+            invocation.getArgument(0)
+        );
 
         var contextResolver = mock(ActiveAcademicContextResolver.class);
-        when(contextResolver.requireCurrent()).thenReturn(new ActiveAcademicContext(
-            UUID.randomUUID(), UUID.randomUUID(), memberId, groupClassId, GroupClassMemberRole.STUDENT));
+        when(contextResolver.requireCurrent()).thenReturn(
+            new ActiveAcademicContext(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                memberId,
+                groupClassId,
+                GroupClassMemberRole.STUDENT
+            )
+        );
 
         var service = new TrainingAssignmentEvaluationService(
-                repository, contextResolver, new TrainingAssignmentTutorService(), new ObjectMapper());
+            repository,
+            contextResolver,
+            new TrainingAssignmentTutorService(),
+            new JsonMapper()
+        );
         return new Fixture(service, assignmentId);
     }
 
-    private record Fixture(TrainingAssignmentEvaluationService service, UUID assignmentId) {}
+    private record Fixture(
+        TrainingAssignmentEvaluationService service,
+        UUID assignmentId
+    ) {}
 }
