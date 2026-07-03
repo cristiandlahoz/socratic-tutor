@@ -26,7 +26,7 @@ import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStat
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedAccountService;
-import com.wornux.services.training_activity.TrainingActivityLaunchBus;
+import com.wornux.services.training_activity.TrainingActivityLaunchedBus;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -45,21 +45,21 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     private final AuthenticatedAccountService authenticatedAccountService;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
-    private final TrainingActivityLaunchBus trainingActivityLaunchBus;
+    private final TrainingActivityLaunchedBus activityLaunchedBus;
     private final Div content = new Div();
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<TrainingActivityAssignment> assignmentsGrid = new Grid<>(TrainingActivityAssignment.class, false);
-    private AutoCloseable assignmentLaunchSubscription;
+    private AutoCloseable activityLaunchedSubscription;
 
     public StudentWorkspaceView(
             AuthenticatedAccountService authenticatedAccountService,
             WorkspaceRoutingService workspaceRoutingService,
             StudentWorkspaceService studentWorkspaceService,
-            TrainingActivityLaunchBus trainingActivityLaunchBus) {
+            TrainingActivityLaunchedBus activityLaunchedBus) {
         this.authenticatedAccountService = authenticatedAccountService;
         this.workspaceRoutingService = workspaceRoutingService;
         this.studentWorkspaceService = studentWorkspaceService;
-        this.trainingActivityLaunchBus = trainingActivityLaunchBus;
+        this.activityLaunchedBus = activityLaunchedBus;
 
         UiCss.WORKSPACE_VIEW.addTo(this);
         configureToolbarFields();
@@ -95,25 +95,28 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
 
     private void subscribeToAssignmentLaunches(UI ui) {
         unsubscribeFromAssignmentLaunches();
-        assignmentLaunchSubscription = trainingActivityLaunchBus.subscribe(event -> ui.access(() -> {
-            var selectedClass = classSelector.getValue();
-            if (selectedClass == null || !event.affectsGroupClassMember(selectedClass.groupClassMemberId())) {
-                return;
-            }
-            refreshAssignments();
-        }));
+        activityLaunchedSubscription = activityLaunchedBus.subscribe(notification -> {
+            ui.access(() -> {
+                var selectedClass = classSelector.getValue();
+                if (selectedClass == null || !notification.affectsGroupClassMember(selectedClass.groupClassMemberId())) {
+                    return;
+                }
+                refreshAssignments();
+            });
+        });
     }
 
     private void unsubscribeFromAssignmentLaunches() {
-        if (assignmentLaunchSubscription == null) {
+        if (activityLaunchedSubscription == null) {
             return;
         }
         try {
-            assignmentLaunchSubscription.close();
-        } catch (Exception ignored) {
-            // AutoCloseable is used only as a subscription handle.
+            activityLaunchedSubscription.close();
         }
-        assignmentLaunchSubscription = null;
+        catch (Exception exception) {
+            // Subscription.remove no tiene excepciones chequeadas.
+        }
+        activityLaunchedSubscription = null;
     }
 
     @Override

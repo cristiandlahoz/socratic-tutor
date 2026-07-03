@@ -42,7 +42,7 @@ public class TrainingActivityService {
     private final EmailTemplateService emailTemplateService;
     private final SocraticEmailProperties emailProperties;
     private final ActiveAcademicContextResolver contextResolver;
-    private final TrainingActivityLaunchBus trainingActivityLaunchBus;
+    private final TrainingActivityLaunchedBus activityLaunchedBus;
     private final TrainingActivityService self;
 
     public TrainingActivityService(
@@ -53,7 +53,7 @@ public class TrainingActivityService {
             EmailTemplateService emailTemplateService,
             SocraticEmailProperties emailProperties,
             ActiveAcademicContextResolver contextResolver,
-            TrainingActivityLaunchBus trainingActivityLaunchBus,
+            TrainingActivityLaunchedBus activityLaunchedBus,
             @Lazy TrainingActivityService self) {
         this.trainingActivityRepository = trainingActivityRepository;
         this.trainingActivityAssignmentRepository = trainingActivityAssignmentRepository;
@@ -62,7 +62,7 @@ public class TrainingActivityService {
         this.emailTemplateService = emailTemplateService;
         this.emailProperties = emailProperties;
         this.contextResolver = contextResolver;
-        this.trainingActivityLaunchBus = trainingActivityLaunchBus;
+        this.activityLaunchedBus = activityLaunchedBus;
         this.self = self;
     }
 
@@ -188,26 +188,27 @@ public class TrainingActivityService {
         trainingActivityRepository.save(activity);
 
         var messages = launchMessages(activity, students);
-        sendAfterCommit(messages);
-        publishAfterCommit(new TrainingActivityAssignmentLaunchedEvent(
+        var notification = new TrainingActivityLaunchedBus.Notification(
                 activity.getId(),
                 activity.getGroupClass().getId(),
-                students.stream().map(GroupClassMember::getId).collect(Collectors.toUnmodifiableSet())));
+                students.stream().map(GroupClassMember::getId).collect(Collectors.toUnmodifiableSet()));
+        sendAfterCommit(messages);
+        publishAfterCommit(notification);
         return students.size();
     }
 
-    private void publishAfterCommit(TrainingActivityAssignmentLaunchedEvent event) {
-        if (event.groupClassMemberIds().isEmpty()) {
+    private void publishAfterCommit(TrainingActivityLaunchedBus.Notification notification) {
+        if (notification.groupClassMemberIds().isEmpty()) {
             return;
         }
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            trainingActivityLaunchBus.publish(event);
+            activityLaunchedBus.publish(notification);
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                trainingActivityLaunchBus.publish(event);
+                activityLaunchedBus.publish(notification);
             }
         });
     }
