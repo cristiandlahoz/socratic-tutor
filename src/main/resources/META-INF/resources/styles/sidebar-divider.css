@@ -113,7 +113,7 @@ vaadin-button.app-sidebar__brand-info:focus-within::part(button) {
 }
 
 .theme-switcher__label {
-  color: var(--vaadin-text-color-disabled);
+  color: var(--drawer-label-color);
   font-family: var(--aura-font-family);
   font-size: var(--aura-font-size-xs);
   letter-spacing: 0.04em;
@@ -139,7 +139,7 @@ vaadin-button.theme-switcher__button::part(button) {
   border: 0;
   background: transparent;
   box-shadow: none;
-  color: color-mix(in srgb, var(--vaadin-text-color-disabled) 72%, transparent);
+  color: var(--drawer-foreground-muted);
   opacity: 0.68;
   transition:
     color var(--motion-fast),
@@ -149,12 +149,12 @@ vaadin-button.theme-switcher__button::part(button) {
 
 vaadin-button.theme-switcher__button:hover::part(button),
 vaadin-button.theme-switcher__button.is-active::part(button) {
-  color: var(--vaadin-text-color);
+  color: var(--drawer-foreground-strong);
   opacity: 1;
 }
 
 vaadin-button.theme-switcher__button:focus-within::part(button) {
-  color: var(--vaadin-text-color);
+  color: var(--drawer-foreground-strong);
   opacity: 0.9;
 }
 
@@ -163,7 +163,7 @@ vaadin-button.theme-switcher__button.is-active::part(button) {
 }
 
 vaadin-button.theme-switcher__button::part(label) {
-  color: color-mix(in srgb, var(--vaadin-text-color-disabled) 72%, transparent);
+  color: var(--drawer-foreground-muted);
   font-family: var(--aura-font-family);
   font-size: var(--aura-font-size-s);
   font-weight: var(--aura-font-weight-medium);
@@ -175,14 +175,14 @@ vaadin-button.theme-switcher__button::part(label) {
 }
 
 vaadin-button.theme-switcher__button.is-active::part(label) {
-  color: var(--vaadin-text-color);
+  color: var(--drawer-foreground-strong);
   font-weight: var(--aura-font-weight-semibold);
   opacity: 1;
 }
 
 vaadin-button.theme-switcher__button:hover::part(label),
 vaadin-button.theme-switcher__button:focus-within::part(label) {
-  color: var(--vaadin-text-color);
+  color: var(--drawer-foreground-strong);
   opacity: 0.9;
 }
 
@@ -326,7 +326,7 @@ vaadin-button.theme-switcher__button:focus-within::part(label) {
   padding: 0 0.25rem 0;
   border: 0 solid transparent;
   border-radius: var(--vaadin-radius-m);
-  background: var(--vaadin-background-container-strong);
+  background: var(--composer-surface);
   box-shadow: none;
 }
 
@@ -342,9 +342,28 @@ vaadin-button.theme-switcher__button:focus-within::part(label) {
   padding-right: 0;
 }
 
+.profile-drawer-card .theme-switcher__label {
+  color: var(--composer-helper-color);
+}
+
+.profile-drawer-card vaadin-button.theme-switcher__button::part(button),
+.profile-drawer-card vaadin-button.theme-switcher__button::part(label) {
+  color: var(--composer-helper-color);
+}
+
+.profile-drawer-card vaadin-button.theme-switcher__button:hover::part(button),
+.profile-drawer-card vaadin-button.theme-switcher__button:focus-within::part(button),
+.profile-drawer-card vaadin-button.theme-switcher__button.is-active::part(button),
+.profile-drawer-card vaadin-button.theme-switcher__button:hover::part(label),
+.profile-drawer-card vaadin-button.theme-switcher__button:focus-within::part(label),
+.profile-drawer-card vaadin-button.theme-switcher__button.is-active::part(label) {
+  color: var(--composer-text-color, var(--color-white));
+}
+
 vaadin-button.profile-drawer-card__logout {
   width: 100%;
   --vaadin-button-padding: 0;
+  --vaadin-button-text-color: var(--color-white);
 }
 
 vaadin-button.profile-drawer-card__logout::part(button) {
@@ -352,14 +371,8 @@ vaadin-button.profile-drawer-card__logout::part(button) {
   justify-content: flex-start;
   min-height: 2rem;
   padding: 0;
-  color: var(--vaadin-text-color-secondary);
   background: transparent;
   box-shadow: none;
-}
-
-vaadin-button.profile-drawer-card__logout:hover::part(button),
-vaadin-button.profile-drawer-card__logout:focus-within::part(button) {
-  color: var(--vaadin-text-color);
 }
 
 @media (prefers-reduced-motion: reduce) {

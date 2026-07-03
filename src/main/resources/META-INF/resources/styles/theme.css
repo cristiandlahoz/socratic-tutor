@@ -180,7 +180,14 @@ body[data-theme-preference="light"] {
   body[data-theme-preference="system"] {
     --vaadin-border-color-secondary: oklch(26.59% 0.0100 196.6deg);
     --composer-surface: var(--color-olive-950);
+    --composer-border: color-mix(in srgb, var(--vaadin-text-color) 14%, var(--aura-app-background));
+    --composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 18%, var(--composer-border));
     --composer-helper-color: color-mix(in srgb, var(--vaadin-text-color-secondary) 72%, var(--color-olive-950));
+    --drawer-foreground: oklch(70.99% 0.0146 145.4deg);
+    --drawer-foreground-muted: color-mix(in srgb, var(--drawer-foreground) 72%, transparent);
+    --drawer-foreground-strong: color-mix(in srgb, var(--drawer-foreground) 86%, var(--vaadin-text-color));
+    --drawer-label-color: var(--drawer-foreground-muted);
+    --drawer-accent-color: var(--drawer-foreground);
   }
 }
 
@@ -192,5 +199,12 @@ html[data-theme-preference="dark"],
 body[data-theme-preference="dark"] {
   --vaadin-border-color-secondary: oklch(26.59% 0.0100 196.6deg);
   --composer-surface: var(--color-olive-950);
+  --composer-border: color-mix(in srgb, var(--vaadin-text-color) 14%, var(--aura-app-background));
+  --composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 18%, var(--composer-border));
   --composer-helper-color: color-mix(in srgb, var(--vaadin-text-color-secondary) 72%, var(--color-olive-950));
+  --drawer-foreground: oklch(70.99% 0.0146 145.4deg);
+  --drawer-foreground-muted: color-mix(in srgb, var(--drawer-foreground) 72%, transparent);
+  --drawer-foreground-strong: color-mix(in srgb, var(--drawer-foreground) 86%, var(--vaadin-text-color));
+  --drawer-label-color: var(--drawer-foreground-muted);
+  --drawer-accent-color: var(--drawer-foreground);
 }

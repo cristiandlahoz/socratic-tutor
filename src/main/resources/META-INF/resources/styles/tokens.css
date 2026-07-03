@@ -52,8 +52,13 @@
   --composer-header-border: color-mix(in srgb, var(--composer-border) 72%, transparent);
   --ascii-animation-shadow: 0 0 0.22rem color-mix(in srgb, var(--aura-accent-text-color) 18%, transparent);
 
-  --ui-toggle-color: var(--vaadin-text-color-secondary);
-  --ui-toggle-hover-color: var(--vaadin-text-color);
+  --drawer-foreground: var(--vaadin-text-color-secondary);
+  --drawer-foreground-muted: color-mix(in srgb, var(--vaadin-text-color-disabled) 72%, transparent);
+  --drawer-foreground-strong: var(--vaadin-text-color);
+  --drawer-label-color: var(--vaadin-text-color-disabled);
+  --drawer-accent-color: var(--aura-accent-text-color);
+  --ui-toggle-color: var(--drawer-foreground);
+  --ui-toggle-hover-color: var(--drawer-foreground-strong);
 
   --trail-line-color: color-mix(in srgb, var(--vaadin-border-color) 68%, var(--vaadin-text-color-secondary));
   --trail-line-active-color: color-mix(in srgb, var(--aura-accent-text-color) 52%, var(--vaadin-border-color));

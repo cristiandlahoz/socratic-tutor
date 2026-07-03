@@ -107,7 +107,7 @@ vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within {
 vaadin-drawer-toggle.shell-drawer-toggle:hover::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button) {
   background: color-mix(in srgb, var(--aura-app-background) 72%, var(--vaadin-background-container-strong));
-  border-color: color-mix(in srgb, var(--aura-accent-text-color) 54%, var(--vaadin-border-color));
+  border-color: color-mix(in srgb, var(--drawer-accent-color) 54%, var(--vaadin-border-color));
   color: var(--ui-toggle-hover-color);
   transform: translateY(-1px);
 }
@@ -115,7 +115,7 @@ vaadin-drawer-toggle.shell-drawer-toggle:focus-within::part(button) {
 vaadin-drawer-toggle.shell-drawer-toggle-inside:hover::part(button),
 vaadin-drawer-toggle.shell-drawer-toggle-inside:focus-within::part(button) {
   background: var(--vaadin-background-container-strong);
-  border-color: var(--aura-accent-text-color);
+  border-color: var(--drawer-accent-color);
   color: var(--ui-toggle-hover-color);
   transform: translateY(-1px);
 }

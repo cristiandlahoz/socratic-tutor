@@ -7,15 +7,14 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.ui.css.UiCss;
 
 public class ProfileDrawerCard extends Div {
 
     private final Div menu;
-    private final Icon chevron;
+    private final SvgIcon chevron;
     private final NativeButton headerButton;
 
     public ProfileDrawerCard(Account account, Component themeControl, Runnable logoutAction) {
@@ -27,7 +26,7 @@ public class ProfileDrawerCard extends Div {
         menu = new Div(menuContent);
         UiCss.PROFILE_DRAWER_CARD_MENU.addTo(menu);
 
-        chevron = new Icon(VaadinIcon.CHEVRON_UP);
+        chevron = new SvgIcon("/icons/chevron.svg");
         UiCss.PROFILE_DRAWER_CARD_CHEVRON.addTo(chevron);
 
         headerButton = createHeaderButton(account);
@@ -62,7 +61,7 @@ public class ProfileDrawerCard extends Div {
     }
 
     private Button createLogoutButton(Runnable logoutAction) {
-        var button = new Button("Cerrar sesión", new Icon(VaadinIcon.SIGN_OUT));
+        var button = new Button("Cerrar sesión", new SvgIcon("/icons/logout.svg"));
         button.addThemeVariants(ButtonVariant.TERTIARY);
         UiCss.PROFILE_DRAWER_CARD_LOGOUT.addTo(button);
         button.addClickListener(_ -> logoutAction.run());
@@ -107,7 +106,6 @@ public class ProfileDrawerCard extends Div {
             getElement().getClassList().remove(UiCss.EXPANDED.value());
         }
         button.getElement().setAttribute("aria-expanded", Boolean.toString(expanded));
-        chevron.getElement().setAttribute("icon", expanded ? "vaadin:chevron-down" : "vaadin:chevron-up");
     }
 
     private String displayName(Account account) {
