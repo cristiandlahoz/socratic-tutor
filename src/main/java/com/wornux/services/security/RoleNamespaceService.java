@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import com.wornux.data.entities.authorization.RoleNamespace;
 import com.wornux.data.repositories.authorization.RoleNamespaceRepository;
+import com.wornux.security.authorization.RbacChangedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class RoleNamespaceService {
 
     private final RoleNamespaceRepository roleNamespaceRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public RoleNamespaceService(RoleNamespaceRepository roleNamespaceRepository) {
+    public RoleNamespaceService(RoleNamespaceRepository roleNamespaceRepository, ApplicationEventPublisher eventPublisher) {
         this.roleNamespaceRepository = roleNamespaceRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -27,5 +31,11 @@ public class RoleNamespaceService {
         namespace.setCreatedAt(now);
         namespace.setUpdatedAt(now);
         return roleNamespaceRepository.save(namespace);
+    }
+
+    @Transactional
+    public void recordRbacChange(UUID roleNamespaceId) {
+        roleNamespaceRepository.incrementRbacVersion(roleNamespaceId);
+        eventPublisher.publishEvent(new RbacChangedEvent(roleNamespaceId));
     }
 }

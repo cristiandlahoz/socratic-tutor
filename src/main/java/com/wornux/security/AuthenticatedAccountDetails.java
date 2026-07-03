@@ -1,6 +1,7 @@
 package com.wornux.security;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import com.wornux.data.entities.academic.GroupClassMember;
@@ -12,15 +13,19 @@ import org.springframework.security.core.userdetails.UserDetails;
 public class AuthenticatedAccountDetails implements UserDetails {
 
     private final Account account;
-    private final Collection<? extends GrantedAuthority> authorities;
+    private final AppPrincipal principal;
 
-    public AuthenticatedAccountDetails(Account account, Collection<? extends GrantedAuthority> authorities) {
+    public AuthenticatedAccountDetails(Account account) {
         this.account = account;
-        this.authorities = authorities;
+        this.principal = new AppPrincipal(account.getId(), account.getEmail(), account.isLocked());
     }
 
     public Account account() {
         return account;
+    }
+
+    public AppPrincipal principal() {
+        return principal;
     }
 
     public Optional<TenantAccount> currentTenantAccount() {
@@ -33,7 +38,7 @@ public class AuthenticatedAccountDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
+        return List.of();
     }
 
     @Override

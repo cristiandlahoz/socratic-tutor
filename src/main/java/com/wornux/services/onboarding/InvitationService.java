@@ -28,6 +28,7 @@ import com.wornux.data.repositories.identity.TenantRepository;
 import com.wornux.data.repositories.onboarding.InvitationRepository;
 import com.wornux.services.email.EmailSendException;
 import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.RoleNamespaceService;
 import com.wornux.services.workspace.WorkspaceDecision;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,6 +54,7 @@ public class InvitationService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticatedAccountService authenticatedAccountService;
     private final WorkspaceRoutingService workspaceRoutingService;
+    private final RoleNamespaceService roleNamespaceService;
 
     public InvitationService(
             SocraticEmailProperties emailProperties,
@@ -70,7 +72,8 @@ public class InvitationService {
             OnboardingSessionContext onboardingSessionContext,
             PasswordEncoder passwordEncoder,
             AuthenticatedAccountService authenticatedAccountService,
-            WorkspaceRoutingService workspaceRoutingService) {
+            WorkspaceRoutingService workspaceRoutingService,
+            RoleNamespaceService roleNamespaceService) {
         this.emailProperties = emailProperties;
         this.invitationRepository = invitationRepository;
         this.accountRepository = accountRepository;
@@ -87,6 +90,7 @@ public class InvitationService {
         this.passwordEncoder = passwordEncoder;
         this.authenticatedAccountService = authenticatedAccountService;
         this.workspaceRoutingService = workspaceRoutingService;
+        this.roleNamespaceService = roleNamespaceService;
     }
 
     @Transactional
@@ -293,6 +297,7 @@ public class InvitationService {
         tenantAccountRole.setAssignedByTenantAccount(assignedBy);
         tenantAccountRole.setAssignedAt(Instant.now());
         tenantAccountRoleRepository.save(tenantAccountRole);
+        roleNamespaceService.recordRbacChange(role.getRoleNamespace().getId());
     }
 
     private void assignGroupClassRoleIfNeeded(
@@ -318,6 +323,7 @@ public class InvitationService {
         groupClassMemberRole.setAssignedByGroupClassMember(assignedBy);
         groupClassMemberRole.setAssignedAt(Instant.now());
         groupClassMemberRoleRepository.save(groupClassMemberRole);
+        roleNamespaceService.recordRbacChange(role.getRoleNamespace().getId());
     }
 
     private GroupClassMember createOrReuseMembership(TenantAccount tenantAccount, Invitation invitation) {
