@@ -78,3 +78,7 @@ Use only for local visual verification / development testing:
 - Professor: `alfredo@wornux.com` / `1234f`
 - Tenant admin: `camacho@wornux.com` / `1234f`
 - System admin: `admin@wornux.com` / `1234f`
+
+## Vaadin UI debugging
+
+When making or reviewing UI/CSS changes, use the global `vaadin-view-debugging` skill. It defines the required agent-browser workflow for inspecting Vaadin web components, shadow DOM parts, Aura/base theme variables, computed styles, stale selectors, and dead CSS cleanup.
