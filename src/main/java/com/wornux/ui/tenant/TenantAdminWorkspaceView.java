@@ -33,6 +33,8 @@ import com.wornux.data.entities.academic.AcademicPeriod;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.Subject;
 import com.wornux.data.entities.identity.Account;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleTenant;
 import com.wornux.services.workspace.TenantAdminWorkspaceService;
@@ -46,6 +48,7 @@ import com.wornux.ui.css.UiCss;
 @Route(value = "tenant", layout = MainLayout.class)
 @PageTitle("Espacio de administración institucional")
 @PermitAll
+@RequiresPermission(AppPermission.GROUP_CLASS_VIEW)
 public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");

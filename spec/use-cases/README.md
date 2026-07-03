@@ -23,7 +23,7 @@ Implementation must follow the specs in order. Each spec depends on the previous
 |----|-------|--------|----------------|-------|
 | SPEC-001 | RBAC Schema and Domain Model | Verified | Database, entities, repositories | Replaces the current RBAC schema. Removes resource/action/permission tables and models roles, namespaces, assignments, class membership identity, and ownership boundaries. |
 | SPEC-002 | Authorization Engine, Cache, and Annotations | Verified | Security services, Caffeine, annotations | Builds the runtime authorization engine, access snapshots, cache invalidation, and annotation-based checks for service-level permissions. |
-| SPEC-003 | Login Context, Navigation, and Route Security | Pending | Login workflow, Vaadin navigation, MainLayout | Adds login context selection, navbar context switching, custom Vaadin route authorization, NoAccessView, and permission-based navigation items. |
+| SPEC-003 | Login Context, Navigation, and Route Security | Implemented | Login workflow, Vaadin navigation, MainLayout | Adds login context selection, navbar context switching, custom Vaadin route authorization, NoAccessView, and permission-based navigation items. |
 | SPEC-004 | Role Matrix and Assignment UI | Pending | Vaadin RBAC administration UI | Adds contextual role matrix screens and assignment screens for platform, tenant, and group-class role management. |
 
 ## Dependency order

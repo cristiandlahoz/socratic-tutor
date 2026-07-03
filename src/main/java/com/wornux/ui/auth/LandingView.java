@@ -8,12 +8,15 @@ import com.vaadin.flow.router.Route;
 import com.wornux.services.onboarding.InvitationService;
 import com.wornux.services.onboarding.InvitationStateException;
 import com.wornux.services.onboarding.OnboardingSessionContext;
+import com.wornux.services.context.ContextSelectionResult;
+import com.wornux.services.context.ContextSelectionService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.admin.SystemAdminWorkspaceView;
 import com.wornux.ui.professor.ProfessorWorkspaceView;
 import com.wornux.ui.student.StudentWorkspaceView;
 import com.wornux.ui.tenant.TenantAdminWorkspaceView;
+import com.wornux.services.security.AuthenticatedAccountService;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "", autoLayout = false)
@@ -24,14 +27,20 @@ public class LandingView extends Div implements BeforeEnterObserver {
     private final WorkspaceRoutingService workspaceRoutingService;
     private final InvitationService invitationService;
     private final OnboardingSessionContext onboardingSessionContext;
+    private final AuthenticatedAccountService authenticatedAccountService;
+    private final ContextSelectionService contextSelectionService;
 
     public LandingView(
             WorkspaceRoutingService workspaceRoutingService,
             InvitationService invitationService,
-            OnboardingSessionContext onboardingSessionContext) {
+            OnboardingSessionContext onboardingSessionContext,
+            AuthenticatedAccountService authenticatedAccountService,
+            ContextSelectionService contextSelectionService) {
         this.workspaceRoutingService = workspaceRoutingService;
         this.invitationService = invitationService;
         this.onboardingSessionContext = onboardingSessionContext;
+        this.authenticatedAccountService = authenticatedAccountService;
+        this.contextSelectionService = contextSelectionService;
     }
 
     @Override
@@ -52,12 +61,11 @@ public class LandingView extends Div implements BeforeEnterObserver {
             }
         }
 
-        var decision = workspaceRoutingService.resolveCurrentUserDestination();
-        if (decision.destination() == WorkspaceDestination.NO_ACCESS) {
-            event.forwardTo(NoAccessView.class);
-            return;
+        switch (contextSelectionService.resolveLoginContext(authenticatedAccountService.requireCurrentAccount())) {
+            case ContextSelectionResult.NoAccess ignored -> event.forwardTo(NoAccessView.class);
+            case ContextSelectionResult.SelectionRequired ignored -> event.forwardTo(ContextSelectionView.class);
+            case ContextSelectionResult.Selected selected -> event.forwardTo(contextSelectionService.defaultRoute(selected.option()));
         }
-        forwardToDestination(event, decision.destination());
     }
 
     private void forwardToDestination(BeforeEnterEvent event, WorkspaceDestination destination) {

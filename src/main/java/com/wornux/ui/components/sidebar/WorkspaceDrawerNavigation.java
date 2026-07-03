@@ -1,40 +1,39 @@
 package com.wornux.ui.components.sidebar;
 
+import java.util.List;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.RouterLink;
-import com.wornux.ui.admin.SystemAdminWorkspaceView;
 import com.wornux.ui.components.SidebarItem;
 import com.wornux.ui.css.UiCss;
-import com.wornux.ui.layout.MainLayoutAccess;
-import com.wornux.ui.professor.ProfessorWorkspaceView;
-import com.wornux.ui.student.StudentWorkspaceView;
-import com.wornux.ui.tenant.TenantAdminWorkspaceView;
+import com.wornux.ui.navigation.NavigationEntry;
 
 public class WorkspaceDrawerNavigation extends Div {
 
-    public WorkspaceDrawerNavigation(MainLayoutAccess access) {
+    public WorkspaceDrawerNavigation(List<NavigationEntry> entries) {
         UiCss.SIDEBAR_ACTIONS.addTo(this);
 
         var actions = new Div();
         UiCss.SIDEBAR_ACTIONS_LIST.addTo(actions);
 
-        if (access.systemAdmin()) {
-            actions.add(createNavigationButton(SystemAdminWorkspaceView.class, "Inicio", new Icon(VaadinIcon.HOME)));
-        }
-        if (access.tenantAdmin()) {
-            actions.add(createNavigationButton(TenantAdminWorkspaceView.class, "Inicio", new Icon(VaadinIcon.HOME)));
-        }
-        if (access.professor()) {
-            actions.add(createNavigationButton(ProfessorWorkspaceView.class, "Inicio", new Icon(VaadinIcon.HOME)));
-        }
-        if (access.student()) {
-            actions.add(createNavigationButton(StudentWorkspaceView.class, "Inicio", new Icon(VaadinIcon.HOME)));
-        }
+        entries.forEach(entry -> actions.add(createNavigationButton(
+                entry.routeTarget(),
+                entry.label(),
+                new Icon(iconFor(entry.label())))));
 
         add(actions);
+    }
+
+    private VaadinIcon iconFor(String label) {
+        return switch (label) {
+            case "Administración", "Institución" -> VaadinIcon.HOME;
+            case "Documentos" -> VaadinIcon.FILE_TEXT;
+            case "Actividades" -> VaadinIcon.TASKS;
+            default -> VaadinIcon.COMMENTS;
+        };
     }
 
     private RouterLink createNavigationButton(

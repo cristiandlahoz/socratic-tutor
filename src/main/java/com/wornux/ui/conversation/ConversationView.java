@@ -30,6 +30,8 @@ import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
 import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
@@ -44,6 +46,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 @Route(value = "chat", layout = MainLayout.class)
 @PermitAll
+@RequiresPermission(AppPermission.CONVERSATION_VIEW)
 public class ConversationView extends Composite<Div> implements BeforeEnterObserver {
 
     private final ConversationViewModel viewModel;

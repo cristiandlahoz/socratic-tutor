@@ -1,6 +1,6 @@
 # Spec 003 — Login Context Selection, Navbar Switching, and Route Security
 
-**Status:** Ready for implementation  
+**Status:** Implemented  
 **Date:** 2026-07-02  
 **Depends on:** Specs 001 and 002  
 **Do not:** start the app, use Playwright, or run full tests. UI behavior is implemented now and manually verified later.

@@ -19,6 +19,8 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleClass;
@@ -34,6 +36,7 @@ import com.wornux.ui.css.UiCss;
 @Route(value = "student", layout = MainLayout.class)
 @PageTitle("Espacio del estudiante")
 @PermitAll
+@RequiresPermission(AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW)
 public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final AuthenticatedAccountService authenticatedAccountService;

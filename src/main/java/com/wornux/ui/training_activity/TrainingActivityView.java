@@ -32,6 +32,8 @@ import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.context.SetupRequiredException;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.training_activity.TrainingActivityService;
@@ -42,6 +44,7 @@ import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.css.UiCss;
 
 @Route(value = "training-activities", layout = MainLayout.class)
+@RequiresPermission(AppPermission.TRAINING_ACTIVITY_VIEW)
 public class TrainingActivityView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
 
     private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");

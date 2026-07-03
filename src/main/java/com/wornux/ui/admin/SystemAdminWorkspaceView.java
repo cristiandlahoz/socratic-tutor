@@ -25,6 +25,8 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.identity.Tenant;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.SystemAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -37,6 +39,7 @@ import com.wornux.ui.css.UiCss;
 @Route(value = "admin", layout = MainLayout.class)
 @PageTitle("Espacio de administración del sistema")
 @PermitAll
+@RequiresPermission(AppPermission.TENANT_VIEW)
 public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private enum AdminFilter {

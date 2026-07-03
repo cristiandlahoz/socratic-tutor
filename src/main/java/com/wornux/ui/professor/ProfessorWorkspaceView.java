@@ -16,6 +16,8 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.academic.GroupClassMember;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
@@ -32,6 +34,7 @@ import com.wornux.ui.css.UiCss;
 @Route(value = "professor", layout = MainLayout.class)
 @PageTitle("Espacio del profesor")
 @PermitAll
+@RequiresPermission(AppPermission.GROUP_CLASS_MEMBER_VIEW)
 public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
     private final AuthenticatedAccountService authenticatedAccountService;

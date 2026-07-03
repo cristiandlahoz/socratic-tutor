@@ -30,6 +30,8 @@ import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.services.document.CourseMaterialCatalog;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
@@ -43,6 +45,7 @@ import jakarta.annotation.security.PermitAll;
 
 @Route(value = "documents", layout = MainLayout.class)
 @PermitAll
+@RequiresPermission(AppPermission.COURSE_MATERIAL_VIEW)
 public class DocumentIngestionView extends Composite<Div> implements BeforeEnterObserver {
 
     private final DocumentIngestionUiController controller;

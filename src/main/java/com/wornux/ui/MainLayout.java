@@ -15,11 +15,18 @@ import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.security.AuthenticationContext;
+import java.util.Comparator;
+
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.wornux.data.entities.identity.Account;
+import com.wornux.data.entities.identity.ContextLevel;
 import com.wornux.data.enums.ThemePreference;
+import com.wornux.security.authorization.ActiveContextHolder;
+import com.wornux.security.authorization.AuthorizationService;
+import com.wornux.services.context.AvailableContextOption;
+import com.wornux.services.context.ContextDiscoveryService;
+import com.wornux.services.context.ContextSelectionService;
 import com.wornux.services.security.AuthenticatedAccountService;
-import com.wornux.services.workspace.WorkspaceDestination;
-import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.sidebar.ChatDrawerActions;
@@ -30,7 +37,8 @@ import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.conversation.ConversationViewModel;
 import com.wornux.ui.css.CssClass;
 import com.wornux.ui.css.UiCss;
-import com.wornux.ui.layout.MainLayoutAccess;
+import com.wornux.ui.navigation.NavigationEntry;
+import com.wornux.ui.navigation.NavigationRegistry;
 import jakarta.annotation.security.PermitAll;
 
 @Layout
@@ -44,8 +52,12 @@ public class MainLayout extends AppLayout {
             @RouteScopeOwner(MainLayout.class) ConversationState state,
             @RouteScopeOwner(MainLayout.class) ConversationViewModel viewModel,
             AuthenticatedAccountService authenticatedAccountService,
-            WorkspaceRoutingService workspaceRoutingService,
-            AuthenticationContext authenticationContext) {
+            AuthenticationContext authenticationContext,
+            ActiveContextHolder activeContextHolder,
+            AuthorizationService authorizationService,
+            ContextDiscoveryService contextDiscoveryService,
+            ContextSelectionService contextSelectionService,
+            NavigationRegistry navigationRegistry) {
         setPrimarySection(Section.DRAWER);
         addToNavbar(createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE, "Abrir menú"));
         this.viewModel = viewModel;
@@ -60,18 +72,24 @@ public class MainLayout extends AppLayout {
         drawerContent.add(createBrandSection());
 
         var currentAccount = authenticatedAccountService.currentAccount();
-        var access = currentAccount
-                .map(account -> resolveAccess(account, workspaceRoutingService))
-                .orElseGet(MainLayoutAccess::none);
 
         if (currentAccount.isPresent()) {
-            drawerContent.add(new WorkspaceDrawerNavigation(access));
-            if (access.canChat()) {
-                drawerContent.add(new ChatDrawerActions(access, state, this.viewModel));
+            var account = currentAccount.get();
+            drawerContent.add(createContextSwitcher(account, activeContextHolder, contextDiscoveryService, contextSelectionService));
+            var entries = navigationRegistry.entries().stream()
+                    .filter(entry -> activeContextHolder.current()
+                            .map(context -> context.level().ordinal() >= entry.minimumContextLevel().ordinal())
+                            .orElse(false))
+                    .filter(entry -> authorizationService.can(entry.requiredPermission()))
+                    .sorted(Comparator.comparingInt(NavigationEntry::order))
+                    .toList();
+            drawerContent.add(new WorkspaceDrawerNavigation(entries));
+            if (entries.stream().anyMatch(entry -> entry.requiredPermission().code().startsWith("conversation:"))) {
+                drawerContent.add(new ChatDrawerActions(new com.wornux.ui.layout.MainLayoutAccess(false, false, true, true), state, this.viewModel));
                 drawerContent.add(new ConversationHistoryDrawer(state, this.viewModel));
             }
-            currentAccount.map(account -> new ProfileDrawerCard(
-                account,
+            currentAccount.map(user -> new ProfileDrawerCard(
+                user,
                 createThemePreferenceControl(state, this.viewModel),
                 authenticationContext::logout))
                     .ifPresent(drawerContent::add);
@@ -83,12 +101,35 @@ public class MainLayout extends AppLayout {
         addToDrawer(drawerScroller);
     }
 
-    private MainLayoutAccess resolveAccess(Account account, WorkspaceRoutingService workspaceRoutingService) {
-        return new MainLayoutAccess(
-            workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.SYSTEM_ADMIN),
-            workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.TENANT_ADMIN),
-            workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR),
-            workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT));
+    private Div createContextSwitcher(
+            Account account,
+            ActiveContextHolder activeContextHolder,
+            ContextDiscoveryService contextDiscoveryService,
+            ContextSelectionService contextSelectionService) {
+        var options = contextDiscoveryService.discover(account);
+        var active = activeContextHolder.current();
+        var tenantOptions = options.stream().filter(option -> option.level() == ContextLevel.TENANT).toList();
+        var classOptions = options.stream().filter(option -> option.level() == ContextLevel.GROUP_CLASS).toList();
+        var container = new Div();
+        UiCss.THEME_SWITCHER.addTo(container);
+        if (!tenantOptions.isEmpty()) {
+            container.add(new Span(tenantOptions.getFirst().label()));
+        }
+        if (classOptions.size() > 1 || active.map(context -> context.level() == ContextLevel.GROUP_CLASS).orElse(false)) {
+            var selector = new ComboBox<AvailableContextOption>("Clase");
+            selector.setItems(classOptions);
+            selector.setItemLabelGenerator(AvailableContextOption::label);
+            active.flatMap(context -> classOptions.stream().filter(option -> option.matches(context)).findFirst())
+                    .ifPresent(selector::setValue);
+            selector.addValueChangeListener(event -> {
+                if (event.isFromClient() && event.getValue() != null) {
+                    var selected = contextSelectionService.select(account, event.getValue());
+                    getUI().ifPresent(ui -> ui.navigate(contextSelectionService.defaultRoute(selected)));
+                }
+            });
+            container.add(selector);
+        }
+        return container;
     }
 
     private Div createBrandSection() {
