@@ -24,7 +24,7 @@ public class TrainingAssignmentTutorService {
 
     public String finalReport(TrainingActivityAssignment assignment, String transcriptMarkdown) {
         return """
-               # Evaluation report
+               Evaluation report
 
                Activity: %s
 
