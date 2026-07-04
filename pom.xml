@@ -26,9 +26,9 @@
         <version.spotless>3.6.0</version.spotless>
         <version.checkstyle.maven>3.6.0</version.checkstyle.maven>
         <version.checkstyle>13.3.0</version.checkstyle>
-        <analysis.checkstyle.config>build/checkstyle-config.xml</analysis.checkstyle.config>
-        <analysis.spotless.formatter.config>build/eclipse-formatter-config.xml</analysis.spotless.formatter.config>
-        <analysis.spotless.importorder.config>build/eclipse-formatter-config.importorder </analysis.spotless.importorder.config>
+        <analysis.checkstyle.config>config/checkstyle-config.xml</analysis.checkstyle.config>
+        <analysis.spotless.formatter.config>config/eclipse-formatter-config.xml</analysis.spotless.formatter.config>
+        <analysis.spotless.importorder.config>config/eclipse-formatter-config.importorder </analysis.spotless.importorder.config>
     </properties>
 
     <dependencyManagement>
