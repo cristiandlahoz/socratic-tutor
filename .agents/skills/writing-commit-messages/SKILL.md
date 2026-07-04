@@ -1,8 +1,9 @@
 ---
 name: writing-commit-messages
 description: >-
-  Writes Git commit messages. Activates when the user asks to write
-  a commit message, draft a commit message, or similar.
+  Writes and applies Git/Jujutsu commit messages. Activates when the
+  user asks to write a commit message, draft a commit message, commit
+  changes, amend/describe a change, or similar.
 ---
 
 # Writing Commit Messages
@@ -20,6 +21,15 @@ Write commit messages that follow commit style guidelines for the project.
 ```
 
 ## Rules
+
+### Style
+
+Follow a Mitchell Hashimoto-style commit message: small subsystem
+prefix, concise imperative subject, and a plain-text body that explains
+context. Prefer direct technical prose over conventional-commit labels
+such as `feat:`, `fix:`, or `chore:`. The body should explain why the
+change exists and how behavior or structure changes, without merely
+listing files.
 
 ### Subject line
 
@@ -52,6 +62,8 @@ Write commit messages that follow commit style guidelines for the project.
 
 ## Workflow
 
+- Use this skill for both drafting commit messages and executing
+  commits. Do not bypass it when the user asks to commit changes.
 - If `.jj` is present, use `jj` instead of `git` for all commands.
 - Run a diff to see what changes are present since the last commit.
 - Identify the subsystem from the changed file paths.
@@ -65,4 +77,4 @@ Write commit messages that follow commit style guidelines for the project.
   change. This includes rewriting a just-created commit message,
   fixing an empty working-copy description, or applying the drafted
   message to an already-materialized change.
-- Don't push the commit; leave that to the user.
+- Don't push the commit unless the user explicitly asks for it.
