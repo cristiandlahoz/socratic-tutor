@@ -1,8 +1,13 @@
 package com.wornux.ui.training_activity;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -11,6 +16,7 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
@@ -29,6 +35,17 @@ import com.wornux.ui.conversation.CodeMessageListItem;
 import com.wornux.ui.css.UiCss;
 
 public class TrainingActivityDialog extends Div {
+
+    private static final DateTimeFormatter REPORT_DATE_FORMATTER = DateTimeFormatter
+            .ofPattern("dd MMM yyyy · HH:mm", Locale.of("es", "DO"));
+
+    private static final Pattern QUESTION_HEADING_PATTERN = Pattern.compile(
+            "^\\s*(?:#{1,6}\\s*)?\\**\\s*Pregunta\\s+(\\d+)\\s*\\**\\s*$",
+            Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern STUDENT_ANSWER_LABEL_PATTERN = Pattern.compile(
+            "^\\s*(?:[-*]\\s*)?\\**\\s*Respuesta del estudiante\\s*:\\s*\\**\\s*$",
+            Pattern.CASE_INSENSITIVE);
 
     private final transient TrainingActivity original;
     private final transient TrainingActivityService trainingActivityService;
@@ -274,18 +291,41 @@ public class TrainingActivityDialog extends Div {
         var student = new Paragraph(studentName(assignment));
         student.getStyle().set("margin", "0");
 
-        var activity = new Paragraph(assignment.getTrainingActivity().getTitle());
-        activity.getStyle()
-                .set("margin", "0")
-                .set("opacity", "0.72");
+        var activity = new Span("Actividad: %s".formatted(assignment.getTrainingActivity().getTitle()));
+        var status = createReportBadge(assignmentStatusLabel(assignment).toUpperCase(Locale.ROOT));
 
-        var header = new Div(title, student, activity);
+        var meta = new Div(activity, status);
+        meta.addClassName("training-activity-report-meta");
+
+        var submittedAt = assignment.getSubmittedAt();
+        if (submittedAt != null) {
+            var submitted = new Span(submittedAt.atZone(ZoneId.systemDefault()).format(REPORT_DATE_FORMATTER));
+            meta.add(submitted);
+        }
+
+        var header = new Div(title, student, meta);
         header.addClassName("training-activity-report-header");
 
         return header;
     }
 
     private Component reportBody(TrainingActivityAssignment assignment) {
+        var report = assignment.getFinalReport();
+        var questions = parseQuestions(report);
+        if (questions.isEmpty()) {
+            return fallbackReport(report, assignment);
+        }
+
+        var reportContent = new Div();
+        reportContent.addClassName("training-activity-report-content");
+
+        reportContent.add(
+                reportTitle(extractReportTitle(report)),
+                transcriptSection(questions));
+        return reportContent;
+    }
+
+    private Component fallbackReport(String report, TrainingActivityAssignment assignment) {
         var reportList = new CodeMessageList();
         reportList.setMarkdown(true);
         reportList.setWidthFull();
@@ -295,7 +335,7 @@ public class TrainingActivityDialog extends Div {
                 : Instant.now();
 
         var reportItem = new CodeMessageListItem(
-                assignment.getFinalReport(),
+                report,
                 createdAt,
                 "Tutor Socrático");
 
@@ -306,6 +346,165 @@ public class TrainingActivityDialog extends Div {
         reportContent.addClassName("training-activity-report-content");
 
         return reportContent;
+    }
+
+    private List<ReportQuestion> parseQuestions(String report) {
+        if (report == null || report.isBlank()) {
+            return List.of();
+        }
+
+        var questions = new ArrayList<ReportQuestion>();
+        var prompt = new ArrayList<String>();
+        var answer = new ArrayList<String>();
+        Integer currentNumber = null;
+        var readingAnswer = false;
+
+        for (var rawLine : report.split("\\R")) {
+            var questionMatcher = QUESTION_HEADING_PATTERN.matcher(rawLine);
+            if (questionMatcher.matches()) {
+                addReportQuestion(questions, currentNumber, prompt, answer);
+                currentNumber = Integer.parseInt(questionMatcher.group(1));
+                prompt.clear();
+                answer.clear();
+                readingAnswer = false;
+                continue;
+            }
+
+            if (currentNumber == null) {
+                continue;
+            }
+
+            if (STUDENT_ANSWER_LABEL_PATTERN.matcher(rawLine).matches()) {
+                readingAnswer = true;
+                continue;
+            }
+
+            if (readingAnswer) {
+                answer.add(rawLine);
+            }
+            else {
+                prompt.add(rawLine);
+            }
+        }
+
+        addReportQuestion(questions, currentNumber, prompt, answer);
+        return questions;
+    }
+
+    private void addReportQuestion(
+            List<ReportQuestion> questions,
+            Integer number,
+            List<String> promptLines,
+            List<String> answerLines) {
+        if (number == null) {
+            return;
+        }
+
+        var prompt = normalizeReportBlock(promptLines);
+        var answer = normalizeReportBlock(answerLines);
+        if (!prompt.isBlank() && !answer.isBlank()) {
+            questions.add(new ReportQuestion(number, prompt, answer));
+        }
+    }
+
+    private String normalizeReportBlock(List<String> lines) {
+        var start = 0;
+        var end = lines.size();
+
+        while (start < end && lines.get(start).isBlank()) {
+            start++;
+        }
+        while (end > start && lines.get(end - 1).isBlank()) {
+            end--;
+        }
+
+        return String.join("\n", lines.subList(start, end)).trim();
+    }
+
+    private String extractReportTitle(String report) {
+        if (report == null || report.isBlank()) {
+            return "Evaluation report";
+        }
+
+        var preTranscript = report.split("(?im)^\\s*Transcript\\s*$", 2)[0];
+        for (var rawLine : preTranscript.split("\\R")) {
+            var line = stripMarkdownDecorators(rawLine.trim());
+            if (line.isBlank()
+                    || line.regionMatches(true, 0, "Activity:", 0, "Activity:".length())) {
+                continue;
+            }
+            return line;
+        }
+
+        return "Evaluation report";
+    }
+
+    private String stripMarkdownDecorators(String text) {
+        return text.replaceFirst("^#{1,6}\\s*", "")
+                .replaceAll("^\\*+|\\*+$", "")
+                .trim();
+    }
+
+    private Component reportTitle(String text) {
+        var title = new H4(text);
+        title.addClassName("training-activity-report-title");
+        return title;
+    }
+
+    private Component transcriptSection(List<ReportQuestion> questions) {
+        var title = new H4("Transcripción");
+        title.addClassName("training-activity-transcript-title");
+
+        var section = new Div(title);
+        section.addClassName("training-activity-transcript-section");
+        questions.stream()
+                .map(this::questionConversationCard)
+                .forEach(section::add);
+        return section;
+    }
+
+    private Component questionConversationCard(ReportQuestion question) {
+        var title = new Span("Pregunta %d".formatted(question.number()));
+        title.addClassName("training-activity-conversation-title");
+
+        var badge = new Span("RESPONDIDA");
+        badge.addClassName("training-activity-conversation-badge");
+
+        var header = new Div(title, badge);
+        header.addClassName("training-activity-conversation-card-header");
+
+        var body = new Div(
+                conversationMessage("Tutor Socrático", question.tutorPrompt(), true),
+                conversationMessage("Estudiante", question.studentAnswer(), false));
+        body.addClassName("training-activity-conversation-body");
+
+        var card = new Div(header, body);
+        card.addClassName("training-activity-conversation-card");
+        return card;
+    }
+
+    private Component conversationMessage(String author, String text, boolean tutor) {
+        var authorLabel = new Span(author);
+        authorLabel.addClassName("training-activity-conversation-author");
+
+        var message = new Paragraph(text);
+        message.addClassName("training-activity-conversation-message");
+        message.addClassName(tutor
+                ? "training-activity-conversation-message--tutor"
+                : "training-activity-conversation-message--student");
+
+        var row = new Div(authorLabel, message);
+        row.addClassName("training-activity-conversation-row");
+        row.addClassName(tutor
+                ? "training-activity-conversation-row--tutor"
+                : "training-activity-conversation-row--student");
+        return row;
+    }
+
+    private Span createReportBadge(String text) {
+        var badge = new Span(text);
+        badge.addClassName("training-activity-report-badge");
+        return badge;
     }
 
     private Component reportFooter() {
@@ -326,5 +525,8 @@ public class TrainingActivityDialog extends Div {
         if (onClose != null) {
             onClose.run();
         }
+    }
+
+    private record ReportQuestion(int number, String tutorPrompt, String studentAnswer) {
     }
 }

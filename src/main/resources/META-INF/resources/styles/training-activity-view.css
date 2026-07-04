@@ -5,7 +5,8 @@
 .training-activity-view {
   position: relative;
   width: 100%;
-  height: 100dvh;
+  height: 100%;
+  max-height: 100%;
   min-width: 0;
   min-height: 0;
   margin: 0;
@@ -20,6 +21,7 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .training-activity-content {
@@ -28,6 +30,7 @@
   min-width: 0;
   min-height: 0;
   align-items: stretch;
+  overflow: hidden;
 }
 
 .training-activity-header {
@@ -71,15 +74,16 @@
 }
 
 .training-activity-grid-card {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .training-activity-main-grid {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   width: 100%;
   min-width: 0;
-  min-height: 20rem;
+  min-height: 0;
 }
 
 .training-activity-actions-row {
@@ -207,6 +211,9 @@
 }
 
 .training-activity-report-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-padding-l, 1.5rem);
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
@@ -214,6 +221,175 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding-block: var(--vaadin-padding-m, 1rem);
+  font-family: var(--aura-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace);
+}
+
+.training-activity-report-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--vaadin-gap-xs, 0.25rem) var(--vaadin-gap-m, 1rem);
+  margin-top: var(--vaadin-padding-xs, 0.5rem);
+  color: var(--vaadin-secondary-text-color, color-mix(in srgb, var(--vaadin-text-color) 72%, transparent));
+  font-size: var(--aura-font-size-xs, 0.875rem);
+}
+
+.training-activity-report-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 1.35rem;
+  padding: 0.125rem 0.5rem;
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-primary-color, #007b92) 32%, var(--vaadin-border-color));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vaadin-primary-color, #007b92) 9%, var(--vaadin-background-container));
+  color: var(--vaadin-primary-text-color, var(--vaadin-text-color));
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.training-activity-conversation-card {
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: var(--vaadin-radius-m, 12px);
+  background: color-mix(in srgb, var(--vaadin-background-container-strong) 84%, var(--aura-app-background));
+  box-shadow: var(--aura-shadow-xs, 0 10px 30px rgba(0, 0, 0, 0.08));
+}
+
+.training-activity-conversation-author {
+  color: var(--vaadin-tertiary-text-color, color-mix(in srgb, var(--vaadin-text-color) 58%, transparent));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.training-activity-report-title {
+  margin: 0;
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-l, 1.125rem);
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+}
+
+.training-activity-transcript-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-padding-m, 1rem);
+  width: 100%;
+  min-width: 0;
+}
+
+.training-activity-transcript-title {
+  margin: 0;
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-m, 1rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.training-activity-conversation-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.training-activity-conversation-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vaadin-text-color) 4%, transparent), transparent 42%);
+}
+
+.training-activity-conversation-card-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vaadin-gap-m, 1rem);
+  padding: var(--vaadin-padding-s, 0.75rem) var(--vaadin-padding-m, 1rem);
+  border-bottom: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+}
+
+.training-activity-conversation-title {
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-s, 0.875rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.training-activity-conversation-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 1.35rem;
+  padding: 0.125rem 0.5rem;
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 34%, var(--vaadin-border-color));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 8%, transparent);
+  color: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 82%, var(--vaadin-text-color));
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.training-activity-conversation-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-padding-m, 1rem);
+  padding: var(--vaadin-padding-m, 1rem);
+}
+
+.training-activity-conversation-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-xs, 0.25rem);
+  width: min(78%, 42rem);
+  min-width: 0;
+}
+
+.training-activity-conversation-row--student {
+  align-self: flex-end;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.training-activity-conversation-row--tutor {
+  align-self: flex-start;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.training-activity-conversation-message {
+  width: 100%;
+  margin: 0;
+  padding: var(--vaadin-padding-s, 0.75rem) var(--vaadin-padding-m, 1rem);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary, var(--vaadin-border-color));
+  border-radius: var(--vaadin-radius-s, 8px);
+  background: var(--vaadin-background-container);
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-s, 0.875rem);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.training-activity-conversation-message--student {
+  color: color-mix(in srgb, var(--vaadin-text-color) 88%, var(--aura-accent-text-color, var(--vaadin-primary-color)));
+}
+
+.training-activity-conversation-message--tutor {
+  border-color: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 20%, var(--vaadin-border-color));
+  background: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 5%, var(--vaadin-background-container));
 }
 
 .training-activity-report-footer {
@@ -246,5 +422,15 @@
     width: 100%;
     max-height: calc(100dvh - 2rem);
     padding: var(--vaadin-padding-m, 1rem);
+  }
+
+  .training-activity-conversation-row {
+    width: min(88%, 42rem);
+  }
+}
+
+@media (max-width: 560px) {
+  .training-activity-conversation-row {
+    width: 100%;
   }
 }
