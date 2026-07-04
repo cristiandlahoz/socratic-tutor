@@ -1,5 +1,6 @@
 :root {
   --color-black: #000;
+  --color-black-700: #0B0D0B;
   --color-white: #fff;
   --color-red-400: oklch(70.4% 0.191 22.216);
   --color-red-600: oklch(57.7% 0.245 27.325);

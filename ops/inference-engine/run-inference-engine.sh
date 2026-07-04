@@ -90,13 +90,34 @@ WARM_UP_MODELS="${WARM_UP_MODELS:-AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL unsloth/g
 WARM_UP_TIMEOUT_SECONDS="${WARM_UP_TIMEOUT_SECONDS:-900}"
 WARM_UP_MAX_TOKENS="${WARM_UP_MAX_TOKENS:-1}"
 
+port_is_available() {
+  python3 - "$LLAMA_SWAP_HOST" "$LLAMA_SWAP_PORT" <<'PY'
+import socket
+import sys
+
+host, port = sys.argv[1], int(sys.argv[2])
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        sock.bind((host, port))
+    except OSError:
+        sys.exit(1)
+PY
+}
+
 wait_for_health() {
   local base_url="$1"
   local timeout_seconds="$2"
+  local pid="$3"
   local start
   start="$(date +%s)"
 
   until curl -fsS "$base_url/health" >/dev/null 2>&1; do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo "error: llama-swap exited before becoming healthy" >&2
+      wait "$pid" 2>/dev/null || true
+      return 1
+    fi
     if (( $(date +%s) - start >= timeout_seconds )); then
       echo "error: llama-swap did not become healthy within ${timeout_seconds}s" >&2
       return 1
@@ -112,16 +133,22 @@ json_escape() {
 warm_up_model() {
   local base_url="$1"
   local model="$2"
-  local model_json
+  local model_json payload
   model_json="$(json_escape "$model")"
+  payload="$(printf '{"model":%s,"messages":[{"role":"user","content":"Reply OK."}],"max_tokens":%s,"stream":false}' "$model_json" "$WARM_UP_MAX_TOKENS")"
 
   echo "[warm-up] loading/downloading if missing: $model"
-  curl -fsS --max-time "$WARM_UP_TIMEOUT_SECONDS" \
+  if curl -fsS --max-time "$WARM_UP_TIMEOUT_SECONDS" \
     "$base_url/v1/chat/completions" \
     -H 'Content-Type: application/json' \
-    -d "{\"model\":${model_json},\"messages\":[{\"role\":\"user\",\"content\":\"Reply OK.\"}],\"max_tokens\":${WARM_UP_MAX_TOKENS},\"stream\":false}" \
+    -d "$payload" \
     >/dev/null
-  echo "[warm-up] ready: $model"
+  then
+    echo "[warm-up] ready: $model"
+  else
+    echo "[warm-up] failed: $model" >&2
+    return 1
+  fi
 }
 
 run_warm_up() {
@@ -129,7 +156,7 @@ run_warm_up() {
   [[ -n "$WARM_UP_MODELS" ]] || return 0
 
   echo "[warm-up] waiting for llama-swap health"
-  wait_for_health "$base_url" "$WARM_UP_TIMEOUT_SECONDS"
+  wait_for_health "$base_url" "$WARM_UP_TIMEOUT_SECONDS" "$LLAMA_SWAP_PID"
 
   local model
   # shellcheck disable=SC2206
@@ -154,6 +181,12 @@ Spring AI env examples:
   OPENAI_BASE_URL=http://$LLAMA_SWAP_HOST:$LLAMA_SWAP_PORT/v1
   CHAT_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
 INFO
+
+if ! port_is_available; then
+  echo "error: cannot start llama-swap; $LLAMA_SWAP_HOST:$LLAMA_SWAP_PORT is already in use" >&2
+  echo "Stop the existing process or choose another LLAMA_SWAP_PORT." >&2
+  exit 1
+fi
 
 "$LLAMA_SWAP_BIN" "${ARGS[@]}" &
 LLAMA_SWAP_PID=$!

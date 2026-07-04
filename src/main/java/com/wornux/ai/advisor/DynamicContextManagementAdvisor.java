@@ -36,7 +36,7 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
             from grounding_vector_store
             where metadata ->> 'groupClassId' = :groupClassId
               and metadata ->> 'status' = 'READY'
-              and metadata::jsonb ? 'catalog'
+              and metadata::jsonb -> 'catalog' is not null
               and coalesce(metadata -> 'catalog' ->> 'label', '') <> ''
               and coalesce(metadata -> 'catalog' ->> 'useWhen', '') <> ''
             order by metadata ->> 'ingestionId', id

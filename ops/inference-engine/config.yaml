@@ -4,14 +4,19 @@
 # Some HF models take more than the default 120s to download/load on cold start.
 healthCheckTimeout: 600
 
+# Include upstream llama-server logs. This makes model download/load failures visible.
+logToStdout: both
+
 models:
   "AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL":
+    proxy: "http://127.0.0.1:${PORT}"
     cmd: |
-      "${INFERENCE_ENGINE_ROOT:-.}/start-llama-server.sh" AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL ${PORT} 7000 8192
+      ./start-llama-server.sh AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL ${PORT} 7000 8192
 
   "unsloth/gemma-4-E4B-it-GGUF:IQ4_XS":
+    proxy: "http://127.0.0.1:${PORT}"
     cmd: |
-      "${INFERENCE_ENGINE_ROOT:-.}/start-llama-server.sh" unsloth/gemma-4-E4B-it-GGUF:IQ4_XS ${PORT} 4000 2048
+      ./start-llama-server.sh unsloth/gemma-4-E4B-it-GGUF:IQ4_XS ${PORT} 4000 2048
 
 # Allow both models to remain loaded concurrently.
 matrix:
