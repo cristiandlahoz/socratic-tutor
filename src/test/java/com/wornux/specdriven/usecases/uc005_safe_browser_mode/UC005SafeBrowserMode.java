@@ -199,7 +199,7 @@ class UC005SafeBrowserMode {
                 contextResolver,
                 assignmentStateBus);
         var evaluationService = new TrainingAssignmentEvaluationService(
-                assignmentRepository, contextResolver, new TrainingAssignmentTutorService(), new JsonMapper());
+                assignmentRepository, activityRepository, contextResolver, new TrainingAssignmentTutorService(), new JsonMapper());
 
         return new Fixture(
                 safeBrowserModeService,
