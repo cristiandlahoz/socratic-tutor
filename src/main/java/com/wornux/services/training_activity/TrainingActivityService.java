@@ -228,14 +228,17 @@ public class TrainingActivityService {
         activity.setStatus(TrainingActivityLifecycleStatus.CLOSED);
         activity.setClosesAt(now);
         activity.setUpdatedAt(now);
-        var openAssignments = trainingActivityAssignmentRepository.findByTrainingActivity_IdAndStatusNot(
+        var nonSubmittedAssignments = trainingActivityAssignmentRepository.findByTrainingActivity_IdAndStatusNot(
                 activity.getId(), TrainingActivityAssignmentStatus.SUBMITTED);
-        for (var assignment : openAssignments) {
+        for (var assignment : nonSubmittedAssignments) {
+            if (!assignment.getStatus().isTerminal()) {
+                assignment.setStatus(TrainingActivityAssignmentStatus.EXPIRED);
+            }
             assignment.setSafeBrowserSessionActive(false);
             assignment.setUpdatedAt(now);
         }
-        if (!openAssignments.isEmpty()) {
-            trainingActivityAssignmentRepository.saveAll(openAssignments);
+        if (!nonSubmittedAssignments.isEmpty()) {
+            trainingActivityAssignmentRepository.saveAll(nonSubmittedAssignments);
         }
         return trainingActivityRepository.save(activity);
     }

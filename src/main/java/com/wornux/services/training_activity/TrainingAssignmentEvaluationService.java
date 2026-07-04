@@ -5,6 +5,7 @@ import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
+import com.wornux.data.repositories.training_activity.TrainingActivityRepository;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -24,17 +25,20 @@ public class TrainingAssignmentEvaluationService {
     > TRANSCRIPT_TYPE = new TypeReference<>() {};
 
     private final TrainingActivityAssignmentRepository assignmentRepository;
+    private final TrainingActivityRepository activityRepository;
     private final ActiveAcademicContextResolver contextResolver;
     private final TrainingAssignmentTutorService tutorService;
     private final JsonMapper jsonMapper;
 
     public TrainingAssignmentEvaluationService(
         TrainingActivityAssignmentRepository assignmentRepository,
+        TrainingActivityRepository activityRepository,
         ActiveAcademicContextResolver contextResolver,
         TrainingAssignmentTutorService tutorService,
         JsonMapper jsonMapper
     ) {
         this.assignmentRepository = assignmentRepository;
+        this.activityRepository = activityRepository;
         this.contextResolver = contextResolver;
         this.tutorService = tutorService;
         this.jsonMapper = jsonMapper;
@@ -125,12 +129,17 @@ public class TrainingAssignmentEvaluationService {
             assignment.setQuestionCount(assignment.getQuestionCount() + 1);
         }
         assignment.setUpdatedAt(Instant.now());
-        return assignmentRepository.save(assignment);
+        var saved = assignmentRepository.save(assignment);
+        closeActivityIfAllAssignmentsAreTerminal(saved);
+        return saved;
     }
 
     private void ensureAnswerable(TrainingActivityAssignment assignment) {
         if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
             return;
+        }
+        if (assignment.getStatus().isTerminal()) {
+            throw new IllegalStateException("The evaluation assignment has ended.");
         }
         if (assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED) {
             throw new IllegalStateException("The evaluation window has ended.");
@@ -147,6 +156,24 @@ public class TrainingAssignmentEvaluationService {
             throw new IllegalStateException(
                 "Safe Browser Mode must be active before answering."
             );
+        }
+    }
+
+    private void closeActivityIfAllAssignmentsAreTerminal(TrainingActivityAssignment assignment) {
+        if (!assignment.getStatus().isTerminal()) {
+            return;
+        }
+        var activity = assignment.getTrainingActivity();
+        if (activity.getStatus() != TrainingActivityLifecycleStatus.PUBLISHED) {
+            return;
+        }
+        var assignments = assignmentRepository.findByTrainingActivity_IdOrderByUpdatedAtDesc(activity.getId());
+        if (assignments.stream().allMatch(candidate -> candidate.getStatus().isTerminal())) {
+            var now = Instant.now();
+            activity.setStatus(TrainingActivityLifecycleStatus.CLOSED);
+            activity.setClosesAt(now);
+            activity.setUpdatedAt(now);
+            activityRepository.save(activity);
         }
     }
 
