@@ -19,6 +19,9 @@ messagelist/
 # Local documentation checkout used as an agent reference, not app source.
 spring-ai-docs/
 
+# Local product notes.
+PRODUCT.md
+
 # Frontend build config (Vaadin manages these)
 package.json
 pnpm-lock.yaml
