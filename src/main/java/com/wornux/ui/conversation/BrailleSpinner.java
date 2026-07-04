@@ -5,7 +5,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 
 @Tag("braille-spinner")
-@JsModule("./braille-spinner.ts")
+@JsModule("./conversation/braille-spinner.ts")
 public final class BrailleSpinner extends Component {
 
     public BrailleSpinner(String spinner) {

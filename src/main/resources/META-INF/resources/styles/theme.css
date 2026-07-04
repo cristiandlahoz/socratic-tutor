@@ -23,9 +23,7 @@ html {
   --aura-app-layout-inset: 0px;
   --aura-app-layout-border-width: 0px;
   --aura-app-layout-radius: 0px;
-  --vaadin-app-layout-drawer-width: clamp(calc(var(--vaadin-padding-xl) * 12),
-      29vw,
-      calc(var(--vaadin-padding-xl) * 14));
+  --vaadin-app-layout-drawer-width: clamp(18rem, 24vw, 22.0625rem);
   --vaadin-app-layout-drawer-background: var(--aura-app-background);
   --outlet-inset-padding: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
   --outlet-inset-radius: var(--vaadin-radius-m);
@@ -94,7 +92,6 @@ body>* {
   display: block;
   width: 100%;
   height: 100%;
-  border: var(1px, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 20%, var(--color-black-700));
   border-radius: var(--outlet-inset-radius);
   outline: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 10%, transparent);
   box-shadow: var(--aura-shadow-s);

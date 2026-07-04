@@ -68,8 +68,8 @@
   --trail-node-active-color: var(--aura-accent-text-color);
   --trail-node-size: calc(var(--vaadin-gap-xs) * 1.5);
   --sidebar-divider-line-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
-  --sidebar-divider-line-width: 25px;
-  --sidebar-divider-line-border-width: 0.5px;
+  --sidebar-divider-line-width: 16px;
+  --sidebar-divider-line-border-width: 0.35px;
   --sidebar-divider-opacity: 1;
   --sidebar-divider-line-color: light-dark(color-mix(in srgb, var(--aura-blue) 34%, transparent),
       color-mix(in srgb, var(--aura-orange) 34%, transparent));

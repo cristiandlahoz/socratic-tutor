@@ -70,6 +70,14 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
+## Stack versions
+
+- Java: `25`
+- Spring Boot: `4.1.0`
+- Vaadin: `25.1.0`
+- Spring AI: `2.0.0`
+- Spring AI Session: `0.6.0-SNAPSHOT`
+
 ## Local QA credentials
 
 Use only for local visual verification / development testing:

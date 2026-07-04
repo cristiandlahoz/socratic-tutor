@@ -16,7 +16,7 @@ import com.vaadin.flow.shared.Registration;
 import com.wornux.dtos.chat.ConversationSummary;
 
 @Tag("conversations-history")
-@JsModule("./conversations-history.ts")
+@JsModule("./conversation/conversations-history.ts")
 public final class ConversationsHistory extends Component implements HasSize {
 
     public ConversationsHistory() {

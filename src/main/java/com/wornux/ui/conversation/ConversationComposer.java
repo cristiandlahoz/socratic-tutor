@@ -1,93 +1,82 @@
 package com.wornux.ui.conversation;
 
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.ComponentEvent;
+import com.vaadin.flow.component.ComponentEventListener;
+import com.vaadin.flow.component.DomEvent;
+import com.vaadin.flow.component.EventData;
+import com.vaadin.flow.component.HasSize;
+import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.dependency.JsModule;
+import com.vaadin.flow.signals.Signal;
+import com.vaadin.flow.shared.Registration;
+import com.wornux.services.chat.ModelAvailabilityStatus;
 import com.wornux.ui.css.UiCss;
 
-import com.vaadin.flow.component.Composite;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.signals.Signal;
-import com.wornux.services.chat.ModelAvailabilityStatus;
+@Tag("conversation-composer")
+@JsModule("./conversation/conversation-composer.ts")
+public final class ConversationComposer extends Component implements HasSize {
 
-public final class ConversationComposer extends Composite<Div> {
+    public ConversationComposer(ConversationState state, int promptLimit, PromptSubmitHandler submitHandler) {
+        UiCss.CONVERSATION_COMPOSER_FIELD_WRAP.addTo(this);
+        setPromptLimit(promptLimit);
 
-    private final TextArea field;
-    private final Span modelStatus;
-    private final Button sendButton;
+        Signal.effect(this, () -> setValue(state.composerText().get()));
+        Signal.effect(this, () -> setComposerEnabled(Boolean.TRUE.equals(state.composerEnabled().get())));
+        Signal.effect(this, () -> setSendAvailable(Boolean.TRUE.equals(state.composerSubmitAllowed().get())));
+        Signal.effect(this, () -> setModelStatus(state.modelAvailabilityStatus().get()));
 
-    public ConversationComposer(ConversationState state, int promptLimit, Runnable submitHandler) {
-        field = new TextArea();
-        field.setWidthFull();
-        field.setPlaceholder("Escribe tu mensaje aquí...");
-        field.setAriaLabel("Escribe tu mensaje aquí");
-        field.setMaxLength(promptLimit);
-        updateHelperText(0, promptLimit);
-        UiCss.CONVERSATION_COMPOSER_INPUT.addTo(field);
-        field.bindValue(state.composerText(), state.composerText()::set);
-        field.bindEnabled(state.composerEnabled());
-        field.setValueChangeMode(ValueChangeMode.EAGER);
-        field.addValueChangeListener(event -> updateHelperText(event.getValue().length(), promptLimit));
-
-        modelStatus = new Span();
-        UiCss.CONVERSATION_COMPOSER_MODEL_STATUS.addTo(modelStatus);
-        modelStatus.getElement().setAttribute("aria-live", "polite");
-        Signal.effect(modelStatus, () -> updateModelStatus(state.modelAvailabilityStatus().get()));
-
-        sendButton = new Button(new Icon(VaadinIcon.ARROW_UP));
-        UiCss.CONVERSATION_COMPOSER_SEND_BUTTON.addTo(sendButton);
-        sendButton.setAriaLabel("Enviar mensaje");
-        sendButton.bindEnabled(state.sendEnabled());
-        sendButton.addClickListener(_ -> submitHandler.run());
-
-        var content = getContent();
-        UiCss.CONVERSATION_COMPOSER_FIELD_WRAP.addTo(content);
-        content.add(field, modelStatus, sendButton);
-        content.addAttachListener(_ -> installEnterSubmitHandler());
+        addSubmitPromptListener(event -> {
+            state.composerText().set(event.getPrompt());
+            submitHandler.submit();
+        });
     }
 
-    private void updateHelperText(int currentLength, int promptLimit) {
-        field.setHelperText("%d/%d caracteres".formatted(currentLength, promptLimit));
+    public void setValue(String value) {
+        getElement().setProperty("value", value == null ? "" : value);
     }
 
-    private void updateModelStatus(ModelAvailabilityStatus status) {
+    public void setPromptLimit(int promptLimit) {
+        getElement().setProperty("promptLimit", promptLimit);
+    }
+
+    public void setComposerEnabled(boolean composerEnabled) {
+        getElement().setProperty("composerEnabled", composerEnabled);
+    }
+
+    public void setSendAvailable(boolean sendAvailable) {
+        getElement().setProperty("sendAvailable", sendAvailable);
+    }
+
+    public void setModelStatus(ModelAvailabilityStatus status) {
         var resolvedStatus = status == null ? ModelAvailabilityStatus.CHECKING : status;
-        modelStatus.setText(labelFor(resolvedStatus));
-        modelStatus.getElement().getClassList().set("is-checking", resolvedStatus == ModelAvailabilityStatus.CHECKING);
-        modelStatus.getElement().getClassList().set("is-connected", resolvedStatus == ModelAvailabilityStatus.CONNECTED);
-        modelStatus.getElement().getClassList().set("is-offline", resolvedStatus == ModelAvailabilityStatus.OFFLINE);
+        getElement().setProperty("modelStatus", resolvedStatus.name().toLowerCase());
     }
 
-    private String labelFor(ModelAvailabilityStatus status) {
-        return switch (status) {
-            case CONNECTED -> "Connected";
-            case OFFLINE -> "Offline";
-            case CHECKING -> "Checking";
-        };
+    public Registration addSubmitPromptListener(ComponentEventListener<SubmitPromptEvent> listener) {
+        return addListener(SubmitPromptEvent.class, listener);
     }
 
-    private void installEnterSubmitHandler() {
-        getContent().getElement().executeJs("""
-                                           if (this.__enterSubmitInstalled) {
-                                             return;
-                                           }
-                                           this.__enterSubmitInstalled = true;
+    @FunctionalInterface
+    public interface PromptSubmitHandler {
+        void submit();
+    }
 
-                                           const field = this.querySelector('vaadin-text-area');
-                                           const button = this.querySelector('vaadin-button');
-                                           field?.addEventListener('keydown', (event) => {
-                                             if (event.key !== 'Enter' || event.shiftKey) {
-                                               return;
-                                             }
-                                             event.preventDefault();
-                                             event.stopImmediatePropagation();
-                                             if (!button?.hasAttribute('disabled')) {
-                                               button?.click();
-                                             }
-                                           }, true);
-                                           """);
+    @DomEvent("submit-prompt")
+    public static final class SubmitPromptEvent extends ComponentEvent<ConversationComposer> {
+
+        private final String prompt;
+
+        public SubmitPromptEvent(
+                ConversationComposer source,
+                boolean fromClient,
+                @EventData("event.detail.prompt") String prompt) {
+            super(source, fromClient);
+            this.prompt = prompt == null ? "" : prompt;
+        }
+
+        public String getPrompt() {
+            return prompt;
+        }
     }
 }

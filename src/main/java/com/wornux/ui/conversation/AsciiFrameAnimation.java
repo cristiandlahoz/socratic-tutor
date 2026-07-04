@@ -5,7 +5,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 
 @Tag("ascii-frame-animation")
-@JsModule("./ascii-frame-animation.ts")
+@JsModule("./conversation/ascii-frame-animation.ts")
 public class AsciiFrameAnimation extends Component {
 
     public AsciiFrameAnimation(String frameFolder, int frameCount, int fps) {

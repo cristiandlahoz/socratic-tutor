@@ -22,8 +22,8 @@
       light-dark(color-mix(in srgb, var(--aura-blue) 34%, transparent),
         color-mix(in srgb, var(--aura-orange) 34%, transparent)) 4px,
       light-dark(color-mix(in srgb, var(--aura-blue) 34%, transparent),
-        color-mix(in srgb, var(--aura-orange) 34%, transparent)) 4.5px,
-      transparent 4.5px,
+        color-mix(in srgb, var(--aura-orange) 34%, transparent)) calc(4px + var(--sidebar-divider-line-border-width, 0.5px)),
+      transparent calc(4px + var(--sidebar-divider-line-border-width, 0.5px)),
       transparent 8px);
   opacity: var(--sidebar-divider-opacity);
 }

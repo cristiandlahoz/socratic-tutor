@@ -77,7 +77,7 @@ public class ModelAvailabilityService {
                 updateStatus(ModelAvailabilityStatus.OFFLINE);
             }
         }
-        catch (InterruptedException exception) {
+        catch (InterruptedException _) {
             Thread.currentThread().interrupt();
             updateStatus(ModelAvailabilityStatus.OFFLINE);
         }

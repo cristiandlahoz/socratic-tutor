@@ -1,4 +1,4 @@
-import './code-block-viewer.tsx';
+import '../shared/code/code-block-viewer.tsx';
 import '@vaadin/markdown/src/vaadin-markdown.js';
 import { LitElement, html, nothing } from 'lit';
 

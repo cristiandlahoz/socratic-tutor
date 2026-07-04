@@ -18,7 +18,7 @@ import com.vaadin.flow.shared.Registration;
 import com.wornux.services.crunner.CDiagnostic;
 
 @Tag("c-debug-source-viewer")
-@JsModule("./c-debug-source-viewer.tsx")
+@JsModule("./crunner/c-debug-source-viewer.tsx")
 @NpmPackage(value = "@uiw/react-codemirror", version = "4.25.4")
 @NpmPackage(value = "@fsegurai/codemirror-theme-solarized-dark", version = "6.2.5")
 @NpmPackage(value = "@fsegurai/codemirror-theme-solarized-light", version = "6.2.5")

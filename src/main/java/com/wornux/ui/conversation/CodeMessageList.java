@@ -19,7 +19,7 @@ import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.shared.Registration;
 
 @Tag("code-message-list")
-@JsModule("./code-message-list.ts")
+@JsModule("./conversation/code-message-list.ts")
 @NpmPackage(value = "@uiw/react-codemirror", version = "4.25.4")
 @NpmPackage(value = "@fsegurai/codemirror-theme-solarized-dark", version = "6.2.5")
 @NpmPackage(value = "@fsegurai/codemirror-theme-solarized-light", version = "6.2.5")

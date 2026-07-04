@@ -48,11 +48,13 @@ public class ConversationState implements Serializable {
     private final Signal<Boolean> questionPanelVisible = Signal.computed(() -> pendingQuestionSet.get() != null);
     private final Signal<Boolean> composerEnabled = Signal.computed(
         () -> !responseInProgress.get() && pendingQuestionSet.get() == null && !questionSubmissionInProgress.get());
-    private final Signal<Boolean> sendEnabled = Signal.computed(
+    private final Signal<Boolean> composerSubmitAllowed = Signal.computed(
         () -> !responseInProgress.get()
                 && pendingQuestionSet.get() == null
                 && !questionSubmissionInProgress.get()
-                && !composerText.get().isBlank());
+                && modelAvailabilityStatus.get() == ModelAvailabilityStatus.CONNECTED);
+    private final Signal<Boolean> sendEnabled = Signal.computed(
+        () -> Boolean.TRUE.equals(composerSubmitAllowed.get()) && !composerText.get().isBlank());
 
     public ValueSignal<UUID> activeConversationId() {
         return activeConversationId;
@@ -128,6 +130,10 @@ public class ConversationState implements Serializable {
 
     public Signal<Boolean> questionPanelVisible() {
         return questionPanelVisible;
+    }
+
+    public Signal<Boolean> composerSubmitAllowed() {
+        return composerSubmitAllowed;
     }
 
     public Signal<Boolean> sendEnabled() {

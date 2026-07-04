@@ -2,11 +2,13 @@ package com.wornux.ui.components;
 
 import java.util.List;
 
-import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasComponents;
+import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.html.Span;
@@ -19,11 +21,11 @@ import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionService;
 import com.wornux.ui.css.UiCss;
 
-public class ProfileDrawerCard extends Div {
+@Tag("profile-drawer-card")
+@JsModule("./shell/profile-drawer-card.ts")
+public class ProfileDrawerCard extends Component implements HasComponents {
 
-    private final Div menu;
     private final SvgIcon chevron;
-    private final NativeButton headerButton;
 
     public ProfileDrawerCard(
             Account account,
@@ -40,15 +42,14 @@ public class ProfileDrawerCard extends Div {
                 createLogoutButton(logoutAction));
         UiCss.PROFILE_DRAWER_CARD_MENU_CONTENT.addTo(menuContent);
 
-        menu = new Div(menuContent);
+        var menu = new Div(menuContent);
         UiCss.PROFILE_DRAWER_CARD_MENU.addTo(menu);
 
         chevron = new SvgIcon("/icons/chevron.svg");
         UiCss.PROFILE_DRAWER_CARD_CHEVRON.addTo(chevron);
 
-        headerButton = createHeaderButton(account, activeContextHolder, contextDiscoveryService);
+        var headerButton = createHeaderButton(account, activeContextHolder, contextDiscoveryService);
         add(menu, headerButton);
-        closeOnOutsideClick();
     }
 
     private Component createContextControl(
@@ -133,7 +134,6 @@ public class ProfileDrawerCard extends Div {
         button.add(content);
         button.setAriaLabel("Abrir opciones de perfil");
         button.getElement().setAttribute("aria-expanded", "false");
-        button.addClickListener(_ -> setExpanded(!hasClassName(UiCss.EXPANDED.value()), button));
         return button;
     }
 
@@ -143,46 +143,6 @@ public class ProfileDrawerCard extends Div {
         UiCss.PROFILE_DRAWER_CARD_LOGOUT.addTo(button);
         button.addClickListener(_ -> logoutAction.run());
         return button;
-    }
-
-    @ClientCallable
-    public void closeFromOutsideClick() {
-        setExpanded(false, headerButton);
-    }
-
-    private void closeOnOutsideClick() {
-        addAttachListener(_ -> getElement().executeJs("""
-                if (this.__profileDrawerOutsideClick) {
-                    return;
-                }
-                this.__profileDrawerOutsideClick = (event) => {
-                    if (!this.classList.contains($0)) {
-                        return;
-                    }
-                    const path = event.composedPath ? event.composedPath() : [];
-                    if (path.includes(this)) {
-                        return;
-                    }
-                    this.$server.closeFromOutsideClick();
-                };
-                document.addEventListener('pointerdown', this.__profileDrawerOutsideClick, true);
-                """, UiCss.EXPANDED.value()));
-        addDetachListener(event -> event.getUI().getPage().executeJs("""
-                if ($0.__profileDrawerOutsideClick) {
-                    document.removeEventListener('pointerdown', $0.__profileDrawerOutsideClick, true);
-                    delete $0.__profileDrawerOutsideClick;
-                }
-                """, getElement()));
-    }
-
-    private void setExpanded(boolean expanded, NativeButton button) {
-        if (expanded) {
-            UiCss.EXPANDED.addTo(this);
-        }
-        else {
-            getElement().getClassList().remove(UiCss.EXPANDED.value());
-        }
-        button.getElement().setAttribute("aria-expanded", Boolean.toString(expanded));
     }
 
     private String displayName(Account account) {

@@ -28,7 +28,7 @@ vaadin-app-layout::part(drawer) {
   overflow: hidden;
   border-radius: var(--outlet-inset-radius) 0 0 var(--outlet-inset-radius);
   background: var(--aura-app-background);
-  border-inline-end: var(--vaadin-input-field-border-width, 2px) solid var(--vaadin-border-color-secondary);
+  border-inline-end: 2px solid var(--vaadin-border-color-secondary);
 }
 
 vaadin-app-layout::part(content) {
