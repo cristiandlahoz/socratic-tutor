@@ -81,15 +81,16 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
         var content = getContent();
         UiCss.TRAINING_ACTIVITY_VIEW.addTo(content);
+        content.setSizeFull();
 
         var layout = new VerticalLayout(buildHeader(), buildFormCard(), buildGridCard());
         layout.addClassName("training-activity-content");
-        layout.setWidthFull();
+        layout.setSizeFull();
         layout.setPadding(false);
         layout.setSpacing(true);
 
         var pageContent = new Div(layout);
-        pageContent.setWidthFull();
+        pageContent.setSizeFull();
 
         content.add(pageContent);
         refreshGrid();
