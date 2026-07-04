@@ -58,5 +58,11 @@ Write commit messages that follow commit style guidelines for the project.
 - Identify any referenced issues/PRs from the diff context or
   branch name.
 - Draft the commit message following the format above.
-- Apply the commit
+- When committing a non-empty working copy in jj, use
+  `jj commit -m '<message>'`.
+- When updating the description of an existing jj change, use
+  `jj describe -r <rev> -m '<message>'` instead of creating a new
+  change. This includes rewriting a just-created commit message,
+  fixing an empty working-copy description, or applying the drafted
+  message to an already-materialized change.
 - Don't push the commit; leave that to the user.
