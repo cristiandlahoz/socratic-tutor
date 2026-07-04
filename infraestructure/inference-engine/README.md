@@ -50,12 +50,25 @@ The `-d` flag starts the engine detached with `nohup`, so it keeps running after
 The bootstrap script:
 
 1. Checks `llama-swap`; downloads it if missing.
-2. Checks `llama-server`; builds llama.cpp with CUDA and CURL/OpenSSL support if missing.
-3. Starts the inference engine.
-4. Warms configured models with tiny `/v1/chat/completions` requests so the first real Spring AI request does not pay the cold-start cost.
-5. Starts `inference-engine-monitor.sh` in detached mode.
+2. Checks `llama-server`; if it is missing or does not advertise Hugging Face `-hf` loading, builds llama.cpp with CURL support.
+3. Selects the llama.cpp build backend automatically: CUDA on NVIDIA hosts, Metal on Apple Silicon, CPU otherwise. Override with `LLAMA_CPP_BACKEND=cuda|metal|cpu`.
+4. Starts the inference engine from the script directory, so the relative commands in `config.yaml` do not depend on the caller's current working directory.
+5. Warms configured models with tiny `/v1/chat/completions` requests. This also downloads each GGUF model into the llama.cpp cache when it is not already present.
+6. Starts `inference-engine-monitor.sh` in detached mode on NVIDIA hosts.
 
-The monitor handles CPU → GPU promotion for both configured models. If Ornith or Gemma was started on CPU because VRAM was busy, the monitor periodically checks free VRAM. When enough VRAM becomes available for that model, it unloads the model from llama-swap and sends a tiny warm-up request so llama-swap restarts it; `start-llama-server.sh` then re-checks VRAM and starts it on GPU.
+The default model cache is:
+
+```bash
+~/.cache/llama.cpp
+```
+
+Override it with:
+
+```bash
+LLAMA_CACHE=/srv/llama-cache ./bootstrap-inference_engine.sh -d
+```
+
+The monitor handles CPU → GPU promotion for configured models on NVIDIA hosts. If Ornith or Gemma was started on CPU because VRAM was busy, the monitor periodically checks free VRAM. When enough VRAM becomes available for that model, it unloads the model from llama-swap and sends a tiny warm-up request so llama-swap restarts it; `start-llama-server.sh` then re-checks VRAM and starts it on GPU.
 
 `llama-swap`'s built-in preload hook is intentionally not used because v233 preloads with `GET /`; this returns `404` when `llama-server` is started with `--no-ui`. The engine instead warms models through the same OpenAI-compatible chat endpoint used by the application.
 
@@ -78,4 +91,20 @@ CHAT_MODEL=AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL
 GUARD_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
 TITLE_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
 C_EXAMPLE_PREPARATION_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
+```
+
+## Useful overrides
+
+```bash
+# Build CPU-only even on a machine where CUDA/Metal would be detected.
+LLAMA_CPP_BACKEND=cpu ./bootstrap-inference_engine.sh -d
+
+# Pin a llama.cpp ref before building.
+LLAMA_CPP_REF=b1234 ./bootstrap-inference_engine.sh -d
+
+# Start Gemma directly through the launcher alias.
+./start-llama-server.sh gemma 5800
+
+# Start Ornith directly through the launcher alias.
+./start-llama-server.sh ornith 5800
 ```

@@ -12,6 +12,7 @@ CHECK_INTERVAL_SECONDS="${CHECK_INTERVAL_SECONDS:-60}"
 PROMOTION_COOLDOWN_SECONDS="${PROMOTION_COOLDOWN_SECONDS:-300}"
 WARM_UP_TIMEOUT_SECONDS="${WARM_UP_TIMEOUT_SECONDS:-180}"
 WARM_UP_MAX_TOKENS="${WARM_UP_MAX_TOKENS:-1}"
+STATE_DIR="${STATE_DIR:-${TMPDIR:-/tmp}/inference-engine-monitor}"
 
 ORNITH_MODEL="${ORNITH_MODEL:-AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL}"
 GEMMA_MODEL="${GEMMA_MODEL:-unsloth/gemma-4-E4B-it-GGUF:IQ4_XS}"
@@ -23,17 +24,25 @@ GEMMA_MIN_FREE_VRAM_MB="${GEMMA_MIN_FREE_VRAM_MB:-4000}"
 MONITORED_MODELS="${MONITORED_MODELS:-${ORNITH_MODEL}|${ORNITH_MIN_FREE_VRAM_MB}
 ${GEMMA_MODEL}|${GEMMA_MIN_FREE_VRAM_MB}}"
 
-declare -A LAST_PROMOTION_AT=()
-
 log() {
   printf '[monitor] %s %s\n' "$(date -Is)" "$*"
 }
 
-free_vram_mb() {
-  if ! command -v nvidia-smi >/dev/null 2>&1; then
-    echo 0
-    return
+if ! command -v nvidia-smi >/dev/null 2>&1; then
+  log "nvidia-smi not found; CPU-to-GPU promotion monitor is only needed on NVIDIA hosts"
+  exit 0
+fi
+
+for cmd in curl python3 pgrep; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    log "required command not found: $cmd"
+    exit 127
   fi
+done
+
+mkdir -p "$STATE_DIR"
+
+free_vram_mb() {
   nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null \
     | head -n 1 \
     | tr -d ' ' \
@@ -51,6 +60,30 @@ model_running_on_cpu() {
   tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q -- '-ngl 0'
 }
 
+model_key() {
+  python3 -c 'import hashlib,sys; print(hashlib.sha256(sys.argv[1].encode()).hexdigest())' "$1"
+}
+
+last_promotion_file() {
+  printf '%s/%s.last\n' "$STATE_DIR" "$(model_key "$1")"
+}
+
+last_promotion_at() {
+  local file
+  file="$(last_promotion_file "$1")"
+  if [[ -f "$file" ]]; then
+    cat "$file"
+  else
+    echo 0
+  fi
+}
+
+set_last_promotion_at() {
+  local model="$1"
+  local timestamp="$2"
+  printf '%s\n' "$timestamp" > "$(last_promotion_file "$model")"
+}
+
 url_encode() {
   python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
 }
@@ -63,7 +96,7 @@ unload_model() {
   local model="$1"
   local encoded
   encoded="$(url_encode "$model")"
-  curl -fsS -X POST "$LLAMA_SWAP_URL/api/models/unload/$encoded" >/dev/null
+  curl -fsS --max-time 30 -X POST "$LLAMA_SWAP_URL/api/models/unload/$encoded" >/dev/null
 }
 
 warm_model() {
@@ -94,7 +127,8 @@ promote_if_needed() {
     return 0
   fi
 
-  local last="${LAST_PROMOTION_AT[$model]:-0}"
+  local last
+  last="$(last_promotion_at "$model")"
   if (( now - last < PROMOTION_COOLDOWN_SECONDS )); then
     return 0
   fi
@@ -103,7 +137,7 @@ promote_if_needed() {
   if unload_model "$model"; then
     sleep 2
     if warm_model "$model"; then
-      LAST_PROMOTION_AT[$model]="$now"
+      set_last_promotion_at "$model" "$now"
       log "promotion requested successfully; model=${model}"
     else
       log "warm request failed after unload; model=${model}; llama-swap may retry on next real request"

@@ -6,31 +6,74 @@ set -euo pipefail
 #
 # Overrides:
 #   LLAMA_SWAP_BIN=llama-swap
+#   LLAMA_SERVER_BIN=llama-server
 #   LLAMA_SWAP_HOST=127.0.0.1
 #   LLAMA_SWAP_PORT=8080
 #   LLAMA_SWAP_EXTRA_ARGS="--log-level debug"
 #   WARM_UP_MODELS="model-a model-b"   # set empty to disable
 #   WARM_UP_TIMEOUT_SECONDS=900
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
+
 LLAMA_SWAP_BIN="${LLAMA_SWAP_BIN:-${HOME:-}/bin/llama-swap}"
-if [[ ! -x "$LLAMA_SWAP_BIN" ]]; then
-  LLAMA_SWAP_BIN="llama-swap"
-fi
+LLAMA_SERVER_BIN="${LLAMA_SERVER_BIN:-${HOME:-}/bin/llama-server}"
+LLAMA_CACHE="${LLAMA_CACHE:-$HOME/.cache/llama.cpp}"
 LLAMA_SWAP_HOST="${LLAMA_SWAP_HOST:-127.0.0.1}"
 LLAMA_SWAP_PORT="${LLAMA_SWAP_PORT:-8080}"
-CONFIG_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/config.yaml"
+CONFIG_FILE="$ROOT_DIR/config.yaml"
+export INFERENCE_ENGINE_ROOT="$ROOT_DIR"
+export LLAMA_SERVER_BIN
+export LLAMA_CACHE
 
-if ! command -v "$LLAMA_SWAP_BIN" >/dev/null 2>&1; then
-  echo "error: '$LLAMA_SWAP_BIN' not found in PATH" >&2
-  echo "Install llama-swap on the inference server, then re-run this script." >&2
+resolve_executable() {
+  local candidate="$1"
+  if [[ "$candidate" == */* ]]; then
+    [[ -x "$candidate" ]] && printf '%s\n' "$candidate"
+  else
+    command -v "$candidate" 2>/dev/null || true
+  fi
+}
+
+llama_server_supports_hf() {
+  local candidate="$1"
+  local help
+  help="$($candidate --help 2>&1 || true)"
+  grep -Eq -- '(^|[[:space:]])-hf([,[:space:]]|$)|--hf-repo|--hf-file' <<< "$help"
+}
+
+for cmd in curl python3; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "error: '$cmd' is required but was not found in PATH" >&2
+    exit 127
+  fi
+done
+
+RESOLVED_LLAMA_SWAP_BIN="$(resolve_executable "$LLAMA_SWAP_BIN")"
+if [[ -z "$RESOLVED_LLAMA_SWAP_BIN" ]]; then
+  RESOLVED_LLAMA_SWAP_BIN="$(command -v llama-swap 2>/dev/null || true)"
+fi
+if [[ -z "$RESOLVED_LLAMA_SWAP_BIN" ]]; then
+  echo "error: llama-swap not found; run ./bootstrap-inference_engine.sh first" >&2
   exit 127
 fi
+LLAMA_SWAP_BIN="$RESOLVED_LLAMA_SWAP_BIN"
 
-if ! command -v llama-server >/dev/null 2>&1; then
-  echo "error: 'llama-server' not found in PATH" >&2
-  echo "Install llama.cpp on the inference server, then re-run this script." >&2
+RESOLVED_LLAMA_SERVER_BIN="$(resolve_executable "$LLAMA_SERVER_BIN")"
+if [[ -z "$RESOLVED_LLAMA_SERVER_BIN" ]]; then
+  RESOLVED_LLAMA_SERVER_BIN="$(command -v llama-server 2>/dev/null || true)"
+fi
+if [[ -z "$RESOLVED_LLAMA_SERVER_BIN" ]]; then
+  echo "error: llama-server not found; run ./bootstrap-inference_engine.sh first" >&2
   exit 127
 fi
+if ! llama_server_supports_hf "$RESOLVED_LLAMA_SERVER_BIN"; then
+  echo "error: llama-server exists but does not advertise -hf/Hugging Face model loading" >&2
+  echo "Rebuild llama.cpp with CURL support by running ./bootstrap-inference_engine.sh" >&2
+  exit 1
+fi
+LLAMA_SERVER_BIN="$RESOLVED_LLAMA_SERVER_BIN"
+export LLAMA_SERVER_BIN
 
 ARGS=(
   --config "$CONFIG_FILE"
@@ -72,7 +115,7 @@ warm_up_model() {
   local model_json
   model_json="$(json_escape "$model")"
 
-  echo "[warm-up] loading model: $model"
+  echo "[warm-up] loading/downloading if missing: $model"
   curl -fsS --max-time "$WARM_UP_TIMEOUT_SECONDS" \
     "$base_url/v1/chat/completions" \
     -H 'Content-Type: application/json' \
@@ -100,6 +143,9 @@ cat <<INFO
 Starting inference engine
   config:   $CONFIG_FILE
   endpoint: http://$LLAMA_SWAP_HOST:$LLAMA_SWAP_PORT/v1
+  cache:    $LLAMA_CACHE
+  swap:     $LLAMA_SWAP_BIN
+  server:   $LLAMA_SERVER_BIN
 
 Spring AI env examples:
   OPENAI_BASE_URL=http://$LLAMA_SWAP_HOST:$LLAMA_SWAP_PORT/v1

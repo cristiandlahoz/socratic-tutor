@@ -7,11 +7,11 @@ healthCheckTimeout: 600
 models:
   "AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL":
     cmd: |
-      ./start-llama-server.sh AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL ${PORT} 7000 8192
+      "${INFERENCE_ENGINE_ROOT:-.}/start-llama-server.sh" AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL ${PORT} 7000 8192
 
   "unsloth/gemma-4-E4B-it-GGUF:IQ4_XS":
     cmd: |
-      ./start-llama-server.sh unsloth/gemma-4-E4B-it-GGUF:IQ4_XS ${PORT} 4000 2048
+      "${INFERENCE_ENGINE_ROOT:-.}/start-llama-server.sh" unsloth/gemma-4-E4B-it-GGUF:IQ4_XS ${PORT} 4000 2048
 
 # Allow both models to remain loaded concurrently.
 matrix:
@@ -22,6 +22,7 @@ matrix:
     both: "o & g"
 
 # Startup warm-up is handled by run-inference-engine.sh with real
-# /v1/chat/completions requests. Do not use llama-swap's preload hook here:
-# llama-swap v233 preloads with GET /, which returns 404 when llama-server
-# is intentionally started with --no-ui.
+# /v1/chat/completions requests. This is also the model download step:
+# if the GGUF is missing from the llama.cpp HF cache, llama-server fetches it.
+# Do not use llama-swap's preload hook here: llama-swap v233 preloads with GET /,
+# which returns 404 when llama-server is intentionally started with --no-ui.
