@@ -7,10 +7,12 @@ import java.util.function.Consumer;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -19,6 +21,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
+import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
+import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.ui.conversation.CodeMessageList;
 import com.wornux.ui.conversation.CodeMessageListItem;
@@ -28,20 +32,24 @@ public class TrainingActivityDialog extends Div {
 
     private final transient TrainingActivity original;
     private final transient TrainingActivityService trainingActivityService;
+    private final transient SafeBrowserModeService safeBrowserModeService;
     private final transient Consumer<TrainingActivity> onSave;
     private final transient Runnable onClose;
 
     private final Div panel = new Div();
     private final TextField titleField;
     private final TextArea instructionField;
+    private final Checkbox safeBrowserField;
 
     public TrainingActivityDialog(
             TrainingActivity activity,
             TrainingActivityService trainingActivityService,
+            SafeBrowserModeService safeBrowserModeService,
             Consumer<TrainingActivity> onSave,
             Runnable onClose) {
         this.original = activity;
         this.trainingActivityService = trainingActivityService;
+        this.safeBrowserModeService = safeBrowserModeService;
         this.onSave = onSave;
         this.onClose = onClose;
 
@@ -63,6 +71,11 @@ public class TrainingActivityDialog extends Div {
         instructionField.setMaxHeight("14rem");
         instructionField.setValue(activity.getInstructions());
 
+        safeBrowserField = new Checkbox("Safe Browser Mode");
+        safeBrowserField.setHelperText("Disponible solo antes de lanzar la actividad.");
+        safeBrowserField.setValue(activity.isSafeBrowserEnabled());
+        safeBrowserField.setEnabled(activity.getStatus() == TrainingActivityLifecycleStatus.DRAFT);
+
         add(backdrop, panel);
         renderActivityMode();
     }
@@ -77,8 +90,9 @@ public class TrainingActivityDialog extends Div {
 
         titleField.setValue(original.getTitle());
         instructionField.setValue(original.getInstructions());
+        safeBrowserField.setValue(original.isSafeBrowserEnabled());
 
-        var body = new VerticalLayout(title, titleField, instructionField, assignmentsGrid());
+        var body = new VerticalLayout(title, titleField, instructionField, safeBrowserField, incidentSummary(), assignmentsGrid());
         body.setPadding(false);
         body.setSpacing(true);
         body.setWidthFull();
@@ -87,9 +101,13 @@ public class TrainingActivityDialog extends Div {
         var saveButton = new Button("Guardar cambios", _ -> onSaveClick());
         saveButton.addThemeVariants(ButtonVariant.PRIMARY);
 
+        var closeActivityButton = new Button("Cerrar actividad", _ -> onCloseActivityClick());
+        closeActivityButton.addThemeVariants(ButtonVariant.ERROR);
+        closeActivityButton.setEnabled(original.getStatus() == TrainingActivityLifecycleStatus.PUBLISHED);
+
         var closeButton = new Button("Cerrar", _ -> close());
 
-        var footer = new HorizontalLayout(saveButton, closeButton);
+        var footer = new HorizontalLayout(closeActivityButton, saveButton, closeButton);
         UiCss.TRAINING_ACTIVITY_OVERLAY_FOOTER.addTo(footer);
         footer.setPadding(false);
         footer.setSpacing(false);
@@ -112,9 +130,21 @@ public class TrainingActivityDialog extends Div {
                 .setFlexGrow(0)
                 .setAutoWidth(false);
 
+        grid.addColumn(this::safeBrowserStatusLabel)
+                .setHeader("Safe Browser")
+                .setWidth("10rem")
+                .setFlexGrow(0)
+                .setAutoWidth(false);
+
         grid.addColumn(new ComponentRenderer<>(this::reportButton))
                 .setHeader("Reporte")
                 .setWidth("6.5rem")
+                .setFlexGrow(0)
+                .setAutoWidth(false);
+
+        grid.addColumn(new ComponentRenderer<>(this::unlockButton))
+                .setHeader("Incidente")
+                .setWidth("8rem")
                 .setFlexGrow(0)
                 .setAutoWidth(false);
 
@@ -139,6 +169,19 @@ public class TrainingActivityDialog extends Div {
         };
     }
 
+    private String safeBrowserStatusLabel(TrainingActivityAssignment assignment) {
+        if (!assignment.getTrainingActivity().isSafeBrowserEnabled()) {
+            return "No requerido";
+        }
+        if (assignment.isSafeBrowserLocked()) {
+            return "Bloqueada";
+        }
+        if (assignment.isSafeBrowserSessionActive()) {
+            return "Activa";
+        }
+        return "Pendiente";
+    }
+
     private void onSaveClick() {
         var title = titleField.getValue().trim();
         var instruction = instructionField.getValue().trim();
@@ -148,7 +191,7 @@ public class TrainingActivityDialog extends Div {
             return;
         }
 
-        var updated = trainingActivityService.update(original.getId(), title, instruction);
+        var updated = trainingActivityService.update(original.getId(), title, instruction, safeBrowserField.getValue());
         Notification.show("Actividad formativa actualizada");
 
         if (onSave != null) {
@@ -156,6 +199,20 @@ public class TrainingActivityDialog extends Div {
         }
 
         close();
+    }
+
+    private void onCloseActivityClick() {
+        try {
+            var updated = trainingActivityService.close(original.getId());
+            Notification.show("Actividad formativa cerrada");
+            if (onSave != null) {
+                onSave.accept(updated);
+            }
+            close();
+        }
+        catch (RuntimeException exception) {
+            Notification.show(exception.getMessage());
+        }
     }
 
     private String studentName(TrainingActivityAssignment assignment) {
@@ -168,6 +225,38 @@ public class TrainingActivityDialog extends Div {
         button.setEnabled(assignment.getFinalReport() != null && !assignment.getFinalReport().isBlank());
         button.setWidthFull();
         return button;
+    }
+
+    private Button unlockButton(TrainingActivityAssignment assignment) {
+        var button = new Button("Desbloquear", _ -> unlockAssignment(assignment));
+        button.setEnabled(assignment.isSafeBrowserLocked());
+        button.setWidthFull();
+        return button;
+    }
+
+    private void unlockAssignment(TrainingActivityAssignment assignment) {
+        try {
+            safeBrowserModeService.unlockAssignment(assignment.getId());
+            Notification.show("Asignación desbloqueada");
+            renderActivityMode();
+        }
+        catch (RuntimeException exception) {
+            Notification.show(exception.getMessage());
+        }
+    }
+
+    private Component incidentSummary() {
+        var openAlerts = safeBrowserModeService.listOpenAlerts(original.getId());
+        if (openAlerts.isEmpty()) {
+            var empty = new Span("Sin alertas Safe Browser abiertas.");
+            empty.addClassName("training-activity-safe-browser-empty");
+            return empty;
+        }
+        var alert = openAlerts.getFirst();
+        var text = new Span("Alerta Safe Browser: %d incidente(s), último evento %s"
+                .formatted(alert.getIncidentCount(), alert.getLastEventAt()));
+        text.addClassName("training-activity-safe-browser-alert");
+        return text;
     }
 
     private void renderReportMode(TrainingActivityAssignment assignment) {

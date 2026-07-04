@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,4 +18,8 @@ public interface TrainingActivityAssignmentRepository extends JpaRepository<Trai
 
     @EntityGraph(attributePaths = {"groupClassMember", "groupClassMember.tenantAccount", "groupClassMember.tenantAccount.account"})
     List<TrainingActivityAssignment> findByTrainingActivity_IdOrderByUpdatedAtDesc(UUID trainingActivityId);
+
+    List<TrainingActivityAssignment> findByTrainingActivity_IdAndStatusNot(UUID trainingActivityId, TrainingActivityAssignmentStatus status);
+
+    List<TrainingActivityAssignment> findBySafeBrowserSessionActiveTrue();
 }

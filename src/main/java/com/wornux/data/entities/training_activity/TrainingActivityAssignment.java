@@ -58,6 +58,21 @@ public class TrainingActivityAssignment {
     @Column(name = "final_report")
     private String finalReport;
 
+    @Column(name = "safe_browser_locked", nullable = false)
+    private boolean safeBrowserLocked;
+
+    @Column(name = "safe_browser_locked_at")
+    private Instant safeBrowserLockedAt;
+
+    @Column(name = "safe_browser_lock_reason")
+    private String safeBrowserLockReason;
+
+    @Column(name = "safe_browser_session_active", nullable = false)
+    private boolean safeBrowserSessionActive;
+
+    @Column(name = "safe_browser_last_heartbeat_at")
+    private Instant safeBrowserLastHeartbeatAt;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 }

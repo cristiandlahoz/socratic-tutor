@@ -67,7 +67,7 @@ public class TrainingActivityService {
     }
 
     @Transactional
-    public TrainingActivity createPending(String title, String instruction) {
+    public TrainingActivity createPending(String title, String instruction, boolean safeBrowserEnabled) {
         var context = requireProfessorContext();
         var activity = new TrainingActivity();
         activity.setId(UUID.randomUUID());
@@ -79,6 +79,7 @@ public class TrainingActivityService {
         activity.getCreatedByGroupClassMember().setId(context.groupClassMemberId());
         activity.setTitle(title);
         activity.setInstructions(instruction);
+        activity.setSafeBrowserEnabled(safeBrowserEnabled);
         activity.setStatus(TrainingActivityLifecycleStatus.DRAFT);
         activity.setCreatedAt(Instant.now());
         activity.setUpdatedAt(Instant.now());
@@ -147,8 +148,19 @@ public class TrainingActivityService {
     @Transactional
     public TrainingActivity update(UUID activityId, String title, String instruction) {
         var activity = self.get(activityId);
+        return update(activityId, title, instruction, activity.isSafeBrowserEnabled());
+    }
+
+    @Transactional
+    public TrainingActivity update(UUID activityId, String title, String instruction, boolean safeBrowserEnabled) {
+        var activity = self.get(activityId);
+        if (activity.getStatus() != TrainingActivityLifecycleStatus.DRAFT
+                && activity.isSafeBrowserEnabled() != safeBrowserEnabled) {
+            throw new IllegalStateException("Safe Browser Mode can only be changed before launch.");
+        }
         activity.setTitle(title);
         activity.setInstructions(instruction);
+        activity.setSafeBrowserEnabled(safeBrowserEnabled);
         activity.setUpdatedAt(Instant.now());
         return trainingActivityRepository.save(activity);
     }
@@ -159,6 +171,12 @@ public class TrainingActivityService {
         if (activity.getStatus() != TrainingActivityLifecycleStatus.DRAFT) {
             throw new IllegalStateException("Only draft training activities can be launched.");
         }
+        trainingActivityRepository.findFirstByCreatedByTenantAccount_IdAndStatus(
+                activity.getCreatedByTenantAccount().getId(), TrainingActivityLifecycleStatus.PUBLISHED)
+                .filter(active -> !active.getId().equals(activity.getId()))
+                .ifPresent(_ -> {
+                    throw new IllegalStateException("A professor can evaluate only one group/activity at a time.");
+                });
 
         var now = Instant.now();
         var students = groupClassMemberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(
@@ -168,6 +186,9 @@ public class TrainingActivityService {
                 .toList();
 
         var assignments = new ArrayList<TrainingActivityAssignment>(students.size());
+        if (students.isEmpty()) {
+            throw new IllegalStateException("There are no eligible students to assign.");
+        }
         for (var student : students) {
             var assignment = new TrainingActivityAssignment();
             assignment.setId(UUID.randomUUID());
@@ -195,6 +216,28 @@ public class TrainingActivityService {
         sendAfterCommit(messages);
         publishAfterCommit(notification);
         return students.size();
+    }
+
+    @Transactional
+    public TrainingActivity close(UUID activityId) {
+        var activity = get(activityId);
+        if (activity.getStatus() != TrainingActivityLifecycleStatus.PUBLISHED) {
+            throw new IllegalStateException("Only published training activities can be closed.");
+        }
+        var now = Instant.now();
+        activity.setStatus(TrainingActivityLifecycleStatus.CLOSED);
+        activity.setClosesAt(now);
+        activity.setUpdatedAt(now);
+        var openAssignments = trainingActivityAssignmentRepository.findByTrainingActivity_IdAndStatusNot(
+                activity.getId(), TrainingActivityAssignmentStatus.SUBMITTED);
+        for (var assignment : openAssignments) {
+            assignment.setSafeBrowserSessionActive(false);
+            assignment.setUpdatedAt(now);
+        }
+        if (!openAssignments.isEmpty()) {
+            trainingActivityAssignmentRepository.saveAll(openAssignments);
+        }
+        return trainingActivityRepository.save(activity);
     }
 
     private void publishAfterCommit(TrainingActivityLaunchedBus.Notification notification) {

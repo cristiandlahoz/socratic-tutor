@@ -88,13 +88,43 @@
   gap: var(--vaadin-gap-xs, 0.25rem);
 }
 
+.safe-browser-entry {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vaadin-gap-m, 1rem);
+  margin: var(--vaadin-padding-m, 1rem);
+  padding: var(--vaadin-padding-m, 1rem);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: var(--vaadin-radius-s, 8px);
+  background: var(--vaadin-background-container-strong);
+}
+
+.safe-browser-entry p {
+  margin: 0;
+}
+
+.training-activity-safe-browser-empty,
+.training-activity-safe-browser-alert {
+  display: block;
+  padding: var(--vaadin-padding-s, 0.75rem);
+  border-radius: var(--vaadin-radius-s, 8px);
+  background: var(--vaadin-background-container);
+}
+
+.training-activity-safe-browser-alert {
+  color: var(--vaadin-text-color);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+}
+
 
 /* =========================
    Overlay
    ========================= */
 
 .training-activity-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 1000;
   display: grid;

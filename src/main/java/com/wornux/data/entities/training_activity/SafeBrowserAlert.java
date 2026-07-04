@@ -3,7 +3,6 @@ package com.wornux.data.entities.training_activity;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.identity.TenantAccount;
 import jakarta.persistence.Column;
@@ -18,45 +17,36 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-@Entity(name = "TrainingActivity")
-@Table(name = "training_activity")
+@Entity
+@Table(name = "safe_browser_alert")
 @Getter
 @Setter
-public class TrainingActivity {
+public class SafeBrowserAlert {
 
     @Id
     private UUID id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_class_id", nullable = false)
-    private GroupClass groupClass;
+    @JoinColumn(name = "training_activity_id", nullable = false)
+    private TrainingActivity trainingActivity;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_tenant_account_id", nullable = false)
-    private TenantAccount createdByTenantAccount;
+    @JoinColumn(name = "professor_tenant_account_id", nullable = false)
+    private TenantAccount professorTenantAccount;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_group_class_member_id")
-    private GroupClassMember createdByGroupClassMember;
-
-    @Column(nullable = false)
-    private String title;
-
-    @Column(nullable = false)
-    private String instructions;
+    @JoinColumn(name = "professor_group_class_member_id")
+    private GroupClassMember professorGroupClassMember;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TrainingActivityLifecycleStatus status;
+    private SafeBrowserAlertStatus status;
 
-    @Column(name = "opens_at")
-    private Instant opensAt;
+    @Column(name = "incident_count", nullable = false)
+    private int incidentCount;
 
-    @Column(name = "closes_at")
-    private Instant closesAt;
-
-    @Column(name = "safe_browser_enabled", nullable = false)
-    private boolean safeBrowserEnabled;
+    @Column(name = "last_event_at", nullable = false)
+    private Instant lastEventAt;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

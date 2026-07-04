@@ -9,6 +9,7 @@ import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
@@ -36,6 +37,7 @@ import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.context.SetupRequiredException;
 import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
@@ -54,10 +56,12 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
     private final transient AuthenticatedAccountService authenticatedAccountService;
     private final transient TrainingActivityService trainingActivityService;
+    private final transient SafeBrowserModeService safeBrowserModeService;
     private final transient WorkspaceRoutingService workspaceRoutingService;
 
     private final TextField titleField = new TextField("Título");
     private final TextArea instructionField = new TextArea("Instrucciones");
+    private final Checkbox safeBrowserField = new Checkbox("Safe Browser Mode");
     private final Button saveButton = new Button("Guardar borrador");
     private final Button deleteButton = new Button("Eliminar");
     private final Button launchButton = new Button("Lanzar actividad");
@@ -67,9 +71,11 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     private TrainingActivityDialog activeDialog;
     public TrainingActivityView(
             TrainingActivityService trainingActivityService,
+            SafeBrowserModeService safeBrowserModeService,
             WorkspaceRoutingService workspaceRoutingService,
             AuthenticatedAccountService authenticatedAccountService) {
         this.trainingActivityService = trainingActivityService;
+        this.safeBrowserModeService = safeBrowserModeService;
         this.workspaceRoutingService = workspaceRoutingService;
         this.authenticatedAccountService = authenticatedAccountService;
 
@@ -110,7 +116,8 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         saveButton.setIcon(new Icon(VaadinIcon.PLUS));
         saveButton.addClickShortcut(Key.ENTER).listenOn(instructionField);
         saveButton.addClickListener(_ -> onSave());
-        var card = new Div(titleField, instructionField, saveButton);
+        safeBrowserField.setHelperText("Requiere pantalla completa y monitorea cambios de pestaña durante la evaluación.");
+        var card = new Div(titleField, instructionField, safeBrowserField, saveButton);
         UiCss.TRAINING_ACTIVITY_FORM_CARD.addTo(card);
         return card;
     }
@@ -131,6 +138,12 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
         grid.addColumn(new ComponentRenderer<>(this::renderStatusBadge))
                 .setHeader("Estado")
+                .setWidth("8rem")
+                .setFlexGrow(0)
+                .setAutoWidth(false);
+
+        grid.addColumn(activity -> activity.isSafeBrowserEnabled() ? "Activo" : "No")
+                .setHeader("Safe Browser")
                 .setWidth("8rem")
                 .setFlexGrow(0)
                 .setAutoWidth(false);
@@ -203,10 +216,11 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
             return;
         }
         try {
-            trainingActivityService.createPending(title, instruction);
+            trainingActivityService.createPending(title, instruction, safeBrowserField.getValue());
             Notification.show("Actividad formativa guardada");
             titleField.clear();
             instructionField.clear();
+            safeBrowserField.clear();
             refreshGrid();
         }
         catch (SetupRequiredException exception) {
@@ -299,6 +313,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         closeActivityDialog(false);
         activeDialog = new TrainingActivityDialog(activity,
                 trainingActivityService,
+                safeBrowserModeService,
                 this::onActivityUpdated,
                 () -> closeActivityDialog(clearAddressBarOnClose));
         getContent().add(activeDialog);

@@ -19,6 +19,7 @@ import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
 import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
@@ -47,9 +48,11 @@ class RouteAccessViewTest {
         when(viewModel.initializeFromRoute(null, false, false))
                 .thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
+        var chatProperties = new ChatProperties();
+        chatProperties.setContextWindowTokens(8_192);
         var view = new ConversationView(new ConversationState(),
                 viewModel,
-                new ChatProperties(),
+                chatProperties,
                 mock(CProgramDebugService.class),
                 mock(CExamplePreparationService.class),
                 mock(Executor.class),
@@ -78,9 +81,11 @@ class RouteAccessViewTest {
         when(viewModel.initializeFromRoute(null, false, false))
                 .thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
+        var chatProperties = new ChatProperties();
+        chatProperties.setContextWindowTokens(8_192);
         var view = new ConversationView(new ConversationState(),
                 viewModel,
-                new ChatProperties(),
+                chatProperties,
                 mock(CProgramDebugService.class),
                 mock(CExamplePreparationService.class),
                 mock(Executor.class),
@@ -119,13 +124,18 @@ class RouteAccessViewTest {
         var authenticatedAccountService = mock(AuthenticatedAccountService.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
         var trainingActivityService = mock(TrainingActivityService.class);
+        var safeBrowserModeService = mock(SafeBrowserModeService.class);
         var event = mock(BeforeEnterEvent.class);
         var account = mock(Account.class);
         when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
         when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
 
         var view =
-                new TrainingActivityView(trainingActivityService, workspaceRoutingService, authenticatedAccountService);
+                new TrainingActivityView(
+                        trainingActivityService,
+                        safeBrowserModeService,
+                        workspaceRoutingService,
+                        authenticatedAccountService);
 
         view.beforeEnter(event);
 

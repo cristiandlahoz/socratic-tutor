@@ -49,6 +49,19 @@ vaadin-app-layout::part(navbar) {
   z-index: 5;
 }
 
+vaadin-app-layout.assignment-shell-hidden::part(drawer) {
+  display: none;
+}
+
+vaadin-app-layout.assignment-shell-hidden::part(navbar) {
+  display: none;
+}
+
+vaadin-app-layout.assignment-shell-hidden vaadin-drawer-toggle.shell-drawer-toggle,
+vaadin-app-layout.assignment-shell-hidden vaadin-drawer-toggle.shell-drawer-toggle-inside {
+  display: none;
+}
+
 vaadin-drawer-toggle.shell-drawer-toggle {
   pointer-events: auto;
   position: fixed;

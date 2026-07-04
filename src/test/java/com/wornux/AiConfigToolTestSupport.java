@@ -1,11 +1,18 @@
 package com.wornux;
 
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.config.AIConfig;
 import com.wornux.config.ChatProperties;
 import com.wornux.config.TutorAiProperties;
+import com.wornux.data.enums.GuardDecision;
+import com.wornux.services.chat.ChatSessionActivityBus;
 import com.wornux.services.document.DocumentRetrievalService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -23,6 +30,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
@@ -76,6 +84,23 @@ class AiConfigToolTestSupport {
     @Bean
     ObjectMapper objectMapper() {
         return new ObjectMapper();
+    }
+
+    @Bean
+    ChatSessionActivityBus chatSessionActivityBus() {
+        return new ChatSessionActivityBus();
+    }
+
+    @Bean
+    JdbcClient jdbcClient() {
+        return mock(JdbcClient.class);
+    }
+
+    @Bean
+    GuardClassifierService guardClassifierService() {
+        var guardClassifierService = mock(GuardClassifierService.class);
+        when(guardClassifierService.classify(anyList())).thenReturn(GuardDecision.SAFE);
+        return guardClassifierService;
     }
 
     @Bean

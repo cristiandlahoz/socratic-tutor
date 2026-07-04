@@ -3,6 +3,7 @@ package com.wornux.services.training_activity;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
+import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import java.time.Instant;
@@ -64,6 +65,7 @@ public class TrainingAssignmentEvaluationService {
     @Transactional
     public TrainingActivityAssignment start(UUID assignmentId) {
         var assignment = getForCurrentStudent(assignmentId);
+        ensureAnswerable(assignment);
         if (
             assignment.getStatus() == TrainingActivityAssignmentStatus.ASSIGNED
         ) {
@@ -86,6 +88,7 @@ public class TrainingAssignmentEvaluationService {
             );
         }
         var assignment = getForCurrentStudent(assignmentId);
+        ensureAnswerable(assignment);
         if (
             assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED
         ) {
@@ -123,6 +126,28 @@ public class TrainingAssignmentEvaluationService {
         }
         assignment.setUpdatedAt(Instant.now());
         return assignmentRepository.save(assignment);
+    }
+
+    private void ensureAnswerable(TrainingActivityAssignment assignment) {
+        if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
+            return;
+        }
+        if (assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED) {
+            throw new IllegalStateException("The evaluation window has ended.");
+        }
+        if (assignment.isSafeBrowserLocked()) {
+            throw new IllegalStateException(
+                "Safe Browser Mode was interrupted. Ask your professor to review this assignment."
+            );
+        }
+        if (
+            assignment.getTrainingActivity().isSafeBrowserEnabled() &&
+            !assignment.isSafeBrowserSessionActive()
+        ) {
+            throw new IllegalStateException(
+                "Safe Browser Mode must be active before answering."
+            );
+        }
     }
 
     public List<EvaluationExchange> readEvaluationTranscript(
