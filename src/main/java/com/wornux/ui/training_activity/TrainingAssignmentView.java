@@ -24,6 +24,8 @@ import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.data.entities.training_activity.SafeBrowserEventType;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingAssignmentEvaluationService;
@@ -36,6 +38,7 @@ import jakarta.annotation.security.PermitAll;
 
 @Route(value = "training-activity/assignments", layout = MainLayout.class)
 @PermitAll
+@RequiresPermission(AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW)
 public class TrainingAssignmentView extends Composite<Div> implements HasUrlParameter<String> {
 
     private static final String ASSIGNMENT_SHELL_CLASS = "assignment-shell-hidden";
