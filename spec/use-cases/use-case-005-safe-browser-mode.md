@@ -4,7 +4,7 @@
 
 **Goal:** As a professor, I want to enable Safe Browser Mode for a training activity so that when a student leaves the controlled evaluation context, the system detects it, locks only that student’s `training_activity_assignment`, and preserves the integrity of the formative evaluation.
 
-**Status:** Pending
+**Status:** Implemented
 **Date:** 2026-07-03
 
 > A use case cannot be marked as **Implemented** unless all criteria in the use-case implementation workflow are fulfilled.
