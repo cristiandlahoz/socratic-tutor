@@ -28,11 +28,18 @@ export LLAMA_CACHE
 
 resolve_executable() {
   local candidate="$1"
+
+  # Must not return 1 just because the candidate is missing. This function is
+  # used in command substitution while set -e is enabled.
   if [[ "$candidate" == */* ]]; then
-    [[ -x "$candidate" ]] && printf '%s\n' "$candidate"
-  else
-    command -v "$candidate" 2>/dev/null || true
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+    fi
+    return 0
   fi
+
+  command -v "$candidate" 2>/dev/null || true
+  return 0
 }
 
 llama_server_supports_hf() {

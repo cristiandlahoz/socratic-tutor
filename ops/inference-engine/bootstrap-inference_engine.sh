@@ -6,6 +6,12 @@ set -euo pipefail
 # Usage:
 #   ./bootstrap-inference_engine.sh      # foreground
 #   ./bootstrap-inference_engine.sh -d   # detached/background; survives terminal close
+#
+# Main jobs:
+#   1. Make companion scripts executable.
+#   2. Ensure llama-swap exists; download it if missing.
+#   3. Ensure llama-server exists and supports Hugging Face loading; build llama.cpp if needed.
+#   4. Start run-inference-engine.sh, optionally detached.
 
 DETACHED=false
 while getopts ":d" opt; do
@@ -32,6 +38,7 @@ MONITOR_PID_FILE="${MONITOR_PID_FILE:-$ROOT_DIR/inference-engine-monitor.pid}"
 BOOTSTRAP_STARTUP_CHECK_SECONDS="${BOOTSTRAP_STARTUP_CHECK_SECONDS:-3}"
 
 mkdir -p "$BIN_DIR" "$LLAMA_CACHE"
+export PATH="$BIN_DIR:$PATH"
 
 log() {
   printf '[bootstrap] %s\n' "$*"
@@ -44,11 +51,19 @@ fail() {
 
 resolve_executable() {
   local candidate="$1"
+
+  # Important: this function must never return 1 merely because the candidate
+  # does not exist. It is called inside command substitution while set -e is on.
+  # Returning 1 there can terminate the whole script before any log is printed.
   if [[ "$candidate" == */* ]]; then
-    [[ -x "$candidate" ]] && printf '%s\n' "$candidate"
-  else
-    command -v "$candidate" 2>/dev/null || true
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+    fi
+    return 0
   fi
+
+  command -v "$candidate" 2>/dev/null || true
+  return 0
 }
 
 require_command() {
@@ -58,11 +73,48 @@ require_command() {
   fi
 }
 
+ensure_companion_scripts() {
+  local script
+  for script in run-inference-engine.sh start-llama-server.sh inference-engine-monitor.sh; do
+    if [[ ! -f "$ROOT_DIR/$script" ]]; then
+      fail "required companion script not found: $ROOT_DIR/$script"
+    fi
+    chmod +x "$ROOT_DIR/$script"
+  done
+}
+
 llama_server_supports_hf() {
   local candidate="$1"
   local help
   help="$($candidate --help 2>&1 || true)"
   grep -Eq -- '(^|[[:space:]])-hf([,[:space:]]|$)|--hf-repo|--hf-file' <<< "$help"
+}
+
+llama_swap_platform_candidates() {
+  local os arch
+  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  arch="$(uname -m)"
+
+  case "$arch" in
+    x86_64|amd64) arch="amd64" ;;
+    aarch64|arm64) arch="arm64" ;;
+    *) fail "unsupported architecture for llama-swap: $arch" ;;
+  esac
+
+  case "$os" in
+    linux)
+      printf 'linux:%s\n' "$arch"
+      ;;
+    darwin)
+      # Releases have historically used Darwin-style names. Keep osx as a
+      # fallback because some docs describe the macOS builds that way.
+      printf 'darwin:%s\n' "$arch"
+      printf 'osx:%s\n' "$arch"
+      ;;
+    *)
+      fail "unsupported OS for llama-swap binary download: $os"
+      ;;
+  esac
 }
 
 install_llama_swap() {
@@ -78,27 +130,47 @@ install_llama_swap() {
   else
     require_command curl
     require_command tar
+    require_command install
+    require_command find
 
-    log "llama-swap not found; downloading v$LLAMA_SWAP_VERSION"
-    local os arch archive tmp url
-    os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-    arch="$(uname -m)"
-    case "$arch" in
-      x86_64|amd64) arch="amd64" ;;
-      aarch64|arm64) arch="arm64" ;;
-      *) fail "unsupported architecture for llama-swap: $arch" ;;
-    esac
-
-    archive="llama-swap_${LLAMA_SWAP_VERSION}_${os}_${arch}.tar.gz"
-    url="https://github.com/mostlygeek/llama-swap/releases/download/v${LLAMA_SWAP_VERSION}/${archive}"
+    local tmp platform os arch archive url downloaded extracted_bin
     tmp="$(mktemp -d)"
-    curl -L --fail --retry 3 --connect-timeout 15 -o "$tmp/$archive" "$url"
-    tar -xzf "$tmp/$archive" -C "$tmp"
-    install -m 755 "$tmp/llama-swap" "$LLAMA_SWAP_BIN"
+    trap 'rm -rf "$tmp"' RETURN
+
+    log "llama-swap not found; downloading v$LLAMA_SWAP_VERSION into $LLAMA_SWAP_BIN"
+
+    downloaded=false
+    while IFS=':' read -r os arch; do
+      archive="llama-swap_${LLAMA_SWAP_VERSION}_${os}_${arch}.tar.gz"
+      url="${LLAMA_SWAP_DOWNLOAD_URL:-https://github.com/mostlygeek/llama-swap/releases/download/v${LLAMA_SWAP_VERSION}/${archive}}"
+
+      log "trying llama-swap archive: $archive"
+      if curl -L --fail --show-error --retry 3 --connect-timeout 15 -o "$tmp/$archive" "$url"; then
+        tar -xzf "$tmp/$archive" -C "$tmp"
+        downloaded=true
+        break
+      fi
+    done < <(llama_swap_platform_candidates)
+
+    if [[ "$downloaded" != true ]]; then
+      fail "could not download llama-swap v$LLAMA_SWAP_VERSION for this platform"
+    fi
+
+    extracted_bin="$(find "$tmp" -type f -name llama-swap | head -n 1)"
+    if [[ -z "$extracted_bin" ]]; then
+      fail "downloaded llama-swap archive did not contain a llama-swap binary"
+    fi
+
+    install -m 755 "$extracted_bin" "$LLAMA_SWAP_BIN"
+    trap - RETURN
     rm -rf "$tmp"
+
+    log "llama-swap installed: $LLAMA_SWAP_BIN"
   fi
 
-  "$LLAMA_SWAP_BIN" -version >/dev/null
+  if ! "$LLAMA_SWAP_BIN" -version >/dev/null 2>&1; then
+    fail "llama-swap exists but failed its version check: $LLAMA_SWAP_BIN"
+  fi
   log "llama-swap check passed"
 }
 
@@ -106,7 +178,7 @@ detect_llama_cpp_backend() {
   case "$LLAMA_CPP_BACKEND" in
     cuda|metal|cpu)
       printf '%s\n' "$LLAMA_CPP_BACKEND"
-      return
+      return 0
       ;;
     auto)
       ;;
@@ -134,7 +206,7 @@ install_llama_cpp() {
   if [[ -n "$found" ]] && llama_server_supports_hf "$found"; then
     LLAMA_SERVER_BIN="$found"
     log "llama-server found with Hugging Face support: $LLAMA_SERVER_BIN"
-    return
+    return 0
   elif [[ -n "$found" ]]; then
     log "llama-server found but it does not advertise -hf/Hugging Face model loading; rebuilding llama.cpp"
   fi
@@ -143,16 +215,18 @@ install_llama_cpp() {
   backend="$(detect_llama_cpp_backend)"
   log "llama-server not usable; building llama.cpp backend=$backend with CURL support"
 
-  for cmd in git cmake curl; do
+  for cmd in git cmake curl find ln; do
     require_command "$cmd"
   done
 
   if [[ "$backend" == "cuda" ]] && ! command -v nvcc >/dev/null 2>&1; then
-    log "CUDA backend selected but nvcc was not found; CMake may still find CUDA if your toolkit is configured"
+    log "CUDA backend selected but nvcc was not found; CMake may still find CUDA if the toolkit is configured"
   fi
 
-  if [[ ! -d "$LLAMA_CPP_DIR/.git" ]]; then
+  if [[ ! -e "$LLAMA_CPP_DIR" ]]; then
     git clone https://github.com/ggml-org/llama.cpp.git "$LLAMA_CPP_DIR"
+  elif [[ ! -d "$LLAMA_CPP_DIR/.git" ]]; then
+    fail "LLAMA_CPP_DIR exists but is not a git checkout: $LLAMA_CPP_DIR"
   fi
 
   if [[ -n "$LLAMA_CPP_REF" ]]; then
@@ -190,11 +264,13 @@ install_llama_cpp() {
 running_from_pid_file() {
   local file="$1"
   [[ -f "$file" ]] || return 1
+
   local pid
   pid="$(cat "$file" 2>/dev/null || true)"
   if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
     return 0
   fi
+
   rm -f "$file"
   return 1
 }
@@ -202,7 +278,7 @@ running_from_pid_file() {
 start_monitor_detached() {
   if running_from_pid_file "$MONITOR_PID_FILE"; then
     log "inference monitor already running with pid $(cat "$MONITOR_PID_FILE")"
-    return
+    return 0
   fi
 
   log "starting inference monitor detached; log: $MONITOR_LOG_FILE"
@@ -223,7 +299,7 @@ start_engine() {
     if $DETACHED; then
       start_monitor_detached
     fi
-    return
+    return 0
   fi
 
   if $DETACHED; then
@@ -231,12 +307,14 @@ start_engine() {
     nohup "$ROOT_DIR/run-inference-engine.sh" > "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     disown || true
+
     sleep "$BOOTSTRAP_STARTUP_CHECK_SECONDS"
     if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
       echo "error: inference engine exited during startup" >&2
       tail -120 "$LOG_FILE" >&2 || true
       exit 1
     fi
+
     log "inference engine started with pid $(cat "$PID_FILE")"
     start_monitor_detached
   else
@@ -245,7 +323,14 @@ start_engine() {
   fi
 }
 
+log "starting bootstrap"
+log "root: $ROOT_DIR"
+log "bin dir: $BIN_DIR"
+log "llama cache: $LLAMA_CACHE"
+log "detached: $DETACHED"
+
 require_command python3
+ensure_companion_scripts
 install_llama_swap
 install_llama_cpp
 start_engine
