@@ -102,26 +102,3 @@
   padding: var(--vaadin-padding-m) 0;
 }
 
-.training-activity-report-markdown vaadin-markdown h1,
-.training-activity-report-markdown vaadin-markdown h2,
-.training-activity-report-markdown vaadin-markdown h3,
-.training-activity-report-markdown vaadin-markdown h4,
-.training-activity-report-markdown vaadin-markdown h5,
-.training-activity-report-markdown vaadin-markdown h6 {
-  margin-top: var(--vaadin-gap-l);
-  margin-bottom: var(--vaadin-gap-s);
-}
-
-.training-activity-report-markdown vaadin-markdown p {
-  margin-bottom: var(--vaadin-gap-s);
-}
-
-.training-activity-report-markdown vaadin-markdown ul,
-.training-activity-report-markdown vaadin-markdown ol {
-  margin-bottom: var(--vaadin-gap-s);
-  padding-left: var(--vaadin-padding-l);
-}
-
-.training-activity-report-markdown vaadin-markdown li {
-  margin-bottom: var(--vaadin-gap-xs);
-}

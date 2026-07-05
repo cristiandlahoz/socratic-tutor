@@ -1,6 +1,71 @@
 import { createRoot, type Root } from 'react-dom/client';
 import CodeMirror from '@uiw/react-codemirror';
-import { codeMirrorLanguageExtensions, resolveCodeMirrorTheme } from './code-mirror-extensions';
+import { EditorView } from '@codemirror/view';
+import type { Extension } from '@codemirror/state';
+import {
+  codeMirrorLanguageExtensions,
+  resolveCodeMirrorTheme,
+  resolveCodeMirrorThemeMode,
+} from './code-mirror-extensions';
+
+const codeBlockViewerEditorTheme: Extension = EditorView.theme({
+  '&.cm-editor': {
+    border: '0',
+    backgroundColor: 'transparent',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+    boxShadow: 'none',
+  },
+
+  '&.cm-editor.cm-focused': {
+    outline: 'none',
+    boxShadow: 'none',
+  },
+
+  '&.cm-editor .cm-scroller': {
+    backgroundColor: 'transparent',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+  },
+
+  '&.cm-editor .cm-content': {
+    backgroundColor: 'transparent',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+    paddingTop: '0',
+    paddingBottom: '0',
+    paddingRight: '4.25rem',
+  },
+
+  '&.cm-editor .cm-line': {
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+  },
+
+  '&.cm-editor .cm-gutters': {
+    display: 'none',
+    border: '0',
+    backgroundColor: 'transparent',
+  },
+
+  '&.cm-editor .cm-lineNumbers': {
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+  },
+
+  '&.cm-editor .cm-activeLine': {
+    backgroundColor: 'transparent',
+  },
+
+  '&.cm-editor .cm-activeLineGutter': {
+    backgroundColor: 'transparent',
+  },
+});
 
 class CodeBlockViewerElement extends HTMLElement {
   private root: Root | null = null;
@@ -16,31 +81,42 @@ class CodeBlockViewerElement extends HTMLElement {
     if (!this.shadowRoot) {
       this.attachShadow({ mode: 'open' });
     }
+
     if (!this.root && this.shadowRoot) {
       this.root = createRoot(this.shadowRoot);
     }
+
     this.shadowReady = true;
+
     this.currentThemePreference =
       document.documentElement.getAttribute('data-theme-preference') ?? 'system';
+
     this.themePreferenceObserver = new MutationObserver(() => {
       this.currentThemePreference =
         document.documentElement.getAttribute('data-theme-preference') ?? 'system';
+
       this.renderEditor();
     });
+
     this.themePreferenceObserver.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['data-theme-preference'],
     });
+
     this.systemThemeQuery.addEventListener('change', this.handleSystemThemeChange);
+
     this.renderEditor();
   }
 
   disconnectedCallback(): void {
     this.systemThemeQuery.removeEventListener('change', this.handleSystemThemeChange);
+
     this.themePreferenceObserver?.disconnect();
     this.themePreferenceObserver = null;
+
     this.root?.unmount();
     this.root = null;
+
     this.shadowReady = false;
   }
 
@@ -84,12 +160,35 @@ class CodeBlockViewerElement extends HTMLElement {
 
     const canDebug = this.internalDebuggable && isSupportedDebugLanguage(this.internalLang);
 
+    const codeMirrorTheme = resolveCodeMirrorTheme(
+      this.currentThemePreference,
+      this.systemThemeQuery.matches,
+    );
+
+    const codeMirrorThemeMode = resolveCodeMirrorThemeMode(
+      this.currentThemePreference,
+      this.systemThemeQuery.matches,
+    );
+
     this.root.render(
       <>
         <style>{`
           :host {
-             display: block;
-           }
+            display: block;
+            font-family: var(
+              --aura-font-family,
+              ui-monospace,
+              SFMono-Regular,
+              Menlo,
+              Monaco,
+              Consolas,
+              "Liberation Mono",
+              "Courier New",
+              monospace
+            );
+            font-size: var(--message-font-size, 0.90rem);
+            line-height: var(--message-line-height, 1.55);
+          }
 
           .code-block-viewer__shell {
             background: transparent;
@@ -116,46 +215,31 @@ class CodeBlockViewerElement extends HTMLElement {
             opacity: 1;
           }
 
-          .cm-editor {
-            border: 0;
-            background: transparent !important;
-            font-family: var(--font-mono);
-            font-size: var(--message-font-size);
-            line-height: var(--message-line-height);
-          }
-
-          .cm-scroller,
-          .cm-content,
-          .cm-gutters,
-          .cm-lineNumbers {
-            font-family: inherit;
-            font-size: inherit;
-            line-height: inherit;
-          }
-
-          .cm-content {
-            padding-right: 4.25rem;
-          }
-
-          .cm-scroller,
-          .cm-gutters,
-          .cm-activeLine,
-          .cm-activeLineGutter {
-            background: transparent !important;
-          }
-
-          .cm-gutters {
-            display: none;
-            border: 0;
-          }
-
           .code-block-viewer__debug-button {
-            border: 1px solid color-mix(in srgb, var(--aura-accent-text-color) 30%, var(--vaadin-border-color));
+            border: 1px solid color-mix(
+              in srgb,
+              var(--aura-accent-text-color) 30%,
+              var(--vaadin-border-color)
+            );
             border-radius: 999px;
-            background: color-mix(in srgb, var(--aura-accent-text-color) 10%, var(--vaadin-background-container));
+            background: color-mix(
+              in srgb,
+              var(--aura-accent-text-color) 10%,
+              var(--vaadin-background-container)
+            );
             color: var(--vaadin-text-color);
             cursor: pointer;
-            font: 600 0.72rem var(--font-mono);
+            font: 600 0.72rem var(
+              --aura-font-family,
+              ui-monospace,
+              SFMono-Regular,
+              Menlo,
+              Monaco,
+              Consolas,
+              "Liberation Mono",
+              "Courier New",
+              monospace
+            );
             letter-spacing: 0.02em;
             padding: 0.28rem 0.58rem;
             pointer-events: auto;
@@ -166,8 +250,16 @@ class CodeBlockViewerElement extends HTMLElement {
           }
 
           .code-block-viewer__debug-button:hover {
-            background: color-mix(in srgb, var(--aura-accent-color) 14%, var(--vaadin-background-container));
-            border-color: color-mix(in srgb, var(--aura-accent-color) 42%, var(--vaadin-border-color));
+            background: color-mix(
+              in srgb,
+              var(--aura-accent-color) 14%,
+              var(--vaadin-background-container)
+            );
+            border-color: color-mix(
+              in srgb,
+              var(--aura-accent-color) 42%,
+              var(--vaadin-border-color)
+            );
           }
 
           .code-block-viewer__debug-button:focus-visible {
@@ -175,6 +267,7 @@ class CodeBlockViewerElement extends HTMLElement {
             outline-offset: 2px;
           }
         `}</style>
+
         <div className="code-block-viewer__shell">
           {canDebug ? (
             <div className="code-block-viewer__toolbar">
@@ -188,15 +281,17 @@ class CodeBlockViewerElement extends HTMLElement {
               </button>
             </div>
           ) : null}
+
           <CodeMirror
             value={this.internalValue}
             height="auto"
             width="100%"
-            theme={resolveCodeMirrorTheme(
-              this.currentThemePreference,
-              this.systemThemeQuery.matches,
-            )}
-            extensions={codeMirrorLanguageExtensions(this.internalLang)}
+            theme={codeMirrorThemeMode}
+            extensions={[
+              codeMirrorTheme,
+              ...codeMirrorLanguageExtensions(this.internalLang),
+              codeBlockViewerEditorTheme,
+            ]}
             root={this.shadowRoot}
             editable={false}
             readOnly={true}
@@ -231,6 +326,7 @@ class CodeBlockViewerElement extends HTMLElement {
 
 function isSupportedDebugLanguage(lang: string): boolean {
   const normalized = (lang ?? '').trim().toLowerCase();
+
   return normalized === 'c' || normalized === 'c17';
 }
 

@@ -27,10 +27,6 @@
     font-size: var(--aura-font-size-m);
   }
 
-  vaadin-message.conversation-message--user::part(content) {
-    max-width: 100%;
-  }
-
   .conversation-composer {
     padding: 1rem 1rem 1.25rem;
   }

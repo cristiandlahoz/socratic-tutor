@@ -29,18 +29,6 @@ html {
   --outlet-inset-radius: var(--vaadin-radius-m);
   --vaadin-overlay-shadow: var(--aura-shadow-s);
   --vaadin-overlay-backdrop-background: color-mix(in srgb, var(--color-black) 36%, transparent);
-  --vaadin-message-font-size: var(--message-font-size);
-  --vaadin-message-font-weight: var(--message-font-weight);
-  --vaadin-message-line-height: var(--message-line-height);
-  --vaadin-message-text-color: var(--vaadin-text-color);
-  --vaadin-message-name-color: var(--vaadin-text-color-secondary);
-  --vaadin-message-name-font-size: var(--text-meta);
-  --vaadin-message-name-font-weight: var(--font-weight-body);
-  --vaadin-message-time-color: var(--vaadin-text-color-disabled);
-  --vaadin-message-time-font-size: var(--text-meta);
-  --vaadin-message-time-font-weight: var(--font-weight-body);
-  --vaadin-message-gap: 0;
-
   --aura-app-background: light-dark(var(--aura-background-color-light), var(--aura-background-color-dark));
   --theme-border-strong: color-mix(in srgb, var(--vaadin-border-color) 68%, var(--vaadin-text-color));
   --theme-glow: radial-gradient(circle at 82% 8%, color-mix(in srgb, var(--aura-accent-text-color) 6%, transparent), transparent 24%);
@@ -108,43 +96,6 @@ body>* {
   outline: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-text-color) 10%, transparent);
   box-shadow: var(--aura-shadow-s);
   overflow: hidden;
-}
-
-vaadin-markdown {
-  display: block;
-  color: var(--message-prose-color);
-  font-size: var(--message-font-size);
-  line-height: var(--message-line-height);
-  font-weight: var(--message-font-weight);
-}
-
-vaadin-markdown :is(p, ul, ol, li, blockquote, table, figure, hr, h1, h2, h3, h4, h5, h6) {
-  margin-block: 0;
-  margin: 0;
-}
-
-vaadin-markdown :is(p, ul, ol, li, blockquote) {
-  color: var(--message-prose-color);
-  line-height: var(--message-line-height);
-}
-
-vaadin-markdown :is(h1, h2, h3, h4, h5, h6) {
-  color: var(--vaadin-text-color);
-  font-weight: var(--markdown-heading-font-weight);
-  line-height: var(--message-line-height);
-}
-
-vaadin-markdown :is(h1, h2, h3) {
-  font-size: var(--markdown-heading-font-size);
-}
-
-vaadin-markdown :is(h4, h5, h6) {
-  font-size: var(--message-font-size);
-}
-
-vaadin-markdown strong {
-  color: var(--vaadin-text-color);
-  font-weight: var(--markdown-heading-font-weight);
 }
 
 ::selection {

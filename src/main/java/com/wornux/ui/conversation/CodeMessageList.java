@@ -62,10 +62,6 @@ public final class CodeMessageList extends Component implements HasSize {
     return Collections.unmodifiableList(items);
   }
 
-  public void setMarkdown(boolean markdown) {
-    getElement().setProperty("markdown", markdown);
-  }
-
   public void setThinkingSpinner(String thinkingSpinner) {
     if (thinkingSpinner == null || thinkingSpinner.isBlank()) {
       getElement().setProperty("thinkingSpinner", "braille");

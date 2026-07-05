@@ -81,7 +81,6 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         emptyState.bindVisible(state.emptyStateVisible());
 
         messageList = new CodeMessageList();
-        messageList.setMarkdown(true);
         messageList.setThinkingSpinner(chatProperties.getUi().getThinkingSpinner());
         messageList.addDebugCodeRequestListener(event -> handleDebugCodeRequest(event.getCode(), event.getLang()));
         messageList.setWidthFull();

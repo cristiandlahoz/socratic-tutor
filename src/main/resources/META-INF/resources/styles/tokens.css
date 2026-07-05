@@ -17,7 +17,7 @@
   --color-mist-950: oklch(14.8% 0.004 228.8);
   --color-mauve-500: oklch(54.2% 0.034 322.5);
 
-  --font-mono: "CommitMono", "SF Mono", "JetBrains Mono", monospace;
+  --font-mono: "CommitMono", "SF Mono", monospace;
 
   --heading-letter-spacing: 0;
   --display-letter-spacing: 0;

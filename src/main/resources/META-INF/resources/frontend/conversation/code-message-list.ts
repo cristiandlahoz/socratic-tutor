@@ -55,12 +55,10 @@ function isAppendOrTextGrowth(previous: MessageItem[], next: MessageItem[]): boo
 class CodeMessageList extends LitElement {
   static properties = {
     items: { type: Array },
-    markdown: { type: Boolean, reflect: true },
     thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
   };
 
   declare items: MessageItem[];
-  declare markdown: boolean;
   declare thinkingSpinner: BrailleSpinnerName;
 
   private readonly minAutoScrollThreshold = 72;
@@ -78,7 +76,6 @@ class CodeMessageList extends LitElement {
   constructor() {
     super();
     this.items = [];
-    this.markdown = false;
     this.thinkingSpinner = 'braille';
   }
 
@@ -245,7 +242,7 @@ class CodeMessageList extends LitElement {
         ? html`<braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>`
         : html`<code-message-body
             .text=${item.text ?? ''}
-            .markdown=${this.markdown}
+            .markdown=${this.isAssistantItem(item)}
             .debuggableCodeBlocks=${this.isAssistantItem(item)}
           ></code-message-body>`}</vaadin-message>
     `;

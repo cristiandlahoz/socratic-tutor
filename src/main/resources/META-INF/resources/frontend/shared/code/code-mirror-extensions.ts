@@ -12,27 +12,34 @@ export function codeMirrorLanguageExtensions(lang: string | null | undefined): E
   switch ((lang ?? '').toLowerCase()) {
     case 'java':
       return [java()];
+
     case 'c':
     case 'h':
     case 'hpp':
     case 'cpp':
     case 'c++':
       return [cpp()];
+
     case 'json':
       return [json()];
+
     case 'xml':
     case 'html':
       return [xml()];
+
     case 'js':
     case 'jsx':
-    case 'javascript':
+      return [javascript({ jsx: true })];
+
     case 'ts':
     case 'tsx':
     case 'typescript':
       return [javascript({ jsx: true, typescript: true })];
+
     case 'py':
     case 'python':
       return [python()];
+
     default:
       return [];
   }
@@ -41,12 +48,29 @@ export function codeMirrorLanguageExtensions(lang: string | null | undefined): E
 export function resolveCodeMirrorTheme(
   themePreference: string,
   systemPrefersDark: boolean,
-): Extension | undefined {
+): Extension {
   if (themePreference === 'light') {
     return solarizedLight;
   }
+
   if (themePreference === 'dark') {
     return solarizedDark;
   }
+
   return systemPrefersDark ? solarizedDark : solarizedLight;
+}
+
+export function resolveCodeMirrorThemeMode(
+  themePreference: string,
+  systemPrefersDark: boolean,
+): 'light' | 'dark' {
+  if (themePreference === 'light') {
+    return 'light';
+  }
+
+  if (themePreference === 'dark') {
+    return 'dark';
+  }
+
+  return systemPrefersDark ? 'dark' : 'light';
 }
