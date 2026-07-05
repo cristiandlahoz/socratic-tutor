@@ -38,10 +38,10 @@ public class ConversationTurnOrchestrator {
     private final AtomicLong streamGeneration = new AtomicLong();
     private final ChatSessionActivityBus activityBus;
     private final ModelAvailabilityService modelAvailabilityService;
-    private transient Disposable activeStream;
-    private transient AutoCloseable activeActivitySubscription;
-    private transient Component uiAnchor;
-    private transient VaadinSession vaadinSession;
+    private Disposable activeStream;
+    private AutoCloseable activeActivitySubscription;
+    private Component uiAnchor;
+    private VaadinSession vaadinSession;
 
     public ConversationTurnOrchestrator(
             ChatSessionActivityBus activityBus,

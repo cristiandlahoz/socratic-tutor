@@ -42,7 +42,7 @@ class ConversationComposer extends LitElement {
         ?disabled=${!this.composerEnabled}
         maxlength=${this.promptLimit}
         helper-text=${this.helperText()}
-        placeholder="Escribe tu mensaje aquí..."
+        placeholder="~"
         aria-label="Escribe tu mensaje aquí"
         @value-changed=${this.handleValueChanged}
         @keydown=${this.handleKeyDown}
