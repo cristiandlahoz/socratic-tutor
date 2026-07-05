@@ -72,9 +72,6 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
         add(
             new H1("Espacio del profesor"),
             classSelector,
-            new HorizontalLayout(new Button("Abrir conversación", _ -> UI.getCurrent().navigate(ConversationView.class)),
-                    new Button("Documentos", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
-                    new Button("Actividades formativas", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
             new HorizontalLayout(studentEmailField, new Button("Enviar invitación", new Icon(VaadinIcon.PAPERPLANE), _ -> inviteStudent())),
             studentsGrid);
     }
