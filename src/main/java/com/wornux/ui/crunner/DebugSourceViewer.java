@@ -12,23 +12,12 @@ import com.vaadin.flow.component.EventData;
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
-import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.shared.Registration;
 import com.wornux.services.crunner.CDiagnostic;
 
 @Tag("c-debug-source-viewer")
 @JsModule("./crunner/c-debug-source-viewer.tsx")
-@NpmPackage(value = "@uiw/react-codemirror", version = "4.25.4")
-@NpmPackage(value = "@fsegurai/codemirror-theme-solarized-dark", version = "6.2.5")
-@NpmPackage(value = "@fsegurai/codemirror-theme-solarized-light", version = "6.2.5")
-@NpmPackage(value = "@codemirror/lang-json", version = "6.0.2")
-@NpmPackage(value = "@codemirror/lang-xml", version = "6.1.0")
-@NpmPackage(value = "@codemirror/lang-javascript", version = "6.2.4")
-@NpmPackage(value = "@codemirror/lang-python", version = "6.1.7")
-@NpmPackage(value = "@codemirror/lang-java", version = "6.0.1")
-@NpmPackage(value = "@codemirror/lang-cpp", version = "6.0.2")
-@NpmPackage(value = "@codemirror/lint", version = "6.9.5")
 public final class DebugSourceViewer extends Component implements HasSize {
 
     public DebugSourceViewer() {

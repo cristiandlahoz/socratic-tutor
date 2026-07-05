@@ -138,8 +138,6 @@ socratic:
 vaadin:
   allowed-packages: com.vaadin,org.vaadin,com.flowingcode,com.wornux
   launch-browser: true
-  pnpm:
-    enable: true
 ---
 logging:
   level:
