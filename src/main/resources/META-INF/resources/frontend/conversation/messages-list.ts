@@ -1,33 +1,36 @@
-import './code-message-body.ts';
-import './braille-spinner.ts';
-import '@vaadin/message-list/src/vaadin-message.js';
+import './message-item.ts';
 import { LitElement, html } from 'lit';
-import { ifDefined } from 'lit/directives/if-defined.js';
 import type { BrailleSpinnerName } from './braille-spinners';
 
-type MessageItem = {
+type MessageVariant = 'user' | 'assistant';
+
+type MessageItemModel = {
   text?: string;
   time?: string;
   userName?: string;
-  userColorIndex?: number;
-  className?: string;
-  theme?: string;
+  variant?: MessageVariant;
+  loading?: boolean;
 };
 
 type ScrollMode = 'auto' | 'force' | 'none';
 
-function normalizeItems(items: unknown): MessageItem[] {
+function normalizeItems(items: unknown): MessageItemModel[] {
   if (typeof items === 'string') {
-    return JSON.parse(items) as MessageItem[];
+    return JSON.parse(items) as MessageItemModel[];
   }
-  return Array.isArray(items) ? (items as MessageItem[]) : [];
+  return Array.isArray(items) ? (items as MessageItemModel[]) : [];
 }
 
-function sameMessageIdentity(a: MessageItem | undefined, b: MessageItem | undefined): boolean {
-  return a?.time === b?.time && a?.userName === b?.userName && a?.className === b?.className && a?.theme === b?.theme;
+function sameMessageIdentity(a: MessageItemModel | undefined, b: MessageItemModel | undefined): boolean {
+  return (
+    a?.time === b?.time &&
+    a?.userName === b?.userName &&
+    a?.variant === b?.variant &&
+    a?.loading === b?.loading
+  );
 }
 
-function isAppendOrTextGrowth(previous: MessageItem[], next: MessageItem[]): boolean {
+function isAppendOrTextGrowth(previous: MessageItemModel[], next: MessageItemModel[]): boolean {
   if (previous.length === 0) {
     return next.length === 0;
   }
@@ -52,13 +55,13 @@ function isAppendOrTextGrowth(previous: MessageItem[], next: MessageItem[]): boo
   );
 }
 
-class CodeMessageList extends LitElement {
+class MessagesList extends LitElement {
   static properties = {
     items: { type: Array },
     thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
   };
 
-  declare items: MessageItem[];
+  declare items: MessageItemModel[];
   declare thinkingSpinner: BrailleSpinnerName;
 
   private readonly minAutoScrollThreshold = 72;
@@ -119,13 +122,13 @@ class CodeMessageList extends LitElement {
 
   protected render() {
     return html`
-      <div part="list" role="list" class="code-message-list__list">
+      <div role="list" class="messages-list__items">
         ${this.items.map((item) => this.renderMessage(item))}
       </div>
     `;
   }
 
-  private updateItems(items: MessageItem[], scrollMode: ScrollMode): void {
+  private updateItems(items: MessageItemModel[], scrollMode: ScrollMode): void {
     this.attachScrollTarget();
     const shouldKeepPinnedToBottom = scrollMode === 'force' || this.shouldAutoScroll();
     this.items = items;
@@ -228,35 +231,21 @@ class CodeMessageList extends LitElement {
     }, behavior === 'smooth' ? this.smoothScrollReleaseMs : 0);
   }
 
-  private renderMessage(item: MessageItem) {
-    const loading = this.isLoadingItem(item);
-    return html`
-      <vaadin-message
-        role="listitem"
-        .time=${loading ? '' : item.time ?? ''}
-        .userName=${loading ? '' : item.userName ?? ''}
-        .userColorIndex=${item.userColorIndex ?? 0}
-        theme=${ifDefined(item.theme)}
-        class=${ifDefined(item.className)}
-      >${loading
-        ? html`<braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>`
-        : html`<code-message-body
-            .text=${item.text ?? ''}
-            .markdown=${this.isAssistantItem(item)}
-            .debuggableCodeBlocks=${this.isAssistantItem(item)}
-          ></code-message-body>`}</vaadin-message>
-    `;
-  }
+  private renderMessage(item: MessageItemModel) {
+    const variant = item.variant ?? 'assistant';
 
-  private isLoadingItem(item: MessageItem): boolean {
-    return item.className?.split(/\s+/).includes('is-loading') ?? false;
-  }
-
-  private isAssistantItem(item: MessageItem): boolean {
-    return item.className?.split(/\s+/).includes('conversation-message--assistant') ?? false;
+    return html`<message-item
+      role="listitem"
+      .text=${item.text ?? ''}
+      .time=${item.loading ? '' : item.time ?? ''}
+      .userName=${item.loading ? '' : item.userName ?? ''}
+      .variant=${variant}
+      .loading=${Boolean(item.loading)}
+      .thinkingSpinner=${this.thinkingSpinner}
+    ></message-item>`;
   }
 }
 
-if (!customElements.get('code-message-list')) {
-  customElements.define('code-message-list', CodeMessageList);
+if (!customElements.get('messages-list')) {
+  customElements.define('messages-list', MessagesList);
 }

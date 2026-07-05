@@ -1,0 +1,178 @@
+import './braille-spinner.ts';
+import './markdown-renderer.ts';
+import { LitElement, html } from 'lit';
+import type { BrailleSpinnerName } from './braille-spinners';
+
+const MESSAGE_ITEM_STYLE_ID = 'message-item-styles';
+
+type MessageVariant = 'user' | 'assistant';
+
+function ensureMessageItemStyles(): void {
+  if (document.getElementById(MESSAGE_ITEM_STYLE_ID)) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = MESSAGE_ITEM_STYLE_ID;
+  style.textContent = `
+    message-item {
+      --message-item-font-size-base: var(--aura-font-size-m, 13px);
+      --message-item-font-size: var(--message-font-size, var(--message-item-font-size-base));
+      --message-item-font-weight: var(--message-font-weight, var(--aura-font-weight-regular, 400));
+      --message-item-line-height: var(--message-line-height, var(--aura-line-height-m, 1.5));
+      --message-item-user-max-inline-size: min(31.65rem, 100%);
+      --message-item-assistant-max-inline-size: min(50rem, 100%);
+      --message-item-user-padding-block: var(--vaadin-padding-xs);
+      --message-item-user-padding-inline: var(--vaadin-padding-s);
+      --message-item-user-background: var(--message-user-surface, var(--aura-surface-color));
+      --message-item-user-border-color: var(--message-user-border, var(--vaadin-border-color));
+      --message-item-user-shadow: var(--message-user-shadow, var(--aura-shadow-s));
+      --message-item-assistant-color: var(--message-assistant-text-color);
+
+      box-sizing: border-box;
+      display: block;
+      min-width: 0;
+      color: var(--message-item-assistant-color);
+      font-size: var(--message-item-font-size);
+      font-weight: var(--message-item-font-weight);
+      line-height: var(--message-item-line-height);
+    }
+
+    message-item[variant="assistant"] {
+      max-inline-size: var(--message-item-assistant-max-inline-size);
+    }
+
+    message-item[variant="user"] {
+      inline-size: fit-content;
+      max-inline-size: var(--message-item-user-max-inline-size);
+      margin-inline-start: auto;
+      padding: var(--message-item-user-padding-block) var(--message-item-user-padding-inline);
+      border: var(--vaadin-input-field-border-width, 1px) solid var(--message-item-user-border-color);
+      border-radius: var(--vaadin-radius-m);
+      background: var(--message-item-user-background);
+      box-shadow: var(--message-item-user-shadow);
+      color: var(--vaadin-text-color);
+      backdrop-filter: blur(18px) saturate(1.05);
+    }
+
+    message-item[variant="user"] markdown-renderer {
+      --markdown-renderer-text-color: var(--vaadin-text-color);
+      inline-size: fit-content;
+      max-inline-size: 100%;
+      white-space: pre-wrap;
+    }
+
+    message-item[variant="assistant"] markdown-renderer {
+      --markdown-renderer-text-color: var(--message-item-assistant-color);
+    }
+
+    message-item[loading] {
+      inline-size: fit-content;
+      min-height: auto;
+      color: var(--vaadin-text-color-disabled);
+      font-family: var(--aura-font-family);
+      letter-spacing: 0;
+    }
+
+    message-item[loading] braille-spinner {
+      --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
+      --thinking-spinner-weight: 400;
+      --thinking-spinner-color: var(--aura-accent-text-color);
+      --thinking-spinner-accent-color: var(--aura-red);
+
+      display: inline-block;
+      min-width: 2ch;
+      white-space: pre;
+    }
+
+    message-item code,
+    message-item pre,
+    message-item kbd,
+    message-item samp {
+      font-family: var(--aura-font-family);
+    }
+
+    message-item a {
+      color: var(--aura-accent-text-color);
+      text-decoration-color: color-mix(in srgb, var(--aura-accent-text-color) 35%, transparent);
+      transition: text-decoration-color var(--motion-fast);
+    }
+
+    message-item a:hover {
+      text-decoration-color: var(--aura-accent-text-color);
+    }
+
+    @media (max-width: 960px) {
+      message-item[variant="user"] {
+        max-inline-size: 100%;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+class MessageItem extends LitElement {
+  static properties = {
+    text: { type: String },
+    time: { type: String },
+    userName: { type: String, attribute: 'user-name' },
+    variant: { type: String, reflect: true },
+    loading: { type: Boolean, reflect: true },
+    thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
+  };
+
+  declare text: string;
+  declare time: string;
+  declare userName: string;
+  declare variant: MessageVariant;
+  declare loading: boolean;
+  declare thinkingSpinner: BrailleSpinnerName;
+
+  constructor() {
+    super();
+    this.text = '';
+    this.time = '';
+    this.userName = '';
+    this.variant = 'assistant';
+    this.loading = false;
+    this.thinkingSpinner = 'braille';
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    ensureMessageItemStyles();
+  }
+
+  protected createRenderRoot(): HTMLElement | DocumentFragment {
+    return this;
+  }
+
+  protected willUpdate(): void {
+    this.setAttribute('aria-label', this.accessibleLabel());
+  }
+
+  protected render() {
+    if (this.loading) {
+      return html`<braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>`;
+    }
+
+    return html`<markdown-renderer
+      .content=${this.text ?? ''}
+      .debuggableCodeBlocks=${this.variant === 'assistant'}
+    ></markdown-renderer>`;
+  }
+
+  private accessibleLabel(): string {
+    if (this.loading) {
+      return 'Tutor Socrático está pensando';
+    }
+
+    const author = this.userName?.trim() || 'Mensaje';
+    const time = this.time?.trim();
+    return time ? `${author}, ${time}` : author;
+  }
+}
+
+if (!customElements.get('message-item')) {
+  customElements.define('message-item', MessageItem);
+}

@@ -50,7 +50,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 public class ConversationView extends Composite<Div> implements BeforeEnterObserver {
 
     private final ConversationViewModel viewModel;
-    private final CodeMessageList messageList;
+    private final MessagesList messageList;
     private final ConversationComposer composer;
     private final Button debuggerToggleButton;
     private final StudentQuestionPanel questionPanel;
@@ -80,7 +80,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         Div emptyState = createEmptyState(state);
         emptyState.bindVisible(state.emptyStateVisible());
 
-        messageList = new CodeMessageList();
+        messageList = new MessagesList();
         messageList.setThinkingSpinner(chatProperties.getUi().getThinkingSpinner());
         messageList.addDebugCodeRequestListener(event -> handleDebugCodeRequest(event.getCode(), event.getLang()));
         messageList.setWidthFull();
@@ -465,17 +465,14 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         UiCss.CONVERSATION_DEBUGGER_TOGGLE_HIDDEN.addTo(debuggerToggleButton, visible);
     }
 
-    private CodeMessageListItem toMessageListItem(MessageState message) {
+    private MessageItem toMessageListItem(MessageState message) {
         var isUserMessage = message.role() == MessageType.USER;
-        var item = new CodeMessageListItem(message.content(),
+        return new MessageItem(
+                message.content(),
                 message.createdAt(),
-                isUserMessage ? "Tú" : "Tutor Socrático");
-        item.setUserColorIndex();
-        item.addClass(isUserMessage ? UiCss.CONVERSATION_MESSAGE_USER : UiCss.CONVERSATION_MESSAGE_ASSISTANT);
-        if (message.loading()) {
-            item.addClass(UiCss.CONVERSATION_MESSAGE_LOADING);
-        }
-        return item;
+                isUserMessage ? "Tú" : "Tutor Socrático",
+                isUserMessage ? MessageItem.Variant.USER : MessageItem.Variant.ASSISTANT,
+                message.loading());
     }
 
     private void rerouteToResolvedConversation(BeforeEnterEvent event, UUID resolvedConversationId) {

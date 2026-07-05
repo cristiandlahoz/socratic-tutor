@@ -63,9 +63,6 @@ public final class UiCss {
     public static final CssClass CONVERSATION_DEBUGGER_TOGGLE = css("conversation-view__debugger-toggle");
     public static final CssClass CONVERSATION_DEBUGGER_TOGGLE_HIDDEN = css("conversation-view__debugger-toggle--hidden");
     public static final CssClass CONVERSATION_THREAD = css("conversation-thread");
-    public static final CssClass CONVERSATION_MESSAGE_USER = css("conversation-message--user");
-    public static final CssClass CONVERSATION_MESSAGE_ASSISTANT = css("conversation-message--assistant");
-    public static final CssClass CONVERSATION_MESSAGE_LOADING = css("is-loading");
     public static final CssClass CONVERSATION_EMPTY = css("conversation-empty");
     public static final CssClass CONVERSATION_EMPTY_LAYOUT = css("conversation-empty__layout");
     public static final CssClass CONVERSATION_EMPTY_CONTENT = css("conversation-empty__content");

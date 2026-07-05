@@ -14,35 +14,25 @@ import com.vaadin.flow.component.EventData;
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
-import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.shared.Registration;
 
-@Tag("code-message-list")
-@JsModule("./conversation/code-message-list.ts")
-@NpmPackage(value = "@uiw/react-codemirror", version = "4.25.4")
-@NpmPackage(value = "@fsegurai/codemirror-theme-solarized-dark", version = "6.2.5")
-@NpmPackage(value = "@fsegurai/codemirror-theme-solarized-light", version = "6.2.5")
-@NpmPackage(value = "@codemirror/lang-json", version = "6.0.2")
-@NpmPackage(value = "@codemirror/lang-xml", version = "6.1.0")
-@NpmPackage(value = "@codemirror/lang-javascript", version = "6.2.4")
-@NpmPackage(value = "@codemirror/lang-python", version = "6.1.7")
-@NpmPackage(value = "@codemirror/lang-java", version = "6.0.1")
-@NpmPackage(value = "@codemirror/lang-cpp", version = "6.0.2")
-public final class CodeMessageList extends Component implements HasSize {
+@Tag("messages-list")
+@JsModule("./conversation/messages-list.ts")
+public final class MessagesList extends Component implements HasSize {
 
-  private transient List<CodeMessageListItem> items = new ArrayList<>();
+  private transient List<MessageItem> items = new ArrayList<>();
   private boolean pendingUpdate;
   private boolean pendingTextUpdate;
   private Integer pendingAddItemsIndex;
 
-  public CodeMessageList() {
+  public MessagesList() {
     addAttachListener(_ -> scheduleItemsUpdate());
   }
 
-  public void setItems(Collection<CodeMessageListItem> items) {
-    Objects.requireNonNull(items, "Can't set null item collection to CodeMessageList.");
-    items.forEach(item -> Objects.requireNonNull(item, "Can't include null items in CodeMessageList."));
+  public void setItems(Collection<MessageItem> items) {
+    Objects.requireNonNull(items, "Can't set null item collection to MessagesList.");
+    items.forEach(item -> Objects.requireNonNull(item, "Can't include null items in MessagesList."));
 
     this.items.forEach(item -> item.setHost(null));
     this.items = new ArrayList<>(items);
@@ -50,15 +40,15 @@ public final class CodeMessageList extends Component implements HasSize {
     scheduleItemsUpdate();
   }
 
-  public void addItem(CodeMessageListItem item) {
-    Objects.requireNonNull(item, "Can't add null item to CodeMessageList.");
+  public void addItem(MessageItem item) {
+    Objects.requireNonNull(item, "Can't add null item to MessagesList.");
 
     item.setHost(this);
     items.add(item);
     scheduleAddItemsUpdate();
   }
 
-  public List<CodeMessageListItem> getItems() {
+  public List<MessageItem> getItems() {
     return Collections.unmodifiableList(items);
   }
 
@@ -149,13 +139,13 @@ public final class CodeMessageList extends Component implements HasSize {
   }
 
   @DomEvent("debug-code-requested")
-  public static final class DebugCodeRequestEvent extends ComponentEvent<CodeMessageList> {
+  public static final class DebugCodeRequestEvent extends ComponentEvent<MessagesList> {
 
     private final String code;
     private final String lang;
 
     public DebugCodeRequestEvent(
-        CodeMessageList source,
+        MessagesList source,
         boolean fromClient,
         @EventData("event.detail.code") String code,
         @EventData("event.detail.lang") String lang) {
