@@ -164,6 +164,52 @@ vaadin-app-layout>.conversation-view.conversation-view:nth-child(1 of :not([slot
   background: var(--aura-app-background);
 }
 
+.conversation-review-app-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--vaadin-gap-m);
+  flex: 0 0 auto;
+  padding: var(--vaadin-padding-s) var(--vaadin-padding-l);
+  border-bottom: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  background: color-mix(in srgb, var(--aura-surface-color) 78%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+vaadin-button.conversation-review-app-bar__back-button::part(button) {
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--drawer-accent-color) 54%, var(--vaadin-border-color));
+  border-radius: var(--vaadin-radius-m);
+  background: color-mix(in srgb, var(--aura-surface-color) 82%, var(--aura-app-background));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--drawer-accent-color) 18%, transparent);
+  color: var(--ui-toggle-color);
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+vaadin-button.conversation-review-app-bar__back-button:hover::part(button),
+vaadin-button.conversation-review-app-bar__back-button:focus-within::part(button) {
+  border-color: var(--drawer-accent-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--drawer-accent-color) 24%, transparent);
+  color: var(--ui-toggle-hover-color);
+  transform: translateY(-1px);
+}
+
+vaadin-button.conversation-review-app-bar__back-button vaadin-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: currentColor;
+}
+
+.conversation-review-app-bar__title {
+  color: var(--vaadin-text-color-secondary);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-s);
+  font-weight: var(--aura-font-weight-medium);
+}
+
 .conversation-view__scroll-region {
   flex: 1 1 auto;
   min-height: 0;

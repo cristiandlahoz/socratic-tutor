@@ -15,6 +15,8 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
@@ -36,6 +38,7 @@ import com.wornux.ui.conversation.CodeMessageListItem;
 import com.wornux.ui.conversation.ConversationComposer;
 import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.css.UiCss;
+import com.wornux.ui.student.StudentWorkspaceView;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "training-activity/assignments", layout = MainLayout.class)
@@ -59,6 +62,7 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     private final CodeMessageList messageList = new CodeMessageList();
     private final ConversationState composerState = new ConversationState();
     private final ConversationComposer composer;
+    private final Div reviewAppBar = new Div();
     private final Div safeBrowserEntry = new Div();
     private final Div inputShell = new Div();
     private UUID assignmentId;
@@ -73,6 +77,8 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         this.evaluationService = evaluationService;
         this.safeBrowserModeService = safeBrowserModeService;
         this.assignmentStateBus = assignmentStateBus;
+
+        configureReviewAppBar();
 
         messageList.setMarkdown(true);
         messageList.setThinkingSpinner(chatProperties.getUi().getThinkingSpinner());
@@ -99,13 +105,32 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         var content = getContent();
         content.setSizeFull();
         UiCss.CONVERSATION_VIEW.addTo(content);
-        content.add(chatPane);
+        content.add(reviewAppBar, chatPane);
+    }
+
+    private void configureReviewAppBar() {
+        var title = new Span("Revisión de actividad finalizada");
+        UiCss.CONVERSATION_REVIEW_APP_BAR_TITLE.addTo(title);
+
+        var backButton = new Button("Volver al panel de estudiante", _ -> UI.getCurrent().navigate(StudentWorkspaceView.class));
+        backButton.setIcon(VaadinIcon.ARROW_LEFT.create());
+        backButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        UiCss.CONVERSATION_REVIEW_APP_BAR_BACK_BUTTON.addTo(backButton);
+
+        UiCss.CONVERSATION_REVIEW_APP_BAR.addTo(reviewAppBar);
+        reviewAppBar.add(backButton, title);
+        reviewAppBar.setVisible(false);
     }
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-        setAssignmentShellHidden(true);
+        if (assignment == null) {
+            setAssignmentShellHidden(true);
+        }
+        else {
+            renderAssignment();
+        }
         subscribeToAssignmentStateChanges(attachEvent.getUI());
     }
 
@@ -159,9 +184,17 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     }
 
     private void renderAssignment() {
-        setAssignmentShellHidden(assignment == null || assignment.getStatus() != TrainingActivityAssignmentStatus.SUBMITTED);
+        var reviewMode = isClosedSubmittedReview(assignment);
+        setAssignmentShellHidden(!reviewMode);
+        reviewAppBar.setVisible(reviewMode);
         renderSafeBrowserEntry();
         messageList.setItems(toMessages(assignment));
+        if (reviewMode) {
+            inputShell.setVisible(false);
+            clearComposer();
+            updateComposerState();
+            return;
+        }
         if (isBlocked(assignment)) {
             inputShell.setVisible(true);
             clearComposer();
@@ -202,6 +235,12 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
                 || assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED;
     }
 
+    private boolean isClosedSubmittedReview(TrainingActivityAssignment assignment) {
+        return assignment != null
+                && assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED
+                && assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED;
+    }
+
     private void setAssignmentShellHidden(boolean hidden) {
         getElement().executeJs(
                 "this.closest('vaadin-app-layout')?.classList.toggle($0, $1)",
@@ -211,7 +250,9 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
 
     private void renderSafeBrowserEntry() {
         safeBrowserEntry.removeAll();
-        safeBrowserEntry.setVisible(assignment != null && assignment.getTrainingActivity().isSafeBrowserEnabled());
+        safeBrowserEntry.setVisible(assignment != null
+                && assignment.getTrainingActivity().isSafeBrowserEnabled()
+                && !isClosedSubmittedReview(assignment));
         if (!safeBrowserEntry.isVisible()) {
             return;
         }

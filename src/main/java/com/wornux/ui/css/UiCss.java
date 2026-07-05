@@ -56,6 +56,9 @@ public final class UiCss {
     public static final CssClass USAGE_HELP_POPOVER_DESCRIPTION = css("usage-help-popover__description");
 
     public static final CssClass CONVERSATION_VIEW = css("conversation-view");
+    public static final CssClass CONVERSATION_REVIEW_APP_BAR = css("conversation-review-app-bar");
+    public static final CssClass CONVERSATION_REVIEW_APP_BAR_BACK_BUTTON = css("conversation-review-app-bar__back-button");
+    public static final CssClass CONVERSATION_REVIEW_APP_BAR_TITLE = css("conversation-review-app-bar__title");
     public static final CssClass CONVERSATION_PANE = css("conversation-view__pane");
     public static final CssClass CONVERSATION_SCROLL_REGION = css("conversation-view__scroll-region");
     public static final CssClass CONVERSATION_DEBUG_SPLIT = css("conversation-view__debug-split");
