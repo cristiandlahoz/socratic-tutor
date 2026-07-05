@@ -35,13 +35,15 @@ function ensureCodeMessageBodyStyles(): void {
       box-shadow: none;
       background: transparent;
       backdrop-filter: none;
-      font-size: 0.75rem;
-      line-height: 1rem;
+      font-size: var(--message-font-size);
+      line-height: var(--message-line-height);
     }
 
     code-message-body vaadin-markdown {
       display: block;
       color: inherit;
+      font-size: var(--message-font-size);
+      line-height: var(--message-line-height);
     }
 
     code-message-body code-block-viewer + vaadin-markdown {

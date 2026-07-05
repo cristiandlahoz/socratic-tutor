@@ -13,10 +13,6 @@
     font-size: var(--aura-font-size-xl);
   }
 
-  .conversations-history-title {
-    font-size: var(--aura-font-size-l);
-  }
-
   .conversation-thread {
     padding: 4.75rem 1rem clamp(11rem, 28vh, 16rem);
     gap: var(--vaadin-padding-l);
@@ -27,8 +23,7 @@
     height: 11.9rem;
   }
 
-  .conversation-empty__description,
-  vaadin-message.conversation-message--assistant::part(message) {
+  .conversation-empty__description {
     font-size: var(--aura-font-size-m);
   }
 

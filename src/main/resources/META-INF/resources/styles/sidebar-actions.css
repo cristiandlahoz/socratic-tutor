@@ -44,7 +44,7 @@
   box-shadow: none;
   color: var(--drawer-foreground);
   font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-s);
+  font-size: var(--aura-font-size-m);
   letter-spacing: -0.01em;
   text-transform: none;
   transition: background var(--motion-fast), color var(--motion-fast), transform var(--motion-fast);

@@ -23,13 +23,11 @@
   --display-letter-spacing: 0;
   --text-meta: var(--aura-font-size-xs);
   --font-weight-body: var(--aura-font-weight-regular);
-  --message-font-size: var(--aura-font-size-xs);
-  --message-line-height: var(--aura-line-height-xs);
+  --message-font-size: var(--aura-font-size-m);
+  --message-line-height: var(--aura-line-height-m);
   --message-font-weight: var(--aura-font-weight-regular);
   --markdown-heading-font-weight: var(--aura-font-weight-semibold);
-  --markdown-h1-font-size: var(--aura-font-size-m);
-  --markdown-h2-font-size: var(--aura-font-size-s);
-  --markdown-h3-font-size: var(--message-font-size);
+  --markdown-heading-font-size: 23px;
   --code-text-size: clamp(1rem, 0.38vw, 1.08rem);
   --message-assistant-line-height: 1.62;
   --code-line-height: 1.48;

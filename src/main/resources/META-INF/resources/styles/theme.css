@@ -1,10 +1,10 @@
 html {
   color-scheme: light dark;
   --aura-font-family: var(--font-mono);
-  --aura-base-font-size: 17;
+  --aura-base-font-size: 13;
   --aura-base-line-height: 1.5;
   --aura-base-radius: 6;
-  --aura-base-size: 20;
+  --aura-base-size: 16;
   --aura-contrast-level: 5;
   --aura-background-color-light: var(--color-olive-300);
   --aura-background-color-dark: oklch(18.45% 0.0108 207.1deg);
@@ -25,7 +25,7 @@ html {
   --aura-app-layout-radius: 0px;
   --vaadin-app-layout-drawer-width: clamp(18rem, 24vw, 22.0625rem);
   --vaadin-app-layout-drawer-background: var(--aura-app-background);
-  --outlet-inset-padding: calc(var(--vaadin-padding-s) + var(--vaadin-gap-xs));
+  --outlet-inset-padding: var(--vaadin-padding-m);
   --outlet-inset-radius: var(--vaadin-radius-m);
   --vaadin-overlay-shadow: var(--aura-shadow-s);
   --vaadin-overlay-backdrop-background: color-mix(in srgb, var(--color-black) 36%, transparent);
@@ -44,6 +44,15 @@ html {
   --aura-app-background: light-dark(var(--aura-background-color-light), var(--aura-background-color-dark));
   --theme-border-strong: color-mix(in srgb, var(--vaadin-border-color) 68%, var(--vaadin-text-color));
   --theme-glow: radial-gradient(circle at 82% 8%, color-mix(in srgb, var(--aura-accent-text-color) 6%, transparent), transparent 24%);
+  --commit-mono-font-features: "kern" 1, "liga" 1, "calt" 1, "ss01" 1, "ss02" 1, "ss03" 1, "ss04" 1, "ss05" 1;
+  --commit-mono-webkit-font-smoothing: auto;
+  --commit-mono-moz-osx-font-smoothing: auto;
+}
+
+@media (height <= 600px), (width <= 800px) {
+  html {
+    --outlet-inset-padding: var(--vaadin-padding-s);
+  }
 }
 
 html,
@@ -54,15 +63,18 @@ body {
   background: var(--aura-app-background);
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-m);
   font-weight: var(--font-weight-body);
 }
 
 body {
   position: relative;
   accent-color: var(--aura-accent-color);
+  font-size: var(--aura-font-size-m);
   font-kerning: normal;
-  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  font-variant-ligatures: common-ligatures contextual;
+  font-feature-settings: var(--commit-mono-font-features);
+  -webkit-font-smoothing: var(--commit-mono-webkit-font-smoothing);
+  -moz-osx-font-smoothing: var(--commit-mono-moz-osx-font-smoothing);
   text-rendering: optimizeLegibility;
 }
 
@@ -122,16 +134,12 @@ vaadin-markdown :is(h1, h2, h3, h4, h5, h6) {
   line-height: var(--message-line-height);
 }
 
-vaadin-markdown h1 {
-  font-size: var(--markdown-h1-font-size);
+vaadin-markdown :is(h1, h2, h3) {
+  font-size: var(--markdown-heading-font-size);
 }
 
-vaadin-markdown h2 {
-  font-size: var(--markdown-h2-font-size);
-}
-
-vaadin-markdown :is(h3, h4, h5, h6) {
-  font-size: var(--markdown-h3-font-size);
+vaadin-markdown :is(h4, h5, h6) {
+  font-size: var(--message-font-size);
 }
 
 vaadin-markdown strong {
@@ -207,6 +215,8 @@ body[data-theme-preference="light"] {
     --drawer-foreground-strong: color-mix(in srgb, var(--drawer-foreground) 86%, var(--vaadin-text-color));
     --drawer-label-color: var(--drawer-foreground-muted);
     --drawer-accent-color: var(--drawer-foreground);
+    --message-prose-color: color-mix(in srgb, #eeeeea 90%, #0b0d0b);
+    --message-assistant-text-color: var(--message-prose-color);
   }
 }
 
@@ -226,4 +236,6 @@ body[data-theme-preference="dark"] {
   --drawer-foreground-strong: color-mix(in srgb, var(--drawer-foreground) 86%, var(--vaadin-text-color));
   --drawer-label-color: var(--drawer-foreground-muted);
   --drawer-accent-color: var(--drawer-foreground);
+  --message-prose-color: color-mix(in srgb, #eeeeea 90%, #0b0d0b);
+  --message-assistant-text-color: var(--message-prose-color);
 }

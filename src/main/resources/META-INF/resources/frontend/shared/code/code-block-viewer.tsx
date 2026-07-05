@@ -120,8 +120,8 @@ class CodeBlockViewerElement extends HTMLElement {
             border: 0;
             background: transparent !important;
             font-family: var(--font-mono);
-            font-size: 0.75rem;
-            line-height: 1rem;
+            font-size: var(--message-font-size);
+            line-height: var(--message-line-height);
           }
 
           .cm-scroller,

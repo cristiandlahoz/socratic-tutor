@@ -110,8 +110,7 @@ class ConversationsHistory extends LitElement {
           class="conversations-history-title-row"
           title="Hilos recientes ordenados por fecha y conectados como una sola ruta."
         >
-          <h1 class="conversations-history-title">Historial</h1>
-          <span class="conversations-history-count">${this.formatConversationCount(this.conversations.length)}</span>
+          <h1 class="conversations-history-title">${this.formatConversationCount(this.conversations.length)}</h1>
         </div>
       </div>
       <div class="conversations-history-section">
@@ -327,7 +326,7 @@ class ConversationsHistory extends LitElement {
   }
 
   private formatConversationCount(count: number): string {
-    return `${count} hilos`;
+    return `Hilos (${count})`;
   }
 
   private installGraphObservers(): void {
