@@ -26,6 +26,7 @@ import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatu
 import com.wornux.data.entities.training_activity.SafeBrowserEventType;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
+import com.wornux.services.chat.ModelAvailabilityStatus;
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingAssignmentEvaluationService;
@@ -33,6 +34,7 @@ import com.wornux.ui.MainLayout;
 import com.wornux.ui.conversation.CodeMessageList;
 import com.wornux.ui.conversation.CodeMessageListItem;
 import com.wornux.ui.conversation.ConversationComposer;
+import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
@@ -55,6 +57,7 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     private final SafeBrowserModeService safeBrowserModeService;
     private final SafeBrowserAssignmentStateBus assignmentStateBus;
     private final CodeMessageList messageList = new CodeMessageList();
+    private final ConversationState composerState = new ConversationState();
     private final ConversationComposer composer;
     private final Div safeBrowserEntry = new Div();
     private final Div inputShell = new Div();
@@ -75,13 +78,9 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         messageList.setThinkingSpinner(chatProperties.getUi().getThinkingSpinner());
         messageList.setWidthFull();
 
-        composer = new ConversationComposer(
-                ANSWER_PLACEHOLDER,
-                "Escribe tu respuesta aquí",
-                "Enviar respuesta",
-                this::submitAnswer);
-        composer.addValueChangeListener(this::updateComposerState);
-        composer.setSubmitEnabled(false);
+        composerState.modelAvailabilityStatus().set(ModelAvailabilityStatus.CONNECTED);
+        composerState.responseInProgress().set(true);
+        composer = new ConversationComposer(composerState, chatProperties.composerPromptLimit(), this::submitAnswer);
 
         UiCss.CONVERSATION_COMPOSER.addTo(inputShell);
         inputShell.add(composer);
@@ -165,30 +164,28 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         messageList.setItems(toMessages(assignment));
         if (isBlocked(assignment)) {
             inputShell.setVisible(true);
-            composer.clear();
-            composer.setPlaceholder("Asignación bloqueada");
+            clearComposer();
             updateComposerState();
             return;
         }
         if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
             inputShell.setVisible(true);
-            composer.clear();
-            composer.setPlaceholder(SUBMITTED_PLACEHOLDER);
+            clearComposer();
             updateComposerState();
             return;
         }
         inputShell.setVisible(true);
-        composer.setPlaceholder(ANSWER_PLACEHOLDER);
-        composer.clear();
+        clearComposer();
         updateComposerState();
     }
 
     private void submitAnswer() {
-        if (assignmentId == null || composer.getValue().trim().isBlank()) {
+        var answer = composerState.composerText().peek().trim();
+        if (assignmentId == null || answer.isBlank()) {
             return;
         }
         var wasSubmitted = assignment != null && assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED;
-        assignment = evaluationService.answer(assignmentId, composer.getValue());
+        assignment = evaluationService.answer(assignmentId, answer);
         renderAssignment();
         if (!wasSubmitted && assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
             showCompletionDialog();
@@ -314,8 +311,12 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
                 && assignment.getStatus() != TrainingActivityAssignmentStatus.SUBMITTED
                 && !isBlocked(assignment)
                 && (!assignment.getTrainingActivity().isSafeBrowserEnabled() || assignment.isSafeBrowserSessionActive());
-        composer.setComposerEnabled(enabled);
-        composer.setSubmitEnabled(enabled && !composer.getValue().trim().isBlank());
+        composerState.responseInProgress().set(!enabled);
+        composerState.modelAvailabilityStatus().set(enabled ? ModelAvailabilityStatus.CONNECTED : ModelAvailabilityStatus.OFFLINE);
+    }
+
+    private void clearComposer() {
+        composerState.composerText().set("");
     }
 
     private List<CodeMessageListItem> toMessages(TrainingActivityAssignment assignment) {

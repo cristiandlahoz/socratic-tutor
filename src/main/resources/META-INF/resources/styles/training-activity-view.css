@@ -92,6 +92,113 @@
   gap: var(--vaadin-gap-xs, 0.25rem);
 }
 
+.training-activity-form-card vaadin-button[theme~="primary"],
+.training-activity-actions-row vaadin-button[theme~="primary"],
+.training-activity-overlay-footer vaadin-button[theme~="primary"],
+.training-activity-report-footer vaadin-button[theme~="primary"] {
+  --training-activity-action-color: light-dark(#082c42, #ffdf72);
+  --training-activity-action-background: light-dark(
+    color-mix(in srgb, white 88%, #d7e0e2),
+    color-mix(in srgb, #ffdf72 10%, var(--vaadin-background-container))
+  );
+  --training-activity-action-border: light-dark(
+    color-mix(in srgb, #082c42 24%, #d7e0e2),
+    color-mix(in srgb, #ffdf72 48%, var(--vaadin-border-color))
+  );
+  --vaadin-button-background: var(--training-activity-action-background);
+  --vaadin-button-text-color: var(--training-activity-action-color);
+  --vaadin-focus-ring-color: color-mix(in srgb, var(--training-activity-action-color) 48%, transparent);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--training-activity-action-border);
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  box-shadow: light-dark(0 1px 2px color-mix(in srgb, #082c42 12%, transparent), none);
+}
+
+.training-activity-form-card vaadin-button[theme~="primary"]:hover,
+.training-activity-actions-row vaadin-button[theme~="primary"]:hover,
+.training-activity-overlay-footer vaadin-button[theme~="primary"]:hover,
+.training-activity-report-footer vaadin-button[theme~="primary"]:hover {
+  --vaadin-button-background: light-dark(
+    color-mix(in srgb, white 82%, #c9d6da),
+    color-mix(in srgb, #ffdf72 16%, var(--vaadin-background-container))
+  );
+  border-color: light-dark(
+    color-mix(in srgb, #082c42 34%, #d7e0e2),
+    color-mix(in srgb, #ffdf72 68%, var(--vaadin-border-color))
+  );
+}
+
+.training-activity-actions-row vaadin-button[theme~="error"],
+.training-activity-overlay-footer vaadin-button[theme~="error"],
+.training-activity-report-footer vaadin-button[theme~="error"] {
+  --training-activity-danger-color: light-dark(#b3261e, #ff8d82);
+  --training-activity-danger-background: light-dark(
+    color-mix(in srgb, white 88%, #f5dddd),
+    color-mix(in srgb, #ff8d82 8%, var(--vaadin-background-container))
+  );
+  --training-activity-danger-border: light-dark(
+    color-mix(in srgb, #b3261e 28%, #d7e0e2),
+    color-mix(in srgb, #ff8d82 38%, var(--vaadin-border-color))
+  );
+  --vaadin-button-background: var(--training-activity-danger-background);
+  --vaadin-button-text-color: var(--training-activity-danger-color);
+  --vaadin-focus-ring-color: color-mix(in srgb, var(--training-activity-danger-color) 42%, transparent);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--training-activity-danger-border);
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  box-shadow: light-dark(0 1px 2px color-mix(in srgb, #b3261e 10%, transparent), none);
+}
+
+.training-activity-actions-row vaadin-button[theme~="error"]:hover,
+.training-activity-overlay-footer vaadin-button[theme~="error"]:hover,
+.training-activity-report-footer vaadin-button[theme~="error"]:hover {
+  --vaadin-button-background: light-dark(
+    color-mix(in srgb, white 82%, #efd0d0),
+    color-mix(in srgb, #ff8d82 14%, var(--vaadin-background-container))
+  );
+  border-color: light-dark(
+    color-mix(in srgb, #b3261e 38%, #d7e0e2),
+    color-mix(in srgb, #ff8d82 58%, var(--vaadin-border-color))
+  );
+}
+
+.training-activity-overlay-panel vaadin-button:not([theme]) {
+  --training-activity-neutral-color: light-dark(#082c42, #e7eef0);
+  --training-activity-neutral-background: light-dark(
+    color-mix(in srgb, white 88%, #d7e0e2),
+    color-mix(in srgb, var(--vaadin-text-color) 7%, var(--vaadin-background-container))
+  );
+  --training-activity-neutral-border: light-dark(
+    color-mix(in srgb, #082c42 18%, #d7e0e2),
+    color-mix(in srgb, var(--vaadin-text-color) 24%, var(--vaadin-border-color))
+  );
+  --vaadin-button-background: var(--training-activity-neutral-background);
+  --vaadin-button-text-color: var(--training-activity-neutral-color);
+  --vaadin-focus-ring-color: color-mix(in srgb, var(--training-activity-neutral-color) 42%, transparent);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--training-activity-neutral-border);
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  box-shadow: light-dark(0 1px 2px color-mix(in srgb, #082c42 10%, transparent), none);
+}
+
+.training-activity-overlay-panel vaadin-button:not([theme]):hover {
+  --vaadin-button-background: light-dark(
+    color-mix(in srgb, white 82%, #c9d6da),
+    color-mix(in srgb, var(--vaadin-text-color) 11%, var(--vaadin-background-container))
+  );
+  border-color: light-dark(
+    color-mix(in srgb, #082c42 28%, #d7e0e2),
+    color-mix(in srgb, var(--vaadin-text-color) 32%, var(--vaadin-border-color))
+  );
+}
+
+.training-activity-form-card vaadin-button[disabled],
+.training-activity-actions-row vaadin-button[disabled],
+.training-activity-overlay-footer vaadin-button[disabled],
+.training-activity-report-footer vaadin-button[disabled] {
+  --vaadin-button-background: color-mix(in srgb, var(--vaadin-text-color) 4%, var(--vaadin-background-container));
+  --vaadin-button-text-color: color-mix(in srgb, var(--vaadin-text-color) 38%, transparent);
+  border-color: color-mix(in srgb, var(--vaadin-text-color) 18%, var(--vaadin-border-color));
+  opacity: 1;
+}
+
 .safe-browser-entry {
   display: flex;
   flex: 0 0 auto;
