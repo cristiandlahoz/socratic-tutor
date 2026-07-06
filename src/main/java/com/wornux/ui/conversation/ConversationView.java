@@ -25,6 +25,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.ChatProperties;
+import com.wornux.dtos.chat.questions.StudentQuestionSet;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.chat.ChatSessionActivity;
@@ -102,7 +103,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
         questionPanel = new StudentQuestionPanel();
         questionPanel.setSubmitHandler(viewModel::onSubmitInteractiveQuestionResponse);
-        Signal.effect(questionPanel, () -> questionPanel.setQuestionSet(state.pendingQuestionSet().get()));
+        Signal.effect(questionPanel, () -> questionPanel.setQuestionSet(currentQuestionSetForUi(state)));
         Signal.effect(questionPanel, () -> questionPanel.setSubmitting(state.questionSubmissionInProgress().get()));
 
         var root = getContent();
@@ -246,11 +247,19 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private void showCurrentInput(Div inputShell, ConversationState state, Div activityBlocker) {
         inputShell.removeAll();
-        if (Boolean.TRUE.equals(state.questionPanelVisible().get())) {
+        var currentQuestionSet = currentQuestionSetForUi(state);
+        inputShell.getElement()
+                .getClassList()
+                .set(UiCss.CONVERSATION_COMPOSER_QUESTION_MODE.value(), currentQuestionSet != null);
+        if (currentQuestionSet != null) {
             inputShell.add(questionPanel);
             return;
         }
         inputShell.add(isComposerAvailable(state) ? composer : activityBlocker);
+    }
+
+    private static StudentQuestionSet currentQuestionSetForUi(ConversationState state) {
+        return state.pendingQuestionSet().get();
     }
 
     private boolean isComposerAvailable(ConversationState state) {

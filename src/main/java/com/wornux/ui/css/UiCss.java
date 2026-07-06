@@ -72,6 +72,7 @@ public final class UiCss {
     public static final CssClass CONVERSATION_EMPTY_TITLE = css("conversation-empty__title");
     public static final CssClass CONVERSATION_EMPTY_DESCRIPTION = css("conversation-empty__description");
     public static final CssClass CONVERSATION_COMPOSER = css("conversation-composer");
+    public static final CssClass CONVERSATION_COMPOSER_QUESTION_MODE = css("conversation-composer--question-mode");
     public static final CssClass CONVERSATION_COMPOSER_FIELD_WRAP = css("conversation-composer__field-wrap");
     public static final CssClass CONVERSATION_COMPOSER_MODEL_STATUS = css("conversation-composer__model-status");
     public static final CssClass CONVERSATION_COMPOSER_INPUT = css("conversation-composer__input");

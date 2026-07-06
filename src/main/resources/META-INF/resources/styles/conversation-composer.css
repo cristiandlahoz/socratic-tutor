@@ -312,55 +312,111 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
   }
 }
 
+.conversation-composer--question-mode .conversation-question {
+  animation: question-panel-morph-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: bottom center;
+}
+
+.conversation-composer--question-mode .conversation-question__header-row,
+.conversation-composer--question-mode .conversation-question__viewport,
+.conversation-composer--question-mode .conversation-question__composer {
+  animation: question-panel-content-in 180ms ease 90ms both;
+}
+
+@keyframes question-panel-morph-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem) scaleY(0.72);
+    max-height: 8rem;
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    max-height: 32rem;
+  }
+}
+
+@keyframes question-panel-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .conversation-composer--question-mode .conversation-question,
+  .conversation-composer--question-mode .conversation-question__header-row,
+  .conversation-composer--question-mode .conversation-question__viewport,
+  .conversation-composer--question-mode .conversation-question__composer {
+    animation: none;
+  }
+}
+
 .conversation-question {
   box-sizing: border-box;
-  width: min(70%, 52rem);
+  width: min(100%, var(--conversation-content-max-width));
   min-width: 0;
   opacity: 0;
   margin-inline: auto;
   padding: 0;
-  border: var(--vaadin-input-field-border-width, 1px) solid transparent;
+  overflow: hidden;
+  border: 0;
   border-radius: var(--vaadin-radius-m);
-  background: color-mix(in srgb, var(--aura-surface-color) 92%, var(--aura-app-background));
+  background: var(--composer-surface);
+  color: var(--composer-text-color, var(--vaadin-text-color));
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   transform: translateY(1rem);
   transition:
     opacity var(--motion-fast),
     transform 0.24s ease,
-    padding 0.24s ease,
-    border-color var(--motion-fast),
     box-shadow var(--motion-fast);
 }
 
 .conversation-question--open {
   opacity: 1;
-  padding: clamp(0.8rem, 1.4vw, 1.05rem);
-  border-color: var(--vaadin-border-color);
   transform: translateY(0);
-  box-shadow: var(--aura-shadow-m);
 }
 
 .conversation-question__header-row {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--vaadin-gap-s);
-  margin-bottom: var(--vaadin-gap-m);
+  min-height: var(--composer-header-height);
+  margin: 0;
+  padding-inline: var(--vaadin-padding-m);
+  border-bottom: var(--vaadin-input-field-border-width, 1px) solid var(--composer-header-border);
 }
 
 .conversation-question__title {
   display: block;
-  color: var(--vaadin-text-color);
+  min-width: 0;
+  overflow: hidden;
+  color: var(--composer-text-color, var(--vaadin-text-color));
   font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-s);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: var(--composer-helper-font-size);
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .conversation-question__progress {
-  color: var(--vaadin-text-color-secondary);
+  flex: 0 0 auto;
+  color: var(--composer-helper-color);
   font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-xs);
-  letter-spacing: 0.1em;
+  font-size: var(--composer-helper-font-size);
+  font-weight: var(--composer-helper-font-weight);
+  line-height: 1;
+  letter-spacing: -0.01em;
 }
 
 .conversation-question__viewport {
@@ -373,31 +429,30 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: var(--vaadin-gap-m);
+  gap: var(--vaadin-gap-s);
   width: 100%;
   min-width: 0;
-  padding: clamp(0.75rem, 1.2vw, 0.95rem);
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
-  border-radius: var(--vaadin-radius-m);
-  background: linear-gradient(180deg,
-      color-mix(in srgb, var(--vaadin-background-container-strong) 96%, transparent),
-      color-mix(in srgb, var(--aura-surface-color) 96%, transparent));
-  box-shadow: var(--aura-shadow-s);
-  backdrop-filter: blur(16px);
+  padding: var(--vaadin-padding-m) var(--vaadin-padding-m) 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .conversation-question__header {
-  color: var(--vaadin-text-color-secondary);
+  color: var(--composer-helper-color);
   font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: var(--composer-helper-font-size);
+  font-weight: var(--composer-helper-font-weight);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .conversation-question__prompt {
   display: block;
   margin: 0;
-  color: var(--vaadin-text-color);
+  color: var(--composer-text-color, var(--vaadin-text-color));
   font-size: var(--aura-font-size-l);
   line-height: 1.48;
 }
@@ -412,7 +467,7 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
 
 .conversation-question__option-row.is-selected {
   border-radius: var(--vaadin-radius-m);
-  background: color-mix(in srgb, var(--aura-accent-text-color) 6%, transparent);
+  background: color-mix(in srgb, var(--aura-accent-text-color) 7%, transparent);
 }
 
 .conversation-question__option-mobile-header {
@@ -440,15 +495,16 @@ vaadin-button.conversation-question__option::part(button) {
   width: 100%;
   min-height: 3.15rem;
   padding: var(--vaadin-padding-s) var(--vaadin-padding-m);
-  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-border-color-secondary) 74%, transparent);
-  border-radius: var(--vaadin-radius-m);
+  border: var(--vaadin-input-field-border-width, 1px) solid transparent;
+  border-radius: calc(var(--vaadin-radius-m) - 2px);
   background: transparent;
-  color: var(--vaadin-text-color);
+  color: var(--composer-text-color, var(--vaadin-text-color));
   text-align: left;
   transition:
     border-color var(--motion-fast),
     transform var(--motion-fast),
-    background var(--motion-fast);
+    background var(--motion-fast),
+    color var(--motion-fast);
 }
 
 vaadin-button.conversation-question__option::part(label) {
@@ -458,13 +514,13 @@ vaadin-button.conversation-question__option::part(label) {
 }
 
 vaadin-button.conversation-question__option:hover::part(button) {
-  border-color: color-mix(in srgb, var(--aura-accent-text-color) 64%, var(--vaadin-border-color-secondary));
-  background: color-mix(in srgb, var(--vaadin-background-container-strong) 78%, transparent);
+  border-color: var(--composer-border-hover);
+  background: color-mix(in srgb, var(--composer-surface) 82%, var(--aura-app-background));
 }
 
 .conversation-question__option.is-selected::part(button) {
-  border-color: color-mix(in srgb, var(--aura-accent-text-color) 42%, var(--vaadin-border-color));
-  background: color-mix(in srgb, var(--aura-accent-text-color) 5%, transparent);
+  border-color: var(--aura-accent-text-color);
+  background: color-mix(in srgb, var(--aura-accent-text-color) 10%, var(--composer-surface));
 }
 
 .conversation-question__option-copy {
@@ -481,6 +537,7 @@ vaadin-button.conversation-question__option:hover::part(button) {
   display: block;
   min-width: 0;
   overflow-wrap: anywhere;
+  color: var(--composer-text-color, var(--vaadin-text-color));
   font-size: var(--aura-font-size-m);
   font-weight: var(--aura-font-weight-semibold);
   line-height: 1.22;
@@ -491,15 +548,15 @@ vaadin-button.conversation-question__option-info::part(button) {
   min-width: 2rem;
   height: 2rem;
   padding: 0;
-  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-border-color-secondary) 76%, transparent);
-  border-radius: var(--vaadin-radius-s);
-  background: color-mix(in srgb, var(--vaadin-background-container-strong) 94%, transparent);
-  color: var(--vaadin-text-color-secondary);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-border);
+  border-radius: calc(var(--vaadin-radius-m) - 2px);
+  background: color-mix(in srgb, var(--composer-surface) 82%, var(--aura-app-background));
+  color: var(--composer-helper-color);
 }
 
 vaadin-button.conversation-question__option-info:hover::part(button) {
-  color: var(--vaadin-text-color);
-  border-color: var(--aura-accent-text-color);
+  color: var(--composer-text-color, var(--vaadin-text-color));
+  border-color: var(--composer-border-hover);
 }
 
 .conversation-question__option-popover {
@@ -508,7 +565,7 @@ vaadin-button.conversation-question__option-info:hover::part(button) {
 
 .conversation-question__option-description {
   margin: 0;
-  color: var(--vaadin-text-color-secondary);
+  color: var(--composer-helper-color);
   font-size: var(--aura-font-size-s);
   line-height: 1.42;
   text-wrap: pretty;
@@ -533,17 +590,17 @@ vaadin-text-area.conversation-question__custom-text {
   display: block;
   width: 100%;
   min-width: 0;
-  --vaadin-input-field-background: color-mix(in srgb, var(--vaadin-background-container-strong) 94%, transparent);
-  --vaadin-input-field-border-color: var(--vaadin-border-color-secondary);
-  --vaadin-input-field-border-radius: var(--vaadin-radius-m);
-  --vaadin-input-field-border-width: 1px;
-  --vaadin-input-field-value-color: var(--vaadin-text-color);
-  --vaadin-input-field-placeholder-color: var(--vaadin-text-color-disabled);
-  --vaadin-input-field-padding: 0.95rem clamp(7.25rem, 28vw, 8.8rem) 0.95rem 1rem;
+  --vaadin-input-field-background: transparent;
+  --vaadin-input-field-border-color: transparent;
+  --vaadin-input-field-border-radius: 0;
+  --vaadin-input-field-border-width: 0;
+  --vaadin-input-field-value-color: var(--composer-text-color, var(--vaadin-text-color));
+  --vaadin-input-field-placeholder-color: var(--composer-placeholder-color);
+  --vaadin-input-field-padding: 1rem clamp(7.25rem, 28vw, 8.8rem) 1rem var(--vaadin-padding-m);
 }
 
 .conversation-question__composer {
-  margin-top: var(--vaadin-gap-m);
+  margin-top: 0;
   width: 100%;
   min-width: 0;
 }
@@ -558,6 +615,10 @@ vaadin-text-area.conversation-question__custom-text {
 vaadin-text-area.conversation-question__custom-text::part(input-field) {
   min-height: 6.5rem;
   max-height: 30vh;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  outline: none;
 }
 
 .conversation-question__composer-actions {
@@ -577,10 +638,11 @@ vaadin-button.conversation-question__submit-button::part(button) {
   min-width: 2.5rem;
   height: 2.5rem;
   padding: 0;
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
-  border-radius: var(--vaadin-radius-s);
-  background: var(--vaadin-background-container);
-  color: var(--vaadin-text-color-secondary);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-border);
+  border-radius: calc(var(--vaadin-radius-m) - 2px);
+  background: color-mix(in srgb, var(--composer-surface) 82%, var(--aura-app-background));
+  box-shadow: var(--aura-shadow-xs);
+  color: color-mix(in srgb, var(--composer-text-color, var(--vaadin-text-color)) 78%, var(--aura-accent-text-color));
   transition:
     background var(--motion-fast),
     border-color var(--motion-fast),
@@ -588,17 +650,11 @@ vaadin-button.conversation-question__submit-button::part(button) {
     transform var(--motion-fast);
 }
 
-vaadin-button.conversation-question__nav-button:hover::part(button) {
-  color: var(--aura-accent-contrast-color);
-  border-color: var(--vaadin-border-color);
-  background: var(--vaadin-background-container-strong);
-  transform: translateY(-1px);
-}
-
+vaadin-button.conversation-question__nav-button:hover::part(button),
 vaadin-button.conversation-question__submit-button:hover::part(button) {
   color: var(--aura-accent-contrast-color);
-  border-color: var(--vaadin-border-color);
-  background: var(--vaadin-background-container-strong);
+  border-color: var(--aura-accent-border-color);
+  background: var(--aura-accent-color);
   transform: translateY(-1px);
 }
 
@@ -606,7 +662,6 @@ vaadin-button.conversation-question__submit-button::part(button) {
   width: auto;
   min-width: 7rem;
   padding-inline: var(--vaadin-padding-s);
-  color: var(--vaadin-text-color);
 }
 
 .conversation-question--submitting {
