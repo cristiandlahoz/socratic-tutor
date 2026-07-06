@@ -8,6 +8,7 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.wornux.data.entities.identity.Account;
 import com.wornux.services.context.AvailableContextOption;
 import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionService;
@@ -43,7 +44,7 @@ public class ContextSelectionView extends VerticalLayout {
     }
 
     private Button createCard(
-            com.wornux.data.entities.identity.Account account,
+            Account account,
             AvailableContextOption option,
             ContextSelectionService contextSelectionService) {
         var button = new Button(option.label());
