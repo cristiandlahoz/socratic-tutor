@@ -1,5 +1,8 @@
 package com.wornux.security.permission;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 public enum AppPermission {
     TENANT_VIEW(AppResource.TENANT, AppAction.VIEW, "tenant:view"),
     TENANT_CREATE(AppResource.TENANT, AppAction.CREATE, "tenant:create"),
@@ -40,14 +43,10 @@ public enum AppPermission {
     TRAINING_ACTIVITY_CREATE(AppResource.TRAINING_ACTIVITY, AppAction.CREATE, "training-activity:create"),
     TRAINING_ACTIVITY_UPDATE(AppResource.TRAINING_ACTIVITY, AppAction.UPDATE, "training-activity:update"),
     TRAINING_ACTIVITY_DELETE(AppResource.TRAINING_ACTIVITY, AppAction.DELETE, "training-activity:delete"),
-    TRAINING_ACTIVITY_ASSIGNMENT_VIEW(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, AppAction.VIEW,
-            "training-activity-assignment:view"),
-    TRAINING_ACTIVITY_ASSIGNMENT_CREATE(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, AppAction.CREATE,
-            "training-activity-assignment:create"),
-    TRAINING_ACTIVITY_ASSIGNMENT_UPDATE(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, AppAction.UPDATE,
-            "training-activity-assignment:update"),
-    TRAINING_ACTIVITY_ASSIGNMENT_DELETE(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, AppAction.DELETE,
-            "training-activity-assignment:delete"),
+    TRAINING_ACTIVITY_ASSIGNMENT_VIEW(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, AppAction.VIEW, "training-activity-assignment:view"),
+    TRAINING_ACTIVITY_ASSIGNMENT_CREATE(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, AppAction.CREATE, "training-activity-assignment:create"),
+    TRAINING_ACTIVITY_ASSIGNMENT_UPDATE(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, AppAction.UPDATE, "training-activity-assignment:update"),
+    TRAINING_ACTIVITY_ASSIGNMENT_DELETE(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, AppAction.DELETE, "training-activity-assignment:delete"),
     COURSE_MATERIAL_VIEW(AppResource.COURSE_MATERIAL, AppAction.VIEW, "course-material:view"),
     COURSE_MATERIAL_CREATE(AppResource.COURSE_MATERIAL, AppAction.CREATE, "course-material:create"),
     COURSE_MATERIAL_UPDATE(AppResource.COURSE_MATERIAL, AppAction.UPDATE, "course-material:update"),
@@ -63,15 +62,17 @@ public enum AppPermission {
         this.code = code;
     }
 
-    public AppResource resource() {
-        return resource;
+    public AppResource resource() { return resource; }
+
+    public AppAction action() { return action; }
+
+    public String code() { return code; }
+
+    public boolean grants(AppPermission requested) {
+        return resource == requested.resource && action.grants(requested.action);
     }
 
-    public AppAction action() {
-        return action;
-    }
-
-    public String code() {
-        return code;
+    public static Optional<AppPermission> fromCode(String code) {
+        return Arrays.stream(values()).filter(permission -> permission.code.equals(code)).findFirst();
     }
 }

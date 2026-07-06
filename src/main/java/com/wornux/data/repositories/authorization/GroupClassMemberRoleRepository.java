@@ -13,5 +13,11 @@ public interface GroupClassMemberRoleRepository extends JpaRepository<GroupClass
     @EntityGraph(attributePaths = { "role", "role.roleNamespace", "groupClassMember", "groupClassMember.groupClass" })
     List<GroupClassMemberRole> findByGroupClassMember_Id(UUID groupClassMemberId);
 
+    List<GroupClassMemberRole> findByGroupClassMember_GroupClass_IdAndRole_Id(UUID groupClassId, UUID roleId);
+
+    long countByGroupClassMember_GroupClass_IdAndGroupClassMember_LockedFalseAndRole_Id(UUID groupClassId, UUID roleId);
+
+    long countByGroupClassMember_GroupClass_Tenant_IdAndGroupClassMember_LockedFalseAndRole_Id(UUID tenantId, UUID roleId);
+
     Optional<GroupClassMemberRole> findByGroupClassMember_IdAndRole_Code(UUID groupClassMemberId, String roleCode);
 }

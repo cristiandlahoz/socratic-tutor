@@ -26,9 +26,12 @@ public interface TenantAccountRoleRepository extends JpaRepository<TenantAccount
             "tenantAccount.tenant.roleNamespace" })
     List<TenantAccountRole> findByTenantAccount_IdAndRole_ActiveTrue(UUID tenantAccountId);
 
-    List<TenantAccountRole> findByTenantAccount_Tenant_IdAndRole_CodeAndTenantAccount_LockedFalse(
-            UUID tenantId,
-            String roleCode);
+    @EntityGraph(attributePaths = {"role", "tenantAccount", "tenantAccount.tenant"})
+    List<TenantAccountRole> findByTenantAccount_Tenant_IdAndTenantAccount_LockedFalseAndRole_ActiveTrue(UUID tenantId);
+
+    List<TenantAccountRole> findByTenantAccount_Tenant_IdAndTenantAccount_LockedFalseAndRole_Id(UUID tenantId, UUID roleId);
+
+    long countByTenantAccount_Tenant_IdAndTenantAccount_LockedFalseAndRole_Id(UUID tenantId, UUID roleId);
 
     Optional<TenantAccountRole> findByTenantAccount_IdAndRole_Code(UUID tenantAccountId, String roleCode);
 }

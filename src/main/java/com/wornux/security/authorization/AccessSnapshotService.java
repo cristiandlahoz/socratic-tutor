@@ -80,6 +80,11 @@ public class AccessSnapshotService {
                             && equalsNullable(key.groupClassId(), activeContext.groupClassId()));
     }
 
+    @Transactional(readOnly = true)
+    public UUID roleNamespaceId(ActiveContext activeContext) {
+        return resolveNamespace(activeContext).id();
+    }
+
     private NamespaceVersion resolveNamespace(ActiveContext activeContext) {
         if (activeContext.level() == ContextLevel.PLATFORM) {
             var settings = platformSettingsRepository.findById(Boolean.TRUE)

@@ -1,7 +1,8 @@
 package com.wornux.security.authorization;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 public class RbacUiBroadcaster {
@@ -14,10 +15,10 @@ public class RbacUiBroadcaster {
         this.rbacUiRegistry = rbacUiRegistry;
     }
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onRbacChanged(RbacChangedEvent event) {
         accessSnapshotService.invalidateNamespace(event.roleNamespaceId());
-        rbacUiRegistry.affectedBy(event.roleNamespaceId())
-                .forEach(registeredUi -> registeredUi.ui().access(() -> registeredUi.refreshAction().run()));
+        rbacUiRegistry.attachedUis().forEach(registeredUi ->
+            registeredUi.ui().access(() -> registeredUi.refreshAction().accept(event.roleNamespaceId())));
     }
 }

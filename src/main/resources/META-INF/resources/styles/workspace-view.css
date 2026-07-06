@@ -49,9 +49,9 @@
 .workspace-hero h1 {
   max-width: 20ch;
   color: var(--vaadin-text-color);
-  font-size: var(--aura-font-size-xxxl);
-  font-weight: var(--aura-font-weight-semibold);
-  line-height: 1.08;
+  font-size: var(--aura-font-size-l);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--aura-line-height-l);
   text-wrap: balance;
 }
 
@@ -59,8 +59,8 @@
 .workspace-section-header p {
   max-width: 72ch;
   color: var(--vaadin-secondary-text-color);
-  font-size: var(--aura-font-size-s);
-  line-height: 1.65;
+  font-size: var(--aura-font-size-m);
+  line-height: var(--aura-line-height-m);
   text-wrap: pretty;
 }
 
@@ -116,8 +116,8 @@
 
 .workspace-section-header h2 {
   color: var(--vaadin-text-color);
-  font-size: var(--aura-font-size-l);
-  font-weight: var(--aura-font-weight-semibold);
+  font-size: var(--aura-font-size-m);
+  font-weight: var(--font-weight-heading);
   line-height: 1.25;
 }
 
@@ -148,15 +148,15 @@
 
 .workspace-selected-context-title {
   color: var(--vaadin-text-color);
-  font-size: var(--aura-font-size-m);
-  font-weight: var(--aura-font-weight-semibold);
+  font-size: var(--aura-font-size-s);
+  font-weight: var(--font-weight-heading);
   line-height: 1.3;
 }
 
 .workspace-selected-context-copy {
   color: var(--vaadin-secondary-text-color);
-  font-size: var(--aura-font-size-s);
-  line-height: 1.55;
+  font-size: var(--aura-font-size-m);
+  line-height: var(--aura-line-height-m);
 }
 
 .workspace-field {
@@ -335,7 +335,7 @@
 .workspace-view vaadin-date-picker::part(label),
 .workspace-view vaadin-combo-box::part(label) {
   color: var(--vaadin-secondary-text-color);
-  font-size: var(--aura-font-size-xs);
+  font-size: var(--aura-font-size-s);
   font-weight: var(--aura-font-weight-semibold);
 }
 
@@ -372,7 +372,7 @@
   }
 
   .workspace-hero h1 {
-    font-size: var(--aura-font-size-xxl);
+    font-size: var(--aura-font-size-l);
   }
 }
 

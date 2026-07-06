@@ -10,6 +10,7 @@ import com.wornux.data.entities.onboarding.InvitationTargetRole;
 import com.wornux.data.repositories.authorization.AccountPlatformRoleRepository;
 import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.TenantRepository;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.onboarding.InvitationService;
 import com.wornux.services.security.RoleNamespaceService;
 import com.wornux.services.security.RoleSeedService;
@@ -67,9 +68,10 @@ public class SystemAdminWorkspaceService {
 
     @Transactional(readOnly = true)
     public boolean hasTenantAdmin(UUID tenantId) {
-        return !tenantAccountRoleRepository
-                .findByTenantAccount_Tenant_IdAndRole_CodeAndTenantAccount_LockedFalse(tenantId, "TENANT_ADMIN")
-                .isEmpty();
+        return tenantAccountRoleRepository
+                .findByTenantAccount_Tenant_IdAndTenantAccount_LockedFalseAndRole_ActiveTrue(tenantId)
+                .stream()
+                .anyMatch(role -> hasPermission(role.getRole().getPermissions(), AppPermission.GROUP_CLASS_CREATE));
     }
 
     @Transactional
@@ -82,8 +84,12 @@ public class SystemAdminWorkspaceService {
     }
 
     private boolean isSystemAdmin(Account account) {
-        return accountPlatformRoleRepository
-                .findByAccount_IdAndRole_CodeAndRole_ActiveTrue(account.getId(), "SYSTEM_ADMIN")
-                .isPresent();
+        return accountPlatformRoleRepository.findByAccount_IdAndRole_ActiveTrue(account.getId())
+                .stream()
+                .anyMatch(role -> hasPermission(role.getRole().getPermissions(), AppPermission.TENANT_CREATE));
+    }
+
+    private boolean hasPermission(String[] permissions, AppPermission permission) {
+        return java.util.Arrays.asList(permissions).contains(permission.code());
     }
 }

@@ -49,10 +49,7 @@ public class TenantAdminWorkspaceService {
 
     @Transactional(readOnly = true)
     public List<AccessibleTenant> listAccessibleTenants(Account account) {
-        return workspaceRoutingService.listAccessibleTenants(account)
-                .stream()
-                .filter(tenant -> tenant.roleCodes().contains("TENANT_ADMIN"))
-                .toList();
+        return workspaceRoutingService.listAccessibleTenants(account);
     }
 
     @Transactional(readOnly = true)

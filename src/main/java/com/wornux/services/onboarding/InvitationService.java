@@ -20,7 +20,6 @@ import com.wornux.data.entities.onboarding.InvitationTargetRole;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.academic.GroupClassRepository;
 import com.wornux.data.repositories.authorization.GroupClassMemberRoleRepository;
-import com.wornux.data.repositories.authorization.RoleRepository;
 import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
@@ -29,6 +28,8 @@ import com.wornux.data.repositories.onboarding.InvitationRepository;
 import com.wornux.services.email.EmailSendException;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.security.RoleNamespaceService;
+import com.wornux.services.security.RoleTemplate;
+import com.wornux.services.security.RoleTemplateSeeder;
 import com.wornux.services.workspace.WorkspaceDecision;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,7 +45,6 @@ public class InvitationService {
     private final TenantRepository tenantRepository;
     private final TenantAccountRepository tenantAccountRepository;
     private final GroupClassRepository groupClassRepository;
-    private final RoleRepository roleRepository;
     private final TenantAccountRoleRepository tenantAccountRoleRepository;
     private final GroupClassMemberRoleRepository groupClassMemberRoleRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
@@ -55,6 +55,7 @@ public class InvitationService {
     private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final RoleNamespaceService roleNamespaceService;
+    private final RoleTemplateSeeder roleTemplateSeeder;
 
     public InvitationService(
             SocraticEmailProperties emailProperties,
@@ -63,7 +64,6 @@ public class InvitationService {
             TenantRepository tenantRepository,
             TenantAccountRepository tenantAccountRepository,
             GroupClassRepository groupClassRepository,
-            RoleRepository roleRepository,
             TenantAccountRoleRepository tenantAccountRoleRepository,
             GroupClassMemberRoleRepository groupClassMemberRoleRepository,
             GroupClassMemberRepository groupClassMemberRepository,
@@ -73,14 +73,14 @@ public class InvitationService {
             PasswordEncoder passwordEncoder,
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
-            RoleNamespaceService roleNamespaceService) {
+            RoleNamespaceService roleNamespaceService,
+            RoleTemplateSeeder roleTemplateSeeder) {
         this.emailProperties = emailProperties;
         this.invitationRepository = invitationRepository;
         this.accountRepository = accountRepository;
         this.tenantRepository = tenantRepository;
         this.tenantAccountRepository = tenantAccountRepository;
         this.groupClassRepository = groupClassRepository;
-        this.roleRepository = roleRepository;
         this.tenantAccountRoleRepository = tenantAccountRoleRepository;
         this.groupClassMemberRoleRepository = groupClassMemberRoleRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
@@ -91,6 +91,7 @@ public class InvitationService {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.roleNamespaceService = roleNamespaceService;
+        this.roleTemplateSeeder = roleTemplateSeeder;
     }
 
     @Transactional
@@ -212,7 +213,9 @@ public class InvitationService {
         var tenantAccount =
                 tenantAccountRepository.findByTenant_IdAndAccount_Id(invitation.getTenant().getId(), account.getId())
                         .orElseGet(() -> createTenantAccount(account, invitation.getTenant().getId()));
-        assignTenantRoleIfNeeded(tenantAccount, invitation.getTargetRole(), invitation.getInvitedByTenantAccount());
+        if (invitation.getTargetRole() == InvitationTargetRole.TENANT_ADMIN) {
+            assignTenantRoleIfNeeded(tenantAccount, RoleTemplate.TENANT_ADMIN, invitation.getInvitedByTenantAccount());
+        }
 
         GroupClassMember groupClassMember = null;
         if (invitation.getTargetRole() == InvitationTargetRole.PROFESSOR
@@ -220,7 +223,7 @@ public class InvitationService {
             groupClassMember = createOrReuseMembership(tenantAccount, invitation);
             assignGroupClassRoleIfNeeded(
                 groupClassMember,
-                invitation.getTargetRole(),
+                groupClassTemplate(invitation.getTargetRole()),
                 invitation.getInvitedByGroupClassMember());
         }
         account.setUpdatedAt(Instant.now());
@@ -281,13 +284,10 @@ public class InvitationService {
 
     private void assignTenantRoleIfNeeded(
             TenantAccount tenantAccount,
-            InvitationTargetRole targetRole,
+            RoleTemplate template,
             TenantAccount assignedBy) {
-        var roleCode = targetRole.name();
-        var role = roleRepository
-                .findByRoleNamespace_IdAndCode(tenantAccount.getTenant().getRoleNamespace().getId(), roleCode)
-                .orElseThrow(() -> new IllegalStateException("Missing role %s".formatted(roleCode)));
-        if (tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(tenantAccount.getId(), roleCode)
+        var role = roleTemplateSeeder.ensureRole(tenantAccount.getTenant().getRoleNamespace(), template);
+        if (tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(tenantAccount.getId(), template.code())
                 .isPresent()) {
             return;
         }
@@ -306,16 +306,13 @@ public class InvitationService {
 
     private void assignGroupClassRoleIfNeeded(
             GroupClassMember groupClassMember,
-            InvitationTargetRole targetRole,
+            RoleTemplate template,
             GroupClassMember assignedBy) {
-        var roleCode = targetRole.name();
-        var role =
-                roleRepository
-                        .findByRoleNamespace_IdAndCode(
-                            groupClassMember.getTenantAccount().getTenant().getRoleNamespace().getId(),
-                            roleCode)
-                        .orElseThrow(() -> new IllegalStateException("Missing role %s".formatted(roleCode)));
-        if (groupClassMemberRoleRepository.findByGroupClassMember_IdAndRole_Code(groupClassMember.getId(), roleCode)
+        var role = roleTemplateSeeder.ensureRole(
+            groupClassMember.getTenantAccount().getTenant().getRoleNamespace(),
+            template);
+        if (groupClassMemberRoleRepository
+                .findByGroupClassMember_IdAndRole_Code(groupClassMember.getId(), template.code())
                 .isPresent()) {
             return;
         }
@@ -330,6 +327,14 @@ public class InvitationService {
         groupClassMemberRole.setAssignedAt(Instant.now());
         groupClassMemberRoleRepository.save(groupClassMemberRole);
         roleNamespaceService.recordRbacChange(role.getRoleNamespace().getId());
+    }
+
+    private RoleTemplate groupClassTemplate(InvitationTargetRole targetRole) {
+        return switch (targetRole) {
+            case PROFESSOR -> RoleTemplate.PROFESSOR;
+            case STUDENT -> RoleTemplate.STUDENT;
+            case TENANT_ADMIN -> throw new InvitationStateException("Tenant admin invitations do not create class roles.");
+        };
     }
 
     private GroupClassMember createOrReuseMembership(TenantAccount tenantAccount, Invitation invitation) {

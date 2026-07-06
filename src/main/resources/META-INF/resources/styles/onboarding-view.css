@@ -32,17 +32,17 @@
 
 .onboarding-terminal-card h2 {
   color: var(--vaadin-text-color);
-  font-size: var(--aura-font-size-xl);
-  font-weight: var(--aura-font-weight-semibold);
-  line-height: 1.18;
+  font-size: var(--aura-font-size-l);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--aura-line-height-l);
   text-wrap: balance;
 }
 
 .onboarding-terminal-card p {
   max-width: 68ch;
   color: var(--vaadin-secondary-text-color);
-  font-size: var(--aura-font-size-s);
-  line-height: 1.65;
+  font-size: var(--aura-font-size-xs);
+  line-height: var(--aura-line-height-s);
   text-wrap: pretty;
 }
 

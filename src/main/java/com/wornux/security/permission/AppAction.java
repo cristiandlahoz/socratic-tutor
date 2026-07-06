@@ -19,4 +19,8 @@ public enum AppAction {
     public String code() {
         return code;
     }
+
+    public boolean grants(AppAction requested) {
+        return this == requested || requested == VIEW;
+    }
 }

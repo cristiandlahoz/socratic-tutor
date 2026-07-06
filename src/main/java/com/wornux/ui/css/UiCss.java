@@ -250,6 +250,28 @@ public final class UiCss {
     public static final CssClass WORKSPACE_TENANT_GRID = css("workspace-tenant-grid");
     public static final CssClass WORKSPACE_VIEW = css("workspace-view");
 
+    public static final CssClass ROLE_MANAGEMENT_VIEW = css("role-management-view");
+    public static final CssClass ROLE_MANAGEMENT_HEADER = css("role-management-header");
+    public static final CssClass ROLE_MANAGEMENT_DESCRIPTION = css("role-management-description");
+    public static final CssClass ROLE_MANAGEMENT_SPLIT = css("role-management-split");
+    public static final CssClass ROLE_MANAGEMENT_ROLE_PANEL = css("role-management-role-panel");
+    public static final CssClass ROLE_MANAGEMENT_EDITOR_PANEL = css("role-management-editor-panel");
+    public static final CssClass ROLE_MANAGEMENT_CONTROLS = css("role-management-controls");
+    public static final CssClass ROLE_MANAGEMENT_ROLE_LIST = css("role-management-role-list");
+    public static final CssClass ROLE_MANAGEMENT_ROLE_HEADER = css("role-management-role-header");
+    public static final CssClass ROLE_MANAGEMENT_ROLE_META = css("role-management-role-meta");
+    public static final CssClass ROLE_MANAGEMENT_TABS = css("role-management-tabs");
+    public static final CssClass ROLE_MANAGEMENT_TAB_CONTENT = css("role-management-tab-content");
+    public static final CssClass ROLE_MANAGEMENT_TAB_LAYOUT = css("role-management-tab-layout");
+    public static final CssClass ROLE_MANAGEMENT_TAB_DESCRIPTION = css("role-management-tab-description");
+    public static final CssClass ROLE_MANAGEMENT_PERMISSION_GROUP = css("role-management-permission-group");
+    public static final CssClass ROLE_MANAGEMENT_PERMISSION_ROWS = css("role-management-permission-rows");
+    public static final CssClass ROLE_MANAGEMENT_PERMISSION_ROW = css("role-management-permission-row");
+    public static final CssClass ROLE_MANAGEMENT_PERMISSION_CODE = css("role-management-permission-code");
+    public static final CssClass ROLE_MANAGEMENT_MEMBERS_CONTENT = css("role-management-members-content");
+    public static final CssClass ROLE_MANAGEMENT_MEMBERS_GRID = css("role-management-members-grid");
+    public static final CssClass ROLE_MANAGEMENT_EMPTY_STATE = css("role-management-empty-state");
+
     private UiCss() {}
 
     private static CssClass css(String value) {

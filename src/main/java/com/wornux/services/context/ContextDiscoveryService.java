@@ -10,6 +10,7 @@ import com.wornux.data.entities.identity.ContextLevel;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.authorization.AccountPlatformRoleRepository;
 import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
+import com.wornux.security.permission.AppPermission;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,24 +34,24 @@ public class ContextDiscoveryService {
     public List<AvailableContextOption> discover(Account account) {
         var options = new java.util.ArrayList<AvailableContextOption>();
         if (isPlatformAccount(account)) {
-            options.add(
-                new AvailableContextOption(ContextLevel.PLATFORM,
-                        null,
-                        null,
-                        "Plataforma",
-                        "Administración global del sistema",
-                        account.getEmail()));
+            options.add(new AvailableContextOption(
+                    ContextLevel.PLATFORM,
+                    null,
+                    null,
+                    "Plataforma",
+                    "Administración global del sistema",
+                    account.getEmail()));
         }
 
         findTenantAdminRoles(account).stream().findFirst().ifPresent(role -> {
             var tenant = role.getTenantAccount().getTenant();
-            options.add(
-                new AvailableContextOption(ContextLevel.TENANT,
-                        tenant.getId(),
-                        null,
-                        tenant.getName(),
-                        "Administración institucional",
-                        account.getEmail()));
+            options.add(new AvailableContextOption(
+                    ContextLevel.TENANT,
+                    tenant.getId(),
+                    null,
+                    tenant.getName(),
+                    "Administración institucional",
+                    account.getEmail()));
         });
 
         groupClassMemberRepository.findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId())
@@ -64,24 +65,26 @@ public class ContextDiscoveryService {
     private boolean isPlatformAccount(Account account) {
         return accountPlatformRoleRepository.findByAccount_IdAndRole_ActiveTrue(account.getId())
                 .stream()
-                .anyMatch(
-                    role -> role.getRole()
-                            .getAssignmentLevel() == com.wornux.data.entities.authorization.RoleAssignmentLevel.PLATFORM);
+                .anyMatch(role -> hasPermission(role.getRole().getPermissions(), AppPermission.TENANT_VIEW));
     }
 
     private List<TenantAccountRole> findTenantAdminRoles(Account account) {
         return tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId())
                 .stream()
-                .filter(
-                    role -> role.getRole()
-                            .getAssignmentLevel() == com.wornux.data.entities.authorization.RoleAssignmentLevel.TENANT)
+                .filter(role -> role.getRole().isActive())
+                .filter(role -> hasPermission(role.getRole().getPermissions(), AppPermission.GROUP_CLASS_CREATE))
                 .sorted(Comparator.comparing(role -> role.getTenantAccount().getJoinedAt()))
                 .toList();
     }
 
+    private boolean hasPermission(String[] permissions, AppPermission permission) {
+        return java.util.Arrays.asList(permissions).contains(permission.code());
+    }
+
     private AvailableContextOption toClassOption(GroupClassMember member) {
         var groupClass = member.getGroupClass();
-        return new AvailableContextOption(ContextLevel.GROUP_CLASS,
+        return new AvailableContextOption(
+                ContextLevel.GROUP_CLASS,
                 groupClass.getTenant().getId(),
                 groupClass.getId(),
                 "%s · %s".formatted(groupClass.getCode(), groupClass.getName()),

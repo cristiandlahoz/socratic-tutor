@@ -1,7 +1,6 @@
 package com.wornux.data.repositories.authorization;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import com.wornux.data.entities.authorization.AccountPlatformRole;
@@ -13,6 +12,4 @@ public interface AccountPlatformRoleRepository extends JpaRepository<AccountPlat
 
     @EntityGraph(attributePaths = { "role", "account" })
     List<AccountPlatformRole> findByAccount_IdAndRole_ActiveTrue(UUID accountId);
-
-    Optional<AccountPlatformRole> findByAccount_IdAndRole_CodeAndRole_ActiveTrue(UUID accountId, String roleCode);
 }

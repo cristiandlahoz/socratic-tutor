@@ -3,7 +3,6 @@ package com.wornux.security.authorization;
 import java.text.Normalizer;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -90,14 +89,43 @@ public class RoleAdministrationService {
     public List<Role> rolesForActiveContext(RoleAssignmentLevel visibleLevel) {
         var namespace = activeNamespace();
         if (activeContext().level() == ContextLevel.PLATFORM) {
-            return roleRepository.findByRoleNamespace_IdAndAssignmentLevelAndActiveTrue(
-                namespace.getId(),
-                RoleAssignmentLevel.PLATFORM);
+            return roleRepository.findByRoleNamespace_IdAndAssignmentLevelAndActiveTrue(namespace.getId(), RoleAssignmentLevel.PLATFORM);
         }
-        return roleRepository.findByRoleNamespace_IdAndActiveTrue(namespace.getId())
-                .stream()
+        return roleRepository.findByRoleNamespace_IdAndActiveTrue(namespace.getId()).stream()
                 .filter(role -> role.getAssignmentLevel() == visibleLevel)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    @RequiresPermission(AppPermission.ROLE_VIEW)
+    public long assignedMemberCount(UUID roleId) {
+        var actor = authorizationService.snapshot();
+        var role = roleRepository.findById(roleId).orElseThrow();
+        if (!role.getRoleNamespace().getId().equals(activeNamespace().getId())) {
+            throw new AccessDeniedException("Role is outside the active namespace");
+        }
+        return switch (role.getAssignmentLevel()) {
+            case PLATFORM -> 0;
+            case TENANT -> tenantRoleMemberCount(actor, roleId);
+            case GROUP_CLASS -> groupClassRoleMemberCount(actor, roleId);
+        };
+    }
+
+    private long tenantRoleMemberCount(UserAccessSnapshot actor, UUID roleId) {
+        if (actor.tenantId() == null) {
+            return 0;
+        }
+        return tenantAccountRoleRepository.countByTenantAccount_Tenant_IdAndTenantAccount_LockedFalseAndRole_Id(actor.tenantId(), roleId);
+    }
+
+    private long groupClassRoleMemberCount(UserAccessSnapshot actor, UUID roleId) {
+        if (actor.activeContext().level() == ContextLevel.GROUP_CLASS) {
+            return groupClassMemberRoleRepository.countByGroupClassMember_GroupClass_IdAndGroupClassMember_LockedFalseAndRole_Id(actor.groupClassId(), roleId);
+        }
+        if (actor.tenantId() == null) {
+            return 0;
+        }
+        return groupClassMemberRoleRepository.countByGroupClassMember_GroupClass_Tenant_IdAndGroupClassMember_LockedFalseAndRole_Id(actor.tenantId(), roleId);
     }
 
     @Transactional
@@ -140,7 +168,7 @@ public class RoleAdministrationService {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown role %s".formatted(command.roleId())));
         validatePermissionCodes(command.permissions(), role.getAssignmentLevel(), actor);
         enforcePriorityBoundary(actor, role.getRoleNamespace().getId(), role.getPriority());
-        if (role.isSystemDefined() && actor.activeContext().level() != ContextLevel.PLATFORM) {
+        if (role.isSystemDefined() && !canManageSystemDefinedRole(actor, role)) {
             throw new AccessDeniedException("System-defined roles are locked in this context");
         }
         if (command.name() == null || command.name().isBlank()) {
@@ -166,9 +194,7 @@ public class RoleAdministrationService {
             throw new AccessDeniedException("Tenant role assignments require a tenant context");
         }
         var namespace = activeNamespace();
-        var roles = roleRepository
-                .findByRoleNamespace_IdAndAssignmentLevelAndActiveTrue(namespace.getId(), RoleAssignmentLevel.TENANT)
-                .stream()
+        var roles = roleRepository.findByRoleNamespace_IdAndAssignmentLevelAndActiveTrue(namespace.getId(), RoleAssignmentLevel.TENANT).stream()
                 .filter(Role::isAssignable)
                 .toList();
         var members = tenantAccountRepository.findByTenant_IdAndLockedFalseOrderByJoinedAtAsc(actor.tenantId());
@@ -194,8 +220,7 @@ public class RoleAdministrationService {
             assignment.setTenantAccount(tenantAccount);
             assignment.setRole(role);
             if (actor.tenantAccountId() != null) {
-                assignment.setAssignedByTenantAccount(
-                    tenantAccountRepository.findById(actor.tenantAccountId()).orElse(null));
+                assignment.setAssignedByTenantAccount(tenantAccountRepository.findById(actor.tenantAccountId()).orElse(null));
             }
             assignment.setAssignedAt(Instant.now());
             tenantAccountRoleRepository.save(assignment);
@@ -213,14 +238,9 @@ public class RoleAdministrationService {
         var actor = authorizationService.snapshot();
         ensureGroupClassAccessible(actor, groupClassId);
         var namespace = activeNamespace();
-        var roles =
-                roleRepository
-                        .findByRoleNamespace_IdAndAssignmentLevelAndActiveTrue(
-                            namespace.getId(),
-                            RoleAssignmentLevel.GROUP_CLASS)
-                        .stream()
-                        .filter(Role::isAssignable)
-                        .toList();
+        var roles = roleRepository.findByRoleNamespace_IdAndAssignmentLevelAndActiveTrue(namespace.getId(), RoleAssignmentLevel.GROUP_CLASS).stream()
+                .filter(Role::isAssignable)
+                .toList();
         var members = groupClassMemberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(groupClassId);
         return new GroupClassRoleAssignmentMatrix(members, roles);
     }
@@ -242,8 +262,7 @@ public class RoleAdministrationService {
             assignment.setGroupClassMember(member);
             assignment.setRole(role);
             if (actor.groupClassMemberId() != null) {
-                assignment.setAssignedByGroupClassMember(
-                    groupClassMemberRepository.findById(actor.groupClassMemberId()).orElse(null));
+                assignment.setAssignedByGroupClassMember(groupClassMemberRepository.findById(actor.groupClassMemberId()).orElse(null));
             }
             assignment.setAssignedAt(Instant.now());
             groupClassMemberRoleRepository.save(assignment);
@@ -257,17 +276,39 @@ public class RoleAdministrationService {
 
     @Transactional(readOnly = true)
     public Set<UUID> tenantAccountRoleIds(UUID tenantAccountId) {
-        return tenantAccountRoleRepository.findByTenantAccount_IdAndRole_ActiveTrue(tenantAccountId)
-                .stream()
+        return tenantAccountRoleRepository.findByTenantAccount_IdAndRole_ActiveTrue(tenantAccountId).stream()
                 .map(assignment -> assignment.getRole().getId())
                 .collect(Collectors.toUnmodifiableSet());
     }
 
     @Transactional(readOnly = true)
+    @RequiresPermission(AppPermission.ROLE_ASSIGN)
+    public Set<UUID> tenantAccountIdsAssignedToRole(UUID roleId) {
+        var actor = authorizationService.snapshot();
+        if (actor.activeContext().level() == ContextLevel.PLATFORM || actor.tenantId() == null) {
+            throw new AccessDeniedException("Tenant role assignments require a tenant context");
+        }
+        ensureRoleVisibleForAssignment(roleId, RoleAssignmentLevel.TENANT);
+        return tenantAccountRoleRepository.findByTenantAccount_Tenant_IdAndTenantAccount_LockedFalseAndRole_Id(actor.tenantId(), roleId).stream()
+                .map(assignment -> assignment.getTenantAccount().getId())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Transactional(readOnly = true)
     public Set<UUID> groupClassMemberRoleIds(UUID groupClassMemberId) {
-        return groupClassMemberRoleRepository.findByGroupClassMember_Id(groupClassMemberId)
-                .stream()
+        return groupClassMemberRoleRepository.findByGroupClassMember_Id(groupClassMemberId).stream()
                 .map(assignment -> assignment.getRole().getId())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Transactional(readOnly = true)
+    @RequiresPermission(AppPermission.ROLE_ASSIGN)
+    public Set<UUID> groupClassMemberIdsAssignedToRole(UUID groupClassId, UUID roleId) {
+        var actor = authorizationService.snapshot();
+        ensureGroupClassAccessible(actor, groupClassId);
+        ensureRoleVisibleForAssignment(roleId, RoleAssignmentLevel.GROUP_CLASS);
+        return groupClassMemberRoleRepository.findByGroupClassMember_GroupClass_IdAndRole_Id(groupClassId, roleId).stream()
+                .map(assignment -> assignment.getGroupClassMember().getId())
                 .collect(Collectors.toUnmodifiableSet());
     }
 
@@ -285,39 +326,64 @@ public class RoleAdministrationService {
         if (permission == null) {
             return false;
         }
-        if (level == RoleAssignmentLevel.PLATFORM) {
-            return Set.of(AppResource.TENANT, AppResource.ACCOUNT, AppResource.ROLE).contains(permission.resource());
-        }
-        if (level == RoleAssignmentLevel.GROUP_CLASS) {
-            return Set
-                    .of(
-                        AppResource.GROUP_CLASS,
-                        AppResource.GROUP_CLASS_MEMBER,
-                        AppResource.GROUP_CLASS_JOIN_CODE,
-                        AppResource.CONVERSATION,
-                        AppResource.TRAINING_ACTIVITY,
-                        AppResource.TRAINING_ACTIVITY_ASSIGNMENT,
-                        AppResource.COURSE_MATERIAL)
-                    .contains(permission.resource());
-        }
-        return permission.resource() != AppResource.TENANT || permission != AppPermission.TENANT_CREATE;
+        return resourcesForLevel(level).contains(permission.resource()) && tenantCreateValidForLevel(permission, level);
+    }
+
+    private boolean tenantCreateValidForLevel(AppPermission permission, RoleAssignmentLevel level) {
+        return permission != AppPermission.TENANT_CREATE || level == RoleAssignmentLevel.PLATFORM;
     }
 
     public String disabledReason(Role role, AppPermission permission) {
         var actor = authorizationService.snapshot();
-        if (!actor.permissionCodes().contains(permission.code())) {
-            return "actor lacks permission";
-        }
         if (!permissionValidForLevel(permission.code(), role.getAssignmentLevel())) {
             return "invalid for role assignment level";
+        }
+        if (!actor.hasPermission(permission.code())) {
+            return "actor lacks permission";
         }
         if (!canManagePriority(actor, role.getRoleNamespace().getId(), role.getPriority())) {
             return "target role priority is too high";
         }
-        if (role.isSystemDefined() && actor.activeContext().level() != ContextLevel.PLATFORM) {
+        if (role.isSystemDefined() && !canManageSystemDefinedRole(actor, role)) {
             return "system-defined role is locked";
         }
         return null;
+    }
+
+    private Set<AppResource> resourcesForLevel(RoleAssignmentLevel level) {
+        return switch (level) {
+            case PLATFORM -> Set.of(AppResource.TENANT, AppResource.ACCOUNT, AppResource.ROLE);
+            case TENANT -> Set.of(
+                    AppResource.TENANT,
+                    AppResource.ACCOUNT,
+                    AppResource.ROLE,
+                    AppResource.SUBJECT,
+                    AppResource.ACADEMIC_PERIOD,
+                    AppResource.GROUP_CLASS,
+                    AppResource.GROUP_CLASS_MEMBER,
+                    AppResource.GROUP_CLASS_JOIN_CODE,
+                    AppResource.CONVERSATION,
+                    AppResource.TRAINING_ACTIVITY,
+                    AppResource.TRAINING_ACTIVITY_ASSIGNMENT,
+                    AppResource.COURSE_MATERIAL);
+            case GROUP_CLASS -> Set.of(
+                    AppResource.ROLE,
+                    AppResource.GROUP_CLASS,
+                    AppResource.GROUP_CLASS_MEMBER,
+                    AppResource.GROUP_CLASS_JOIN_CODE,
+                    AppResource.CONVERSATION,
+                    AppResource.TRAINING_ACTIVITY,
+                    AppResource.TRAINING_ACTIVITY_ASSIGNMENT,
+                    AppResource.COURSE_MATERIAL);
+        };
+    }
+
+    private boolean canManageSystemDefinedRole(UserAccessSnapshot actor, Role role) {
+        return switch (actor.activeContext().level()) {
+            case PLATFORM -> true;
+            case TENANT -> role.getAssignmentLevel() != RoleAssignmentLevel.PLATFORM;
+            case GROUP_CLASS -> role.getAssignmentLevel() == RoleAssignmentLevel.GROUP_CLASS;
+        };
     }
 
     private ActiveContext activeContext() {
@@ -327,9 +393,7 @@ public class RoleAdministrationService {
     private RoleNamespace activeNamespace() {
         var context = activeContext();
         if (context.level() == ContextLevel.PLATFORM) {
-            return platformSettingsRepository.findById(Boolean.TRUE)
-                    .map(PlatformSettings::getRoleNamespace)
-                    .orElseThrow();
+            return platformSettingsRepository.findById(Boolean.TRUE).map(PlatformSettings::getRoleNamespace).orElseThrow();
         }
         return tenantRepository.findById(context.tenantId()).orElseThrow().getRoleNamespace();
     }
@@ -347,10 +411,7 @@ public class RoleAdministrationService {
         }
     }
 
-    private void validatePermissionCodes(
-            Set<String> permissionCodes,
-            RoleAssignmentLevel level,
-            UserAccessSnapshot actor) {
+    private void validatePermissionCodes(Set<String> permissionCodes, RoleAssignmentLevel level, UserAccessSnapshot actor) {
         var knownCodes = Arrays.stream(AppPermission.values()).map(AppPermission::code).collect(Collectors.toSet());
         if (!knownCodes.containsAll(permissionCodes)) {
             throw new IllegalArgumentException("Permissions must be known AppPermission codes");
@@ -359,15 +420,29 @@ public class RoleAdministrationService {
         if (invalid.isPresent()) {
             throw new IllegalArgumentException("Permission %s is invalid for %s roles".formatted(invalid.get(), level));
         }
-        if (!actor.permissionCodes().containsAll(permissionCodes)) {
+        if (!permissionCodes.stream().allMatch(actor::hasPermission)) {
             throw new AccessDeniedException("Cannot grant permissions outside the actor snapshot");
         }
     }
 
     private Role assignableRole(UUID roleId, RoleAssignmentLevel assignmentLevel) {
         var role = roleRepository.findById(roleId).orElseThrow();
+        if (!role.getRoleNamespace().getId().equals(activeNamespace().getId())) {
+            throw new AccessDeniedException("Role is outside the active namespace");
+        }
         if (role.getAssignmentLevel() != assignmentLevel || !role.isActive() || !role.isAssignable()) {
             throw new AccessDeniedException("Role is not assignable at %s level".formatted(assignmentLevel));
+        }
+        return role;
+    }
+
+    private Role ensureRoleVisibleForAssignment(UUID roleId, RoleAssignmentLevel assignmentLevel) {
+        var role = roleRepository.findById(roleId).orElseThrow();
+        if (!role.getRoleNamespace().getId().equals(activeNamespace().getId())) {
+            throw new AccessDeniedException("Role is outside the active namespace");
+        }
+        if (role.getAssignmentLevel() != assignmentLevel || !role.isActive()) {
+            throw new AccessDeniedException("Role is not visible at %s level".formatted(assignmentLevel));
         }
         return role;
     }
@@ -389,8 +464,7 @@ public class RoleAdministrationService {
     }
 
     private boolean canManagePriority(UserAccessSnapshot actor, UUID roleNamespaceId, int targetPriority) {
-        var actorHighestPriority = roleRepository.findByRoleNamespace_IdAndActiveTrue(roleNamespaceId)
-                .stream()
+        var actorHighestPriority = roleRepository.findByRoleNamespace_IdAndActiveTrue(roleNamespaceId).stream()
                 .filter(role -> actor.roleCodes().contains(role.getCode()))
                 .mapToInt(Role::getPriority)
                 .max()
@@ -415,10 +489,7 @@ public class RoleAdministrationService {
     }
 
     private AppPermission permissionByCode(String code) {
-        return Arrays.stream(AppPermission.values())
-                .filter(permission -> permission.code().equals(code))
-                .findFirst()
-                .orElse(null);
+        return Arrays.stream(AppPermission.values()).filter(permission -> permission.code().equals(code)).findFirst().orElse(null);
     }
 
     private String blankToNull(String value) {
@@ -430,21 +501,21 @@ public class RoleAdministrationService {
         eventPublisher.publishEvent(new RbacChangedEvent(roleNamespaceId));
     }
 
-    public record CreateRoleCommand(String name, String description, RoleAssignmentLevel assignmentLevel, int priority,
-            Set<String> permissions) {
+    public record CreateRoleCommand(String name, String description, RoleAssignmentLevel assignmentLevel, int priority, Set<String> permissions) {
         public CreateRoleCommand {
             permissions = permissions == null ? Set.of() : Set.copyOf(permissions);
         }
     }
 
-    public record UpdateRoleCommand(UUID roleId, String name, String description, boolean active, boolean assignable,
-            int priority, Set<String> permissions) {
+    public record UpdateRoleCommand(UUID roleId, String name, String description, boolean active, boolean assignable, int priority, Set<String> permissions) {
         public UpdateRoleCommand {
             permissions = permissions == null ? Set.of() : Set.copyOf(permissions);
         }
     }
 
-    public record TenantRoleAssignmentMatrix(List<TenantAccount> members, List<Role> roles) {}
+    public record TenantRoleAssignmentMatrix(List<TenantAccount> members, List<Role> roles) {
+    }
 
-    public record GroupClassRoleAssignmentMatrix(List<GroupClassMember> members, List<Role> roles) {}
+    public record GroupClassRoleAssignmentMatrix(List<GroupClassMember> members, List<Role> roles) {
+    }
 }

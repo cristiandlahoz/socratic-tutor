@@ -1,0 +1,218 @@
+.role-management-view {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  padding: clamp(var(--vaadin-padding-m), 2.5vw, var(--vaadin-padding-xl));
+  gap: var(--vaadin-gap-l);
+  background: var(--vaadin-background-color);
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+  overflow-y: auto;
+}
+
+.role-management-view h1,
+.role-management-view h2,
+.role-management-view h3,
+.role-management-view p {
+  margin: 0;
+}
+
+.role-management-view h1 {
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-l);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--aura-line-height-l);
+  text-wrap: balance;
+}
+
+.role-management-view h2,
+.role-management-view h3 {
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-m);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--aura-line-height-m);
+}
+
+.role-management-header,
+.role-management-role-header,
+.role-management-tab-layout {
+  gap: var(--vaadin-gap-xs);
+}
+
+.role-management-description,
+.role-management-tab-description,
+.role-management-role-meta,
+.role-management-empty-state {
+  color: var(--vaadin-text-color-secondary);
+  font-size: var(--aura-font-size-xs);
+  line-height: var(--aura-line-height-s);
+}
+
+.role-management-split {
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 1px solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-l);
+  background: var(--aura-surface-color);
+  box-shadow: var(--aura-shadow-s);
+  overflow: hidden;
+}
+
+.role-management-role-panel,
+.role-management-editor-panel {
+  gap: var(--vaadin-gap-m);
+  min-height: 0;
+  padding: var(--vaadin-padding-m);
+}
+
+.role-management-role-panel {
+  border-right: 1px solid var(--vaadin-border-color-secondary);
+}
+
+.role-management-controls,
+.role-management-permission-rows {
+  gap: var(--vaadin-gap-xs);
+}
+
+.role-management-role-list {
+  overflow: hidden;
+  border: 1px solid var(--vaadin-border-color-secondary);
+  border-radius: var(--vaadin-radius-m);
+  background: color-mix(in srgb, var(--aura-surface-color) 76%, transparent);
+}
+
+.role-management-role-list::part(table) {
+  background: transparent;
+}
+
+.role-management-role-list::part(header-cell) {
+  min-height: calc(var(--vaadin-gap-xl) + var(--vaadin-gap-xs));
+  border-bottom: 1px solid var(--vaadin-border-color-secondary);
+  background: transparent;
+  color: var(--vaadin-text-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: var(--aura-line-height-xs);
+  text-transform: uppercase;
+}
+
+.role-management-role-list::part(body-cell) {
+  border-bottom: 1px solid var(--vaadin-border-color-secondary);
+  background: transparent;
+}
+
+.role-management-role-entry {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  min-height: calc(var(--vaadin-gap-xl) + var(--vaadin-gap-l));
+  gap: var(--vaadin-gap-s);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vaadin-text-color);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.role-management-role-entry.is-selected {
+  color: var(--aura-accent-text-color);
+}
+
+.role-management-role-entry-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: calc(var(--vaadin-gap-l) + var(--vaadin-gap-xs));
+  aspect-ratio: 1;
+  background: currentColor;
+  mask: url("/icons/authority.svg") center / contain no-repeat;
+  -webkit-mask: url("/icons/authority.svg") center / contain no-repeat;
+}
+
+.role-management-role-entry-name {
+  overflow: hidden;
+  color: inherit;
+  font-size: var(--aura-font-size-s);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--aura-line-height-s);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-management-role-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  gap: var(--vaadin-gap-xs);
+  color: var(--vaadin-text-color-secondary);
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: var(--aura-line-height-xs);
+}
+
+.role-management-role-count vaadin-icon {
+  width: var(--aura-font-size-l);
+  height: var(--aura-font-size-l);
+}
+
+.role-management-tabs {
+  border-bottom: 1px solid var(--vaadin-border-color-secondary);
+}
+
+.role-management-tab-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+}
+
+.role-management-tab-layout {
+  min-height: 100%;
+}
+
+.role-management-permission-group {
+  gap: var(--vaadin-gap-xs);
+  padding-block: var(--vaadin-padding-s);
+  border-bottom: 1px solid var(--vaadin-border-color-secondary);
+}
+
+.role-management-permission-row {
+  gap: var(--vaadin-gap-m);
+  padding-block: var(--vaadin-padding-xs);
+}
+
+.role-management-permission-code {
+  color: var(--vaadin-text-color-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--aura-font-size-xs);
+  line-height: var(--aura-line-height-xs);
+}
+
+.role-management-members-grid {
+  flex: 1 1 auto;
+  min-height: 24rem;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-m);
+  background: var(--aura-surface-color);
+}
+
+.role-management-members-content {
+  min-height: 100%;
+}
+
+.role-management-members-content > vaadin-grid {
+  align-self: stretch;
+}
+
+@media (max-width: 1024px) {
+  .role-management-split {
+    min-height: auto;
+  }
+}

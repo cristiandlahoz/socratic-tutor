@@ -20,6 +20,7 @@ import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.AccountContextPreferenceRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +62,7 @@ public class WorkspaceRoutingService {
 
     @Transactional
     public WorkspaceDecision resolveForAccount(Account account) {
-        if (hasGlobalRole(account, "SYSTEM_ADMIN")) {
+        if (hasPlatformPermission(account, AppPermission.TENANT_VIEW)) {
             setContext(account, ContextLevel.PLATFORM, null, null);
             return new WorkspaceDecision(WorkspaceDestination.SYSTEM_ADMIN, null, null);
         }
@@ -95,7 +96,7 @@ public class WorkspaceRoutingService {
     @Transactional(readOnly = true)
     public boolean canAccessWorkspace(Account account, WorkspaceDestination destination) {
         return switch (destination) {
-            case SYSTEM_ADMIN -> hasGlobalRole(account, "SYSTEM_ADMIN");
+            case SYSTEM_ADMIN -> hasPlatformPermission(account, AppPermission.TENANT_VIEW);
             case TENANT_ADMIN -> !findTenantAdminRoles(account).isEmpty();
             case PROFESSOR -> !findActiveMembers(account, GroupClassMemberKind.PROFESSOR).isEmpty();
             case STUDENT -> !findActiveMembers(account, GroupClassMemberKind.STUDENT).isEmpty();
@@ -106,7 +107,7 @@ public class WorkspaceRoutingService {
     @Transactional
     public boolean prepareWorkspaceAccess(Account account, WorkspaceDestination destination) {
         return switch (destination) {
-            case SYSTEM_ADMIN -> hasGlobalRole(account, "SYSTEM_ADMIN");
+            case SYSTEM_ADMIN -> hasPlatformPermission(account, AppPermission.TENANT_VIEW);
             case TENANT_ADMIN -> prepareTenantAdminAccess(account);
             case PROFESSOR -> prepareGroupClassAccess(account, GroupClassMemberKind.PROFESSOR);
             case STUDENT -> prepareGroupClassAccess(account, GroupClassMemberKind.STUDENT);
@@ -118,9 +119,12 @@ public class WorkspaceRoutingService {
     public List<AccessibleTenant> listAccessibleTenants(Account account) {
         return tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId())
                 .stream()
+                .filter(role -> role.getRole().isActive())
                 .collect(java.util.stream.Collectors.groupingBy(TenantAccountRole::getTenantAccount))
                 .entrySet()
                 .stream()
+                .filter(entry -> entry.getValue().stream()
+                        .anyMatch(role -> hasPermission(role.getRole().getPermissions(), AppPermission.GROUP_CLASS_CREATE)))
                 .map(
                     entry -> new AccessibleTenant(entry.getKey().getTenant().getId(),
                             entry.getKey().getId(),
@@ -223,17 +227,23 @@ public class WorkspaceRoutingService {
         return true;
     }
 
-    private boolean hasGlobalRole(Account account, String roleCode) {
-        return accountPlatformRoleRepository.findByAccount_IdAndRole_CodeAndRole_ActiveTrue(account.getId(), roleCode)
-                .isPresent();
+    private boolean hasPlatformPermission(Account account, AppPermission permission) {
+        return accountPlatformRoleRepository.findByAccount_IdAndRole_ActiveTrue(account.getId())
+                .stream()
+                .anyMatch(role -> hasPermission(role.getRole().getPermissions(), permission));
     }
 
     private List<TenantAccountRole> findTenantAdminRoles(Account account) {
         return tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId())
                 .stream()
-                .filter(role -> "TENANT_ADMIN".equals(role.getRole().getCode()))
+                .filter(role -> role.getRole().isActive())
+                .filter(role -> hasPermission(role.getRole().getPermissions(), AppPermission.GROUP_CLASS_CREATE))
                 .sorted(Comparator.comparing(role -> role.getTenantAccount().getJoinedAt()))
                 .toList();
+    }
+
+    private boolean hasPermission(String[] permissions, AppPermission permission) {
+        return java.util.Arrays.asList(permissions).contains(permission.code());
     }
 
     private List<GroupClassMember> findActiveMembers(Account account, GroupClassMemberKind requiredKind) {
