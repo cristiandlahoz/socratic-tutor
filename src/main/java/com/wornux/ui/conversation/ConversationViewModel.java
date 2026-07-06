@@ -36,15 +36,15 @@ public class ConversationViewModel implements Serializable {
     static final String DRAFT_QUERY_PARAMETER = "draft";
     static final String DRAFT_QUERY_VALUE = "new";
 
-    private final ChatService chatService;
-    private final ConversationService conversationService;
-    private final ChatUsageService chatUsageService;
-    private final ConversationTitleService conversationTitleService;
-    private final ThemePreferenceService themePreferenceService;
-    private final ActiveAcademicContextResolver contextResolver;
-    private final ConversationNavigationOrchestrator navigationOrchestrator;
-    private final ConversationThemeOrchestrator themeOrchestrator;
-    private final ConversationTurnOrchestrator turnOrchestrator;
+    private final transient ChatService chatService;
+    private final transient ConversationService conversationService;
+    private final transient ChatUsageService chatUsageService;
+    private final transient ConversationTitleService conversationTitleService;
+    private final transient ThemePreferenceService themePreferenceService;
+    private final transient ActiveAcademicContextResolver contextResolver;
+    private final transient ConversationNavigationOrchestrator navigationOrchestrator;
+    private final transient ConversationThemeOrchestrator themeOrchestrator;
+    private final transient ConversationTurnOrchestrator turnOrchestrator;
     private final ConversationState state;
     private final StudentQuestionExchange questionExchange;
 
@@ -254,7 +254,7 @@ public class ConversationViewModel implements Serializable {
         try {
             return Optional.of(UUID.fromString(value));
         }
-        catch (IllegalArgumentException exception) {
+        catch (IllegalArgumentException _) {
             return Optional.empty();
         }
     }
