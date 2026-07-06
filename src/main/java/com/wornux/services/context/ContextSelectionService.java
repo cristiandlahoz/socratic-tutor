@@ -2,6 +2,8 @@ package com.wornux.services.context;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.wornux.data.entities.academic.GroupClass;
@@ -96,7 +98,7 @@ public class ContextSelectionService {
         };
     }
 
-    private java.util.Optional<ActiveContext> readPreferredContext(Account account) {
+    private Optional<ActiveContext> readPreferredContext(Account account) {
         return accountContextPreferenceRepository.findById(account.getId())
                 .filter(preference -> preference.getContextLevel() != null)
                 .map(preference -> switch (preference.getContextLevel()) {
@@ -113,8 +115,8 @@ public class ContextSelectionService {
 
     private boolean sameContext(AvailableContextOption option, ContextLevel level, UUID tenantId, UUID classId) {
         return option.level() == level
-                && java.util.Objects.equals(option.tenantId(), tenantId)
-                && java.util.Objects.equals(option.classId(), classId);
+                && Objects.equals(option.tenantId(), tenantId)
+                && Objects.equals(option.classId(), classId);
     }
 
     private void persist(Account account, AvailableContextOption option) {

@@ -4,9 +4,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.jspecify.annotations.Nullable;
+
 public record ToolExecutionAudit(UUID conversationId, UUID groupClassMemberId, UUID turnId, String toolName,
-        String status, long latencyMs, String inputSummary, String outputSummary, String toolReturnJson,
-        String toolReturnPreview, boolean returnCaptured, boolean modelRequested, String failureCode) {
+        String status, long latencyMs, String inputSummary, String outputSummary, @Nullable String toolReturnJson,
+        @Nullable String toolReturnPreview, boolean returnCaptured, boolean modelRequested, @Nullable String failureCode) {
 
     public Map<String, Object> toMap() {
         Map<String, Object> auditFields = new LinkedHashMap<>();

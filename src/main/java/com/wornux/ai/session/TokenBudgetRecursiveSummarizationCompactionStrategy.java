@@ -221,7 +221,10 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
     }
 
     private static String truncate(@Nullable String value) {
-        if (value == null || value.length() <= MAX_FORMATTED_EVENT_CHARS) {
+        if (value == null) {
+            return "";
+        }
+        if (value.length() <= MAX_FORMATTED_EVENT_CHARS) {
             return value;
         }
         return value.substring(0, MAX_FORMATTED_EVENT_CHARS) + "… [truncated "

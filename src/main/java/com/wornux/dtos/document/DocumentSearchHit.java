@@ -1,3 +1,5 @@
 package com.wornux.dtos.document;
 
-public record DocumentSearchHit(String source, String preview, String readCursor) {}
+import org.jspecify.annotations.Nullable;
+
+public record DocumentSearchHit(@Nullable String source, String preview, String readCursor) {}

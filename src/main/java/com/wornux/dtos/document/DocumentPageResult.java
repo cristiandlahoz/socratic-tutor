@@ -1,4 +1,6 @@
 package com.wornux.dtos.document;
 
-public record DocumentPageResult(String source, String content, String previousCursor, String nextCursor,
-        boolean hasPrevious, boolean hasNext) {}
+import org.jspecify.annotations.Nullable;
+
+public record DocumentPageResult(@Nullable String source, String content, @Nullable String previousCursor,
+        @Nullable String nextCursor, boolean hasPrevious, boolean hasNext) {}

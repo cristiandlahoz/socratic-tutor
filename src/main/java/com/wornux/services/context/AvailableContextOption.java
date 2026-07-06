@@ -1,5 +1,6 @@
 package com.wornux.services.context;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import com.wornux.data.entities.identity.ContextLevel;
@@ -18,7 +19,7 @@ public record AvailableContextOption(ContextLevel level, UUID tenantId, UUID cla
 
     public boolean matches(ActiveContext context) {
         return level == context.level()
-                && java.util.Objects.equals(tenantId, context.tenantId())
-                && java.util.Objects.equals(classId, context.groupClassId());
+                && Objects.equals(tenantId, context.tenantId())
+                && Objects.equals(classId, context.groupClassId());
     }
 }

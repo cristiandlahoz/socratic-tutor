@@ -5,6 +5,7 @@ import java.util.UUID;
 import com.wornux.dtos.document.DocumentContextResult;
 import com.wornux.dtos.document.DocumentPageResult;
 import com.wornux.services.document.DocumentRetrievalService;
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -65,7 +66,7 @@ public class RetrieveInformationTool {
             });
     }
 
-    private UUID groupClassId(ToolContext toolContext) {
+    private @Nullable UUID groupClassId(ToolContext toolContext) {
         var rawGroupClassId = toolContext.getContext().get(ToolContextKeys.GROUP_CLASS_ID);
         return rawGroupClassId == null || String.valueOf(rawGroupClassId).isBlank()
                 ? null

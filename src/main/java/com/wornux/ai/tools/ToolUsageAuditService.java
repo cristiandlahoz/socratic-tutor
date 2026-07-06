@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ToolContext;
@@ -153,7 +154,7 @@ public class ToolUsageAuditService {
         return (System.nanoTime() - startedAt) / 1_000_000;
     }
 
-    private CapturedToolReturn captureToolReturn(Object value) {
+    private CapturedToolReturn captureToolReturn(@Nullable Object value) {
         var observability = tutorAiProperties.getToolObservability();
         if (observability == null || !observability.isCaptureToolReturns()) {
             return CapturedToolReturn.disabled();
@@ -185,7 +186,7 @@ public class ToolUsageAuditService {
 
     public record ToolResult<T>(T value, String outputSummary) {}
 
-    private record CapturedToolReturn(boolean captured, String json, String preview) {
+    private record CapturedToolReturn(boolean captured, @Nullable String json, @Nullable String preview) {
 
         static CapturedToolReturn disabled() {
             return new CapturedToolReturn(false, null, null);

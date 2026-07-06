@@ -30,6 +30,7 @@ public class GuardClassifierService {
     private final BeanOutputConverter<GuardCheck> outputConverter = new BeanOutputConverter<>(GuardCheck.class);
 
     @Value("${app.ai.guard.model}")
+    @SuppressWarnings("initialization.field.uninitialized")
     private String guardModel;
 
     public GuardClassifierService(@Qualifier("openAiChatModel") ChatModel chatModel, PromptResources promptResources) {
@@ -50,8 +51,9 @@ public class GuardClassifierService {
                             .build())
                 .build();
 
-        String responseText = Objects.requireNonNull(
-            Objects.requireNonNull(chatModel.call(prompt).getResult()).getOutput().getText(),
+        var generation = Objects.requireNonNull(chatModel.call(prompt).getResult(),
+            "Guard classifier returned no generation");
+        String responseText = Objects.requireNonNull(generation.getOutput().getText(),
             "Guard classifier returned an empty response");
 
         GuardCheck guardCheck = outputConverter.convert(responseText);

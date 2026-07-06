@@ -1,5 +1,6 @@
 package com.wornux.ai.advisor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +9,7 @@ import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.prompt.PromptUtil;
 import com.wornux.data.enums.GuardDecision;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -74,12 +76,12 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private List<UserMessage> lastUserMessages(Prompt prompt) {
-        List<UserMessage> userMessages = prompt.getInstructions()
-                .stream()
-                .filter(UserMessage.class::isInstance)
-                .map(UserMessage.class::cast)
-                .filter(message -> message.getText() != null && !message.getText().isBlank())
-                .toList();
+        var userMessages = new ArrayList<UserMessage>();
+        for (var message : prompt.getInstructions()) {
+            if (message instanceof UserMessage userMessage && hasText(userMessage)) {
+                userMessages.add(userMessage);
+            }
+        }
 
         if (userMessages.isEmpty()) {
             return List.of(prompt.getUserMessage());
@@ -110,20 +112,25 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
         return request.mutate().prompt(guardedPrompt).build();
     }
 
-    private String systemWithGuardPolicy(String systemText, String policyMode, String policyText) {
+    private String systemWithGuardPolicy(@Nullable String systemText, String policyMode, String policyText) {
         return PromptUtil
                 .render(guardPolicyTemplate(systemText), guardPolicyVariables(systemText, policyMode, policyText));
     }
 
-    private String guardPolicyTemplate(String systemText) {
+    private String guardPolicyTemplate(@Nullable String systemText) {
         return isBlank(systemText) ? STANDALONE_GUARD_POLICY_TEMPLATE : GUARD_POLICY_TEMPLATE;
     }
 
-    private Map<String, Object> guardPolicyVariables(String systemText, String policyMode, String policyText) {
+    private Map<String, Object> guardPolicyVariables(@Nullable String systemText, String policyMode, String policyText) {
         return Map.of("system", isBlank(systemText) ? "" : systemText, "mode", policyMode, "policy", policyText);
     }
 
-    private boolean isBlank(String value) {
+    private boolean hasText(UserMessage message) {
+        var text = message.getText();
+        return text != null && !text.isBlank();
+    }
+
+    private boolean isBlank(@Nullable String value) {
         return value == null || value.isBlank();
     }
 
