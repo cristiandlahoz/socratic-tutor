@@ -257,6 +257,7 @@ public class ConversationTurnOrchestrator {
             Runnable refreshCompactionStatus) {
         activeStream = Mono.fromRunnable(() -> chatService.finalizeTurn(context.turnId(), context.conversationId()))
                 .subscribeOn(Schedulers.boundedElastic())
+                .contextCapture()
                 .subscribe(
                     _ -> {},
                     _ -> finishResponse(

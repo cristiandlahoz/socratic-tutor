@@ -1,5 +1,8 @@
 package com.wornux.config;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import com.wornux.ai.advisor.DynamicContextManagementAdvisor;
 import com.wornux.ai.advisor.TutorGuardAdvisor;
 import com.wornux.ai.guard.GuardClassifierService;
@@ -20,7 +23,6 @@ import org.springframework.ai.session.compaction.CompactionRequest;
 import org.springframework.ai.session.compaction.CompactionResult;
 import org.springframework.ai.session.compaction.CompactionStrategy;
 import org.springframework.ai.session.compaction.CompactionTrigger;
-import org.springframework.ai.session.compaction.TokenCountTrigger;
 import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,10 +48,6 @@ public class AIConfig {
         var compactionClient = ChatClient.builder(chatModel).build();
         var tokenCountEstimator = new JTokkitTokenCountEstimator();
         int compactionThresholdTokens = chatProperties.compactionThresholdTokens();
-        var tokenCountTrigger = TokenCountTrigger.builder()
-                .threshold(compactionThresholdTokens)
-                .tokenCountEstimator(tokenCountEstimator)
-                .build();
         var compactionStrategy = TokenBudgetRecursiveSummarizationCompactionStrategy.builder(compactionClient)
                 .recentHistoryTokenBudget(chatProperties.recentHistoryRetentionTokens())
                 .systemPrompt(promptResources.compactionSystem())
@@ -58,7 +56,7 @@ public class AIConfig {
                 .build();
         var sessionMemoryAdvisor = SessionMemoryAdvisor.builder(sessionService)
                 .eventFilter(EventFilter.active())
-                .compactionTrigger(loggingCompactionTrigger(tokenCountTrigger, compactionThresholdTokens))
+                .compactionTrigger(apiUsageCompactionTrigger(jdbcClient, compactionThresholdTokens))
                 .compactionStrategy(loggingCompactionStrategy(compactionStrategy, activityBus))
                 .build();
         var dynamicContextManagementAdvisor =
@@ -73,20 +71,34 @@ public class AIConfig {
                 .build();
     }
 
-    private CompactionTrigger loggingCompactionTrigger(CompactionTrigger delegate, int compactionThresholdTokens) {
+    private CompactionTrigger apiUsageCompactionTrigger(JdbcClient jdbcClient, int compactionThresholdTokens) {
         return request -> {
-            boolean shouldCompact = delegate.shouldCompact(request);
+            var promptTokens = lastPromptTokens(jdbcClient, request).orElse(null);
+            boolean shouldCompact = promptTokens != null && promptTokens >= compactionThresholdTokens;
             if (shouldCompact) {
                 log.info(
-                    "Chat session compaction triggered: sessionId={}, userId={}, events={}, turns={}, thresholdTokens={}",
+                    "Chat session compaction triggered: sessionId={}, userId={}, events={}, turns={}, promptTokens={}, thresholdTokens={}",
                     sessionId(request),
                     userId(request),
                     request.currentEventCount(),
                     request.currentTurnCount(),
+                    promptTokens,
                     compactionThresholdTokens);
             }
             return shouldCompact;
         };
+    }
+
+    private Optional<Integer> lastPromptTokens(JdbcClient jdbcClient, CompactionRequest request) {
+        try {
+            return jdbcClient.sql("select last_prompt_tokens from conversation where id = :conversationId")
+                    .param("conversationId", UUID.fromString(sessionId(request)))
+                    .query(Integer.class)
+                    .optional();
+        }
+        catch (IllegalArgumentException _) {
+            return Optional.empty();
+        }
     }
 
     private CompactionStrategy loggingCompactionStrategy(
