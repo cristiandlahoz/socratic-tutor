@@ -1,6 +1,6 @@
-import './message-item.ts';
+import './message-item.js';
 import { LitElement, html } from 'lit';
-import type { BrailleSpinnerName } from './braille-spinners';
+import type { BrailleSpinnerName } from './braille-spinners.js';
 
 type MessageVariant = 'user' | 'assistant';
 

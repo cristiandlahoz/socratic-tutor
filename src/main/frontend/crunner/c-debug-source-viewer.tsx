@@ -4,7 +4,7 @@ import { Decoration, EditorView } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { codeMirrorLanguageExtensions, resolveCodeMirrorTheme } from '../shared/code/code-mirror-extensions';
+import { codeMirrorLanguageExtensions, resolveCodeMirrorTheme } from 'Frontend/shared/code/code-mirror-extensions';
 
 const ACTIVE_LINE_SCROLL_MARGIN_PX = 72;
 

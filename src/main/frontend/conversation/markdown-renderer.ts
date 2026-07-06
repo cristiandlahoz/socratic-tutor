@@ -1,4 +1,4 @@
-import '../shared/code/code-block-viewer.tsx';
+import 'Frontend/shared/code/code-block-viewer.js';
 import DOMPurify from 'dompurify';
 import { Marked, type HooksObject, type RendererObject, type Tokens } from 'marked';
 import { LitElement } from 'lit';
@@ -35,12 +35,6 @@ function ensureMarkdownRendererStyles(): void {
   style.id = MARKDOWN_RENDERER_STYLE_ID;
   style.textContent = `
     markdown-renderer {
-      /*
-       * Notion-inspired Markdown surface adapted for chat messages.
-       * The component does not own the message bubble or assistant width; it
-       * only styles the HTML produced by Marked. CodeMirror remains isolated in
-       * code-block-viewer and is intentionally not styled through .cm-* rules.
-       */
       --mk-font-family: var(
         --aura-font-family,
         ui-sans-serif,
@@ -630,6 +624,8 @@ function createMarkdown(blocks: CodeBlock[], renderId: string): Marked {
   });
 }
 
+type SynchronizableChildNode = Node & ChildNode;
+
 function synchronizeAttributes(targetElement: Element, sourceElement: Element): void {
   for (const { name } of Array.from(targetElement.attributes)) {
     if (!sourceElement.hasAttribute(name)) {
@@ -648,7 +644,7 @@ function canSynchronizeNode(targetChild: Node, sourceChild: Node): boolean {
   return sourceChild.nodeType === targetChild.nodeType && sourceChild.nodeName === targetChild.nodeName;
 }
 
-function synchronizeExistingNode(targetChild: Node, sourceChild: Node): void {
+function synchronizeExistingNode(targetChild: SynchronizableChildNode, sourceChild: Node): void {
   if (!canSynchronizeNode(targetChild, sourceChild)) {
     targetChild.replaceWith(sourceChild.cloneNode(true));
     return;
@@ -665,7 +661,11 @@ function synchronizeExistingNode(targetChild: Node, sourceChild: Node): void {
   }
 }
 
-function synchronizeNodeAtIndex(targetNode: Node, sourceChild: Node | undefined, targetChild: Node | undefined): void {
+function synchronizeNodeAtIndex(
+  targetNode: Node,
+  sourceChild: Node | undefined,
+  targetChild: SynchronizableChildNode | undefined,
+): void {
   if (!sourceChild) {
     targetChild?.remove();
     return;
@@ -681,7 +681,7 @@ function synchronizeNodeAtIndex(targetNode: Node, sourceChild: Node | undefined,
 
 function synchronizeNodes(targetNode: Node, sourceNode: Node): void {
   const sourceChildren = Array.from(sourceNode.childNodes);
-  const targetChildren = Array.from(targetNode.childNodes);
+  const targetChildren = Array.from(targetNode.childNodes) as SynchronizableChildNode[];
   const maxChildren = Math.max(sourceChildren.length, targetChildren.length);
 
   for (let index = 0; index < maxChildren; index += 1) {
