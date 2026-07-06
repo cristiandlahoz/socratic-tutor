@@ -74,18 +74,18 @@ public class AIConfig {
     private CompactionTrigger apiUsageCompactionTrigger(JdbcClient jdbcClient, int compactionThresholdTokens) {
         return request -> {
             var promptTokens = lastPromptTokens(jdbcClient, request).orElse(null);
-            boolean shouldCompact = promptTokens != null && promptTokens >= compactionThresholdTokens;
-            if (shouldCompact) {
-                log.info(
-                    "Chat session compaction triggered: sessionId={}, userId={}, events={}, turns={}, promptTokens={}, thresholdTokens={}",
-                    sessionId(request),
-                    userId(request),
-                    request.currentEventCount(),
-                    request.currentTurnCount(),
-                    promptTokens,
-                    compactionThresholdTokens);
+            if (promptTokens == null || promptTokens < compactionThresholdTokens) {
+                return false;
             }
-            return shouldCompact;
+            log.info(
+                "Chat session compaction triggered: sessionId={}, userId={}, events={}, turns={}, promptTokens={}, thresholdTokens={}",
+                sessionId(request),
+                userId(request),
+                request.currentEventCount(),
+                request.currentTurnCount(),
+                promptTokens,
+                compactionThresholdTokens);
+            return true;
         };
     }
 

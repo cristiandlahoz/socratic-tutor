@@ -87,8 +87,8 @@ public class ToolUsageAuditService {
                 audit.inputSummary(),
                 audit.outputSummary(),
                 audit.returnCaptured(),
-                audit.toolReturnPreview(),
-                audit.failureCode());
+                nullableLogValue(audit.toolReturnPreview()),
+                nullableLogValue(audit.failureCode()));
             return result.value();
         }
         catch (RuntimeException exception) {
@@ -128,8 +128,8 @@ public class ToolUsageAuditService {
                 audit.inputSummary(),
                 audit.outputSummary(),
                 audit.returnCaptured(),
-                audit.toolReturnPreview(),
-                audit.failureCode());
+                nullableLogValue(audit.toolReturnPreview()),
+                nullableLogValue(audit.failureCode()));
             throw exception;
         }
         finally {
@@ -160,6 +160,9 @@ public class ToolUsageAuditService {
             return CapturedToolReturn.disabled();
         }
         try {
+            if (value == null) {
+                return new CapturedToolReturn(true, null, null);
+            }
             var json = objectMapper.writeValueAsString(value);
             return new CapturedToolReturn(true, json, preview(json, observability.getMaxToolReturnChars()));
         }
@@ -168,6 +171,10 @@ public class ToolUsageAuditService {
                     null,
                     "serialization_error=%s".formatted(ex.getClass().getSimpleName()));
         }
+    }
+
+    private Object nullableLogValue(@Nullable Object value) {
+        return value == null ? "" : value;
     }
 
     private String preview(String json, int maxToolReturnChars) {
