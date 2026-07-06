@@ -10,6 +10,7 @@ import java.util.UUID;
 import com.wornux.ai.prompt.PromptUtil;
 import com.wornux.ai.tools.ToolContextKeys;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
@@ -25,7 +26,8 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
     private static final String NAME = "dynamic-context-management-advisor";
     private static final String CATALOG_PARAMETER = "catalog";
 
-    private static final String CATALOG_QUERY = """
+    private static final String CATALOG_QUERY =
+            """
             select distinct on (metadata ->> 'ingestionId')
                    metadata -> 'catalog' ->> 'label' as label,
                    metadata -> 'catalog' ->> 'useWhen' as use_when,
@@ -74,11 +76,11 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
         });
     }
 
-    private String renderTemplate(String template, Map<String, Object> context) {
+    private String renderTemplate(String template, Map<String, @Nullable Object> context) {
         return render(template, dynamicVariables(context)).trim();
     }
 
-    private Map<String, Object> dynamicVariables(Map<String, Object> context) {
+    private Map<String, Object> dynamicVariables(Map<String, @Nullable Object> context) {
         return Map.of(CATALOG_PARAMETER, catalogBlock(context).orElse(""));
     }
 
@@ -86,9 +88,8 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
         return PromptUtil.render(template, variables);
     }
 
-    private Optional<String> catalogBlock(Map<String, Object> context) {
-        return groupClassId(context)
-                .map(this::catalogEntries)
+    private Optional<String> catalogBlock(Map<String, @Nullable Object> context) {
+        return groupClassId(context).map(this::catalogEntries)
                 .filter(entries -> !entries.isEmpty())
                 .map(this::formatCatalog);
     }
@@ -105,7 +106,8 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
                <available_course_material>
                Use this catalog only to decide whether to call searchCourseMaterial. Do not answer from this catalog itself.
                Stored material currently available:
-               %s</available_course_material>""".formatted(formatCatalogEntries(entries));
+               %s</available_course_material>"""
+                .formatted(formatCatalogEntries(entries));
     }
 
     private String formatCatalogEntries(List<CatalogEntry> entries) {
@@ -125,27 +127,33 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
     }
 
     private CatalogEntry catalogEntry(ResultSet rs, int rowNumber) throws SQLException {
-        return new CatalogEntry(rs.getString("label"), rs.getString("use_when"), rs.getString("aliases"));
+        return new CatalogEntry(nonNullString(rs.getString("label")),
+                nonNullString(rs.getString("use_when")),
+                nonNullString(rs.getString("aliases")));
     }
 
-    private Optional<UUID> groupClassId(Map<String, Object> context) {
+    private Optional<UUID> groupClassId(Map<String, @Nullable Object> context) {
         return parseUuid(context.get(ToolContextKeys.GROUP_CLASS_ID));
     }
 
-    private Optional<UUID> parseUuid(Object value) {
+    private Optional<UUID> parseUuid(@Nullable Object value) {
         if (value == null || isBlank(String.valueOf(value))) {
             return Optional.empty();
         }
         try {
             return Optional.of(UUID.fromString(String.valueOf(value)));
         }
-        catch (IllegalArgumentException exception) {
+        catch (IllegalArgumentException _) {
             return Optional.empty();
         }
     }
 
-    private static boolean isBlank(String value) {
+    private static boolean isBlank(@Nullable String value) {
         return value == null || value.isBlank();
+    }
+
+    private static String nonNullString(@Nullable String value) {
+        return value == null ? "" : value;
     }
 
     @Override

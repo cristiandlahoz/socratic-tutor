@@ -44,7 +44,7 @@ public class StudentQuestionPanel extends Composite<Div> {
     private final Map<String, Map<String, VerticalLayout>> optionRowsByQuestion = new LinkedHashMap<>();
 
     private StudentQuestionSet questionSet;
-    private Consumer<StudentQuestionResponse> submitHandler = _ -> {};
+    private transient Consumer<StudentQuestionResponse> submitHandler = _ -> {};
     private boolean submitting;
     private int activeQuestionIndex;
 
@@ -228,12 +228,6 @@ public class StudentQuestionPanel extends Composite<Div> {
     private void applySelectedButtonStyle(Button button, boolean isSelected) {
         button.getElement().getClassList().set(UiCss.CONVERSATION_QUESTION_OPTION_SELECTED.value(), isSelected);
         button.getElement().setAttribute("aria-pressed", Boolean.toString(isSelected));
-        if (isSelected) {
-            button.addThemeVariants(ButtonVariant.WARNING);
-        }
-        else {
-            button.removeThemeVariants(ButtonVariant.WARNING);
-        }
     }
 
     private static @NonNull VerticalLayout getOptionCopy(StudentQuestionOption option) {

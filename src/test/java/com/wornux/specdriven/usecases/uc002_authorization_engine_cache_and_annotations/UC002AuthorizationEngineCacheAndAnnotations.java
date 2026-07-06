@@ -8,9 +8,9 @@ import java.util.UUID;
 
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.security.AuthenticatedAccountDetails;
+import com.wornux.security.authorization.AccessSnapshotService;
 import com.wornux.security.authorization.ActiveContext;
 import com.wornux.security.authorization.ActiveContextHolder;
-import com.wornux.security.authorization.AccessSnapshotService;
 import com.wornux.security.authorization.AuthorizationService;
 import com.wornux.security.authorization.PermissionMethodAspect;
 import com.wornux.security.authorization.RbacUiBroadcaster;
@@ -41,12 +41,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Tag("integration")
 @Testcontainers
-@SpringBootTest(classes = UC002AuthorizationEngineCacheAndAnnotations.TestApp.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
-        "spring.docker.compose.enabled=false",
-        "spring.ai.ollama.embedding.enabled=false",
-        "spring.ai.vectorstore.pgvector.enabled=false",
-        "spring.flyway.locations=classpath:db/migration/prod,classpath:db/migration/dev"
-})
+@SpringBootTest(classes = UC002AuthorizationEngineCacheAndAnnotations.TestApp.class,
+        webEnvironment = SpringBootTest.WebEnvironment.NONE,
+        properties = {
+                "spring.docker.compose.enabled=false",
+                "spring.ai.ollama.embedding.enabled=false",
+                "spring.ai.vectorstore.pgvector.enabled=false",
+                "spring.flyway.locations=classpath:db/migration/prod,classpath:db/migration/dev" })
 class UC002AuthorizationEngineCacheAndAnnotations {
 
     private static final UUID TENANT_ID = UUID.fromString("034daffd-5907-48f7-bce6-b2c0e71f4015");
@@ -97,7 +98,8 @@ class UC002AuthorizationEngineCacheAndAnnotations {
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, ALGORITHMS_CLASS_ID));
         var tenantAdminSnapshot = authorizationService.snapshot();
-        assertThat(tenantAdminSnapshot.permissionCodes()).contains("role:update", "group-class:create", "training-activity:create");
+        assertThat(tenantAdminSnapshot.permissionCodes())
+                .contains("role:update", "group-class:create", "training-activity:create");
         assertThat(tenantAdminSnapshot.groupClassMemberId()).isNull();
 
         authenticate(PROFESSOR_ACCOUNT_ID);
@@ -115,7 +117,9 @@ class UC002AuthorizationEngineCacheAndAnnotations {
 
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.tenant(TENANT_ID));
-        roleManagementService.updatePermissions(PROFESSOR_ROLE_ID, Set.of(
+        roleManagementService.updatePermissions(
+            PROFESSOR_ROLE_ID,
+            Set.of(
                 "group-class:view",
                 "group-class:update",
                 "group-class-member:view",
@@ -146,9 +150,9 @@ class UC002AuthorizationEngineCacheAndAnnotations {
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.tenant(TENANT_ID));
 
-        assertThatThrownBy(() -> roleManagementService.updatePermissions(
-                PROFESSOR_ROLE_ID,
-                Set.of("conversation:view", "conversation:create")))
+        assertThatThrownBy(
+            () -> roleManagementService
+                    .updatePermissions(PROFESSOR_ROLE_ID, Set.of("conversation:view", "conversation:create")))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("outside the actor snapshot");
     }
@@ -161,16 +165,16 @@ class UC002AuthorizationEngineCacheAndAnnotations {
 
         authenticate(STUDENT_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, ALGORITHMS_CLASS_ID));
-        assertThatThrownBy(() -> annotatedProbe.roleUpdateProtectedMethod())
-                .isInstanceOf(AccessDeniedException.class)
+        assertThatThrownBy(() -> annotatedProbe.roleUpdateProtectedMethod()).isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("role:update");
     }
 
     private void authenticate(UUID accountId) {
         var account = accountRepository.findById(accountId).orElseThrow();
         var details = new AuthenticatedAccountDetails(account);
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(details, details.getPassword(), details.getAuthorities()));
+        SecurityContextHolder.getContext()
+                .setAuthentication(
+                    new UsernamePasswordAuthenticationToken(details, details.getPassword(), details.getAuthorities()));
     }
 
     @SpringBootConfiguration
@@ -183,8 +187,7 @@ class UC002AuthorizationEngineCacheAndAnnotations {
             "org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration",
             "io.arconia.dev.services.docling.DoclingDevServicesAutoConfiguration",
             "io.arconia.docling.autoconfigure.DoclingAutoConfiguration",
-            "io.arconia.docling.autoconfigure.actuate.DoclingServeHealthContributorAutoConfiguration"
-    })
+            "io.arconia.docling.autoconfigure.actuate.DoclingServeHealthContributorAutoConfiguration" })
     @EnableJpaRepositories(basePackages = "com.wornux.data.repositories")
     @EntityScan(basePackages = "com.wornux.data.entities")
     @EnableAspectJAutoProxy
@@ -195,8 +198,7 @@ class UC002AuthorizationEngineCacheAndAnnotations {
             RoleManagementService.class,
             PermissionMethodAspect.class,
             RbacUiRegistry.class,
-            RbacUiBroadcaster.class
-    })
+            RbacUiBroadcaster.class })
     static class TestApp {
         @Bean
         AnnotatedProbe annotatedProbe() {

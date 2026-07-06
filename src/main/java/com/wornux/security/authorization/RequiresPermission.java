@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 import com.wornux.security.permission.AppPermission;
 
-@Target({ElementType.METHOD, ElementType.TYPE})
+@Target({ ElementType.METHOD, ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequiresPermission {
     AppPermission value();

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <property name="EXTERNAL_LOG_FILE" value="${EXTERNAL_LOG_FILE:-/tmp/socratic-tutor.log.jsonl}"/>
+
+    <appender name="EXTERNAL_JSON_LOG" class="ch.qos.logback.core.FileAppender">
+        <file>${EXTERNAL_LOG_FILE}</file>
+        <append>false</append>
+        <immediateFlush>true</immediateFlush>
+        <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+            <format>logstash</format>
+            <charset>${FILE_LOG_CHARSET}</charset>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="EXTERNAL_JSON_LOG"/>
+    </root>
+</configuration>

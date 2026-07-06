@@ -2,6 +2,8 @@ package com.wornux.services.context;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.wornux.data.entities.academic.GroupClass;
@@ -13,9 +15,9 @@ import com.wornux.data.repositories.academic.GroupClassRepository;
 import com.wornux.data.repositories.identity.AccountContextPreferenceRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantRepository;
+import com.wornux.security.authorization.AccessSnapshotService;
 import com.wornux.security.authorization.ActiveContext;
 import com.wornux.security.authorization.ActiveContextHolder;
-import com.wornux.security.authorization.AccessSnapshotService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,8 +73,10 @@ public class ContextSelectionService {
 
     @Transactional
     public AvailableContextOption select(Account account, AvailableContextOption requested) {
-        var option = contextDiscoveryService.discover(account).stream()
-                .filter(candidate -> sameContext(candidate, requested.level(), requested.tenantId(), requested.classId()))
+        var option = contextDiscoveryService.discover(account)
+                .stream()
+                .filter(
+                    candidate -> sameContext(candidate, requested.level(), requested.tenantId(), requested.classId()))
                 .findFirst()
                 .orElseThrow(() -> new SecurityException("The requested context is not available for this account."));
         persist(account, option);
@@ -94,22 +98,25 @@ public class ContextSelectionService {
         };
     }
 
-    private java.util.Optional<ActiveContext> readPreferredContext(Account account) {
+    private Optional<ActiveContext> readPreferredContext(Account account) {
         return accountContextPreferenceRepository.findById(account.getId())
                 .filter(preference -> preference.getContextLevel() != null)
                 .map(preference -> switch (preference.getContextLevel()) {
                     case PLATFORM -> ActiveContext.platform();
-                    case TENANT -> preference.getTenant() == null ? null : ActiveContext.tenant(preference.getTenant().getId());
+                    case TENANT -> preference.getTenant() == null
+                            ? null
+                            : ActiveContext.tenant(preference.getTenant().getId());
                     case GROUP_CLASS -> preference.getTenant() == null || preference.getGroupClass() == null
                             ? null
-                            : ActiveContext.groupClass(preference.getTenant().getId(), preference.getGroupClass().getId());
+                            : ActiveContext
+                                    .groupClass(preference.getTenant().getId(), preference.getGroupClass().getId());
                 });
     }
 
     private boolean sameContext(AvailableContextOption option, ContextLevel level, UUID tenantId, UUID classId) {
         return option.level() == level
-                && java.util.Objects.equals(option.tenantId(), tenantId)
-                && java.util.Objects.equals(option.classId(), classId);
+                && Objects.equals(option.tenantId(), tenantId)
+                && Objects.equals(option.classId(), classId);
     }
 
     private void persist(Account account, AvailableContextOption option) {

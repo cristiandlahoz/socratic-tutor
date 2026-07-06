@@ -509,7 +509,10 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         return cell;
     }
 
-    private static HtmlContainer createCell(String tag, com.vaadin.flow.component.Component content, CssClass className) {
+    private static HtmlContainer createCell(
+            String tag,
+            com.vaadin.flow.component.Component content,
+            CssClass className) {
         var cell = new HtmlContainer(tag, content);
         className.addTo(cell);
         return cell;

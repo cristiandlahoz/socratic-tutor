@@ -16,7 +16,9 @@ public class RoleNamespaceService {
     private final RoleNamespaceRepository roleNamespaceRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    public RoleNamespaceService(RoleNamespaceRepository roleNamespaceRepository, ApplicationEventPublisher eventPublisher) {
+    public RoleNamespaceService(
+            RoleNamespaceRepository roleNamespaceRepository,
+            ApplicationEventPublisher eventPublisher) {
         this.roleNamespaceRepository = roleNamespaceRepository;
         this.eventPublisher = eventPublisher;
     }

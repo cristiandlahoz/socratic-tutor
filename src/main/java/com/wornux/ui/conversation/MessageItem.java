@@ -8,8 +8,7 @@ import lombok.Getter;
 public final class MessageItem {
 
     public enum Variant {
-        USER("user"),
-        ASSISTANT("assistant");
+        USER("user"), ASSISTANT("assistant");
 
         private final String value;
 

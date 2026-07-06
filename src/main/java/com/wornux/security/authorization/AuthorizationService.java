@@ -34,6 +34,6 @@ public class AuthorizationService {
         }
         var activeContext = activeContextHolder.current()
                 .orElseThrow(() -> new AccessDeniedException("Active context is required"));
-        return accessSnapshotService.snapshot(details.principal().accountId(), activeContext);
+        return accessSnapshotService.snapshot(details.account().getId(), activeContext);
     }
 }

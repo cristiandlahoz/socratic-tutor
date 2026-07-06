@@ -13,7 +13,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.ui.conversation.AsciiFrameAnimation;
 import com.wornux.ui.css.UiCss;
 
@@ -23,10 +23,10 @@ import com.wornux.ui.css.UiCss;
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     private final LoginForm login = new LoginForm();
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
 
-    public LoginView(AuthenticatedAccountService authenticatedAccountService) {
-        this.authenticatedAccountService = authenticatedAccountService;
+    public LoginView(AuthenticatedUserContextUtils authenticatedUserContextUtils) {
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         UiCss.LOGIN_VIEW.addTo(this);
         setSizeFull();
         setPadding(false);
@@ -63,16 +63,18 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var threadHeader = new Div(new Span("conversación"), new Span("listo para depurar"));
         UiCss.LOGIN_VIEW_WORK_HEADER.addTo(threadHeader);
 
-        var userPrompt = new Div(new Span("Estudiante"), new Paragraph("¿Por qué este ciclo se salta el último valor?"));
+        var userPrompt =
+                new Div(new Span("Estudiante"), new Paragraph("¿Por qué este ciclo se salta el último valor?"));
         UiCss.LOGIN_VIEW_WORK_MESSAGE.addTo(userPrompt);
         UiCss.LOGIN_VIEW_WORK_MESSAGE_USER.addTo(userPrompt);
 
-        var tutorResponse = new Div(new Span("Tutor"), new Paragraph(
-                "Revisa primero el límite. ¿Qué valor tiene i en la comparación final y qué índice del arreglo intentaría tocar?"));
+        var tutorResponse = new Div(new Span("Tutor"),
+                new Paragraph(
+                        "Revisa primero el límite. ¿Qué valor tiene i en la comparación final y qué índice del arreglo intentaría tocar?"));
         UiCss.LOGIN_VIEW_WORK_MESSAGE.addTo(tutorResponse);
 
         var codeLineOne = new Span("for (int i = 0; i < values.length - 1; i++) {");
-        var codeLineTwo = new Span("    sum += values[i];");
+        var codeLineTwo = new Span("> > sum += values[i];");
         var codeLineThree = new Span("}");
         var codeSample = new Div(codeLineOne, codeLineTwo, codeLineThree);
         UiCss.LOGIN_VIEW_CODE_SAMPLE.addTo(codeSample);
@@ -91,7 +93,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var cherryFrame = new Div(cherry);
         UiCss.LOGIN_VIEW_CHERRY_FRAME.addTo(cherryFrame);
 
-        var panel = new Div(copy, workPreview, cherryFrame);
+        var panel = new Div(workPreview, copy, cherryFrame);
         UiCss.LOGIN_VIEW_BRAND.addTo(panel);
         return panel;
     }
@@ -142,7 +144,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent beforeEnterEvent) {
-        if (authenticatedAccountService.currentAccount().isPresent()) {
+        if (authenticatedUserContextUtils.currentAccount().isPresent()) {
             beforeEnterEvent.forwardTo(LandingView.class);
             return;
         }

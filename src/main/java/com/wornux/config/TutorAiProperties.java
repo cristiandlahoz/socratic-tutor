@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.ai.tutor")
 public class TutorAiProperties {
 
-    private String routingModel;
+    private String routingModel = "";
     private ToolObservability toolObservability = new ToolObservability();
 
     public String getRoutingModel() {

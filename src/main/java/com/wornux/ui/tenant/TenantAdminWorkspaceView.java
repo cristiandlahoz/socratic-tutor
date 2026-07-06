@@ -36,15 +36,15 @@ import com.wornux.data.entities.academic.Subject;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleTenant;
 import com.wornux.services.workspace.TenantAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
-import jakarta.annotation.security.PermitAll;
 import com.wornux.ui.css.UiCss;
+import jakarta.annotation.security.PermitAll;
 
 @Route(value = "tenant", layout = MainLayout.class)
 @PageTitle("Espacio de administración institucional")
@@ -54,7 +54,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final TenantAdminWorkspaceService tenantAdminWorkspaceService;
     private final ComboBox<AccessibleTenant> tenantSelector = new ComboBox<>("Contexto institucional");
@@ -66,10 +66,10 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private List<AcademicPeriod> activePeriods = List.of();
 
     public TenantAdminWorkspaceView(
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
             TenantAdminWorkspaceService tenantAdminWorkspaceService) {
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.tenantAdminWorkspaceService = tenantAdminWorkspaceService;
 
@@ -87,7 +87,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.TENANT_ADMIN)) {
             event.forwardTo(NoAccessView.class);
             return;
@@ -115,7 +115,8 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         periodFilter.setLabel("Período");
         periodFilter.setEmptySelectionAllowed(true);
         periodFilter.setEmptySelectionCaption("Todos los períodos");
-        periodFilter.setItemLabelGenerator(period -> period == null ? "Todos los períodos" : "%s · %s".formatted(period.getCode(), period.getName()));
+        periodFilter.setItemLabelGenerator(
+            period -> period == null ? "Todos los períodos" : "%s · %s".formatted(period.getCode(), period.getName()));
         periodFilter.addValueChangeListener(_ -> applyFilters());
     }
 
@@ -125,58 +126,75 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         groupClassGrid.setWidthFull();
         groupClassGrid.setSelectionMode(Grid.SelectionMode.NONE);
         groupClassGrid.setEmptyStateText("No hay clases que coincidan con la búsqueda.");
-        groupClassGrid.addColumn(LitRenderer.<GroupClass>of("""
-                    <div class="workspace-primary-cell">
-                        <span class="workspace-primary-cell-title">${item.name}</span>
-                        <span class="workspace-primary-cell-meta">${item.code}</span>
-                    </div>
-                """)
-                .withProperty("name", GroupClass::getName)
-                .withProperty("code", GroupClass::getCode))
+        groupClassGrid
+                .addColumn(
+                    LitRenderer.<GroupClass>of("""
+                                                   <div class="workspace-primary-cell">
+                                                       <span class="workspace-primary-cell-title">${item.name}</span>
+                                                       <span class="workspace-primary-cell-meta">${item.code}</span>
+                                                   </div>
+                                               """)
+                            .withProperty("name", GroupClass::getName)
+                            .withProperty("code", GroupClass::getCode))
                 .setHeader("Clase")
                 .setComparator(GroupClass::getName)
                 .setAutoWidth(true)
                 .setFlexGrow(1);
-        groupClassGrid.addColumn(LitRenderer.<GroupClass>of("""
-                    <div class="workspace-primary-cell">
-                        <span class="workspace-primary-cell-title">${item.subjectName}</span>
-                        <span class="workspace-primary-cell-meta">${item.subjectCode}</span>
-                    </div>
-                """)
-                .withProperty("subjectName", this::subjectName)
-                .withProperty("subjectCode", this::subjectCode))
+        groupClassGrid
+                .addColumn(
+                    LitRenderer
+                            .<GroupClass>of(
+                                """
+                                    <div class="workspace-primary-cell">
+                                        <span class="workspace-primary-cell-title">${item.subjectName}</span>
+                                        <span class="workspace-primary-cell-meta">${item.subjectCode}</span>
+                                    </div>
+                                """)
+                            .withProperty("subjectName", this::subjectName)
+                            .withProperty("subjectCode", this::subjectCode))
                 .setHeader("Asignatura")
                 .setComparator(this::subjectName)
                 .setAutoWidth(true)
                 .setFlexGrow(1);
-        groupClassGrid.addColumn(LitRenderer.<GroupClass>of("""
-                    <div class="workspace-primary-cell">
-                        <span class="workspace-primary-cell-title">${item.periodName}</span>
-                        <span class="workspace-primary-cell-meta">${item.periodRange}</span>
-                    </div>
-                """)
-                .withProperty("periodName", this::periodName)
-                .withProperty("periodRange", this::periodRange))
+        groupClassGrid
+                .addColumn(
+                    LitRenderer
+                            .<GroupClass>of("""
+                                                <div class="workspace-primary-cell">
+                                                    <span class="workspace-primary-cell-title">${item.periodName}</span>
+                                                    <span class="workspace-primary-cell-meta">${item.periodRange}</span>
+                                                </div>
+                                            """)
+                            .withProperty("periodName", this::periodName)
+                            .withProperty("periodRange", this::periodRange))
                 .setHeader("Período")
                 .setComparator(this::periodName)
                 .setAutoWidth(true)
                 .setFlexGrow(1);
-        groupClassGrid.addColumn(LitRenderer.<GroupClass>of("""
-                    <span class="workspace-status-badge ${item.statusTone}">${item.statusLabel}</span>
-                """)
-                .withProperty("statusLabel", groupClass -> groupClass.isActive() ? "Activa" : "Inactiva")
-                .withProperty("statusTone", groupClass -> groupClass.isActive() ? "is-active" : "is-open"))
+        groupClassGrid
+                .addColumn(
+                    LitRenderer
+                            .<GroupClass>of(
+                                """
+                                    <span class="workspace-status-badge ${item.statusTone}">${item.statusLabel}</span>
+                                """)
+                            .withProperty("statusLabel", groupClass -> groupClass.isActive() ? "Activa" : "Inactiva")
+                            .withProperty("statusTone", groupClass -> groupClass.isActive() ? "is-active" : "is-open"))
                 .setHeader("Estado")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
-        groupClassGrid.addColumn(LitRenderer.<GroupClass>of("""
-                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${inviteProfessor}" aria-label="Invitar profesor a ${item.name}">
-                        <vaadin-icon icon="vaadin:paperplane" slot="prefix"></vaadin-icon>
-                        Invitar profesor
-                    </vaadin-button>
-                """)
-                .withProperty("name", GroupClass::getName)
-                .withFunction("inviteProfessor", this::openInviteProfessorDialog))
+        groupClassGrid
+                .addColumn(
+                    LitRenderer
+                            .<GroupClass>of(
+                                """
+                                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${inviteProfessor}" aria-label="Invitar profesor a ${item.name}">
+                                        <vaadin-icon icon="vaadin:paperplane" slot="prefix"></vaadin-icon>
+                                        Invitar profesor
+                                    </vaadin-button>
+                                """)
+                            .withProperty("name", GroupClass::getName)
+                            .withFunction("inviteProfessor", this::openInviteProfessorDialog))
                 .setHeader("Opciones")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -199,7 +217,12 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         var createClass = primaryButton("Crear clase", this::openCreateClassDialog);
         createClass.setIcon(new Icon(VaadinIcon.PLUS));
 
-        var toolbar = new HorizontalLayout(tenantSelector, searchField, periodFilter, createPeriod, createSubject, createClass);
+        var toolbar = new HorizontalLayout(tenantSelector,
+                searchField,
+                periodFilter,
+                createPeriod,
+                createSubject,
+                createClass);
         UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
         UiCss.WORKSPACE_TENANT_ADMIN_TOOLBAR.addTo(toolbar);
         toolbar.setPadding(false);
@@ -231,10 +254,14 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         var endsAt = new DatePicker("Fecha de cierre");
         addWorkspaceFieldClasses(code, name, startsAt, endsAt);
 
-        var help = new Paragraph("Los períodos ordenan las clases y ayudan a encontrar rápido la oferta activa de la institución.");
+        var help = new Paragraph(
+                "Los períodos ordenan las clases y ayudan a encontrar rápido la oferta activa de la institución.");
         UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         dialog.add(new VerticalLayout(help, formRow(code, name), formRow(startsAt, endsAt)));
-        dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), primaryButton("Crear", () -> onCreatePeriod(dialog, code, name, startsAt, endsAt)));
+        dialog.getFooter()
+                .add(
+                    secondaryButton("Cancelar", dialog::close),
+                    primaryButton("Crear", () -> onCreatePeriod(dialog, code, name, startsAt, endsAt)));
         dialog.open();
         code.focus();
     }
@@ -250,10 +277,14 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         name.setPlaceholder("Introducción a la algoritmia");
         addWorkspaceFieldClasses(code, name);
 
-        var help = new Paragraph("Crea la asignatura una vez y reutilízala al abrir nuevas clases en distintos períodos.");
+        var help =
+                new Paragraph("Crea la asignatura una vez y reutilízala al abrir nuevas clases en distintos períodos.");
         UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         dialog.add(new VerticalLayout(help, formRow(code, name)));
-        dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), primaryButton("Crear", () -> onCreateSubject(dialog, code, name)));
+        dialog.getFooter()
+                .add(
+                    secondaryButton("Cancelar", dialog::close),
+                    primaryButton("Crear", () -> onCreateSubject(dialog, code, name)));
         dialog.open();
         code.focus();
     }
@@ -275,10 +306,14 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         name.setPlaceholder("Algoritmia · Sección A");
         addWorkspaceFieldClasses(subject, period, code, name);
 
-        var help = new Paragraph("La clase conecta una asignatura con un período. Después podrás invitar al profesor desde la fila creada.");
+        var help = new Paragraph(
+                "La clase conecta una asignatura con un período. Después podrás invitar al profesor desde la fila creada.");
         UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         dialog.add(new VerticalLayout(help, formRow(subject, period), formRow(code, name)));
-        dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), primaryButton("Crear", () -> onCreateClass(dialog, subject, period, code, name)));
+        dialog.getFooter()
+                .add(
+                    secondaryButton("Cancelar", dialog::close),
+                    primaryButton("Crear", () -> onCreateClass(dialog, subject, period, code, name)));
         dialog.open();
         subject.focus();
     }
@@ -323,7 +358,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     }
 
     private void refresh() {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         var tenants = tenantAdminWorkspaceService.listAccessibleTenants(account);
         tenantSelector.setItems(tenants);
         var selectedTenant = determineSelectedTenant(tenants, tenantSelector.getValue(), account);
@@ -366,7 +401,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         if (tenant == null) {
             return;
         }
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         workspaceRoutingService.switchTenant(account, tenant.tenantAccountId());
         refresh();
     }
@@ -374,7 +409,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onCreatePeriod(Dialog dialog, TextField code, TextField name, DatePicker startsAt, DatePicker endsAt) {
         try {
             tenantAdminWorkspaceService.createPeriod(
-                authenticatedAccountService.requireCurrentAccount(),
+                authenticatedUserContextUtils.requireCurrentAccount(),
                 code.getValue(),
                 name.getValue(),
                 startsAt.getValue(),
@@ -391,7 +426,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onCreateSubject(Dialog dialog, TextField code, TextField name) {
         try {
             tenantAdminWorkspaceService.createSubject(
-                authenticatedAccountService.requireCurrentAccount(),
+                authenticatedUserContextUtils.requireCurrentAccount(),
                 code.getValue(),
                 name.getValue());
             dialog.close();
@@ -411,7 +446,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
             TextField name) {
         try {
             tenantAdminWorkspaceService.createGroupClass(
-                authenticatedAccountService.requireCurrentAccount(),
+                authenticatedUserContextUtils.requireCurrentAccount(),
                 subject.getValue().getId(),
                 period.getValue().getId(),
                 code.getValue(),
@@ -428,7 +463,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onInviteProfessor(Dialog dialog, GroupClass groupClass, EmailField professorEmailField) {
         try {
             tenantAdminWorkspaceService.inviteProfessor(
-                authenticatedAccountService.requireCurrentAccount(),
+                authenticatedUserContextUtils.requireCurrentAccount(),
                 groupClass.getId(),
                 professorEmailField.getValue());
             dialog.close();
@@ -449,7 +484,8 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private boolean matchesFilters(GroupClass groupClass) {
         var term = searchField.getValue() == null ? "" : searchField.getValue().trim().toLowerCase();
         var selectedPeriod = periodFilter.getValue();
-        var matchesPeriod = selectedPeriod == null || groupClass.getAcademicPeriod().getId().equals(selectedPeriod.getId());
+        var matchesPeriod =
+                selectedPeriod == null || groupClass.getAcademicPeriod().getId().equals(selectedPeriod.getId());
         if (term.isBlank()) {
             return matchesPeriod;
         }

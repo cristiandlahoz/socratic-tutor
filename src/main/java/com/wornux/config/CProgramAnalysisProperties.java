@@ -11,17 +11,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.c-runner")
 public class CProgramAnalysisProperties {
 
-    private String compilerImage;
-    private String debuggerImage;
-    private Duration timeout;
-    private Duration debugTimeout;
+    private String compilerImage = "";
+    private String debuggerImage = "";
+    private Duration timeout = Duration.ZERO;
+    private Duration debugTimeout = Duration.ZERO;
     private long maxSourceBytes;
     private int maxSnapshots;
     private int maxOutputBytes;
-    private String memory;
-    private String debuggerMemory;
-    private String cpus;
+    private String memory = "";
+    private String debuggerMemory = "";
+    private String cpus = "";
     private int pidsLimit;
     private int cacheMaximumSize;
-    private Duration cacheTtl;
+    private Duration cacheTtl = Duration.ZERO;
 }

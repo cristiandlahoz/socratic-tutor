@@ -7,6 +7,15 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 ## Tooling
 
 - If a `.jj` directory is present, use Jujutsu (`jj`) instead of Git for status, diff, commit, history, and push operations.
+- Never stop or restart a running local app/debugger instance unless explicitly requested. Assume the app is already running with Java hotswap and Vaadin/Vite hot reload enabled. Java and TypeScript changes should reflect automatically on `${PORT:-3321}`.
+
+## Runtime logs
+
+- The app writes line-delimited JSON logs to an external file at `/tmp/socratic-tutor.log.jsonl` by default. Override with `EXTERNAL_LOG_FILE=/path/to/file.jsonl`.
+- The external log file is truncated when a new application instance starts, then flushed on each log event for live inspection.
+- Useful readers:
+  - `tail -F /tmp/socratic-tutor.log.jsonl | jq -c --unbuffered .`
+  - Nushell: `open --raw /tmp/socratic-tutor.log.jsonl | lines | where $it != "" | each { from json }`
 
 ## 1. Think Before Coding
 

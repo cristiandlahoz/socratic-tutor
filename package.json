@@ -1,5 +1,5 @@
 {
-  "name": "no-name",
+  "name": "socratic-tutor",
   "license": "UNLICENSED",
   "type": "module",
   "dependencies": {
@@ -83,7 +83,6 @@
     },
     "hash": "603a578f0ed59757d569cd17ea4ce1480aa2b059a0f87369193be8eab7061cd7"
   },
-  "pnpm": { },
   "overrides": {
     "@vaadin/vaadin-development-mode-detector": "$@vaadin/vaadin-development-mode-detector",
     "@vaadin/vaadin-usage-statistics": "$@vaadin/vaadin-usage-statistics",

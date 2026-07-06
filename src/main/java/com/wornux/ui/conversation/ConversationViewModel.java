@@ -33,18 +33,16 @@ public class ConversationViewModel implements Serializable {
     private static final long serialVersionUID = 1L;
 
     static final String CONVERSATION_QUERY_PARAMETER = "c";
-    static final String DRAFT_QUERY_PARAMETER = "draft";
-    static final String DRAFT_QUERY_VALUE = "new";
 
-    private final ChatService chatService;
-    private final ConversationService conversationService;
-    private final ChatUsageService chatUsageService;
-    private final ConversationTitleService conversationTitleService;
-    private final ThemePreferenceService themePreferenceService;
-    private final ActiveAcademicContextResolver contextResolver;
-    private final ConversationNavigationOrchestrator navigationOrchestrator;
-    private final ConversationThemeOrchestrator themeOrchestrator;
-    private final ConversationTurnOrchestrator turnOrchestrator;
+    private final transient ChatService chatService;
+    private final transient ConversationService conversationService;
+    private final transient ChatUsageService chatUsageService;
+    private final transient ConversationTitleService conversationTitleService;
+    private final transient ThemePreferenceService themePreferenceService;
+    private final transient ActiveAcademicContextResolver contextResolver;
+    private final transient ConversationNavigationOrchestrator navigationOrchestrator;
+    private final transient ConversationThemeOrchestrator themeOrchestrator;
+    private final transient ConversationTurnOrchestrator turnOrchestrator;
     private final ConversationState state;
     private final StudentQuestionExchange questionExchange;
 
@@ -93,10 +91,7 @@ public class ConversationViewModel implements Serializable {
         themeOrchestrator.applyThemePreference(resolvedPreference);
     }
 
-    RouteInitialization initializeFromRoute(
-            String requestedConversationParam,
-            boolean draftRequested,
-            boolean refreshEvent) {
+    RouteInitialization initializeFromRoute(String requestedConversationParam, boolean refreshEvent) {
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
         state.setupRequired().set(contextResolver.resolveCurrent().isEmpty());
@@ -109,13 +104,8 @@ public class ConversationViewModel implements Serializable {
         state.responseInProgress().set(false);
         state.activity().set(ChatSessionActivity.IDLE);
 
-        if (draftRequested) {
-            state.activeConversationId().set(null);
-            state.replaceMessages(List.of());
-            state.clearUsage();
-            state.clearCompactionStatus();
-            state.clearPendingQuestionState();
-            refreshConversationHistory();
+        if (requestedConversationParam == null) {
+            startNewConversationDraft();
             return RouteInitialization.noReroute();
         }
 
@@ -134,11 +124,6 @@ public class ConversationViewModel implements Serializable {
             return new RouteInitialization(true, resolvedConversation.activeConversationId());
         }
 
-        if (requestedConversationParam == null && state.activeConversationId().peek() != null) {
-            navigationOrchestrator
-                    .synchronizeAddressBar(CONVERSATION_QUERY_PARAMETER, state.activeConversationId().peek());
-        }
-
         return RouteInitialization.noReroute();
     }
 
@@ -155,7 +140,7 @@ public class ConversationViewModel implements Serializable {
         if (state.responseInProgress().peek() || state.questionSubmissionInProgress().peek()) {
             return;
         }
-        navigationOrchestrator.openDraft(DRAFT_QUERY_PARAMETER, DRAFT_QUERY_VALUE);
+        navigationOrchestrator.openNewConversation();
     }
 
     public boolean onSubmitPrompt() {
@@ -232,6 +217,15 @@ public class ConversationViewModel implements Serializable {
         state.themePreferenceLoaded().set(true);
     }
 
+    private void startNewConversationDraft() {
+        state.activeConversationId().set(null);
+        state.replaceMessages(List.of());
+        state.clearUsage();
+        state.clearCompactionStatus();
+        state.clearPendingQuestionState();
+        refreshConversationHistory();
+    }
+
     private EnsuredConversation ensureConversation(String prompt) {
         if (state.activeConversationId().peek() != null) {
             return new EnsuredConversation(state.activeConversationId().peek(), false, null);
@@ -254,7 +248,7 @@ public class ConversationViewModel implements Serializable {
         try {
             return Optional.of(UUID.fromString(value));
         }
-        catch (IllegalArgumentException exception) {
+        catch (IllegalArgumentException _) {
             return Optional.empty();
         }
     }

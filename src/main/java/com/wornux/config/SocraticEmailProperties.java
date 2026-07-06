@@ -7,10 +7,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "socratic.email")
 public class SocraticEmailProperties {
 
-    private String invitationBaseUrl;
+    private String invitationBaseUrl = "";
     private Duration invitationExpiration = Duration.ofHours(72);
-    private String fromAddress;
-    private String fromName;
+    private String fromAddress = "";
+    private String fromName = "";
     private Smtp smtp = new Smtp();
 
     public String getInvitationBaseUrl() {
@@ -54,10 +54,10 @@ public class SocraticEmailProperties {
     }
 
     public static class Smtp {
-        private String host;
+        private String host = "";
         private int port = 1025;
-        private String username;
-        private String password;
+        private String username = "";
+        private String password = "";
         private boolean auth;
         private boolean starttlsEnabled;
         private boolean sslEnabled;

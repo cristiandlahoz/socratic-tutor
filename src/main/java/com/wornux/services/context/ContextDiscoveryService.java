@@ -10,6 +10,7 @@ import com.wornux.data.entities.identity.ContextLevel;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.authorization.AccountPlatformRoleRepository;
 import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
+import com.wornux.security.permission.AppPermission;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,15 +65,20 @@ public class ContextDiscoveryService {
     private boolean isPlatformAccount(Account account) {
         return accountPlatformRoleRepository.findByAccount_IdAndRole_ActiveTrue(account.getId())
                 .stream()
-                .anyMatch(role -> role.getRole().getAssignmentLevel() == com.wornux.data.entities.authorization.RoleAssignmentLevel.PLATFORM);
+                .anyMatch(role -> hasPermission(role.getRole().getPermissions(), AppPermission.TENANT_VIEW));
     }
 
     private List<TenantAccountRole> findTenantAdminRoles(Account account) {
         return tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId())
                 .stream()
-                .filter(role -> role.getRole().getAssignmentLevel() == com.wornux.data.entities.authorization.RoleAssignmentLevel.TENANT)
+                .filter(role -> role.getRole().isActive())
+                .filter(role -> hasPermission(role.getRole().getPermissions(), AppPermission.GROUP_CLASS_CREATE))
                 .sorted(Comparator.comparing(role -> role.getTenantAccount().getJoinedAt()))
                 .toList();
+    }
+
+    private boolean hasPermission(String[] permissions, AppPermission permission) {
+        return java.util.Arrays.asList(permissions).contains(permission.code());
     }
 
     private AvailableContextOption toClassOption(GroupClassMember member) {

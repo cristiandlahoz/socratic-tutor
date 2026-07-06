@@ -53,8 +53,8 @@ public class ConversationState implements Serializable {
                 && pendingQuestionSet.get() == null
                 && !questionSubmissionInProgress.get()
                 && modelAvailabilityStatus.get() == ModelAvailabilityStatus.CONNECTED);
-    private final Signal<Boolean> sendEnabled = Signal.computed(
-        () -> Boolean.TRUE.equals(composerSubmitAllowed.get()) && !composerText.get().isBlank());
+    private final Signal<Boolean> sendEnabled =
+            Signal.computed(() -> Boolean.TRUE.equals(composerSubmitAllowed.get()) && !composerText.get().isBlank());
 
     public ValueSignal<UUID> activeConversationId() {
         return activeConversationId;

@@ -5,8 +5,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 import com.wornux.data.entities.identity.ContextLevel;
+import org.jspecify.annotations.Nullable;
 
-public record ActiveContext(ContextLevel level, UUID tenantId, UUID groupClassId) implements Serializable {
+public record ActiveContext(ContextLevel level, @Nullable UUID tenantId, @Nullable UUID groupClassId) implements Serializable {
 
     public ActiveContext {
         Objects.requireNonNull(level, "level must not be null");

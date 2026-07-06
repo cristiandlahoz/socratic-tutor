@@ -2,7 +2,6 @@ package com.wornux.ai.guard;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import com.wornux.ai.prompt.PromptResources;
 import com.wornux.data.enums.GuardDecision;
@@ -14,6 +13,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -28,12 +28,15 @@ public class GuardClassifierService {
     private final PromptResources promptResources;
     private final BeanOutputConverter<GuardCheck> outputConverter = new BeanOutputConverter<>(GuardCheck.class);
 
-    @Value("${app.ai.guard.model}")
-    private String guardModel;
+    private final String guardModel;
 
-    public GuardClassifierService(ChatModel chatModel, PromptResources promptResources) {
+    public GuardClassifierService(
+            @Qualifier("openAiChatModel") ChatModel chatModel,
+            PromptResources promptResources,
+            @Value("${app.ai.guard.model}") String guardModel) {
         this.chatModel = chatModel;
         this.promptResources = promptResources;
+        this.guardModel = guardModel;
     }
 
     public GuardDecision classify(List<UserMessage> userMessages) {
@@ -49,9 +52,14 @@ public class GuardClassifierService {
                             .build())
                 .build();
 
-        String responseText = Objects.requireNonNull(
-            Objects.requireNonNull(chatModel.call(prompt).getResult()).getOutput().getText(),
-            "Guard classifier returned an empty response");
+        var generation = chatModel.call(prompt).getResult();
+        if (generation == null) {
+            throw new IllegalStateException("Guard classifier returned no generation");
+        }
+        String responseText = generation.getOutput().getText();
+        if (responseText == null || responseText.isBlank()) {
+            throw new IllegalStateException("Guard classifier returned an empty response");
+        }
 
         GuardCheck guardCheck = outputConverter.convert(responseText);
 

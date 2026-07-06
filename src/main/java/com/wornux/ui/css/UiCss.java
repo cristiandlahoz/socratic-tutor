@@ -64,7 +64,8 @@ public final class UiCss {
     public static final CssClass CONVERSATION_DEBUG_SPLIT = css("conversation-view__debug-split");
     public static final CssClass CONVERSATION_DEBUG_SPLIT_COLLAPSED = css("conversation-view__debug-split--collapsed");
     public static final CssClass CONVERSATION_DEBUGGER_TOGGLE = css("conversation-view__debugger-toggle");
-    public static final CssClass CONVERSATION_DEBUGGER_TOGGLE_HIDDEN = css("conversation-view__debugger-toggle--hidden");
+    public static final CssClass CONVERSATION_DEBUGGER_TOGGLE_HIDDEN =
+            css("conversation-view__debugger-toggle--hidden");
     public static final CssClass CONVERSATION_THREAD = css("conversation-thread");
     public static final CssClass CONVERSATION_EMPTY = css("conversation-empty");
     public static final CssClass CONVERSATION_EMPTY_LAYOUT = css("conversation-empty__layout");
@@ -72,8 +73,10 @@ public final class UiCss {
     public static final CssClass CONVERSATION_EMPTY_FRAME = css("conversation-empty__frame");
     public static final CssClass CONVERSATION_EMPTY_ILLUSTRATION = css("conversation-empty__illustration");
     public static final CssClass CONVERSATION_EMPTY_TITLE = css("conversation-empty__title");
+    public static final CssClass CONVERSATION_EMPTY_TITLE_ITALIC = css("conversation-empty__title-italic");
     public static final CssClass CONVERSATION_EMPTY_DESCRIPTION = css("conversation-empty__description");
     public static final CssClass CONVERSATION_COMPOSER = css("conversation-composer");
+    public static final CssClass CONVERSATION_COMPOSER_QUESTION_MODE = css("conversation-composer--question-mode");
     public static final CssClass CONVERSATION_COMPOSER_FIELD_WRAP = css("conversation-composer__field-wrap");
     public static final CssClass CONVERSATION_COMPOSER_MODEL_STATUS = css("conversation-composer__model-status");
     public static final CssClass CONVERSATION_COMPOSER_INPUT = css("conversation-composer__input");
@@ -106,14 +109,19 @@ public final class UiCss {
     public static final CssClass CONVERSATION_QUESTION_OPTION_LABEL = css("conversation-question__option-label");
     public static final CssClass CONVERSATION_QUESTION_OPTION_INFO = css("conversation-question__option-info");
     public static final CssClass CONVERSATION_QUESTION_OPTION_POPOVER = css("conversation-question__option-popover");
-    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION = css("conversation-question__option-description");
-    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION_INLINE = css("conversation-question__option-description--inline");
-    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION_POPOVER = css("conversation-question__option-description--popover");
-    public static final CssClass CONVERSATION_QUESTION_OPTION_MOBILE_HEADER = css("conversation-question__option-mobile-header");
+    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION =
+            css("conversation-question__option-description");
+    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION_INLINE =
+            css("conversation-question__option-description--inline");
+    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION_POPOVER =
+            css("conversation-question__option-description--popover");
+    public static final CssClass CONVERSATION_QUESTION_OPTION_MOBILE_HEADER =
+            css("conversation-question__option-mobile-header");
     public static final CssClass CONVERSATION_QUESTION_CUSTOM_TEXT = css("conversation-question__custom-text");
     public static final CssClass CONVERSATION_QUESTION_COMPOSER = css("conversation-question__composer");
     public static final CssClass CONVERSATION_QUESTION_COMPOSER_WRAP = css("conversation-question__composer-wrap");
-    public static final CssClass CONVERSATION_QUESTION_COMPOSER_ACTIONS = css("conversation-question__composer-actions");
+    public static final CssClass CONVERSATION_QUESTION_COMPOSER_ACTIONS =
+            css("conversation-question__composer-actions");
     public static final CssClass CONVERSATION_QUESTION_NAV_BUTTON = css("conversation-question__nav-button");
     public static final CssClass CONVERSATION_QUESTION_SUBMIT_BUTTON = css("conversation-question__submit-button");
 
@@ -157,8 +165,10 @@ public final class UiCss {
     public static final CssClass DOCUMENT_INGEST_BACK_BUTTON = css("document-ingest-back-button");
     public static final CssClass DOCUMENT_INGEST_CATALOG_SHELL = css("document-ingest-catalog-shell");
     public static final CssClass DOCUMENT_INGEST_CATALOG_USE_WHEN = css("document-ingest-catalog-use-when");
-    public static final CssClass DOCUMENT_INGEST_GENERATE_CATALOG_BUTTON = css("document-ingest-generate-catalog-button");
-    public static final CssClass DOCUMENT_INGEST_GENERATED_CATALOG_PREVIEW = css("document-ingest-generated-catalog-preview");
+    public static final CssClass DOCUMENT_INGEST_GENERATE_CATALOG_BUTTON =
+            css("document-ingest-generate-catalog-button");
+    public static final CssClass DOCUMENT_INGEST_GENERATED_CATALOG_PREVIEW =
+            css("document-ingest-generated-catalog-preview");
     public static final CssClass DOCUMENT_INGEST_DESCRIPTION = css("document-ingest-description");
     public static final CssClass DOCUMENT_INGEST_EYEBROW = css("document-ingest-eyebrow");
     public static final CssClass DOCUMENT_INGEST_HEADER = css("document-ingest-header");
@@ -243,8 +253,29 @@ public final class UiCss {
     public static final CssClass WORKSPACE_TENANT_GRID = css("workspace-tenant-grid");
     public static final CssClass WORKSPACE_VIEW = css("workspace-view");
 
-    private UiCss() {
-    }
+    public static final CssClass ROLE_MANAGEMENT_VIEW = css("role-management-view");
+    public static final CssClass ROLE_MANAGEMENT_HEADER = css("role-management-header");
+    public static final CssClass ROLE_MANAGEMENT_DESCRIPTION = css("role-management-description");
+    public static final CssClass ROLE_MANAGEMENT_SPLIT = css("role-management-split");
+    public static final CssClass ROLE_MANAGEMENT_ROLE_PANEL = css("role-management-role-panel");
+    public static final CssClass ROLE_MANAGEMENT_EDITOR_PANEL = css("role-management-editor-panel");
+    public static final CssClass ROLE_MANAGEMENT_CONTROLS = css("role-management-controls");
+    public static final CssClass ROLE_MANAGEMENT_ROLE_LIST = css("role-management-role-list");
+    public static final CssClass ROLE_MANAGEMENT_ROLE_HEADER = css("role-management-role-header");
+    public static final CssClass ROLE_MANAGEMENT_ROLE_META = css("role-management-role-meta");
+    public static final CssClass ROLE_MANAGEMENT_TABS = css("role-management-tabs");
+    public static final CssClass ROLE_MANAGEMENT_TAB_CONTENT = css("role-management-tab-content");
+    public static final CssClass ROLE_MANAGEMENT_TAB_LAYOUT = css("role-management-tab-layout");
+    public static final CssClass ROLE_MANAGEMENT_TAB_DESCRIPTION = css("role-management-tab-description");
+    public static final CssClass ROLE_MANAGEMENT_PERMISSION_GROUP = css("role-management-permission-group");
+    public static final CssClass ROLE_MANAGEMENT_PERMISSION_ROWS = css("role-management-permission-rows");
+    public static final CssClass ROLE_MANAGEMENT_PERMISSION_ROW = css("role-management-permission-row");
+    public static final CssClass ROLE_MANAGEMENT_PERMISSION_CODE = css("role-management-permission-code");
+    public static final CssClass ROLE_MANAGEMENT_MEMBERS_CONTENT = css("role-management-members-content");
+    public static final CssClass ROLE_MANAGEMENT_MEMBERS_GRID = css("role-management-members-grid");
+    public static final CssClass ROLE_MANAGEMENT_EMPTY_STATE = css("role-management-empty-state");
+
+    private UiCss() {}
 
     private static CssClass css(String value) {
         return new CssClass(value);

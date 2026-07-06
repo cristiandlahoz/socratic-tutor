@@ -33,8 +33,8 @@ import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingAssignmentEvaluationService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.conversation.CodeMessageList;
-import com.wornux.ui.conversation.CodeMessageListItem;
+import com.wornux.ui.conversation.MessagesList;
+import com.wornux.ui.conversation.MessageItem;
 import com.wornux.ui.conversation.ConversationComposer;
 import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.css.UiCss;
@@ -59,7 +59,7 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     private final TrainingAssignmentEvaluationService evaluationService;
     private final SafeBrowserModeService safeBrowserModeService;
     private final SafeBrowserAssignmentStateBus assignmentStateBus;
-    private final CodeMessageList messageList = new CodeMessageList();
+    private final MessagesList messageList = new MessagesList();
     private final ConversationState composerState = new ConversationState();
     private final ConversationComposer composer;
     private final Div reviewAppBar = new Div();
@@ -80,7 +80,6 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
 
         configureReviewAppBar();
 
-        messageList.setMarkdown(true);
         messageList.setThinkingSpinner(chatProperties.getUi().getThinkingSpinner());
         messageList.setWidthFull();
 
@@ -360,8 +359,8 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         composerState.composerText().set("");
     }
 
-    private List<CodeMessageListItem> toMessages(TrainingActivityAssignment assignment) {
-        var messages = new ArrayList<CodeMessageListItem>();
+    private List<MessageItem> toMessages(TrainingActivityAssignment assignment) {
+        var messages = new ArrayList<MessageItem>();
         var messageTime = assignment.getStartedAt() != null ? assignment.getStartedAt() : assignment.getAssignedAt();
         var offset = 0;
 
@@ -392,17 +391,13 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         return assignment.getSubmittedAt() != null ? assignment.getSubmittedAt() : messageTime.plusMillis(offset);
     }
 
-    private CodeMessageListItem assistantMessage(String content, Instant createdAt) {
-        var item = new CodeMessageListItem(content, createdAt, TUTOR_NAME);
-        item.setUserColorIndex();
-        item.addClass(UiCss.CONVERSATION_MESSAGE_ASSISTANT);
-        return item;
+    private MessageItem assistantMessage(String content, Instant createdAt) {
+        var item = new MessageItem(content, createdAt, TUTOR_NAME, MessageItem.Variant.ASSISTANT, false);
+                return item;
     }
 
-    private CodeMessageListItem userMessage(String content, Instant createdAt) {
-        var item = new CodeMessageListItem(content, createdAt, STUDENT_NAME);
-        item.setUserColorIndex();
-        item.addClass(UiCss.CONVERSATION_MESSAGE_USER);
-        return item;
+    private MessageItem userMessage(String content, Instant createdAt) {
+        var item = new MessageItem(content, createdAt, STUDENT_NAME, MessageItem.Variant.USER, false);
+                return item;
     }
 }

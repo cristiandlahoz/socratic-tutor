@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -35,7 +36,7 @@ public class ChatSessionActivityBus {
         removeSessionWhenLastListenerLeaves(sessionId, sessionListeners);
     }
 
-    private boolean hasNoListeners(CopyOnWriteArrayList<Consumer<ChatSessionActivity>> sessionListeners) {
+    private boolean hasNoListeners(@Nullable CopyOnWriteArrayList<Consumer<ChatSessionActivity>> sessionListeners) {
         return sessionListeners == null || sessionListeners.isEmpty();
     }
 

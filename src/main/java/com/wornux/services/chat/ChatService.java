@@ -136,7 +136,8 @@ public class ChatService {
             hasOpenAiIoException = hasOpenAiIoException || cursor instanceof OpenAIIoException;
             hasTimeout = hasTimeout
                     || cursor instanceof InterruptedIOException
-                    || cursor.getMessage() != null && cursor.getMessage().toLowerCase(java.util.Locale.ROOT).contains("timeout");
+                    || cursor.getMessage() != null
+                            && cursor.getMessage().toLowerCase(java.util.Locale.ROOT).contains("timeout");
         }
         return hasOpenAiIoException && hasTimeout;
     }

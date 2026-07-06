@@ -4,8 +4,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
+
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
@@ -25,7 +24,7 @@ import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.training_activity.TrainingActivityLaunchedBus;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
@@ -33,6 +32,7 @@ import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
+import com.wornux.ui.conversation.ConversationView;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
@@ -42,7 +42,7 @@ import jakarta.annotation.security.PermitAll;
 @RequiresPermission(AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW)
 public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterObserver, AfterNavigationObserver {
 
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
     private final TrainingActivityLaunchedBus activityLaunchedBus;
@@ -52,11 +52,11 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     private AutoCloseable activityLaunchedSubscription;
 
     public StudentWorkspaceView(
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
             StudentWorkspaceService studentWorkspaceService,
             TrainingActivityLaunchedBus activityLaunchedBus) {
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.studentWorkspaceService = studentWorkspaceService;
         this.activityLaunchedBus = activityLaunchedBus;
@@ -121,7 +121,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT)) {
             event.forwardTo(NoAccessView.class);
             return;
@@ -157,29 +157,43 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         return toolbar;
     }
 
+    private void openConversation() {
+        UI.getCurrent().navigate(ConversationView.class);
+    }
+
     private void configureGrid() {
         UiCss.WORKSPACE_GRID.addTo(assignmentsGrid);
         UiCss.WORKSPACE_TENANT_GRID.addTo(assignmentsGrid);
         assignmentsGrid.setWidthFull();
         assignmentsGrid.setSelectionMode(Grid.SelectionMode.NONE);
         assignmentsGrid.setEmptyStateText("No hay actividades asignadas para la clase activa.");
-        assignmentsGrid.addColumn(LitRenderer.<TrainingActivityAssignment>of("""
-                    <div class="workspace-primary-cell">
-                        <span class="workspace-primary-cell-title">${item.title}</span>
-                        <span class="workspace-primary-cell-meta">${item.instructions}</span>
-                    </div>
-                """)
-                .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
-                .withProperty("instructions", assignment -> assignment.getTrainingActivity().getInstructions()))
+        assignmentsGrid
+                .addColumn(
+                    LitRenderer
+                            .<TrainingActivityAssignment>of(
+                                """
+                                    <div class="workspace-primary-cell">
+                                        <span class="workspace-primary-cell-title">${item.title}</span>
+                                        <span class="workspace-primary-cell-meta">${item.instructions}</span>
+                                    </div>
+                                """)
+                            .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
+                            .withProperty(
+                                "instructions",
+                                assignment -> assignment.getTrainingActivity().getInstructions()))
                 .setHeader("Actividad")
                 .setComparator(assignment -> assignment.getTrainingActivity().getTitle())
                 .setAutoWidth(true)
                 .setFlexGrow(1);
-        assignmentsGrid.addColumn(LitRenderer.<TrainingActivityAssignment>of("""
-                    <span class="workspace-status-badge ${item.statusTone}">${item.statusLabel}</span>
-                """)
-                .withProperty("statusLabel", assignment -> assignmentStatusLabel(assignment.getStatus()))
-                .withProperty("statusTone", assignment -> assignmentStatusTone(assignment.getStatus())))
+        assignmentsGrid
+                .addColumn(
+                    LitRenderer
+                            .<TrainingActivityAssignment>of(
+                                """
+                                    <span class="workspace-status-badge ${item.statusTone}">${item.statusLabel}</span>
+                                """)
+                            .withProperty("statusLabel", assignment -> assignmentStatusLabel(assignment.getStatus()))
+                            .withProperty("statusTone", assignment -> assignmentStatusTone(assignment.getStatus())))
                 .setHeader("Estado")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -194,12 +208,6 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
                 .setHeader("Opciones")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
-    }
-
-    private Button primaryButton(String label, Runnable action) {
-        var button = new Button(label, _ -> action.run());
-        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        return button;
     }
 
     private String assignmentStatusLabel(TrainingActivityAssignmentStatus status) {
@@ -225,7 +233,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     }
 
     private void refreshDashboard() {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         var classes = studentWorkspaceService.listStudentClasses(account);
         classSelector.setItems(classes);
         if (!classes.isEmpty() && classSelector.getValue() == null) {
@@ -235,7 +243,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     }
 
     private void refreshAssignments() {
-        refreshAssignments(authenticatedAccountService.requireCurrentAccount());
+        refreshAssignments(authenticatedUserContextUtils.requireCurrentAccount());
     }
 
     private void refreshAssignments(Account account) {
@@ -247,7 +255,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
             return;
         }
         studentWorkspaceService
-                .switchClass(authenticatedAccountService.requireCurrentAccount(), accessibleClass.groupClassMemberId());
+                .switchClass(authenticatedUserContextUtils.requireCurrentAccount(), accessibleClass.groupClassMemberId());
         refreshDashboard();
     }
 }

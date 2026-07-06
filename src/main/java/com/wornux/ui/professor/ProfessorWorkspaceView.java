@@ -18,7 +18,7 @@ import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -26,10 +26,10 @@ import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.conversation.ConversationView;
+import com.wornux.ui.css.UiCss;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.training_activity.TrainingActivityView;
 import jakarta.annotation.security.PermitAll;
-import com.wornux.ui.css.UiCss;
 
 @Route(value = "professor", layout = MainLayout.class)
 @PageTitle("Espacio del profesor")
@@ -37,7 +37,7 @@ import com.wornux.ui.css.UiCss;
 @RequiresPermission(AppPermission.GROUP_CLASS_MEMBER_VIEW)
 public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final ProfessorWorkspaceService professorWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
@@ -46,10 +46,10 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
     private final EmailField studentEmailField = new EmailField("Correo del estudiante");
 
     public ProfessorWorkspaceView(
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
             ProfessorWorkspaceService professorWorkspaceService) {
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.professorWorkspaceService = professorWorkspaceService;
 
@@ -72,13 +72,18 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
         add(
             new H1("Espacio del profesor"),
             classSelector,
-            new HorizontalLayout(studentEmailField, new Button("Enviar invitación", new Icon(VaadinIcon.PAPERPLANE), _ -> inviteStudent())),
+            new HorizontalLayout(
+                    new Button("Abrir conversación", _ -> UI.getCurrent().navigate(ConversationView.class)),
+                    new Button("Documentos", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
+                    new Button("Actividades formativas", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
+            new HorizontalLayout(studentEmailField,
+                    new Button("Enviar invitación", new Icon(VaadinIcon.PAPERPLANE), _ -> inviteStudent())),
             studentsGrid);
     }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
             event.forwardTo(NoAccessView.class);
             return;
@@ -87,7 +92,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
     }
 
     private void refresh() {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         var classes = professorWorkspaceService.listProfessorClasses(account);
         classSelector.setItems(classes);
         if (!classes.isEmpty() && classSelector.getValue() == null) {
@@ -101,14 +106,14 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
             return;
         }
         professorWorkspaceService
-                .switchClass(authenticatedAccountService.requireCurrentAccount(), accessibleClass.groupClassMemberId());
+                .switchClass(authenticatedUserContextUtils.requireCurrentAccount(), accessibleClass.groupClassMemberId());
         refresh();
     }
 
     private void inviteStudent() {
         try {
             professorWorkspaceService
-                    .inviteStudent(authenticatedAccountService.requireCurrentAccount(), studentEmailField.getValue());
+                    .inviteStudent(authenticatedUserContextUtils.requireCurrentAccount(), studentEmailField.getValue());
             studentEmailField.clear();
             Notification.show("Invitación enviada.");
         }
@@ -120,7 +125,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
     private void disableStudent(java.util.UUID memberId) {
         try {
             professorWorkspaceService
-                    .disableStudentMembership(authenticatedAccountService.requireCurrentAccount(), memberId);
+                    .disableStudentMembership(authenticatedUserContextUtils.requireCurrentAccount(), memberId);
             refresh();
         }
         catch (RuntimeException exception) {

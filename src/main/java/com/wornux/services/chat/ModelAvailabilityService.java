@@ -55,15 +55,12 @@ public class ModelAvailabilityService {
         updateStatus(ModelAvailabilityStatus.OFFLINE);
     }
 
-    @Scheduled(
-        fixedDelayString = "${app.ai.model-availability.probe-interval-ms:10000}",
-        initialDelayString = "${app.ai.model-availability.initial-delay-ms:1000}")
+    @Scheduled(fixedDelayString = "${app.ai.model-availability.probe-interval-ms:10000}",
+            initialDelayString = "${app.ai.model-availability.initial-delay-ms:1000}")
     public void probeConfiguredModelServer() {
         try {
-            var requestBuilder = HttpRequest.newBuilder(modelsUri)
-                    .timeout(timeout)
-                    .GET()
-                    .header("Accept", "application/json");
+            var requestBuilder =
+                    HttpRequest.newBuilder(modelsUri).timeout(timeout).GET().header("Accept", "application/json");
             if (apiKey != null && !apiKey.isBlank() && !"dummy".equals(apiKey)) {
                 requestBuilder.header("Authorization", "Bearer " + apiKey);
             }

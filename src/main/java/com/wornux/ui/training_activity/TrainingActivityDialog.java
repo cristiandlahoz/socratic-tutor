@@ -30,8 +30,8 @@ import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingActivityService;
-import com.wornux.ui.conversation.CodeMessageList;
-import com.wornux.ui.conversation.CodeMessageListItem;
+import com.wornux.ui.conversation.MessagesList;
+import com.wornux.ui.conversation.MessageItem;
 import com.wornux.ui.css.UiCss;
 
 public class TrainingActivityDialog extends Div {
@@ -326,21 +326,21 @@ public class TrainingActivityDialog extends Div {
     }
 
     private Component fallbackReport(String report, TrainingActivityAssignment assignment) {
-        var reportList = new CodeMessageList();
-        reportList.setMarkdown(true);
-        reportList.setWidthFull();
+        var reportList = new MessagesList();
+                reportList.setWidthFull();
 
         var createdAt = assignment.getSubmittedAt() != null
                 ? assignment.getSubmittedAt()
                 : Instant.now();
 
-        var reportItem = new CodeMessageListItem(
+        var reportItem = new MessageItem(
                 report,
                 createdAt,
-                "Tutor Socrático");
+                "Tutor Socrático",
+                MessageItem.Variant.ASSISTANT,
+                false);
 
-        reportItem.addClass(UiCss.CONVERSATION_MESSAGE_ASSISTANT);
-        reportList.setItems(List.of(reportItem));
+                reportList.setItems(List.of(reportItem));
 
         var reportContent = new Div(reportList);
         reportContent.addClassName("training-activity-report-content");

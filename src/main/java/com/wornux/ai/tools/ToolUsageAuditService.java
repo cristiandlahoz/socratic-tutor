@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ToolContext;
@@ -86,8 +87,8 @@ public class ToolUsageAuditService {
                 audit.inputSummary(),
                 audit.outputSummary(),
                 audit.returnCaptured(),
-                audit.toolReturnPreview(),
-                audit.failureCode());
+                nullableLogValue(audit.toolReturnPreview()),
+                nullableLogValue(audit.failureCode()));
             return result.value();
         }
         catch (RuntimeException exception) {
@@ -127,8 +128,8 @@ public class ToolUsageAuditService {
                 audit.inputSummary(),
                 audit.outputSummary(),
                 audit.returnCaptured(),
-                audit.toolReturnPreview(),
-                audit.failureCode());
+                nullableLogValue(audit.toolReturnPreview()),
+                nullableLogValue(audit.failureCode()));
             throw exception;
         }
         finally {
@@ -153,12 +154,15 @@ public class ToolUsageAuditService {
         return (System.nanoTime() - startedAt) / 1_000_000;
     }
 
-    private CapturedToolReturn captureToolReturn(Object value) {
+    private CapturedToolReturn captureToolReturn(@Nullable Object value) {
         var observability = tutorAiProperties.getToolObservability();
         if (observability == null || !observability.isCaptureToolReturns()) {
             return CapturedToolReturn.disabled();
         }
         try {
+            if (value == null) {
+                return new CapturedToolReturn(true, null, null);
+            }
             var json = objectMapper.writeValueAsString(value);
             return new CapturedToolReturn(true, json, preview(json, observability.getMaxToolReturnChars()));
         }
@@ -167,6 +171,10 @@ public class ToolUsageAuditService {
                     null,
                     "serialization_error=%s".formatted(ex.getClass().getSimpleName()));
         }
+    }
+
+    private Object nullableLogValue(@Nullable Object value) {
+        return value == null ? "" : value;
     }
 
     private String preview(String json, int maxToolReturnChars) {
@@ -185,7 +193,7 @@ public class ToolUsageAuditService {
 
     public record ToolResult<T>(T value, String outputSummary) {}
 
-    private record CapturedToolReturn(boolean captured, String json, String preview) {
+    private record CapturedToolReturn(boolean captured, @Nullable String json, @Nullable String preview) {
 
         static CapturedToolReturn disabled() {
             return new CapturedToolReturn(false, null, null);

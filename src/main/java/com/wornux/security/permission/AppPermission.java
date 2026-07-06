@@ -1,5 +1,8 @@
 package com.wornux.security.permission;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 public enum AppPermission {
     TENANT_VIEW(AppResource.TENANT, AppAction.VIEW, "tenant:view"),
     TENANT_CREATE(AppResource.TENANT, AppAction.CREATE, "tenant:create"),
@@ -64,4 +67,12 @@ public enum AppPermission {
     public AppAction action() { return action; }
 
     public String code() { return code; }
+
+    public boolean grants(AppPermission requested) {
+        return resource == requested.resource && action.grants(requested.action);
+    }
+
+    public static Optional<AppPermission> fromCode(String code) {
+        return Arrays.stream(values()).filter(permission -> permission.code.equals(code)).findFirst();
+    }
 }

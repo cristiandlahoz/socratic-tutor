@@ -29,10 +29,10 @@ import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.DocumentIngestionProperties;
-import com.wornux.services.document.CourseMaterialCatalog;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.document.CourseMaterialCatalog;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
@@ -40,7 +40,6 @@ import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.components.ingestion.DocumentSegmentEditorList;
 import com.wornux.ui.components.ingestion.DocumentStatusPanel;
 import com.wornux.ui.css.UiCss;
-
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "documents", layout = MainLayout.class)
@@ -58,17 +57,17 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     private final Button approveButton;
     private final Button retryButton;
     private final Button deleteButton;
-    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient WorkspaceRoutingService workspaceRoutingService;
 
     public DocumentIngestionView(
             @RouteScopeOwner(MainLayout.class) DocumentIngestionUiController controller,
             @RouteScopeOwner(MainLayout.class) DocumentIngestionState state,
             DocumentIngestionProperties properties,
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService) {
         this.controller = controller;
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
 
         var eyebrow = new Span("Document ETL");
@@ -194,7 +193,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
             event.forwardTo(NoAccessView.class);
         }
@@ -287,7 +286,8 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
         field.setRequiredIndicatorVisible(true);
         field.setMaxLength(200);
         field.setValueChangeMode(ValueChangeMode.EAGER);
-        field.setHelperText("Máximo 200 caracteres. Sé específico: tarea, tema, unidad, conceptos o situaciones donde este material aplica.");
+        field.setHelperText(
+            "Máximo 200 caracteres. Sé específico: tarea, tema, unidad, conceptos o situaciones donde este material aplica.");
         field.addValueChangeListener(event -> controller.updateCatalogUseWhen(event.getValue()));
         UiCss.DOCUMENT_INGEST_CATALOG_USE_WHEN.addTo(field);
         return field;
@@ -326,10 +326,11 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     private void renderGeneratedCatalog(Optional<CourseMaterialCatalog> catalog) {
         generatedCatalogPreview.removeAll();
         generatedCatalogPreview.setVisible(catalog.isPresent());
-        catalog.ifPresent(value -> generatedCatalogPreview.add(
-            new Span(value.label()),
-            new Paragraph(value.useWhen()),
-            new Paragraph("Alias: %s".formatted(String.join(", ", value.aliases())))));
+        catalog.ifPresent(
+            value -> generatedCatalogPreview.add(
+                new Span(value.label()),
+                new Paragraph(value.useWhen()),
+                new Paragraph("Alias: %s".formatted(String.join(", ", value.aliases())))));
     }
 
     private void syncMarkdownEditor(String nextValue) {

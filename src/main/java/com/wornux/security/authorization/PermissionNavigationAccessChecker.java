@@ -6,10 +6,11 @@ import com.vaadin.flow.server.auth.NavigationAccessChecker;
 import com.vaadin.flow.server.auth.NavigationContext;
 import com.wornux.services.context.ContextSelectionResult;
 import com.wornux.services.context.ContextSelectionService;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.security.access.AccessDeniedException;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,17 +18,17 @@ public class PermissionNavigationAccessChecker implements NavigationAccessChecke
 
     private final transient AuthorizationService authorizationService;
     private final transient ActiveContextHolder activeContextHolder;
-    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient ContextSelectionService contextSelectionService;
 
     public PermissionNavigationAccessChecker(
             AuthorizationService authorizationService,
             ActiveContextHolder activeContextHolder,
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             ContextSelectionService contextSelectionService) {
         this.authorizationService = authorizationService;
         this.activeContextHolder = activeContextHolder;
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.contextSelectionService = contextSelectionService;
     }
 
@@ -55,7 +56,7 @@ public class PermissionNavigationAccessChecker implements NavigationAccessChecke
                         : AccessCheckResult.deny("Missing permission " + permission.value().code());
             }
             catch (AccessDeniedException exception) {
-                return AccessCheckResult.deny(exception.getMessage());
+                return AccessCheckResult.deny(exception.getMessage() == null ? "Access denied" : exception.getMessage());
             }
         }
         if (target.getPackageName().startsWith("com.wornux.ui.auth")
@@ -65,11 +66,11 @@ public class PermissionNavigationAccessChecker implements NavigationAccessChecke
         return AccessCheckResult.deny("Protected routes require @RequiresPermission");
     }
 
-    private AccessCheckResult ensureActiveContext() {
+    private @Nullable AccessCheckResult ensureActiveContext() {
         if (activeContextHolder.current().isPresent()) {
             return null;
         }
-        var account = authenticatedAccountService.currentAccount().orElse(null);
+        var account = authenticatedUserContextUtils.currentAccount().orElse(null);
         if (account == null) {
             return AccessCheckResult.deny("Authentication is required");
         }

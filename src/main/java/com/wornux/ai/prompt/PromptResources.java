@@ -27,7 +27,8 @@ public class PromptResources {
     private static final String ANTI_LOOP_BLOCKED = "classpath:/prompt/training_activity/anti-loop-blocked.st";
     private static final String DOCUMENT_CATALOG_SYSTEM = "classpath:/prompt/document/catalog-generation-system.st";
     private static final String DOCUMENT_CATALOG_USER = "classpath:/prompt/document/catalog-generation-user.st";
-    private static final String DOCUMENT_SPECIFICITY_SYSTEM = "classpath:/prompt/document/specificity-classifier-system.st";
+    private static final String DOCUMENT_SPECIFICITY_SYSTEM =
+            "classpath:/prompt/document/specificity-classifier-system.st";
     private static final String DOCUMENT_SPECIFICITY_USER = "classpath:/prompt/document/specificity-classifier-user.st";
 
     private final ResourceLoader resourceLoader;

@@ -25,8 +25,7 @@ public class SmtpEmailService implements EmailService {
     public void send(EmailMessage message) {
         try {
             var mimeMessage = mailSender.createMimeMessage();
-            var helper = new MimeMessageHelper(
-                    mimeMessage, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
+            var helper = new MimeMessageHelper(mimeMessage, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
             helper.setTo(message.toAddress());
             helper.setSubject(message.subject());
             if (message.plainTextBody() == null || message.plainTextBody().isBlank()) {

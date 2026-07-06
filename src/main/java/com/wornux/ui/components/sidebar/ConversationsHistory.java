@@ -25,10 +25,10 @@ public final class ConversationsHistory extends Component implements HasSize {
 
     public void setConversations(List<ConversationSummary> conversations) {
         var clientConversations = conversations.stream()
-                .map(conversation -> new ClientConversation(
-                    conversation.id().toString(),
-                    conversation.title(),
-                    conversation.updatedAt().toString()))
+                .map(
+                    conversation -> new ClientConversation(conversation.id().toString(),
+                            conversation.title(),
+                            conversation.updatedAt().toString()))
                 .toList();
         getElement().setPropertyJson("conversations", JacksonUtils.listToJson(clientConversations));
     }

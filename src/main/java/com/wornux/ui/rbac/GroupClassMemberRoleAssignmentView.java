@@ -36,13 +36,19 @@ public class GroupClassMemberRoleAssignmentView extends VerticalLayout {
         this.roleAdministrationService = roleAdministrationService;
         setSizeFull();
         configureClassSelector();
-        add(new H1("Asignación de roles de clase"), new Paragraph("Asigna roles GROUP_CLASS a miembros de la clase seleccionada. Esta matriz no cambia member_kind."), classSelector, grid);
+        add(
+            new H1("Asignación de roles de clase"),
+            new Paragraph(
+                    "Asigna roles GROUP_CLASS a miembros de la clase seleccionada. Esta matriz no cambia member_kind."),
+            classSelector,
+            grid);
     }
 
     private void configureClassSelector() {
         List<GroupClass> classes = roleAdministrationService.activeTenantClasses();
         classSelector.setItems(classes);
-        classSelector.setItemLabelGenerator(groupClass -> "%s · %s".formatted(groupClass.getCode(), groupClass.getName()));
+        classSelector
+                .setItemLabelGenerator(groupClass -> "%s · %s".formatted(groupClass.getCode(), groupClass.getName()));
         classSelector.addValueChangeListener(event -> refresh());
         if (!classes.isEmpty()) {
             classSelector.setValue(classes.getFirst());
@@ -60,7 +66,9 @@ public class GroupClassMemberRoleAssignmentView extends VerticalLayout {
         grid.addColumn(this::displayName).setHeader("Miembro").setAutoWidth(true);
         grid.addColumn(member -> member.getMemberKind().name()).setHeader("member_kind").setAutoWidth(true);
         for (var role : matrix.roles()) {
-            grid.addComponentColumn(member -> checkbox(member.getId(), role)).setHeader(role.getName()).setAutoWidth(true);
+            grid.addComponentColumn(member -> checkbox(member.getId(), role))
+                    .setHeader(role.getName())
+                    .setAutoWidth(true);
         }
         grid.setItems(matrix.members());
     }
@@ -88,7 +96,9 @@ public class GroupClassMemberRoleAssignmentView extends VerticalLayout {
 
     private String displayName(GroupClassMember member) {
         var account = member.getTenantAccount().getAccount();
-        var name = "%s %s".formatted(account.getFirstName() == null ? "" : account.getFirstName(), account.getLastName() == null ? "" : account.getLastName()).trim();
+        var name = "%s %s".formatted(
+            account.getFirstName() == null ? "" : account.getFirstName(),
+            account.getLastName() == null ? "" : account.getLastName()).trim();
         return name.isBlank() ? account.getEmail() : "%s <%s>".formatted(name, account.getEmail());
     }
 }

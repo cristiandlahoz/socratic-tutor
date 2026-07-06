@@ -47,13 +47,14 @@ public class DocumentVectorIndexingService {
             List<EditableSegmentViewModel> segments) {
         return segments.stream()
                 .filter(this::hasContent)
-                .map(segment -> documentFor(
-                    groupClassId,
-                    createdByGroupClassMemberId,
-                    ingestionId,
-                    title,
-                    catalog,
-                    segment))
+                .map(
+                    segment -> documentFor(
+                        groupClassId,
+                        createdByGroupClassMemberId,
+                        ingestionId,
+                        title,
+                        catalog,
+                        segment))
                 .toList();
     }
 
@@ -79,13 +80,20 @@ public class DocumentVectorIndexingService {
             CourseMaterialCatalog catalog,
             EditableSegmentViewModel segment) {
         return Map.of(
-            "groupClassId", groupClassId.toString(),
-            "createdByGroupClassMemberId", createdByGroupClassMemberId.toString(),
-            "ingestionId", ingestionId.toString(),
-            "title", title,
-            "status", READY,
-            "catalog", catalogFor(catalog),
-            "chunkIndex", segment.ordinal());
+            "groupClassId",
+            groupClassId.toString(),
+            "createdByGroupClassMemberId",
+            createdByGroupClassMemberId.toString(),
+            "ingestionId",
+            ingestionId.toString(),
+            "title",
+            title,
+            "status",
+            READY,
+            "catalog",
+            catalogFor(catalog),
+            "chunkIndex",
+            segment.ordinal());
     }
 
     private Map<String, Object> catalogFor(CourseMaterialCatalog catalog) {

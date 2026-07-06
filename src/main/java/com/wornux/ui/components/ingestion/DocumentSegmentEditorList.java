@@ -16,8 +16,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.wornux.ui.ingestion.EditableSegmentViewModel;
 import com.wornux.ui.css.UiCss;
+import com.wornux.ui.ingestion.EditableSegmentViewModel;
 
 public class DocumentSegmentEditorList extends Composite<Div> {
 

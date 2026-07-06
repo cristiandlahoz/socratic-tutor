@@ -1,5 +1,7 @@
 package com.wornux.ui;
 
+import java.util.Comparator;
+
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -15,14 +17,13 @@ import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.security.AuthenticationContext;
-import java.util.Comparator;
-
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.security.authorization.AuthorizationService;
+import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionService;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.sidebar.ConversationHistoryDrawer;
@@ -35,65 +36,109 @@ import com.wornux.ui.css.UiCss;
 import com.wornux.ui.navigation.NavigationEntry;
 import com.wornux.ui.navigation.NavigationRegistry;
 import jakarta.annotation.security.PermitAll;
+import org.springframework.core.annotation.AnnotationUtils;
 
 @Layout
 @PreserveOnRefresh
 @PermitAll
 public class MainLayout extends AppLayout {
 
+    private final ConversationState state;
     private final ConversationViewModel viewModel;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
+    private final AuthenticationContext authenticationContext;
+    private final ActiveContextHolder activeContextHolder;
+    private final AuthorizationService authorizationService;
+    private final ContextDiscoveryService contextDiscoveryService;
+    private final ContextSelectionService contextSelectionService;
+    private final NavigationRegistry navigationRegistry;
+    private final Div drawerContent = new Div();
 
     public MainLayout(
             @RouteScopeOwner(MainLayout.class) ConversationState state,
             @RouteScopeOwner(MainLayout.class) ConversationViewModel viewModel,
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             AuthenticationContext authenticationContext,
             ActiveContextHolder activeContextHolder,
             AuthorizationService authorizationService,
             ContextDiscoveryService contextDiscoveryService,
             ContextSelectionService contextSelectionService,
             NavigationRegistry navigationRegistry) {
+        this.state = state;
+        this.viewModel = viewModel;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
+        this.authenticationContext = authenticationContext;
+        this.activeContextHolder = activeContextHolder;
+        this.authorizationService = authorizationService;
+        this.contextDiscoveryService = contextDiscoveryService;
+        this.contextSelectionService = contextSelectionService;
+        this.navigationRegistry = navigationRegistry;
+
         setPrimarySection(Section.DRAWER);
         addToNavbar(createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE, "Abrir menú"));
-        this.viewModel = viewModel;
         this.viewModel.initializeShellState();
 
-        var drawerContent = new Div();
         UiCss.SHELL_DRAWER_CONTENT.addTo(drawerContent);
         UiCss.APP_SIDEBAR.addTo(drawerContent);
         drawerContent.setSizeFull();
-        drawerContent.add(new SidebarDividerLine());
-
-        drawerContent.add(createBrandSection());
-
-        var currentAccount = authenticatedAccountService.currentAccount();
-
-        if (currentAccount.isPresent()) {
-            var entries = navigationRegistry.entries().stream()
-                    .filter(entry -> activeContextHolder.current()
-                            .map(context -> context.level().ordinal() >= entry.minimumContextLevel().ordinal())
-                            .orElse(false))
-                    .filter(entry -> authorizationService.can(entry.requiredPermission()))
-                    .sorted(Comparator.comparingInt(NavigationEntry::order))
-                    .toList();
-            drawerContent.add(new WorkspaceDrawerNavigation(entries));
-            if (entries.stream().anyMatch(entry -> entry.requiredPermission().code().startsWith("conversation:"))) {
-                drawerContent.add(new ConversationHistoryDrawer(state, this.viewModel));
-            }
-            currentAccount.map(user -> new ProfileDrawerCard(
-                user,
-                createThemePreferenceControl(state, this.viewModel),
-                activeContextHolder,
-                contextDiscoveryService,
-                contextSelectionService,
-                authenticationContext::logout))
-                    .ifPresent(drawerContent::add);
-        }
+        refreshDrawerContent();
 
         var drawerScroller = new Scroller(drawerContent, Scroller.ScrollDirection.NONE);
         drawerScroller.setSizeFull();
         UiCss.SHELL_DRAWER_SCROLLER.addTo(drawerScroller);
         addToDrawer(drawerScroller);
+    }
+
+    private void refreshDrawerContent() {
+        drawerContent.removeAll();
+        drawerContent.add(new SidebarDividerLine());
+        drawerContent.add(createBrandSection());
+
+        var currentAccount = authenticatedUserContextUtils.currentAccount();
+        if (currentAccount.isEmpty()) {
+            return;
+        }
+
+        var entries = navigationRegistry.entries().stream()
+                .filter(entry -> activeContextHolder.current()
+                        .map(context -> context.level().ordinal() >= entry.minimumContextLevel().ordinal())
+                        .orElse(false))
+                .filter(entry -> authorizationService.can(entry.requiredPermission()))
+                .sorted(Comparator.comparingInt(NavigationEntry::order))
+                .toList();
+        drawerContent.add(new WorkspaceDrawerNavigation(entries));
+        if (entries.stream().anyMatch(entry -> entry.requiredPermission().code().startsWith("conversation:"))) {
+            drawerContent.add(new ConversationHistoryDrawer(state, viewModel));
+        }
+        currentAccount.map(user -> new ProfileDrawerCard(
+            user,
+            createThemePreferenceControl(state, viewModel),
+            activeContextHolder,
+            contextDiscoveryService,
+            contextSelectionService,
+            authenticationContext::logout))
+                .ifPresent(drawerContent::add);
+    }
+
+    public void refreshAfterRbacChange() {
+        refreshDrawerContent();
+    }
+
+    public boolean currentRouteAllowed() {
+        var content = getContent();
+        if (content == null) {
+            return true;
+        }
+        var permission = AnnotationUtils.findAnnotation(content.getClass(), RequiresPermission.class);
+        if (permission == null) {
+            return true;
+        }
+        try {
+            return authorizationService.can(permission.value());
+        }
+        catch (RuntimeException _) {
+            return false;
+        }
     }
 
     private Div createBrandSection() {
@@ -147,7 +192,10 @@ public class MainLayout extends AppLayout {
         return control;
     }
 
-    private Button createThemePreferenceButton(ThemePreference preference, ConversationState state, ConversationViewModel viewModel) {
+    private Button createThemePreferenceButton(
+            ThemePreference preference,
+            ConversationState state,
+            ConversationViewModel viewModel) {
         var button = new Button(switch (preference) {
             case SYSTEM -> "Sistema";
             case LIGHT -> "Claro";

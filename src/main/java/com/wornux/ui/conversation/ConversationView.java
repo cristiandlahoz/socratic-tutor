@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 
 import com.vaadin.flow.component.Composite;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -25,20 +26,21 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.ChatProperties;
+import com.wornux.dtos.chat.questions.StudentQuestionSet;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
-import com.wornux.services.security.AuthenticatedAccountService;
-import com.wornux.security.authorization.RequiresPermission;
-import com.wornux.security.permission.AppPermission;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
-import com.wornux.ui.css.UiCss;
 import com.wornux.ui.crunner.DebuggerPanel;
+import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.MessageType;
@@ -56,7 +58,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private final StudentQuestionPanel questionPanel;
     private final DebuggerPanel debuggerPanel;
     private final SplitLayout splitLayout;
-    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient WorkspaceRoutingService workspaceRoutingService;
     private transient AutoCloseable modelAvailabilitySubscription;
     private boolean debuggerVisible;
@@ -68,11 +70,11 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             CProgramDebugService cProgramDebugService,
             CExamplePreparationService cExamplePreparationService,
             @Qualifier("cRunnerExecutor") Executor cRunnerExecutor,
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
             ModelAvailabilityService modelAvailabilityService) {
         this.viewModel = viewModel;
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         bindModelAvailability(state, modelAvailabilityService);
         this.viewModel.bindTurnUiAnchor(this);
@@ -102,18 +104,14 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
         questionPanel = new StudentQuestionPanel();
         questionPanel.setSubmitHandler(viewModel::onSubmitInteractiveQuestionResponse);
-        Signal.effect(questionPanel, () -> questionPanel.setQuestionSet(state.pendingQuestionSet().get()));
+        Signal.effect(questionPanel, () -> questionPanel.setQuestionSet(currentQuestionSetForUi(state)));
         Signal.effect(questionPanel, () -> questionPanel.setSubmitting(state.questionSubmissionInProgress().get()));
 
         var root = getContent();
         root.setSizeFull();
         UiCss.CONVERSATION_VIEW.addTo(root);
 
-        var chatPane = new Div(
-                debuggerToggleButton,
-                historyScroller,
-                createUsageBadge(state),
-                createInputShell(state));
+        var chatPane = new Div(debuggerToggleButton, historyScroller, createUsageBadge(state), createInputShell(state));
         chatPane.setSizeFull();
         UiCss.CONVERSATION_PANE.addTo(chatPane);
 
@@ -161,7 +159,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         var hasProfessorAccess = workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR);
         var hasStudentAccess = workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT);
         if (!hasProfessorAccess && !hasStudentAccess) {
@@ -176,20 +174,12 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT);
             }
         }
-        var draftRequested = event.getLocation()
-                .getQueryParameters()
-                .getSingleParameter(ConversationViewModel.DRAFT_QUERY_PARAMETER)
-                .filter(ConversationViewModel.DRAFT_QUERY_VALUE::equals)
-                .isPresent();
         var requestedConversationParam = event.getLocation()
                 .getQueryParameters()
                 .getSingleParameter(ConversationViewModel.CONVERSATION_QUERY_PARAMETER)
                 .orElse(null);
 
-        var initialization = viewModel.initializeFromRoute(
-            requestedConversationParam,
-            draftRequested,
-            event.isRefreshEvent());
+        var initialization = viewModel.initializeFromRoute(requestedConversationParam, event.isRefreshEvent());
         if (initialization.rerouteRequired()) {
             rerouteToResolvedConversation(event, initialization.rerouteConversationId());
         }
@@ -205,18 +195,16 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         var animationFrame = new Div(animation);
         UiCss.CONVERSATION_EMPTY_FRAME.addTo(animationFrame);
 
-        var title = new H2("Haz tu primera pregunta");
+        var title = new H2();
         UiCss.CONVERSATION_EMPTY_TITLE.addTo(title);
+        setEmptyStateTitle(title, false);
 
         var description = new Paragraph(
                 "Escribe una pregunta y el tutor te ayudará a razonar paso a paso, aclarar conceptos y practicar con ejemplos.");
         UiCss.CONVERSATION_EMPTY_DESCRIPTION.addTo(description);
         com.vaadin.flow.signals.Signal.effect(
             title,
-            () -> title.setText(
-                Boolean.TRUE.equals(chatState.setupRequired().get())
-                        ? "Configuración académica requerida"
-                        : "Haz tu primera pregunta"));
+            () -> setEmptyStateTitle(title, Boolean.TRUE.equals(chatState.setupRequired().get())));
         com.vaadin.flow.signals.Signal.effect(
             description,
             () -> description.setText(
@@ -228,6 +216,21 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
         emptyState.add(contentRow);
         return emptyState;
+    }
+
+    private static void setEmptyStateTitle(H2 title, boolean setupRequired) {
+        title.removeAll();
+        if (setupRequired) {
+            title.add(new Text("Configuración "), italicTitleWord("académica"), new Text(" requerida"));
+            return;
+        }
+        title.add(italicTitleWord("Haz"), new Text(" tu primera pregunta"));
+    }
+
+    private static Span italicTitleWord(String text) {
+        var word = new Span(text);
+        UiCss.CONVERSATION_EMPTY_TITLE_ITALIC.addTo(word);
+        return word;
     }
 
     private static @NonNull HorizontalLayout getContentRow(H2 title, Paragraph description, Div animationFrame) {
@@ -258,11 +261,19 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private void showCurrentInput(Div inputShell, ConversationState state, Div activityBlocker) {
         inputShell.removeAll();
-        if (Boolean.TRUE.equals(state.questionPanelVisible().get())) {
+        var currentQuestionSet = currentQuestionSetForUi(state);
+        inputShell.getElement()
+                .getClassList()
+                .set(UiCss.CONVERSATION_COMPOSER_QUESTION_MODE.value(), currentQuestionSet != null);
+        if (currentQuestionSet != null) {
             inputShell.add(questionPanel);
             return;
         }
         inputShell.add(isComposerAvailable(state) ? composer : activityBlocker);
+    }
+
+    private static StudentQuestionSet currentQuestionSetForUi(ConversationState state) {
+        return state.pendingQuestionSet().get();
     }
 
     private boolean isComposerAvailable(ConversationState state) {
@@ -418,48 +429,46 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         debuggerVisible = visible;
         UiCss.CONVERSATION_DEBUG_SPLIT_COLLAPSED.addTo(splitLayout, !visible);
         splitLayout.getElement()
-                .executeJs(
-                    """
-                    clearTimeout(this.__debuggerAnimationTimer);
-                    cancelAnimationFrame(this.__debuggerAnimationFrame);
-                    const collapsedClass = 'conversation-view__debug-split--collapsed';
-                    const animatingClass = 'conversation-view__debug-split--animating';
-                    const primary = this.querySelector('[slot="primary"]');
-                    const secondary = this.querySelector('[slot="secondary"]');
-                    const setSplit = () => {
-                      if (!primary || !secondary) {
-                        return;
-                      }
-                      primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
-                      secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
-                    };
-                    const collapse = () => {
-                      if (!primary || !secondary) {
-                        return;
-                      }
-                      primary.style.flex = '1 1 100%';
-                      secondary.style.flex = '0 1 0%';
-                    };
-                    this.classList.add(animatingClass);
-                    if ($0) {
-                      this.classList.add(collapsedClass);
-                      collapse();
-                      this.__debuggerAnimationFrame = requestAnimationFrame(() => {
-                        this.classList.remove(collapsedClass);
-                        setSplit();
-                      });
-                    } else {
-                      this.classList.remove(collapsedClass);
-                      this.__debuggerAnimationFrame = requestAnimationFrame(() => {
-                        this.classList.add(collapsedClass);
-                        collapse();
-                      });
-                    }
-                    this.__debuggerAnimationTimer = setTimeout(() => {
-                      this.classList.remove(animatingClass);
-                    }, 220);
-                    """,
-                    visible);
+                .executeJs("""
+                           clearTimeout(this.__debuggerAnimationTimer);
+                           cancelAnimationFrame(this.__debuggerAnimationFrame);
+                           const collapsedClass = 'conversation-view__debug-split--collapsed';
+                           const animatingClass = 'conversation-view__debug-split--animating';
+                           const primary = this.querySelector('[slot="primary"]');
+                           const secondary = this.querySelector('[slot="secondary"]');
+                           const setSplit = () => {
+                             if (!primary || !secondary) {
+                               return;
+                             }
+                             primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
+                             secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
+                           };
+                           const collapse = () => {
+                             if (!primary || !secondary) {
+                               return;
+                             }
+                             primary.style.flex = '1 1 100%';
+                             secondary.style.flex = '0 1 0%';
+                           };
+                           this.classList.add(animatingClass);
+                           if ($0) {
+                             this.classList.add(collapsedClass);
+                             collapse();
+                             this.__debuggerAnimationFrame = requestAnimationFrame(() => {
+                               this.classList.remove(collapsedClass);
+                               setSplit();
+                             });
+                           } else {
+                             this.classList.remove(collapsedClass);
+                             this.__debuggerAnimationFrame = requestAnimationFrame(() => {
+                               this.classList.add(collapsedClass);
+                               collapse();
+                             });
+                           }
+                           this.__debuggerAnimationTimer = setTimeout(() => {
+                             this.classList.remove(animatingClass);
+                           }, 220);
+                           """, visible);
         debuggerToggleButton.setAriaLabel(visible ? "Ocultar depurador" : "Abrir depurador");
         debuggerToggleButton.getElement().setAttribute("title", visible ? "Ocultar depurador" : "Abrir depurador");
         UiCss.CONVERSATION_DEBUGGER_TOGGLE_HIDDEN.addTo(debuggerToggleButton, visible);
@@ -467,8 +476,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private MessageItem toMessageListItem(MessageState message) {
         var isUserMessage = message.role() == MessageType.USER;
-        return new MessageItem(
-                message.content(),
+        return new MessageItem(message.content(),
                 message.createdAt(),
                 isUserMessage ? "Tú" : "Tutor Socrático",
                 isUserMessage ? MessageItem.Variant.USER : MessageItem.Variant.ASSISTANT,
@@ -485,44 +493,42 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             QueryParameters.of(ConversationViewModel.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
     }
 
-
     private void installResponsiveSplitBehavior(SplitLayout splitLayout) {
         splitLayout.getElement()
-                .executeJs(
-                    """
-                    if (this.__responsiveSplitInstalled) {
-                      return;
-                    }
-                    this.__responsiveSplitInstalled = true;
+                .executeJs("""
+                           if (this.__responsiveSplitInstalled) {
+                             return;
+                           }
+                           this.__responsiveSplitInstalled = true;
 
-                    const media = window.matchMedia('(max-width: 960px)');
-                    const update = () => {
-                      const primary = this.querySelector('[slot="primary"]');
-                      const secondary = this.querySelector('[slot="secondary"]');
-                      const setSplit = () => {
-                        if (!primary || !secondary) {
-                          return;
-                        }
-                        primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
-                        secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
-                      };
-                      const collapse = () => {
-                        if (!primary || !secondary) {
-                          return;
-                        }
-                        primary.style.flex = '1 1 100%';
-                        secondary.style.flex = '0 1 0%';
-                      };
-                      this.orientation = 'horizontal';
-                      if (this.classList.contains('conversation-view__debug-split--collapsed')) {
-                        collapse();
-                      } else {
-                        setSplit();
-                      }
-                    };
-                    media.addEventListener?.('change', update);
-                    media.addListener?.(update);
-                    update();
-                    """);
+                           const media = window.matchMedia('(max-width: 960px)');
+                           const update = () => {
+                             const primary = this.querySelector('[slot="primary"]');
+                             const secondary = this.querySelector('[slot="secondary"]');
+                             const setSplit = () => {
+                               if (!primary || !secondary) {
+                                 return;
+                               }
+                               primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
+                               secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
+                             };
+                             const collapse = () => {
+                               if (!primary || !secondary) {
+                                 return;
+                               }
+                               primary.style.flex = '1 1 100%';
+                               secondary.style.flex = '0 1 0%';
+                             };
+                             this.orientation = 'horizontal';
+                             if (this.classList.contains('conversation-view__debug-split--collapsed')) {
+                               collapse();
+                             } else {
+                               setSplit();
+                             }
+                           };
+                           media.addEventListener?.('change', update);
+                           media.addListener?.(update);
+                           update();
+                           """);
     }
 }

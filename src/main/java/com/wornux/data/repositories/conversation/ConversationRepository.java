@@ -9,5 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ConversationRepository extends JpaRepository<Conversation, UUID> {
     List<Conversation> findByCreatedByGroupClassMember_IdOrderByUpdatedAtDesc(UUID groupClassMemberId);
 
-    java.util.Optional<Conversation> findByIdAndCreatedByGroupClassMember_Id(UUID conversationId, UUID groupClassMemberId);
+    java.util.Optional<Conversation> findByIdAndCreatedByGroupClassMember_Id(
+            UUID conversationId,
+            UUID groupClassMemberId);
 }

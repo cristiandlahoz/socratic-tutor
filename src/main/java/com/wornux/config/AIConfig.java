@@ -1,5 +1,8 @@
 package com.wornux.config;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import com.wornux.ai.advisor.DynamicContextManagementAdvisor;
 import com.wornux.ai.advisor.TutorGuardAdvisor;
 import com.wornux.ai.guard.GuardClassifierService;
@@ -8,6 +11,8 @@ import com.wornux.ai.session.TokenBudgetRecursiveSummarizationCompactionStrategy
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ChatSessionActivityBus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -18,10 +23,7 @@ import org.springframework.ai.session.compaction.CompactionRequest;
 import org.springframework.ai.session.compaction.CompactionResult;
 import org.springframework.ai.session.compaction.CompactionStrategy;
 import org.springframework.ai.session.compaction.CompactionTrigger;
-import org.springframework.ai.session.compaction.TokenCountTrigger;
 import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -46,10 +48,6 @@ public class AIConfig {
         var compactionClient = ChatClient.builder(chatModel).build();
         var tokenCountEstimator = new JTokkitTokenCountEstimator();
         int compactionThresholdTokens = chatProperties.compactionThresholdTokens();
-        var tokenCountTrigger = TokenCountTrigger.builder()
-                .threshold(compactionThresholdTokens)
-                .tokenCountEstimator(tokenCountEstimator)
-                .build();
         var compactionStrategy = TokenBudgetRecursiveSummarizationCompactionStrategy.builder(compactionClient)
                 .recentHistoryTokenBudget(chatProperties.recentHistoryRetentionTokens())
                 .systemPrompt(promptResources.compactionSystem())
@@ -58,43 +56,49 @@ public class AIConfig {
                 .build();
         var sessionMemoryAdvisor = SessionMemoryAdvisor.builder(sessionService)
                 .eventFilter(EventFilter.active())
-                .compactionTrigger(loggingCompactionTrigger(tokenCountTrigger, compactionThresholdTokens))
+                .compactionTrigger(apiUsageCompactionTrigger(jdbcClient, compactionThresholdTokens))
                 .compactionStrategy(loggingCompactionStrategy(compactionStrategy, activityBus))
                 .build();
-        var dynamicContextManagementAdvisor = new DynamicContextManagementAdvisor(
-            sessionMemoryAdvisor.getOrder() + 1,
-            jdbcClient);
-        var tutorGuardAdvisor = new TutorGuardAdvisor(
-            sessionMemoryAdvisor.getOrder() + 2,
-            guardClassifierService,
-            promptResources);
+        var dynamicContextManagementAdvisor =
+                new DynamicContextManagementAdvisor(sessionMemoryAdvisor.getOrder() + 1, jdbcClient);
+        var tutorGuardAdvisor =
+                new TutorGuardAdvisor(sessionMemoryAdvisor.getOrder() + 2, guardClassifierService, promptResources);
 
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
-                .defaultOptions(OpenAiChatOptions.builder()
-                        .temperature(0.6)
-                        .topP(0.95)
-                        .topK(20))
+                .defaultOptions(OpenAiChatOptions.builder().temperature(0.6).topP(0.95).topK(20))
                 .defaultAdvisors(sessionMemoryAdvisor, dynamicContextManagementAdvisor, tutorGuardAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();
     }
 
-    private CompactionTrigger loggingCompactionTrigger(
-            CompactionTrigger delegate,
-            int compactionThresholdTokens) {
+    private CompactionTrigger apiUsageCompactionTrigger(JdbcClient jdbcClient, int compactionThresholdTokens) {
         return request -> {
-            boolean shouldCompact = delegate.shouldCompact(request);
-            if (shouldCompact) {
-                log.info(
-                    "Chat session compaction triggered: sessionId={}, userId={}, events={}, turns={}, thresholdTokens={}",
-                    sessionId(request),
-                    userId(request),
-                    request.currentEventCount(),
-                    request.currentTurnCount(),
-                    compactionThresholdTokens);
+            var promptTokens = lastPromptTokens(jdbcClient, request).orElse(null);
+            if (promptTokens == null || promptTokens < compactionThresholdTokens) {
+                return false;
             }
-            return shouldCompact;
+            log.info(
+                "Chat session compaction triggered: sessionId={}, userId={}, events={}, turns={}, promptTokens={}, thresholdTokens={}",
+                sessionId(request),
+                userId(request),
+                request.currentEventCount(),
+                request.currentTurnCount(),
+                promptTokens,
+                compactionThresholdTokens);
+            return true;
         };
+    }
+
+    private Optional<Integer> lastPromptTokens(JdbcClient jdbcClient, CompactionRequest request) {
+        try {
+            return jdbcClient.sql("select last_prompt_tokens from conversation where id = :conversationId")
+                    .param("conversationId", UUID.fromString(sessionId(request)))
+                    .query(Integer.class)
+                    .optional();
+        }
+        catch (IllegalArgumentException _) {
+            return Optional.empty();
+        }
     }
 
     private CompactionStrategy loggingCompactionStrategy(
@@ -127,10 +131,7 @@ public class AIConfig {
         activityBus.publish(requestSessionId, ChatSessionActivity.COMPACTING);
     }
 
-    private void logCompactionCompleted(
-            CompactionRequest request,
-            String requestSessionId,
-            CompactionResult result) {
+    private void logCompactionCompleted(CompactionRequest request, String requestSessionId, CompactionResult result) {
         log.info(
             "Chat session compaction completed: sessionId={}, userId={}, compactedEvents={}, archivedEvents={}, eventsRemoved={}, estimatedTokensSaved={}",
             requestSessionId,

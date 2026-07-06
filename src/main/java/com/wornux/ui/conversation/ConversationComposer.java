@@ -8,8 +8,8 @@ import com.vaadin.flow.component.EventData;
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
-import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.shared.Registration;
+import com.vaadin.flow.signals.Signal;
 import com.wornux.services.chat.ModelAvailabilityStatus;
 import com.wornux.ui.css.UiCss;
 

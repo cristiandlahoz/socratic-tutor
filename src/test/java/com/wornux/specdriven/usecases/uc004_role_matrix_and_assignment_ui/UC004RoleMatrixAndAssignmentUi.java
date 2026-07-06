@@ -47,12 +47,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Tag("integration")
 @Testcontainers
-@SpringBootTest(classes = UC004RoleMatrixAndAssignmentUi.TestApp.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
-        "spring.docker.compose.enabled=false",
-        "spring.ai.ollama.embedding.enabled=false",
-        "spring.ai.vectorstore.pgvector.enabled=false",
-        "spring.flyway.locations=classpath:db/migration/prod,classpath:db/migration/dev"
-})
+@SpringBootTest(classes = UC004RoleMatrixAndAssignmentUi.TestApp.class,
+        webEnvironment = SpringBootTest.WebEnvironment.NONE,
+        properties = {
+                "spring.docker.compose.enabled=false",
+                "spring.ai.ollama.embedding.enabled=false",
+                "spring.ai.vectorstore.pgvector.enabled=false",
+                "spring.flyway.locations=classpath:db/migration/prod,classpath:db/migration/dev" })
 class UC004RoleMatrixAndAssignmentUi {
 
     private static final UUID TENANT_ID = UUID.fromString("034daffd-5907-48f7-bce6-b2c0e71f4015");
@@ -105,16 +106,17 @@ class UC004RoleMatrixAndAssignmentUi {
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.tenant(TENANT_ID));
 
-        var role = roleAdministrationService.createRole(new CreateRoleCommand(
-                "Activity Reviewer",
-                "Can review training activities inside a class.",
-                RoleAssignmentLevel.GROUP_CLASS,
-                10,
-                Set.of("training-activity:view")));
+        var role = roleAdministrationService.createRole(
+            new CreateRoleCommand("Activity Reviewer",
+                    "Can review training activities inside a class.",
+                    RoleAssignmentLevel.GROUP_CLASS,
+                    10,
+                    Set.of("training-activity:view")));
 
         assertThat(role.getAssignmentLevel()).isEqualTo(RoleAssignmentLevel.GROUP_CLASS);
         assertThat(role.getPermissions()).containsExactly("training-activity:view");
-        assertThat(roleRepository.findByRoleNamespace_IdAndCode(role.getRoleNamespace().getId(), "activity-reviewer")).isPresent();
+        assertThat(roleRepository.findByRoleNamespace_IdAndCode(role.getRoleNamespace().getId(), "activity-reviewer"))
+                .isPresent();
         assertThat(eventProbe.events()).contains(role.getRoleNamespace().getId());
     }
 
@@ -123,12 +125,13 @@ class UC004RoleMatrixAndAssignmentUi {
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.tenant(TENANT_ID));
 
-        assertThatThrownBy(() -> roleAdministrationService.createRole(new CreateRoleCommand(
-                "Unknown Permission Role",
-                null,
-                RoleAssignmentLevel.GROUP_CLASS,
-                10,
-                Set.of("unknown:permission"))))
+        assertThatThrownBy(
+            () -> roleAdministrationService.createRole(
+                new CreateRoleCommand("Unknown Permission Role",
+                        null,
+                        RoleAssignmentLevel.GROUP_CLASS,
+                        10,
+                        Set.of("unknown:permission"))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("known AppPermission");
     }
@@ -138,12 +141,13 @@ class UC004RoleMatrixAndAssignmentUi {
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.tenant(TENANT_ID));
 
-        assertThatThrownBy(() -> roleAdministrationService.createRole(new CreateRoleCommand(
-                "Conversation Creator",
-                null,
-                RoleAssignmentLevel.GROUP_CLASS,
-                10,
-                Set.of("conversation:create"))))
+        assertThatThrownBy(
+            () -> roleAdministrationService.createRole(
+                new CreateRoleCommand("Conversation Creator",
+                        null,
+                        RoleAssignmentLevel.GROUP_CLASS,
+                        10,
+                        Set.of("conversation:create"))))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("outside the actor snapshot");
     }
@@ -153,12 +157,13 @@ class UC004RoleMatrixAndAssignmentUi {
         authenticate(PROFESSOR_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, ALGORITHMS_CLASS_ID));
 
-        assertThatThrownBy(() -> roleAdministrationService.createRole(new CreateRoleCommand(
-                "Professor Managed Role",
-                null,
-                RoleAssignmentLevel.GROUP_CLASS,
-                10,
-                Set.of("training-activity:view"))))
+        assertThatThrownBy(
+            () -> roleAdministrationService.createRole(
+                new CreateRoleCommand("Professor Managed Role",
+                        null,
+                        RoleAssignmentLevel.GROUP_CLASS,
+                        10,
+                        Set.of("training-activity:view"))))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining(AppPermission.ROLE_CREATE.code());
     }
@@ -167,17 +172,19 @@ class UC004RoleMatrixAndAssignmentUi {
     void br04_assigningGroupClassRoleChangesPermissionsButNotMemberKind() {
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.tenant(TENANT_ID));
-        var role = roleAdministrationService.createRole(new CreateRoleCommand(
-                "Student Activity Creator",
-                null,
-                RoleAssignmentLevel.GROUP_CLASS,
-                10,
-                Set.of("training-activity:create")));
+        var role = roleAdministrationService.createRole(
+            new CreateRoleCommand("Student Activity Creator",
+                    null,
+                    RoleAssignmentLevel.GROUP_CLASS,
+                    10,
+                    Set.of("training-activity:create")));
         var memberKindBefore = groupClassMemberRepository.findById(STUDENT_MEMBER_ID).orElseThrow().getMemberKind();
 
         roleAdministrationService.setGroupClassRole(STUDENT_MEMBER_ID, role.getId(), true);
 
-        assertThat(groupClassMemberRepository.findById(STUDENT_MEMBER_ID).orElseThrow().getMemberKind()).isEqualTo(memberKindBefore).isEqualTo(GroupClassMemberKind.STUDENT);
+        assertThat(groupClassMemberRepository.findById(STUDENT_MEMBER_ID).orElseThrow().getMemberKind())
+                .isEqualTo(memberKindBefore)
+                .isEqualTo(GroupClassMemberKind.STUDENT);
         authenticate(STUDENT_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, ALGORITHMS_CLASS_ID));
         assertThat(authorizationService.can(AppPermission.TRAINING_ACTIVITY_CREATE)).isTrue();
@@ -191,12 +198,12 @@ class UC004RoleMatrixAndAssignmentUi {
 
         authenticate(TENANT_ADMIN_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.tenant(TENANT_ID));
-        roleAdministrationService.createRole(new CreateRoleCommand(
-                "Version Bump Role",
-                null,
-                RoleAssignmentLevel.GROUP_CLASS,
-                10,
-                Set.of("training-activity:view")));
+        roleAdministrationService.createRole(
+            new CreateRoleCommand("Version Bump Role",
+                    null,
+                    RoleAssignmentLevel.GROUP_CLASS,
+                    10,
+                    Set.of("training-activity:view")));
 
         authenticate(STUDENT_ACCOUNT_ID);
         activeContextHolder.set(ActiveContext.groupClass(TENANT_ID, ALGORITHMS_CLASS_ID));
@@ -208,8 +215,9 @@ class UC004RoleMatrixAndAssignmentUi {
     private void authenticate(UUID accountId) {
         var account = accountRepository.findById(accountId).orElseThrow();
         var details = new AuthenticatedAccountDetails(account);
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(details, details.getPassword(), details.getAuthorities()));
+        SecurityContextHolder.getContext()
+                .setAuthentication(
+                    new UsernamePasswordAuthenticationToken(details, details.getPassword(), details.getAuthorities()));
     }
 
     @SpringBootConfiguration
@@ -222,8 +230,7 @@ class UC004RoleMatrixAndAssignmentUi {
             "org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration",
             "io.arconia.dev.services.docling.DoclingDevServicesAutoConfiguration",
             "io.arconia.docling.autoconfigure.DoclingAutoConfiguration",
-            "io.arconia.docling.autoconfigure.actuate.DoclingServeHealthContributorAutoConfiguration"
-    })
+            "io.arconia.docling.autoconfigure.actuate.DoclingServeHealthContributorAutoConfiguration" })
     @EnableJpaRepositories(basePackages = "com.wornux.data.repositories")
     @EntityScan(basePackages = "com.wornux.data.entities")
     @EnableAspectJAutoProxy
@@ -235,10 +242,8 @@ class UC004RoleMatrixAndAssignmentUi {
             PermissionMethodAspect.class,
             RbacUiRegistry.class,
             RbacUiBroadcaster.class,
-            RbacEventProbe.class
-    })
-    static class TestApp {
-    }
+            RbacEventProbe.class })
+    static class TestApp {}
 
     static class RbacEventProbe {
         private final CopyOnWriteArrayList<UUID> events = new CopyOnWriteArrayList<>();

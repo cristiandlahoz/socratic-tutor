@@ -12,11 +12,11 @@ public interface TenantAccountRepository extends JpaRepository<TenantAccount, UU
     @EntityGraph(attributePaths = "tenant")
     Optional<TenantAccount> findByIdAndAccount_Id(UUID tenantAccountId, UUID accountId);
 
-    @EntityGraph(attributePaths = {"tenant", "tenant.roleNamespace"})
+    @EntityGraph(attributePaths = { "tenant", "tenant.roleNamespace" })
     Optional<TenantAccount> findByTenant_IdAndAccount_Id(UUID tenantId, UUID accountId);
 
     List<TenantAccount> findByAccount_IdAndLockedFalse(UUID accountId);
 
-    @EntityGraph(attributePaths = {"account", "tenant"})
+    @EntityGraph(attributePaths = { "account", "tenant" })
     List<TenantAccount> findByTenant_IdAndLockedFalseOrderByJoinedAtAsc(UUID tenantId);
 }

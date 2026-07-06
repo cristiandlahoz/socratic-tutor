@@ -14,7 +14,8 @@ html {
   --aura-green: var(--color-green-700);
   --aura-blue: var(--color-cyan-600);
   --aura-purple: var(--color-mauve-500);
-  --aura-accent-color-light: var(--color-cyan-600);
+  --aura-accent-color-light: color(srgb 0.918627 0.952549 0.914902);
+  --aura-accent-text-color-light: color(srgb 0.918627 0.952549 0.914902);
   --aura-accent-color-dark: var(--color-orange-400);
   --aura-accent-contrast-color-light: var(--color-white);
   --aura-accent-contrast-color-dark: var(--color-mist-900);

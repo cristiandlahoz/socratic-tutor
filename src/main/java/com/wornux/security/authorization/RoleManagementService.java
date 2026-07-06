@@ -35,7 +35,7 @@ public class RoleManagementService {
     public void updatePermissions(UUID roleId, Set<String> permissionCodes) {
         authorizationService.check(AppPermission.ROLE_UPDATE);
         var actor = authorizationService.snapshot();
-        if (!actor.permissionCodes().containsAll(permissionCodes)) {
+        if (!permissionCodes.stream().allMatch(actor::hasPermission)) {
             throw new AccessDeniedException("Cannot grant permissions outside the actor snapshot");
         }
         var role = roleRepository.findById(roleId)
@@ -49,14 +49,13 @@ public class RoleManagementService {
 
     @Transactional(readOnly = true)
     public boolean actorCanGrant(Set<String> permissionCodes) {
-        return authorizationService.snapshot().permissionCodes().containsAll(permissionCodes);
+        var actor = authorizationService.snapshot();
+        return permissionCodes.stream().allMatch(actor::hasPermission);
     }
 
-    private void enforcePriorityBoundary(
-            UserAccessSnapshot actor,
-            UUID roleNamespaceId,
-            int targetPriority) {
-        var actorHighestPriority = roleRepository.findByRoleNamespace_IdAndActiveTrue(roleNamespaceId).stream()
+    private void enforcePriorityBoundary(UserAccessSnapshot actor, UUID roleNamespaceId, int targetPriority) {
+        var actorHighestPriority = roleRepository.findByRoleNamespace_IdAndActiveTrue(roleNamespaceId)
+                .stream()
                 .filter(role -> actor.roleCodes().contains(role.getCode()))
                 .mapToInt(role -> role.getPriority())
                 .max()

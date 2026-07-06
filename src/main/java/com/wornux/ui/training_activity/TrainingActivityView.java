@@ -36,7 +36,7 @@ import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatu
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.context.SetupRequiredException;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -54,7 +54,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
             DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", SPANISH_LOCALE);
     public static final String OPEN_ACTIVITY_QUERY_PARAMETER = "trainingActivity";
 
-    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient TrainingActivityService trainingActivityService;
     private final transient SafeBrowserModeService safeBrowserModeService;
     private final transient WorkspaceRoutingService workspaceRoutingService;
@@ -73,11 +73,11 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
             TrainingActivityService trainingActivityService,
             SafeBrowserModeService safeBrowserModeService,
             WorkspaceRoutingService workspaceRoutingService,
-            AuthenticatedAccountService authenticatedAccountService) {
+            AuthenticatedUserContextUtils authenticatedUserContextUtils) {
         this.trainingActivityService = trainingActivityService;
         this.safeBrowserModeService = safeBrowserModeService;
         this.workspaceRoutingService = workspaceRoutingService;
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
 
         var content = getContent();
         UiCss.TRAINING_ACTIVITY_VIEW.addTo(content);
@@ -260,7 +260,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
             event.forwardTo(NoAccessView.class);
             return;
