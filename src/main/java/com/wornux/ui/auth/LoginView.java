@@ -23,7 +23,7 @@ import com.wornux.ui.css.UiCss;
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     private final LoginForm login = new LoginForm();
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedAccountService authenticatedAccountService;
 
     public LoginView(AuthenticatedAccountService authenticatedAccountService) {
         this.authenticatedAccountService = authenticatedAccountService;
@@ -74,7 +74,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         UiCss.LOGIN_VIEW_WORK_MESSAGE.addTo(tutorResponse);
 
         var codeLineOne = new Span("for (int i = 0; i < values.length - 1; i++) {");
-        var codeLineTwo = new Span("    sum += values[i];");
+        var codeLineTwo = new Span("> > sum += values[i];");
         var codeLineThree = new Span("}");
         var codeSample = new Div(codeLineOne, codeLineTwo, codeLineThree);
         UiCss.LOGIN_VIEW_CODE_SAMPLE.addTo(codeSample);
@@ -93,7 +93,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var cherryFrame = new Div(cherry);
         UiCss.LOGIN_VIEW_CHERRY_FRAME.addTo(cherryFrame);
 
-        var panel = new Div(copy, workPreview, cherryFrame);
+        var panel = new Div(workPreview, copy, cherryFrame);
         UiCss.LOGIN_VIEW_BRAND.addTo(panel);
         return panel;
     }

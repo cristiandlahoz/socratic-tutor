@@ -29,14 +29,6 @@
   overflow: hidden;
 }
 
-.login-view__brand::before,
-.login-view__brand::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
 .login-view__brand-copy {
   position: relative;
   z-index: 1;
@@ -248,10 +240,6 @@
   background: transparent;
   box-shadow: none;
   animation: login-view-fade-up var(--motion-fast) both;
-}
-
-.login-view__form-card::before {
-  content: none;
 }
 
 .login-view__panel-header,
