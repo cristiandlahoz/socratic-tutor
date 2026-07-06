@@ -56,7 +56,7 @@ function isAppendOrTextGrowth(previous: MessageItemModel[], next: MessageItemMod
 }
 
 class MessagesList extends LitElement {
-  static properties = {
+  static readonly properties = {
     items: { type: Array },
     thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
   };
@@ -72,7 +72,7 @@ class MessagesList extends LitElement {
   private programmaticScroll = false;
   private scrollTarget: HTMLElement | null = null;
   private scrollFrame = 0;
-  private scrollReleaseTimer = 0;
+  private scrollReleaseTimer: number | undefined;
   private lastScrollAt = 0;
   private readonly handleScroll = () => this.updateAutoScrollState();
 
@@ -162,7 +162,7 @@ class MessagesList extends LitElement {
       this.scrollFrame = 0;
     }
     if (this.scrollReleaseTimer) {
-      window.clearTimeout(this.scrollReleaseTimer);
+      globalThis.clearTimeout(this.scrollReleaseTimer);
       this.scrollReleaseTimer = 0;
     }
   }
@@ -204,7 +204,7 @@ class MessagesList extends LitElement {
   }
 
   private resolveAutoScrollBehavior(): ScrollBehavior {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return 'auto';
     }
 
@@ -221,7 +221,7 @@ class MessagesList extends LitElement {
     target.scrollTo({ top: target.scrollHeight, behavior });
 
     if (this.scrollReleaseTimer) {
-      window.clearTimeout(this.scrollReleaseTimer);
+      globalThis.clearTimeout(this.scrollReleaseTimer);
     }
 
     this.scrollReleaseTimer = window.setTimeout(() => {
