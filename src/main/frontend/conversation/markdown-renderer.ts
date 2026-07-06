@@ -2,9 +2,11 @@ import 'Frontend/shared/code/code-block-viewer.js';
 import DOMPurify from 'dompurify';
 import { LitElement, html, type PropertyValues } from 'lit';
 import { Marked, type HooksObject, type RendererObject, type Tokens } from 'marked';
+import { estimateMarkdownBlockSize } from './markdown-layout-estimate.js';
 
 const MARKDOWN_RENDERER_STYLE_ID = 'markdown-renderer-styles';
 const MARKDOWN_CONTENT_SELECTOR = '[data-markdown-content]';
+const MIN_PENDING_RENDER_BLOCK_SIZE_PX = 480;
 
 type CodeBlock = {
   code: string;
@@ -78,8 +80,8 @@ function ensureMarkdownRendererStyles(): void {
       --mk-table-row-alt-bg: transparent;
       --mk-table-row-hover-bg: color-mix(in srgb, var(--vaadin-text-color) 3%, transparent);
       --mk-table-border: var(--mk-border-strong);
-      --mk-table-code-bg: color-mix(in srgb, var(--aura-red, var(--mk-primary)) 12%, var(--vaadin-background-container));
-      --mk-table-code-text: var(--aura-red, var(--mk-primary));
+      --mk-table-code-bg: var(--mk-inline-code-bg);
+      --mk-table-code-text: var(--mk-inline-code-text);
       --mk-table-cell-min-width: calc(var(--mk-font-size) * 10.5);
       --mk-table-font-size: var(--mk-step-1);
 
@@ -703,6 +705,7 @@ class MarkdownRenderer extends LitElement {
   declare debuggableCodeBlocks: boolean;
 
   private renderFrame = 0;
+  private renderSpaceClearFrame = 0;
   private renderedContent = '';
   private renderedDebuggableCodeBlocks = false;
 
@@ -721,6 +724,11 @@ class MarkdownRenderer extends LitElement {
     if (this.renderFrame) {
       globalThis.cancelAnimationFrame(this.renderFrame);
       this.renderFrame = 0;
+    }
+
+    if (this.renderSpaceClearFrame) {
+      globalThis.cancelAnimationFrame(this.renderSpaceClearFrame);
+      this.renderSpaceClearFrame = 0;
     }
 
     super.disconnectedCallback();
@@ -759,6 +767,13 @@ class MarkdownRenderer extends LitElement {
       globalThis.cancelAnimationFrame(this.renderFrame);
     }
 
+    if (this.shouldReservePendingRenderSpace()) {
+      this.reservePendingRenderSpace();
+    }
+    else {
+      this.clearPendingRenderSpace();
+    }
+
     this.renderFrame = globalThis.requestAnimationFrame(() => {
       this.renderFrame = 0;
       this.renderMarkdown();
@@ -787,6 +802,55 @@ class MarkdownRenderer extends LitElement {
 
     this.renderedContent = this.content;
     this.renderedDebuggableCodeBlocks = this.debuggableCodeBlocks;
+    this.clearPendingRenderSpaceAfterLayout();
+  }
+
+  private shouldReservePendingRenderSpace(): boolean {
+    const nextContent = this.content || '';
+    const previousContent = this.renderedContent || '';
+
+    if (!nextContent.trim()) {
+      return false;
+    }
+
+    if (previousContent && nextContent.startsWith(previousContent)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private reservePendingRenderSpace(): void {
+    if (this.renderSpaceClearFrame) {
+      globalThis.cancelAnimationFrame(this.renderSpaceClearFrame);
+      this.renderSpaceClearFrame = 0;
+    }
+
+    const estimatedBlockSize = estimateMarkdownBlockSize(this.content || '');
+
+    if (estimatedBlockSize < MIN_PENDING_RENDER_BLOCK_SIZE_PX) {
+      this.clearPendingRenderSpace();
+      return;
+    }
+
+    this.style.minBlockSize = `${estimatedBlockSize}px`;
+    this.toggleAttribute('data-pending-render', true);
+  }
+
+  private clearPendingRenderSpaceAfterLayout(): void {
+    if (this.renderSpaceClearFrame) {
+      globalThis.cancelAnimationFrame(this.renderSpaceClearFrame);
+    }
+
+    this.renderSpaceClearFrame = globalThis.requestAnimationFrame(() => {
+      this.renderSpaceClearFrame = 0;
+      this.clearPendingRenderSpace();
+    });
+  }
+
+  private clearPendingRenderSpace(): void {
+    this.style.removeProperty('min-block-size');
+    this.removeAttribute('data-pending-render');
   }
 
   private bindCodeBlocks(target: HTMLElement, blocks: CodeBlock[]): void {

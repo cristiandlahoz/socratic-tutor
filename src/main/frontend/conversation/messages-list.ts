@@ -42,8 +42,8 @@ class MessagesList extends LitElement {
   private readonly rapidScrollIntervalMs = 120;
   private readonly nativeSmoothReleaseMs = 320;
 
-  private readonly landingDistancePx = 360;
-  private readonly landingDurationMs = 360;
+  private readonly landingDistancePx = 720;
+  private readonly landingDurationMs = 820;
   private readonly landingReleaseDelayMs = 40;
   private readonly settleFrames = 2;
 
@@ -227,7 +227,7 @@ class MessagesList extends LitElement {
       return;
     }
 
-    this.scheduleJumpToBottom();
+    this.jumpToBottom();
   }
 
   private shouldAutoScroll(): boolean {
@@ -269,30 +269,25 @@ class MessagesList extends LitElement {
     });
   }
 
-  private scheduleJumpToBottom(): void {
-    this.cancelScheduledScroll();
-
-    this.scrollFrame = globalThis.requestAnimationFrame(() => {
-      this.scrollFrame = 0;
-      this.jumpToBottom();
-    });
-  }
-
   private followBottom(): void {
     this.autoScrollEnabled = true;
     this.programmaticScroll = true;
 
     if (this.shouldUseNativeSmoothScroll()) {
       this.nativeSmoothToBottom();
+      this.scheduleSettle();
       this.releaseProgrammaticScrollAfter(this.nativeSmoothReleaseMs);
       return;
     }
 
     this.jumpToBottom();
+    this.scheduleSettle();
     this.releaseProgrammaticScrollAfter(0);
   }
 
   private landAtBottom(): void {
+    this.attachScrollTarget();
+
     this.autoScrollEnabled = true;
     this.programmaticScroll = true;
 
@@ -306,18 +301,30 @@ class MessagesList extends LitElement {
       return;
     }
 
-    target.scrollTop = Math.min(bottom, Math.max(target.scrollTop, bottom - this.landingDistancePx));
+    target.scrollTop = this.landingStartScrollTop(bottom);
     this.animateLanding(target);
+  }
+
+  private landingStartScrollTop(bottom: number): number {
+    const target = this.scrollTarget ?? this.resolveScrollTarget();
+    const landingDistance = Math.max(this.landingDistancePx, target.clientHeight * 1.05);
+
+    return Math.max(0, bottom - landingDistance);
   }
 
   private animateLanding(target: HTMLElement): void {
     const startedAt = globalThis.performance.now();
-    const startTop = target.scrollTop;
+    let startTop = target.scrollTop;
 
     const step = (now: number): void => {
       const progress = Math.min((now - startedAt) / this.landingDurationMs, 1);
       const bottom = this.bottomScrollTop(target);
-      const easedProgress = this.easeOutCubic(progress);
+
+      if (startTop > bottom) {
+        startTop = this.landingStartScrollTop(bottom);
+      }
+
+      const easedProgress = this.easeOutSine(progress);
 
       target.scrollTop = startTop + (bottom - startTop) * easedProgress;
 
@@ -445,8 +452,8 @@ class MessagesList extends LitElement {
     return globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
-  private easeOutCubic(progress: number): number {
-    return 1 - (1 - progress) ** 3;
+  private easeOutSine(progress: number): number {
+    return Math.sin((progress * Math.PI) / 2);
   }
 
   private renderMessage(item: MessageItemModel) {
