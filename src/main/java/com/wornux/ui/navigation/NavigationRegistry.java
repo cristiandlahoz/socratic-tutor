@@ -5,6 +5,7 @@ import java.util.List;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.router.QueryParameters;
 import com.wornux.data.entities.identity.ContextLevel;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.ui.admin.SystemAdminWorkspaceView;
@@ -17,6 +18,8 @@ import com.wornux.ui.rbac.TenantMemberRoleAssignmentView;
 import com.wornux.ui.student.StudentWorkspaceView;
 import com.wornux.ui.tenant.TenantAdminWorkspaceView;
 import com.wornux.ui.training_activity.TrainingActivityView;
+
+import org.hibernate.query.internal.QueryParameterBindingImpl;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -65,7 +68,7 @@ public class NavigationRegistry {
                 AppPermission.ROLE_ASSIGN,
                 26),
         new NavigationEntry("Conversación",
-                ConversationView.class,
+                        new NavigationEntry.RouteTarget(ConversationView.class,QueryParameters.of("draft", "new")),
                 () -> new SvgIcon("/icons/pencil.svg"),
                 ContextLevel.GROUP_CLASS,
                 AppPermission.CONVERSATION_VIEW,

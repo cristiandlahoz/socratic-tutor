@@ -24,11 +24,11 @@ public class WorkspaceDrawerNavigation extends Div {
     }
 
     private RouterLink createNavigationButton(
-            Class<? extends Component> navigationTarget,
+            NavigationEntry.RouteTarget navigationTarget,
             String label,
             Component iconComponent) {
         var link = new RouterLink();
-        link.setRoute(navigationTarget);
+        navigationTarget.setRouteOn(link);
         UiCss.SIDEBAR_ACTIONS_ITEM_LINK.addTo(link);
         link.getElement().setAttribute("aria-label", label);
         link.add(new SidebarItem(iconComponent, label));
