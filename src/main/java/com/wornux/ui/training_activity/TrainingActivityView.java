@@ -31,7 +31,6 @@ import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.training_activity.TrainingActivity;
-import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.context.SetupRequiredException;

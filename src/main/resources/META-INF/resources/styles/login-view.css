@@ -17,26 +17,6 @@
   grid-template-columns: minmax(0, 1.22fr) minmax(22rem, 0.78fr);
 }
 
-.login-view__shell::before,
-.login-view__shell::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.login-view__shell::before {
-  inset: 1px 0 auto;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--vaadin-border-color), transparent);
-}
-
-.login-view__shell::after {
-  inset: auto 0 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--vaadin-border-color-secondary), transparent);
-}
-
 .login-view__brand {
   position: relative;
   min-width: 0;
@@ -55,30 +35,6 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-}
-
-.login-view__brand::before {
-  background:
-    repeating-linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--vaadin-border-color) 50%, transparent) 0 1px,
-      transparent 1px 15px
-    ) 0 0 / min(22vw, 19rem) 100% repeat-x,
-    repeating-linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--vaadin-border-color) 26%, transparent) 0 1px,
-      transparent 1px 15px
-    ) 0 0 / 100% min(18vh, 11rem) repeat-y;
-  mask-image: linear-gradient(90deg, transparent, var(--color-black) 12%, var(--color-black) 88%, transparent);
-  opacity: 0.5;
-}
-
-.login-view__brand::after {
-  background:
-    linear-gradient(180deg, transparent, color-mix(in srgb, var(--theme-border-strong) 70%, transparent), transparent) 24% 16% / 1px 10.5rem no-repeat,
-    linear-gradient(180deg, transparent, color-mix(in srgb, var(--theme-border-strong) 62%, transparent), transparent) 52% 54% / 1px 8.25rem no-repeat,
-    linear-gradient(180deg, transparent, color-mix(in srgb, var(--theme-border-strong) 54%, transparent), transparent) 78% 24% / 1px 6.75rem no-repeat;
-  opacity: 0.72;
 }
 
 .login-view__brand-copy {
@@ -104,7 +60,7 @@
   max-width: 18ch;
   margin: 0;
   color: var(--vaadin-text-color);
-  font-family: var(--aura-font-family);
+  font-family: "Stardom-Regular", var(--aura-font-family);
   font-size: clamp(2.55rem, 4.8vw, 4rem);
   font-weight: var(--aura-font-weight-semibold);
   letter-spacing: var(--display-letter-spacing);
@@ -116,7 +72,7 @@
   max-width: 44rem;
   margin: 0;
   color: color-mix(in srgb, var(--vaadin-text-color) 80%, var(--vaadin-text-color-secondary));
-  font-family: var(--aura-font-family);
+  font-family: "Satoshi-LightItalic", var(--aura-font-family);
   font-size: clamp(0.96rem, 1.08vw, 1.08rem);
   line-height: 1.48;
   text-wrap: pretty;
