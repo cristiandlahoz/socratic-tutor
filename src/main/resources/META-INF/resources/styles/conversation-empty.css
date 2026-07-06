@@ -44,19 +44,27 @@
 .conversation-empty__title {
   margin: 0;
   max-width: 14ch;
-  font-family: var(--aura-font-family);
+  font-family: "Boska-Regular", var(--aura-font-family);
   font-size: clamp(2.2rem, 9.2vw, 3rem);
   line-height: 0.94;
-  font-weight: var(--aura-font-weight-semibold);
+  font-weight: 400;
   letter-spacing: var(--display-letter-spacing);
   color: var(--vaadin-text-color);
   text-wrap: balance;
 }
 
+.conversation-empty__title-italic {
+  color: light-dark(color(srgb 0.918627 0.952549 0.914902), var(--aura-accent-text-color));
+  font-family: "Boska-Italic", "Boska-Regular", var(--aura-font-family);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+
 .conversation-empty__description {
   margin: 0;
   max-width: 32rem;
-  font-family: var(--aura-font-family);
+  font-family: "Satoshi-Regular", var(--aura-font-family);
   font-size: clamp(0.96rem, 1.08vw, 1.02rem);
   line-height: 1.38;
   font-weight: var(--aura-font-weight-regular);

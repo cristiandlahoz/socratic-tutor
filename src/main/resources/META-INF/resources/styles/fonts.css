@@ -207,3 +207,170 @@
   font-display: swap;
   font-style: italic;
 }
+
+/**
+* @license
+*
+* Font Family: Boska
+* Designed by: Barbara Bigosinska
+* URL: https://www.fontshare.com/fonts/boska
+* © 2026 Indian Type Foundry
+*
+* Boska Extralight
+* Boska ExtralightItalic
+* Boska Light
+* Boska LightItalic
+* Boska Regular
+* Boska Italic
+* Boska Medium
+* Boska MediumItalic
+* Boska Bold
+* Boska BoldItalic
+* Boska Black
+* Boska BlackItalic
+* Boska Variable (Variable font)
+* Boska VariableItalic (Variable font)
+*
+*/
+@font-face {
+  font-family: 'Boska-Extralight';
+  src: url('/fonts/boska/Boska-Extralight.woff2') format('woff2'),
+       url('/fonts/boska/Boska-Extralight.woff') format('woff'),
+       url('/fonts/boska/Boska-Extralight.ttf') format('truetype');
+  font-weight: 200;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Boska-ExtralightItalic';
+  src: url('/fonts/boska/Boska-ExtralightItalic.woff2') format('woff2'),
+       url('/fonts/boska/Boska-ExtralightItalic.woff') format('woff'),
+       url('/fonts/boska/Boska-ExtralightItalic.ttf') format('truetype');
+  font-weight: 200;
+  font-display: swap;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Boska-Light';
+  src: url('/fonts/boska/Boska-Light.woff2') format('woff2'),
+       url('/fonts/boska/Boska-Light.woff') format('woff'),
+       url('/fonts/boska/Boska-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Boska-LightItalic';
+  src: url('/fonts/boska/Boska-LightItalic.woff2') format('woff2'),
+       url('/fonts/boska/Boska-LightItalic.woff') format('woff'),
+       url('/fonts/boska/Boska-LightItalic.ttf') format('truetype');
+  font-weight: 300;
+  font-display: swap;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Boska-Regular';
+  src: url('/fonts/boska/Boska-Regular.woff2') format('woff2'),
+       url('/fonts/boska/Boska-Regular.woff') format('woff'),
+       url('/fonts/boska/Boska-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Boska-Italic';
+  src: url('/fonts/boska/Boska-Italic.woff2') format('woff2'),
+       url('/fonts/boska/Boska-Italic.woff') format('woff'),
+       url('/fonts/boska/Boska-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Boska-Medium';
+  src: url('/fonts/boska/Boska-Medium.woff2') format('woff2'),
+       url('/fonts/boska/Boska-Medium.woff') format('woff'),
+       url('/fonts/boska/Boska-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Boska-MediumItalic';
+  src: url('/fonts/boska/Boska-MediumItalic.woff2') format('woff2'),
+       url('/fonts/boska/Boska-MediumItalic.woff') format('woff'),
+       url('/fonts/boska/Boska-MediumItalic.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Boska-Bold';
+  src: url('/fonts/boska/Boska-Bold.woff2') format('woff2'),
+       url('/fonts/boska/Boska-Bold.woff') format('woff'),
+       url('/fonts/boska/Boska-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Boska-BoldItalic';
+  src: url('/fonts/boska/Boska-BoldItalic.woff2') format('woff2'),
+       url('/fonts/boska/Boska-BoldItalic.woff') format('woff'),
+       url('/fonts/boska/Boska-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Boska-Black';
+  src: url('/fonts/boska/Boska-Black.woff2') format('woff2'),
+       url('/fonts/boska/Boska-Black.woff') format('woff'),
+       url('/fonts/boska/Boska-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Boska-BlackItalic';
+  src: url('/fonts/boska/Boska-BlackItalic.woff2') format('woff2'),
+       url('/fonts/boska/Boska-BlackItalic.woff') format('woff'),
+       url('/fonts/boska/Boska-BlackItalic.ttf') format('truetype');
+  font-weight: 900;
+  font-display: swap;
+  font-style: italic;
+}
+/**
+* This is a variable font
+* You can control variable axes as shown below:
+* font-variation-settings: wght 200.0;
+*
+* available axes:
+'wght' (range from 200.0 to 900.0)
+*/
+@font-face {
+  font-family: 'Boska-Variable';
+  src: url('/fonts/boska/Boska-Variable.woff2') format('woff2'),
+       url('/fonts/boska/Boska-Variable.woff') format('woff'),
+       url('/fonts/boska/Boska-Variable.ttf') format('truetype');
+  font-weight: 200 900;
+  font-display: swap;
+  font-style: normal;
+}
+/**
+* This is a variable font
+* You can control variable axes as shown below:
+* font-variation-settings: wght 200.0;
+*
+* available axes:
+'wght' (range from 200.0 to 900.0)
+*/
+@font-face {
+  font-family: 'Boska-VariableItalic';
+  src: url('/fonts/boska/Boska-VariableItalic.woff2') format('woff2'),
+       url('/fonts/boska/Boska-VariableItalic.woff') format('woff'),
+       url('/fonts/boska/Boska-VariableItalic.ttf') format('truetype');
+  font-weight: 200 900;
+  font-display: swap;
+  font-style: italic;
+}

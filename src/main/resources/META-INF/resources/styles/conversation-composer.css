@@ -102,6 +102,7 @@ vaadin-text-area.conversation-composer__input::part(input-field) {
   min-height: 7.5rem;
   max-height: 30vh;
   margin-top: var(--composer-header-height);
+  padding-left: calc(var(--vaadin-padding-m) + 1.35rem);
   scrollbar-width: none;
   background: transparent;
   border: 0;
@@ -196,6 +197,20 @@ vaadin-text-area.conversation-composer__input[has-error-message] > [slot="error-
 
 .conversation-composer__model-status.is-checking::before {
   background: var(--aura-orange);
+}
+
+.conversation-composer__prompt-prefix {
+  position: absolute;
+  top: calc(var(--composer-header-height) + 0.48rem);
+  left: var(--vaadin-padding-m);
+  z-index: 3;
+  color: light-dark(color(srgb 0.918627 0.952549 0.914902), var(--aura-accent-text-color));
+  font-family: var(--aura-font-family);
+  font-size: var(--code-text-size);
+  font-weight: var(--aura-font-weight-semibold);
+  line-height: var(--code-line-height);
+  pointer-events: none;
+  user-select: none;
 }
 
 vaadin-text-area.conversation-composer__input>textarea {

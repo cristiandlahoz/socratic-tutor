@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 
 import com.vaadin.flow.component.Composite;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -194,18 +195,16 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         var animationFrame = new Div(animation);
         UiCss.CONVERSATION_EMPTY_FRAME.addTo(animationFrame);
 
-        var title = new H2("Haz tu primera pregunta");
+        var title = new H2();
         UiCss.CONVERSATION_EMPTY_TITLE.addTo(title);
+        setEmptyStateTitle(title, false);
 
         var description = new Paragraph(
                 "Escribe una pregunta y el tutor te ayudará a razonar paso a paso, aclarar conceptos y practicar con ejemplos.");
         UiCss.CONVERSATION_EMPTY_DESCRIPTION.addTo(description);
         com.vaadin.flow.signals.Signal.effect(
             title,
-            () -> title.setText(
-                Boolean.TRUE.equals(chatState.setupRequired().get())
-                        ? "Configuración académica requerida"
-                        : "Haz tu primera pregunta"));
+            () -> setEmptyStateTitle(title, Boolean.TRUE.equals(chatState.setupRequired().get())));
         com.vaadin.flow.signals.Signal.effect(
             description,
             () -> description.setText(
@@ -217,6 +216,21 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
         emptyState.add(contentRow);
         return emptyState;
+    }
+
+    private static void setEmptyStateTitle(H2 title, boolean setupRequired) {
+        title.removeAll();
+        if (setupRequired) {
+            title.add(new Text("Configuración "), italicTitleWord("académica"), new Text(" requerida"));
+            return;
+        }
+        title.add(italicTitleWord("Haz"), new Text(" tu primera pregunta"));
+    }
+
+    private static Span italicTitleWord(String text) {
+        var word = new Span(text);
+        UiCss.CONVERSATION_EMPTY_TITLE_ITALIC.addTo(word);
+        return word;
     }
 
     private static @NonNull HorizontalLayout getContentRow(H2 title, Paragraph description, Div animationFrame) {

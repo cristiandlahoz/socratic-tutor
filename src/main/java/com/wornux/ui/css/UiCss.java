@@ -70,6 +70,7 @@ public final class UiCss {
     public static final CssClass CONVERSATION_EMPTY_FRAME = css("conversation-empty__frame");
     public static final CssClass CONVERSATION_EMPTY_ILLUSTRATION = css("conversation-empty__illustration");
     public static final CssClass CONVERSATION_EMPTY_TITLE = css("conversation-empty__title");
+    public static final CssClass CONVERSATION_EMPTY_TITLE_ITALIC = css("conversation-empty__title-italic");
     public static final CssClass CONVERSATION_EMPTY_DESCRIPTION = css("conversation-empty__description");
     public static final CssClass CONVERSATION_COMPOSER = css("conversation-composer");
     public static final CssClass CONVERSATION_COMPOSER_QUESTION_MODE = css("conversation-composer--question-mode");

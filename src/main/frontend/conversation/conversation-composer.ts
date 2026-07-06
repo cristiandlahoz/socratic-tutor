@@ -42,12 +42,13 @@ class ConversationComposer extends LitElement {
         ?disabled=${!this.composerEnabled}
         maxlength=${this.promptLimit}
         helper-text=${this.helperText()}
-        placeholder="~"
+        placeholder=""
         aria-label="Escribe tu mensaje aquí"
         @value-changed=${this.handleValueChanged}
         @keydown=${this.handleKeyDown}
       ></vaadin-text-area>
       <span class=${this.modelStatusClass()} aria-live="polite">${this.modelStatusLabel()}</span>
+      <span class="conversation-composer__prompt-prefix" aria-hidden="true">~</span>
       <vaadin-button
         class="conversation-composer__send-button"
         aria-label="Enviar mensaje"
