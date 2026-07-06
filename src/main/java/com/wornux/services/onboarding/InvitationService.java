@@ -27,7 +27,7 @@ import com.wornux.data.repositories.identity.TenantAccountRepository;
 import com.wornux.data.repositories.identity.TenantRepository;
 import com.wornux.data.repositories.onboarding.InvitationRepository;
 import com.wornux.services.email.EmailSendException;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.security.RoleNamespaceService;
 import com.wornux.services.workspace.WorkspaceDecision;
 import com.wornux.services.workspace.WorkspaceRoutingService;
@@ -52,7 +52,7 @@ public class InvitationService {
     private final InvitationEmailService invitationEmailService;
     private final OnboardingSessionContext onboardingSessionContext;
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final RoleNamespaceService roleNamespaceService;
 
@@ -71,7 +71,7 @@ public class InvitationService {
             InvitationEmailService invitationEmailService,
             OnboardingSessionContext onboardingSessionContext,
             PasswordEncoder passwordEncoder,
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
             RoleNamespaceService roleNamespaceService) {
         this.emailProperties = emailProperties;
@@ -88,7 +88,7 @@ public class InvitationService {
         this.invitationEmailService = invitationEmailService;
         this.onboardingSessionContext = onboardingSessionContext;
         this.passwordEncoder = passwordEncoder;
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.roleNamespaceService = roleNamespaceService;
     }
@@ -196,7 +196,7 @@ public class InvitationService {
 
     @Transactional
     public WorkspaceDecision completePendingInvitationForCurrentAccount() {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!onboardingSessionContext.hasActiveInvitation()) {
             return workspaceRoutingService.resolveForAccount(account);
         }

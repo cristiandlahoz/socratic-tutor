@@ -36,7 +36,7 @@ import com.wornux.data.entities.academic.Subject;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleTenant;
 import com.wornux.services.workspace.TenantAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -54,7 +54,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final TenantAdminWorkspaceService tenantAdminWorkspaceService;
     private final ComboBox<AccessibleTenant> tenantSelector = new ComboBox<>("Contexto institucional");
@@ -66,10 +66,10 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private List<AcademicPeriod> activePeriods = List.of();
 
     public TenantAdminWorkspaceView(
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
             TenantAdminWorkspaceService tenantAdminWorkspaceService) {
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.tenantAdminWorkspaceService = tenantAdminWorkspaceService;
 
@@ -87,7 +87,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.TENANT_ADMIN)) {
             event.forwardTo(NoAccessView.class);
             return;
@@ -358,7 +358,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     }
 
     private void refresh() {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         var tenants = tenantAdminWorkspaceService.listAccessibleTenants(account);
         tenantSelector.setItems(tenants);
         var selectedTenant = determineSelectedTenant(tenants, tenantSelector.getValue(), account);
@@ -401,7 +401,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         if (tenant == null) {
             return;
         }
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         workspaceRoutingService.switchTenant(account, tenant.tenantAccountId());
         refresh();
     }
@@ -409,7 +409,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onCreatePeriod(Dialog dialog, TextField code, TextField name, DatePicker startsAt, DatePicker endsAt) {
         try {
             tenantAdminWorkspaceService.createPeriod(
-                authenticatedAccountService.requireCurrentAccount(),
+                authenticatedUserContextUtils.requireCurrentAccount(),
                 code.getValue(),
                 name.getValue(),
                 startsAt.getValue(),
@@ -426,7 +426,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onCreateSubject(Dialog dialog, TextField code, TextField name) {
         try {
             tenantAdminWorkspaceService.createSubject(
-                authenticatedAccountService.requireCurrentAccount(),
+                authenticatedUserContextUtils.requireCurrentAccount(),
                 code.getValue(),
                 name.getValue());
             dialog.close();
@@ -446,7 +446,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
             TextField name) {
         try {
             tenantAdminWorkspaceService.createGroupClass(
-                authenticatedAccountService.requireCurrentAccount(),
+                authenticatedUserContextUtils.requireCurrentAccount(),
                 subject.getValue().getId(),
                 period.getValue().getId(),
                 code.getValue(),
@@ -463,7 +463,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onInviteProfessor(Dialog dialog, GroupClass groupClass, EmailField professorEmailField) {
         try {
             tenantAdminWorkspaceService.inviteProfessor(
-                authenticatedAccountService.requireCurrentAccount(),
+                authenticatedUserContextUtils.requireCurrentAccount(),
                 groupClass.getId(),
                 professorEmailField.getValue());
             dialog.close();

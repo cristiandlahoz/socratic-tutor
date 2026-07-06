@@ -18,7 +18,7 @@ import com.wornux.data.entities.identity.Account;
 import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
@@ -33,12 +33,12 @@ class RouteAccessViewTest {
 
     @Test
     void chatAllowsStudentAccess() {
-        var authenticatedAccountService = mock(AuthenticatedAccountService.class);
+        var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
         var viewModel = mock(ConversationViewModel.class);
         var event = mock(BeforeEnterEvent.class);
         var account = mock(Account.class);
-        when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
+        when(authenticatedUserContextUtils.requireCurrentAccount()).thenReturn(account);
         when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
         when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)).thenReturn(true);
         when(workspaceRoutingService.currentClassMembership(account, null))
@@ -53,7 +53,7 @@ class RouteAccessViewTest {
                 mock(CProgramDebugService.class),
                 mock(CExamplePreparationService.class),
                 mock(Executor.class),
-                authenticatedAccountService,
+                authenticatedUserContextUtils,
                 workspaceRoutingService,
                 mock(ModelAvailabilityService.class));
 
@@ -64,12 +64,12 @@ class RouteAccessViewTest {
 
     @Test
     void chatAllowsProfessorAccess() {
-        var authenticatedAccountService = mock(AuthenticatedAccountService.class);
+        var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
         var viewModel = mock(ConversationViewModel.class);
         var event = mock(BeforeEnterEvent.class);
         var account = mock(Account.class);
-        when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
+        when(authenticatedUserContextUtils.requireCurrentAccount()).thenReturn(account);
         when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR)).thenReturn(true);
         when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)).thenReturn(false);
         when(workspaceRoutingService.currentClassMembership(account, null))
@@ -84,7 +84,7 @@ class RouteAccessViewTest {
                 mock(CProgramDebugService.class),
                 mock(CExamplePreparationService.class),
                 mock(Executor.class),
-                authenticatedAccountService,
+                authenticatedUserContextUtils,
                 workspaceRoutingService,
                 mock(ModelAvailabilityService.class));
 
@@ -95,18 +95,18 @@ class RouteAccessViewTest {
 
     @Test
     void documentsDenyStudentAccess() {
-        var authenticatedAccountService = mock(AuthenticatedAccountService.class);
+        var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
         var controller = mock(DocumentIngestionUiController.class);
         var event = mock(BeforeEnterEvent.class);
         var account = mock(Account.class);
-        when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
+        when(authenticatedUserContextUtils.requireCurrentAccount()).thenReturn(account);
         when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
 
         var view = new DocumentIngestionView(controller,
                 new DocumentIngestionState(),
                 new DocumentIngestionProperties(),
-                authenticatedAccountService,
+                authenticatedUserContextUtils,
                 workspaceRoutingService);
 
         view.beforeEnter(event);
@@ -116,16 +116,16 @@ class RouteAccessViewTest {
 
     @Test
     void trainingActivitiesDenyStudentAccess() {
-        var authenticatedAccountService = mock(AuthenticatedAccountService.class);
+        var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
         var trainingActivityService = mock(TrainingActivityService.class);
         var event = mock(BeforeEnterEvent.class);
         var account = mock(Account.class);
-        when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
+        when(authenticatedUserContextUtils.requireCurrentAccount()).thenReturn(account);
         when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
 
         var view =
-                new TrainingActivityView(trainingActivityService, workspaceRoutingService, authenticatedAccountService);
+                new TrainingActivityView(trainingActivityService, workspaceRoutingService, authenticatedUserContextUtils);
 
         view.beforeEnter(event);
 

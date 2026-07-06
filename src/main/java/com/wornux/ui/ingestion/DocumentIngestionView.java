@@ -32,7 +32,7 @@ import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.document.CourseMaterialCatalog;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
@@ -57,17 +57,17 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
     private final Button approveButton;
     private final Button retryButton;
     private final Button deleteButton;
-    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient WorkspaceRoutingService workspaceRoutingService;
 
     public DocumentIngestionView(
             @RouteScopeOwner(MainLayout.class) DocumentIngestionUiController controller,
             @RouteScopeOwner(MainLayout.class) DocumentIngestionState state,
             DocumentIngestionProperties properties,
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService) {
         this.controller = controller;
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
 
         var eyebrow = new Span("Document ETL");
@@ -193,7 +193,7 @@ public class DocumentIngestionView extends Composite<Div> implements BeforeEnter
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
             event.forwardTo(NoAccessView.class);
         }

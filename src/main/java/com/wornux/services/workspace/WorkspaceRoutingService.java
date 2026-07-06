@@ -20,16 +20,14 @@ import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.AccountContextPreferenceRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
-import com.wornux.services.security.AuthenticatedAccountService;
-import com.wornux.services.security.AuthenticatedUserContext;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class WorkspaceRoutingService {
 
-    private final AuthenticatedAccountService authenticatedAccountService;
-    private final AuthenticatedUserContext authenticatedUserContext;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final AccountRepository accountRepository;
     private final TenantAccountRepository tenantAccountRepository;
     private final AccountContextPreferenceRepository accountContextPreferenceRepository;
@@ -38,16 +36,14 @@ public class WorkspaceRoutingService {
     private final GroupClassMemberRepository groupClassMemberRepository;
 
     public WorkspaceRoutingService(
-            AuthenticatedAccountService authenticatedAccountService,
-            AuthenticatedUserContext authenticatedUserContext,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             AccountRepository accountRepository,
             TenantAccountRepository tenantAccountRepository,
             AccountContextPreferenceRepository accountContextPreferenceRepository,
             AccountPlatformRoleRepository accountPlatformRoleRepository,
             TenantAccountRoleRepository tenantAccountRoleRepository,
             GroupClassMemberRepository groupClassMemberRepository) {
-        this.authenticatedAccountService = authenticatedAccountService;
-        this.authenticatedUserContext = authenticatedUserContext;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.accountRepository = accountRepository;
         this.tenantAccountRepository = tenantAccountRepository;
         this.accountContextPreferenceRepository = accountContextPreferenceRepository;
@@ -58,7 +54,7 @@ public class WorkspaceRoutingService {
 
     @Transactional(readOnly = true)
     public WorkspaceDecision resolveCurrentUserDestination() {
-        return authenticatedAccountService.currentAccount()
+        return authenticatedUserContextUtils.currentAccount()
                 .map(this::resolveForAccount)
                 .orElse(new WorkspaceDecision(WorkspaceDestination.NO_ACCESS, null, null));
     }
@@ -156,7 +152,7 @@ public class WorkspaceRoutingService {
         var tenantAccount = tenantAccountRepository.findByIdAndAccount_Id(tenantAccountId, account.getId())
                 .orElseThrow(() -> new SecurityException("The tenant context is not available for this account."));
         setContext(account, ContextLevel.TENANT, tenantAccount.getTenant(), null);
-        authenticatedUserContext.refreshCurrentAuthentication(account.getId());
+        authenticatedUserContextUtils.refreshCurrentAuthentication(account.getId());
     }
 
     @Transactional
@@ -167,7 +163,7 @@ public class WorkspaceRoutingService {
             throw new SecurityException("The class context is not available for this account.");
         }
         setClassContext(account, membership);
-        authenticatedUserContext.refreshCurrentAuthentication(account.getId());
+        authenticatedUserContextUtils.refreshCurrentAuthentication(account.getId());
     }
 
     @Transactional(readOnly = true)

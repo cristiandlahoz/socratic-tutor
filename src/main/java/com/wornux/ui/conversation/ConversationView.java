@@ -33,7 +33,7 @@ import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
@@ -58,7 +58,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private final StudentQuestionPanel questionPanel;
     private final DebuggerPanel debuggerPanel;
     private final SplitLayout splitLayout;
-    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient WorkspaceRoutingService workspaceRoutingService;
     private transient AutoCloseable modelAvailabilitySubscription;
     private boolean debuggerVisible;
@@ -70,11 +70,11 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             CProgramDebugService cProgramDebugService,
             CExamplePreparationService cExamplePreparationService,
             @Qualifier("cRunnerExecutor") Executor cRunnerExecutor,
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
             ModelAvailabilityService modelAvailabilityService) {
         this.viewModel = viewModel;
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         bindModelAvailability(state, modelAvailabilityService);
         this.viewModel.bindTurnUiAnchor(this);
@@ -159,7 +159,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         var hasProfessorAccess = workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.PROFESSOR);
         var hasStudentAccess = workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT);
         if (!hasProfessorAccess && !hasStudentAccess) {

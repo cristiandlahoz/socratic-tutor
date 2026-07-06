@@ -13,7 +13,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.ui.conversation.AsciiFrameAnimation;
 import com.wornux.ui.css.UiCss;
 
@@ -23,10 +23,10 @@ import com.wornux.ui.css.UiCss;
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     private final LoginForm login = new LoginForm();
-    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
 
-    public LoginView(AuthenticatedAccountService authenticatedAccountService) {
-        this.authenticatedAccountService = authenticatedAccountService;
+    public LoginView(AuthenticatedUserContextUtils authenticatedUserContextUtils) {
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         UiCss.LOGIN_VIEW.addTo(this);
         setSizeFull();
         setPadding(false);
@@ -144,7 +144,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent beforeEnterEvent) {
-        if (authenticatedAccountService.currentAccount().isPresent()) {
+        if (authenticatedUserContextUtils.currentAccount().isPresent()) {
             beforeEnterEvent.forwardTo(LandingView.class);
             return;
         }

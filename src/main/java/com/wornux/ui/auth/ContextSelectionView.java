@@ -12,7 +12,7 @@ import com.wornux.data.entities.identity.Account;
 import com.wornux.services.context.AvailableContextOption;
 import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionService;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
@@ -22,7 +22,7 @@ import jakarta.annotation.security.PermitAll;
 public class ContextSelectionView extends VerticalLayout {
 
     public ContextSelectionView(
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             ContextDiscoveryService contextDiscoveryService,
             ContextSelectionService contextSelectionService) {
         UiCss.ONBOARDING_VIEW.addTo(this);
@@ -30,7 +30,7 @@ public class ContextSelectionView extends VerticalLayout {
         setJustifyContentMode(JustifyContentMode.CENTER);
         setDefaultHorizontalComponentAlignment(Alignment.CENTER);
 
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         var title = new H1("Elige dónde trabajar");
         var description = new Paragraph("Tu navegación y permisos se ajustarán al contexto seleccionado.");
         var cards = new Div();

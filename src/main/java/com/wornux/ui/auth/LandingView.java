@@ -15,7 +15,7 @@ import com.wornux.ui.admin.SystemAdminWorkspaceView;
 import com.wornux.ui.professor.ProfessorWorkspaceView;
 import com.wornux.ui.student.StudentWorkspaceView;
 import com.wornux.ui.tenant.TenantAdminWorkspaceView;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "", autoLayout = false)
@@ -25,17 +25,17 @@ public class LandingView extends Div implements BeforeEnterObserver {
 
     private final transient InvitationService invitationService;
     private final transient OnboardingSessionContext onboardingSessionContext;
-    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient ContextSelectionService contextSelectionService;
 
     public LandingView(
             InvitationService invitationService,
             OnboardingSessionContext onboardingSessionContext,
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             ContextSelectionService contextSelectionService) {
         this.invitationService = invitationService;
         this.onboardingSessionContext = onboardingSessionContext;
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.contextSelectionService = contextSelectionService;
     }
 
@@ -57,7 +57,7 @@ public class LandingView extends Div implements BeforeEnterObserver {
             }
         }
 
-        switch (contextSelectionService.resolveLoginContext(authenticatedAccountService.requireCurrentAccount())) {
+        switch (contextSelectionService.resolveLoginContext(authenticatedUserContextUtils.requireCurrentAccount())) {
             case ContextSelectionResult.NoAccess _ -> event.forwardTo(NoAccessView.class);
             case ContextSelectionResult.SelectionRequired _ -> event.forwardTo(ContextSelectionView.class);
             case ContextSelectionResult.Selected (var option) -> event.forwardTo(contextSelectionService.defaultRoute(option));

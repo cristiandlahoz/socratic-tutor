@@ -22,7 +22,7 @@ import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -39,7 +39,7 @@ import jakarta.annotation.security.PermitAll;
 @RequiresPermission(AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW)
 public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
 
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
@@ -47,10 +47,10 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
             new Grid<>(TrainingActivityAssignment.class, false);
 
     public StudentWorkspaceView(
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
             StudentWorkspaceService studentWorkspaceService) {
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.studentWorkspaceService = studentWorkspaceService;
 
@@ -68,7 +68,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT)) {
             event.forwardTo(NoAccessView.class);
             return;
@@ -186,7 +186,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     }
 
     private void refresh() {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         var classes = studentWorkspaceService.listStudentClasses(account);
         classSelector.setItems(classes);
         if (!classes.isEmpty() && classSelector.getValue() == null) {
@@ -200,7 +200,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
             return;
         }
         studentWorkspaceService
-                .switchClass(authenticatedAccountService.requireCurrentAccount(), accessibleClass.groupClassMemberId());
+                .switchClass(authenticatedUserContextUtils.requireCurrentAccount(), accessibleClass.groupClassMemberId());
         refresh();
     }
 }

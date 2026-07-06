@@ -5,7 +5,7 @@ import java.util.Optional;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.identity.AccountContextPreferenceRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
-import com.wornux.services.security.AuthenticatedUserContext;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,19 +16,19 @@ public class ActiveAcademicContextResolver {
     private static final String SETUP_REQUIRED_MESSAGE =
             "Academic setup is required before using persisted tutor features.";
 
-    private final AuthenticatedUserContext authenticatedUserContext;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final AccountContextPreferenceRepository accountContextPreferenceRepository;
     private final TenantAccountRepository tenantAccountRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
     private final ActiveAcademicContextResolver self;
 
     public ActiveAcademicContextResolver(
-            AuthenticatedUserContext authenticatedUserContext,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             AccountContextPreferenceRepository accountContextPreferenceRepository,
             TenantAccountRepository tenantAccountRepository,
             GroupClassMemberRepository groupClassMemberRepository,
             @Lazy ActiveAcademicContextResolver self) {
-        this.authenticatedUserContext = authenticatedUserContext;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.accountContextPreferenceRepository = accountContextPreferenceRepository;
         this.tenantAccountRepository = tenantAccountRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
@@ -37,7 +37,7 @@ public class ActiveAcademicContextResolver {
 
     @Transactional(readOnly = true)
     public Optional<ActiveAcademicContext> resolveCurrent() {
-        return authenticatedUserContext.currentAccount()
+        return authenticatedUserContextUtils.currentAccount()
                 .flatMap(
                     account -> accountContextPreferenceRepository.findById(account.getId())
                             .filter(preference -> preference.getTenant() != null && preference.getGroupClass() != null)

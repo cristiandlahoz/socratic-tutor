@@ -17,7 +17,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.wornux.services.onboarding.InvitationService;
 import com.wornux.services.onboarding.InvitationStateException;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.ui.admin.SystemAdminWorkspaceView;
 import com.wornux.ui.css.UiCss;
@@ -31,7 +31,7 @@ import com.wornux.ui.tenant.TenantAdminWorkspaceView;
 public class InvitationAcceptView extends VerticalLayout implements BeforeEnterObserver {
 
     private final transient InvitationService invitationService;
-    private final transient AuthenticatedAccountService authenticatedAccountService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final EmailField emailField = new EmailField("Invited email");
     private final TextField firstNameField = new TextField("First name");
     private final TextField lastNameField = new TextField("Last name");
@@ -41,9 +41,9 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
 
     public InvitationAcceptView(
             InvitationService invitationService,
-            AuthenticatedAccountService authenticatedAccountService) {
+            AuthenticatedUserContextUtils authenticatedUserContextUtils) {
         this.invitationService = invitationService;
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
 
         UiCss.ONBOARDING_VIEW.addTo(this);
         setSizeFull();
@@ -70,7 +70,7 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         try {
             var onboarding = invitationService.prepareOnboarding(token.get());
             emailField.setValue(onboarding.invitedEmail());
-            var currentAccount = authenticatedAccountService.currentAccount();
+            var currentAccount = authenticatedUserContextUtils.currentAccount();
             if (currentAccount.isPresent()) {
                 if (!currentAccount.get().getEmail().equalsIgnoreCase(onboarding.invitedEmail())) {
                     renderAuthenticatedMismatch(currentAccount.get().getEmail(), onboarding.accountAlreadyExists());

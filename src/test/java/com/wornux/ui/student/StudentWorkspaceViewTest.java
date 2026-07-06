@@ -14,7 +14,7 @@ import java.util.UUID;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.Account;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -25,7 +25,7 @@ class StudentWorkspaceViewTest {
 
     @Test
     void beforeEnterDoesNotReenterSwitchClassForProgrammaticSelection() {
-        var authenticatedAccountService = mock(AuthenticatedAccountService.class);
+        var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
         var studentWorkspaceService = mock(StudentWorkspaceService.class);
         var beforeEnterEvent = mock(BeforeEnterEvent.class);
@@ -38,13 +38,13 @@ class StudentWorkspaceViewTest {
                 "Math",
                 GroupClassMemberKind.STUDENT);
 
-        when(authenticatedAccountService.requireCurrentAccount()).thenReturn(account);
+        when(authenticatedUserContextUtils.requireCurrentAccount()).thenReturn(account);
         when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT)).thenReturn(true);
         when(studentWorkspaceService.listStudentClasses(account)).thenReturn(List.of(accessibleClass));
         when(studentWorkspaceService.listAssignments(account)).thenReturn(List.of());
 
         var view =
-                new StudentWorkspaceView(authenticatedAccountService, workspaceRoutingService, studentWorkspaceService);
+                new StudentWorkspaceView(authenticatedUserContextUtils, workspaceRoutingService, studentWorkspaceService);
 
         assertDoesNotThrow(() -> view.beforeEnter(beforeEnterEvent));
 

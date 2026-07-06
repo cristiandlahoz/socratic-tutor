@@ -2,38 +2,20 @@ package com.wornux.security;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-
-import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.identity.Account;
-import com.wornux.data.entities.identity.TenantAccount;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 public class AuthenticatedAccountDetails implements UserDetails {
 
-    private final Account account;
-    private final AppPrincipal principal;
+    private final transient Account account;
 
     public AuthenticatedAccountDetails(Account account) {
         this.account = account;
-        this.principal = new AppPrincipal(account.getId(), account.getEmail(), account.isLocked());
     }
 
     public Account account() {
         return account;
-    }
-
-    public AppPrincipal principal() {
-        return principal;
-    }
-
-    public Optional<TenantAccount> currentTenantAccount() {
-        return Optional.empty();
-    }
-
-    public Optional<GroupClassMember> currentGroupClassMember() {
-        return Optional.empty();
     }
 
     @Override

@@ -22,7 +22,7 @@ import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.security.authorization.AuthorizationService;
 import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionService;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.sidebar.ConversationHistoryDrawer;
@@ -46,7 +46,7 @@ public class MainLayout extends AppLayout {
     public MainLayout(
             @RouteScopeOwner(MainLayout.class) ConversationState state,
             @RouteScopeOwner(MainLayout.class) ConversationViewModel viewModel,
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             AuthenticationContext authenticationContext,
             ActiveContextHolder activeContextHolder,
             AuthorizationService authorizationService,
@@ -66,7 +66,7 @@ public class MainLayout extends AppLayout {
 
         drawerContent.add(createBrandSection());
 
-        var currentAccount = authenticatedAccountService.currentAccount();
+        var currentAccount = authenticatedUserContextUtils.currentAccount();
 
         if (currentAccount.isPresent()) {
             var entries = navigationRegistry.entries()

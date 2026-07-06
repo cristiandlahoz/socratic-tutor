@@ -27,7 +27,7 @@ import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.identity.Tenant;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.services.security.AuthenticatedAccountService;
+import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.SystemAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
@@ -52,7 +52,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         }
     }
 
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final WorkspaceRoutingService workspaceRoutingService;
     private final SystemAdminWorkspaceService systemAdminWorkspaceService;
     private final Grid<Tenant> tenantGrid = new Grid<>(Tenant.class, false);
@@ -61,10 +61,10 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private GridListDataView<Tenant> tenantDataView;
 
     public SystemAdminWorkspaceView(
-            AuthenticatedAccountService authenticatedAccountService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
             SystemAdminWorkspaceService systemAdminWorkspaceService) {
-        this.authenticatedAccountService = authenticatedAccountService;
+        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.systemAdminWorkspaceService = systemAdminWorkspaceService;
 
@@ -82,7 +82,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedAccountService.requireCurrentAccount();
+        var account = authenticatedUserContextUtils.requireCurrentAccount();
         if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.SYSTEM_ADMIN)) {
             event.forwardTo(NoAccessView.class);
         }
@@ -226,7 +226,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onCreateTenant(Dialog dialog, TextField tenantNameField) {
         try {
             systemAdminWorkspaceService
-                    .createTenant(authenticatedAccountService.requireCurrentAccount(), tenantNameField.getValue());
+                    .createTenant(authenticatedUserContextUtils.requireCurrentAccount(), tenantNameField.getValue());
             dialog.close();
             refresh();
             Notification.show("Institución creada.");
@@ -239,7 +239,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private void onInviteTenantAdmin(Dialog dialog, Tenant tenant, EmailField inviteEmailField) {
         try {
             systemAdminWorkspaceService.inviteTenantAdmin(
-                authenticatedAccountService.requireCurrentAccount(),
+                authenticatedUserContextUtils.requireCurrentAccount(),
                 tenant.getId(),
                 inviteEmailField.getValue());
             dialog.close();
