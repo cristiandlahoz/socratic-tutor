@@ -47,17 +47,13 @@ public class AccessSnapshotService {
         this.groupClassMemberRoleRepository = groupClassMemberRoleRepository;
         this.platformSettingsRepository = platformSettingsRepository;
         this.tenantRepository = tenantRepository;
-        this.cache = Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterAccess(Duration.ofMinutes(20))
-                .build();
+        this.cache = Caffeine.newBuilder().maximumSize(10_000).expireAfterAccess(Duration.ofMinutes(20)).build();
     }
 
     @Transactional(readOnly = true)
     public UserAccessSnapshot snapshot(UUID accountId, ActiveContext activeContext) {
         var namespace = resolveNamespace(activeContext);
-        var key = new SnapshotCacheKey(
-                accountId,
+        var key = new SnapshotCacheKey(accountId,
                 activeContext.level(),
                 activeContext.tenantId(),
                 activeContext.groupClassId(),
@@ -75,17 +71,21 @@ public class AccessSnapshotService {
     }
 
     public void invalidateContext(UUID accountId, ActiveContext activeContext) {
-        cache.asMap().keySet().removeIf(key -> key.accountId().equals(accountId)
-                && key.contextLevel() == activeContext.level()
-                && equalsNullable(key.tenantId(), activeContext.tenantId())
-                && equalsNullable(key.groupClassId(), activeContext.groupClassId()));
+        cache.asMap()
+                .keySet()
+                .removeIf(
+                    key -> key.accountId().equals(accountId)
+                            && key.contextLevel() == activeContext.level()
+                            && equalsNullable(key.tenantId(), activeContext.tenantId())
+                            && equalsNullable(key.groupClassId(), activeContext.groupClassId()));
     }
 
     private NamespaceVersion resolveNamespace(ActiveContext activeContext) {
         if (activeContext.level() == ContextLevel.PLATFORM) {
             var settings = platformSettingsRepository.findById(Boolean.TRUE)
                     .orElseThrow(() -> new IllegalStateException("Platform settings are not initialized"));
-            return new NamespaceVersion(settings.getRoleNamespace().getId(), settings.getRoleNamespace().getRbacVersion());
+            return new NamespaceVersion(settings.getRoleNamespace().getId(),
+                    settings.getRoleNamespace().getRbacVersion());
         }
         var tenant = tenantRepository.findById(activeContext.tenantId())
                 .orElseThrow(() -> new IllegalStateException("Unknown tenant %s".formatted(activeContext.tenantId())));
@@ -98,32 +98,48 @@ public class AccessSnapshotService {
             var permissionCodes = new LinkedHashSet<String>();
             accountPlatformRoleRepository.findByAccount_IdAndRole_ActiveTrue(accountId)
                     .forEach(assignment -> addRole(assignment.getRole(), roleCodes, permissionCodes));
-            return new UserAccessSnapshot(
-                    accountId, activeContext, null, null, null, null, null,
-                    Set.copyOf(roleCodes), Set.copyOf(permissionCodes), namespaceVersion);
+            return new UserAccessSnapshot(accountId,
+                    activeContext,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    Set.copyOf(roleCodes),
+                    Set.copyOf(permissionCodes),
+                    namespaceVersion);
         }
 
         var tenantAccount = tenantAccountRepository.findByTenant_IdAndAccount_Id(activeContext.tenantId(), accountId)
-                .orElseThrow(() -> new IllegalStateException("Account %s is not a tenant member of %s".formatted(accountId, activeContext.tenantId())));
+                .orElseThrow(
+                    () -> new IllegalStateException(
+                            "Account %s is not a tenant member of %s".formatted(accountId, activeContext.tenantId())));
         var roleCodes = new LinkedHashSet<String>();
         var permissionCodes = new LinkedHashSet<String>();
         tenantAccountRoleRepository.findByTenantAccount_IdAndRole_ActiveTrue(tenantAccount.getId())
                 .forEach(assignment -> addRole(assignment.getRole(), roleCodes, permissionCodes));
 
         if (activeContext.level() == ContextLevel.TENANT) {
-            return new UserAccessSnapshot(
-                    accountId, activeContext, activeContext.tenantId(), tenantAccount.getId(), null, null, null,
-                    Set.copyOf(roleCodes), Set.copyOf(permissionCodes), namespaceVersion);
+            return new UserAccessSnapshot(accountId,
+                    activeContext,
+                    activeContext.tenantId(),
+                    tenantAccount.getId(),
+                    null,
+                    null,
+                    null,
+                    Set.copyOf(roleCodes),
+                    Set.copyOf(permissionCodes),
+                    namespaceVersion);
         }
 
         var membership = groupClassMemberRepository
                 .findByGroupClass_IdAndTenantAccount_Id(activeContext.groupClassId(), tenantAccount.getId())
                 .filter(member -> !member.isLocked());
-        membership.ifPresent(member -> groupClassMemberRoleRepository.findByGroupClassMember_Id(member.getId())
-                .forEach(assignment -> addRole(assignment.getRole(), roleCodes, permissionCodes)));
+        membership.ifPresent(
+            member -> groupClassMemberRoleRepository.findByGroupClassMember_Id(member.getId())
+                    .forEach(assignment -> addRole(assignment.getRole(), roleCodes, permissionCodes)));
 
-        return new UserAccessSnapshot(
-                accountId,
+        return new UserAccessSnapshot(accountId,
                 activeContext,
                 activeContext.tenantId(),
                 tenantAccount.getId(),
@@ -147,15 +163,8 @@ public class AccessSnapshotService {
         return first == null ? second == null : first.equals(second);
     }
 
-    private record NamespaceVersion(UUID id, long version) {
-    }
+    private record NamespaceVersion(UUID id, long version) {}
 
-    private record SnapshotCacheKey(
-            UUID accountId,
-            ContextLevel contextLevel,
-            UUID tenantId,
-            UUID groupClassId,
-            UUID roleNamespaceId,
-            long roleNamespaceVersion) {
-    }
+    private record SnapshotCacheKey(UUID accountId, ContextLevel contextLevel, UUID tenantId, UUID groupClassId,
+            UUID roleNamespaceId, long roleNamespaceVersion) {}
 }

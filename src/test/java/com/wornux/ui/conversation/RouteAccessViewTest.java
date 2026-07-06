@@ -15,9 +15,9 @@ import com.wornux.config.ChatProperties;
 import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.identity.Account;
+import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
-import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -44,7 +44,8 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
         when(event.getLocation()).thenReturn(new Location("chat"));
-        when(viewModel.initializeFromRoute(null, false, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
+        when(viewModel.initializeFromRoute(null, false, false))
+                .thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
         var view = new ConversationView(new ConversationState(),
                 viewModel,
@@ -74,7 +75,8 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
         when(event.getLocation()).thenReturn(new Location("chat"));
-        when(viewModel.initializeFromRoute(null, false, false)).thenReturn(ConversationViewModel.RouteInitialization.noReroute());
+        when(viewModel.initializeFromRoute(null, false, false))
+                .thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
         var view = new ConversationView(new ConversationState(),
                 viewModel,

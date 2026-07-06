@@ -63,12 +63,14 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         var threadHeader = new Div(new Span("conversación"), new Span("listo para depurar"));
         UiCss.LOGIN_VIEW_WORK_HEADER.addTo(threadHeader);
 
-        var userPrompt = new Div(new Span("Estudiante"), new Paragraph("¿Por qué este ciclo se salta el último valor?"));
+        var userPrompt =
+                new Div(new Span("Estudiante"), new Paragraph("¿Por qué este ciclo se salta el último valor?"));
         UiCss.LOGIN_VIEW_WORK_MESSAGE.addTo(userPrompt);
         UiCss.LOGIN_VIEW_WORK_MESSAGE_USER.addTo(userPrompt);
 
-        var tutorResponse = new Div(new Span("Tutor"), new Paragraph(
-                "Revisa primero el límite. ¿Qué valor tiene i en la comparación final y qué índice del arreglo intentaría tocar?"));
+        var tutorResponse = new Div(new Span("Tutor"),
+                new Paragraph(
+                        "Revisa primero el límite. ¿Qué valor tiene i en la comparación final y qué índice del arreglo intentaría tocar?"));
         UiCss.LOGIN_VIEW_WORK_MESSAGE.addTo(tutorResponse);
 
         var codeLineOne = new Span("for (int i = 0; i < values.length - 1; i++) {");

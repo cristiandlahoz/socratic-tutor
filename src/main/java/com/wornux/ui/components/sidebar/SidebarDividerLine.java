@@ -6,5 +6,4 @@ import com.vaadin.flow.component.dependency.JsModule;
 
 @Tag("sidebar-divider-line")
 @JsModule("./shell/sidebar-divider-line.ts")
-public final class SidebarDividerLine extends Component {
-}
+public final class SidebarDividerLine extends Component {}

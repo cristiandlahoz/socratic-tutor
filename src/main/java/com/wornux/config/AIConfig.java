@@ -8,6 +8,8 @@ import com.wornux.ai.session.TokenBudgetRecursiveSummarizationCompactionStrategy
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ChatSessionActivityBus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -20,8 +22,6 @@ import org.springframework.ai.session.compaction.CompactionStrategy;
 import org.springframework.ai.session.compaction.CompactionTrigger;
 import org.springframework.ai.session.compaction.TokenCountTrigger;
 import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -61,27 +61,19 @@ public class AIConfig {
                 .compactionTrigger(loggingCompactionTrigger(tokenCountTrigger, compactionThresholdTokens))
                 .compactionStrategy(loggingCompactionStrategy(compactionStrategy, activityBus))
                 .build();
-        var dynamicContextManagementAdvisor = new DynamicContextManagementAdvisor(
-            sessionMemoryAdvisor.getOrder() + 1,
-            jdbcClient);
-        var tutorGuardAdvisor = new TutorGuardAdvisor(
-            sessionMemoryAdvisor.getOrder() + 2,
-            guardClassifierService,
-            promptResources);
+        var dynamicContextManagementAdvisor =
+                new DynamicContextManagementAdvisor(sessionMemoryAdvisor.getOrder() + 1, jdbcClient);
+        var tutorGuardAdvisor =
+                new TutorGuardAdvisor(sessionMemoryAdvisor.getOrder() + 2, guardClassifierService, promptResources);
 
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
-                .defaultOptions(OpenAiChatOptions.builder()
-                        .temperature(0.6)
-                        .topP(0.95)
-                        .topK(20))
+                .defaultOptions(OpenAiChatOptions.builder().temperature(0.6).topP(0.95).topK(20))
                 .defaultAdvisors(sessionMemoryAdvisor, dynamicContextManagementAdvisor, tutorGuardAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();
     }
 
-    private CompactionTrigger loggingCompactionTrigger(
-            CompactionTrigger delegate,
-            int compactionThresholdTokens) {
+    private CompactionTrigger loggingCompactionTrigger(CompactionTrigger delegate, int compactionThresholdTokens) {
         return request -> {
             boolean shouldCompact = delegate.shouldCompact(request);
             if (shouldCompact) {
@@ -127,10 +119,7 @@ public class AIConfig {
         activityBus.publish(requestSessionId, ChatSessionActivity.COMPACTING);
     }
 
-    private void logCompactionCompleted(
-            CompactionRequest request,
-            String requestSessionId,
-            CompactionResult result) {
+    private void logCompactionCompleted(CompactionRequest request, String requestSessionId, CompactionResult result) {
         log.info(
             "Chat session compaction completed: sessionId={}, userId={}, compactedEvents={}, archivedEvents={}, eventsRemoved={}, estimatedTokensSaved={}",
             requestSessionId,

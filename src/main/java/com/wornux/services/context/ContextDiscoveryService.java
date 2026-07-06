@@ -33,24 +33,24 @@ public class ContextDiscoveryService {
     public List<AvailableContextOption> discover(Account account) {
         var options = new java.util.ArrayList<AvailableContextOption>();
         if (isPlatformAccount(account)) {
-            options.add(new AvailableContextOption(
-                    ContextLevel.PLATFORM,
-                    null,
-                    null,
-                    "Plataforma",
-                    "Administración global del sistema",
-                    account.getEmail()));
+            options.add(
+                new AvailableContextOption(ContextLevel.PLATFORM,
+                        null,
+                        null,
+                        "Plataforma",
+                        "Administración global del sistema",
+                        account.getEmail()));
         }
 
         findTenantAdminRoles(account).stream().findFirst().ifPresent(role -> {
             var tenant = role.getTenantAccount().getTenant();
-            options.add(new AvailableContextOption(
-                    ContextLevel.TENANT,
-                    tenant.getId(),
-                    null,
-                    tenant.getName(),
-                    "Administración institucional",
-                    account.getEmail()));
+            options.add(
+                new AvailableContextOption(ContextLevel.TENANT,
+                        tenant.getId(),
+                        null,
+                        tenant.getName(),
+                        "Administración institucional",
+                        account.getEmail()));
         });
 
         groupClassMemberRepository.findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId())
@@ -64,21 +64,24 @@ public class ContextDiscoveryService {
     private boolean isPlatformAccount(Account account) {
         return accountPlatformRoleRepository.findByAccount_IdAndRole_ActiveTrue(account.getId())
                 .stream()
-                .anyMatch(role -> role.getRole().getAssignmentLevel() == com.wornux.data.entities.authorization.RoleAssignmentLevel.PLATFORM);
+                .anyMatch(
+                    role -> role.getRole()
+                            .getAssignmentLevel() == com.wornux.data.entities.authorization.RoleAssignmentLevel.PLATFORM);
     }
 
     private List<TenantAccountRole> findTenantAdminRoles(Account account) {
         return tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId())
                 .stream()
-                .filter(role -> role.getRole().getAssignmentLevel() == com.wornux.data.entities.authorization.RoleAssignmentLevel.TENANT)
+                .filter(
+                    role -> role.getRole()
+                            .getAssignmentLevel() == com.wornux.data.entities.authorization.RoleAssignmentLevel.TENANT)
                 .sorted(Comparator.comparing(role -> role.getTenantAccount().getJoinedAt()))
                 .toList();
     }
 
     private AvailableContextOption toClassOption(GroupClassMember member) {
         var groupClass = member.getGroupClass();
-        return new AvailableContextOption(
-                ContextLevel.GROUP_CLASS,
+        return new AvailableContextOption(ContextLevel.GROUP_CLASS,
                 groupClass.getTenant().getId(),
                 groupClass.getId(),
                 "%s · %s".formatted(groupClass.getCode(), groupClass.getName()),

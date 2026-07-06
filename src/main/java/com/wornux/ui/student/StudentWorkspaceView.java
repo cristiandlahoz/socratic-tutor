@@ -1,7 +1,7 @@
 package com.wornux.ui.student;
 
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -19,9 +19,9 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
+import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
@@ -30,8 +30,8 @@ import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.conversation.ConversationView;
-import jakarta.annotation.security.PermitAll;
 import com.wornux.ui.css.UiCss;
+import jakarta.annotation.security.PermitAll;
 
 @Route(value = "student", layout = MainLayout.class)
 @PageTitle("Espacio del estudiante")
@@ -43,7 +43,8 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
-    private final Grid<TrainingActivityAssignment> assignmentsGrid = new Grid<>(TrainingActivityAssignment.class, false);
+    private final Grid<TrainingActivityAssignment> assignmentsGrid =
+            new Grid<>(TrainingActivityAssignment.class, false);
 
     public StudentWorkspaceView(
             AuthenticatedAccountService authenticatedAccountService,
@@ -106,40 +107,55 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     private void openConversation() {
         UI.getCurrent().navigate(ConversationView.class);
     }
+
     private void configureGrid() {
         UiCss.WORKSPACE_GRID.addTo(assignmentsGrid);
         UiCss.WORKSPACE_TENANT_GRID.addTo(assignmentsGrid);
         assignmentsGrid.setWidthFull();
         assignmentsGrid.setSelectionMode(Grid.SelectionMode.NONE);
         assignmentsGrid.setEmptyStateText("No hay actividades asignadas para la clase activa.");
-        assignmentsGrid.addColumn(LitRenderer.<TrainingActivityAssignment>of("""
-                    <div class="workspace-primary-cell">
-                        <span class="workspace-primary-cell-title">${item.title}</span>
-                        <span class="workspace-primary-cell-meta">${item.instructions}</span>
-                    </div>
-                """)
-                .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
-                .withProperty("instructions", assignment -> assignment.getTrainingActivity().getInstructions()))
+        assignmentsGrid
+                .addColumn(
+                    LitRenderer
+                            .<TrainingActivityAssignment>of(
+                                """
+                                    <div class="workspace-primary-cell">
+                                        <span class="workspace-primary-cell-title">${item.title}</span>
+                                        <span class="workspace-primary-cell-meta">${item.instructions}</span>
+                                    </div>
+                                """)
+                            .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
+                            .withProperty(
+                                "instructions",
+                                assignment -> assignment.getTrainingActivity().getInstructions()))
                 .setHeader("Actividad")
                 .setComparator(assignment -> assignment.getTrainingActivity().getTitle())
                 .setAutoWidth(true)
                 .setFlexGrow(1);
-        assignmentsGrid.addColumn(LitRenderer.<TrainingActivityAssignment>of("""
-                    <span class="workspace-status-badge ${item.statusTone}">${item.statusLabel}</span>
-                """)
-                .withProperty("statusLabel", assignment -> assignmentStatusLabel(assignment.getStatus()))
-                .withProperty("statusTone", assignment -> assignmentStatusTone(assignment.getStatus())))
+        assignmentsGrid
+                .addColumn(
+                    LitRenderer
+                            .<TrainingActivityAssignment>of(
+                                """
+                                    <span class="workspace-status-badge ${item.statusTone}">${item.statusLabel}</span>
+                                """)
+                            .withProperty("statusLabel", assignment -> assignmentStatusLabel(assignment.getStatus()))
+                            .withProperty("statusTone", assignment -> assignmentStatusTone(assignment.getStatus())))
                 .setHeader("Estado")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
-        assignmentsGrid.addColumn(LitRenderer.<TrainingActivityAssignment>of("""
-                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${openTutor}" aria-label="Abrir tutor para ${item.title}">
-                        <vaadin-icon icon="vaadin:comments" slot="prefix"></vaadin-icon>
-                        Abrir tutor
-                    </vaadin-button>
-                """)
-                .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
-                .withFunction("openTutor", _ -> openConversation()))
+        assignmentsGrid
+                .addColumn(
+                    LitRenderer
+                            .<TrainingActivityAssignment>of(
+                                """
+                                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${openTutor}" aria-label="Abrir tutor para ${item.title}">
+                                        <vaadin-icon icon="vaadin:comments" slot="prefix"></vaadin-icon>
+                                        Abrir tutor
+                                    </vaadin-button>
+                                """)
+                            .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
+                            .withFunction("openTutor", _ -> openConversation()))
                 .setHeader("Opciones")
                 .setAutoWidth(true)
                 .setFlexGrow(0);

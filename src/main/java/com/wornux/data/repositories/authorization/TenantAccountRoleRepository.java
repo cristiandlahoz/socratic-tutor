@@ -10,10 +10,20 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TenantAccountRoleRepository extends JpaRepository<TenantAccountRole, TenantAccountRoleId> {
-    @EntityGraph(attributePaths = {"role", "role.roleNamespace", "tenantAccount", "tenantAccount.tenant", "tenantAccount.tenant.roleNamespace"})
+    @EntityGraph(attributePaths = {
+            "role",
+            "role.roleNamespace",
+            "tenantAccount",
+            "tenantAccount.tenant",
+            "tenantAccount.tenant.roleNamespace" })
     List<TenantAccountRole> findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(UUID accountId);
 
-    @EntityGraph(attributePaths = {"role", "role.roleNamespace", "tenantAccount", "tenantAccount.tenant", "tenantAccount.tenant.roleNamespace"})
+    @EntityGraph(attributePaths = {
+            "role",
+            "role.roleNamespace",
+            "tenantAccount",
+            "tenantAccount.tenant",
+            "tenantAccount.tenant.roleNamespace" })
     List<TenantAccountRole> findByTenantAccount_IdAndRole_ActiveTrue(UUID tenantAccountId);
 
     List<TenantAccountRole> findByTenantAccount_Tenant_IdAndRole_CodeAndTenantAccount_LockedFalse(

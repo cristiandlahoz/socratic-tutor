@@ -75,8 +75,7 @@ public class DocumentIngestionUiController implements Serializable {
         }
         abortActiveTask();
         state.startProcessing(state.fileName().peek(), "Indexando segmentos para chat.");
-        activeTask = Mono
-                .fromCallable(() -> documentIngestionService.approve(approveCommand()))
+        activeTask = Mono.fromCallable(() -> documentIngestionService.approve(approveCommand()))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                     review -> runUi(ui, () -> applyReview(review)),
@@ -111,11 +110,9 @@ public class DocumentIngestionUiController implements Serializable {
     public void generateCatalog(UI ui) {
         abortActiveTask();
         state.startProcessing(state.fileName().peek(), "Generando catálogo de búsqueda.");
-        activeTask = Mono
-                .fromCallable(() -> documentIngestionService.generateCatalog(
-                    state.fileName().peek(),
-                    state.catalogUseWhen().peek(),
-                    state.segments().peek()))
+        activeTask = Mono.fromCallable(
+            () -> documentIngestionService
+                    .generateCatalog(state.fileName().peek(), state.catalogUseWhen().peek(), state.segments().peek()))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                     catalog -> runUi(ui, () -> applyGeneratedCatalog(catalog)),
@@ -155,8 +152,7 @@ public class DocumentIngestionUiController implements Serializable {
     }
 
     private ApproveDocumentCommand approveCommand() {
-        return new ApproveDocumentCommand(
-                state.activeIngestionId().peek(),
+        return new ApproveDocumentCommand(state.activeIngestionId().peek(),
                 state.fileName().peek(),
                 state.generatedCatalog().peek().orElseThrow(),
                 state.reviewedMarkdown().peek(),

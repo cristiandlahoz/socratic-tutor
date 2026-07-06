@@ -8,6 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AccountContextPreferenceRepository extends JpaRepository<AccountContextPreference, UUID> {
     @Override
-    @EntityGraph(attributePaths = {"tenant", "groupClass", "groupClass.tenant"})
+    @EntityGraph(attributePaths = { "tenant", "groupClass", "groupClass.tenant" })
     java.util.Optional<AccountContextPreference> findById(UUID accountId);
 }

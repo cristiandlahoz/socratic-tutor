@@ -1,5 +1,7 @@
 package com.wornux.ui;
 
+import java.util.Comparator;
+
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -15,8 +17,6 @@ import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.security.AuthenticationContext;
-import java.util.Comparator;
-
 import com.wornux.data.enums.ThemePreference;
 import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.security.authorization.AuthorizationService;
@@ -69,10 +69,12 @@ public class MainLayout extends AppLayout {
         var currentAccount = authenticatedAccountService.currentAccount();
 
         if (currentAccount.isPresent()) {
-            var entries = navigationRegistry.entries().stream()
-                    .filter(entry -> activeContextHolder.current()
-                            .map(context -> context.level().ordinal() >= entry.minimumContextLevel().ordinal())
-                            .orElse(false))
+            var entries = navigationRegistry.entries()
+                    .stream()
+                    .filter(
+                        entry -> activeContextHolder.current()
+                                .map(context -> context.level().ordinal() >= entry.minimumContextLevel().ordinal())
+                                .orElse(false))
                     .filter(entry -> authorizationService.can(entry.requiredPermission()))
                     .sorted(Comparator.comparingInt(NavigationEntry::order))
                     .toList();
@@ -80,13 +82,14 @@ public class MainLayout extends AppLayout {
             if (entries.stream().anyMatch(entry -> entry.requiredPermission().code().startsWith("conversation:"))) {
                 drawerContent.add(new ConversationHistoryDrawer(state, this.viewModel));
             }
-            currentAccount.map(user -> new ProfileDrawerCard(
-                user,
-                createThemePreferenceControl(state, this.viewModel),
-                activeContextHolder,
-                contextDiscoveryService,
-                contextSelectionService,
-                authenticationContext::logout))
+            currentAccount
+                    .map(
+                        user -> new ProfileDrawerCard(user,
+                                createThemePreferenceControl(state, this.viewModel),
+                                activeContextHolder,
+                                contextDiscoveryService,
+                                contextSelectionService,
+                                authenticationContext::logout))
                     .ifPresent(drawerContent::add);
         }
 
@@ -147,7 +150,10 @@ public class MainLayout extends AppLayout {
         return control;
     }
 
-    private Button createThemePreferenceButton(ThemePreference preference, ConversationState state, ConversationViewModel viewModel) {
+    private Button createThemePreferenceButton(
+            ThemePreference preference,
+            ConversationState state,
+            ConversationViewModel viewModel) {
         var button = new Button(switch (preference) {
             case SYSTEM -> "Sistema";
             case LIGHT -> "Claro";

@@ -11,6 +11,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface GroupClassRepository extends JpaRepository<GroupClass, UUID> {
     Optional<GroupClass> findByTenant_IdAndCode(UUID tenantId, String code);
 
-    @EntityGraph(attributePaths = {"subject", "academicPeriod"})
+    @EntityGraph(attributePaths = { "subject", "academicPeriod" })
     List<GroupClass> findByTenant_IdOrderByNameAsc(UUID tenantId);
 }

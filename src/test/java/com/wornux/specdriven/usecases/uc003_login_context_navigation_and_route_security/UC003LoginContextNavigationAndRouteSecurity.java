@@ -6,8 +6,8 @@ import java.util.UUID;
 
 import com.wornux.data.entities.identity.ContextLevel;
 import com.wornux.data.repositories.identity.AccountRepository;
-import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.security.authorization.AccessSnapshotService;
+import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionResult;
 import com.wornux.services.context.ContextSelectionService;
@@ -33,12 +33,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Tag("integration")
 @Testcontainers
 @Execution(ExecutionMode.SAME_THREAD)
-@SpringBootTest(classes = UC003LoginContextNavigationAndRouteSecurity.TestApp.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
-        "spring.docker.compose.enabled=false",
-        "spring.ai.ollama.embedding.enabled=false",
-        "spring.ai.vectorstore.pgvector.enabled=false",
-        "spring.flyway.locations=classpath:db/migration/prod,classpath:db/migration/dev"
-})
+@SpringBootTest(classes = UC003LoginContextNavigationAndRouteSecurity.TestApp.class,
+        webEnvironment = SpringBootTest.WebEnvironment.NONE,
+        properties = {
+                "spring.docker.compose.enabled=false",
+                "spring.ai.ollama.embedding.enabled=false",
+                "spring.ai.vectorstore.pgvector.enabled=false",
+                "spring.flyway.locations=classpath:db/migration/prod,classpath:db/migration/dev" })
 class UC003LoginContextNavigationAndRouteSecurity {
 
     private static final UUID TENANT_ID = UUID.fromString("034daffd-5907-48f7-bce6-b2c0e71f4015");
@@ -59,34 +60,47 @@ class UC003LoginContextNavigationAndRouteSecurity {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
     }
 
-    @Autowired AccountRepository accountRepository;
-    @Autowired ContextDiscoveryService contextDiscoveryService;
-    @Autowired ContextSelectionService contextSelectionService;
-    @Autowired ActiveContextHolder activeContextHolder;
-    @Autowired JdbcTemplate jdbc;
+    @Autowired
+    AccountRepository accountRepository;
+    @Autowired
+    ContextDiscoveryService contextDiscoveryService;
+    @Autowired
+    ContextSelectionService contextSelectionService;
+    @Autowired
+    ActiveContextHolder activeContextHolder;
+    @Autowired
+    JdbcTemplate jdbc;
 
     @AfterEach
     void clearContext() {
-        jdbc.update("delete from group_class_member where id in (?, ?)",
-                UUID.fromString("22222222-2222-2222-2222-222222222222"),
-                UUID.fromString("33333333-3333-3333-3333-333333333333"));
+        jdbc.update(
+            "delete from group_class_member where id in (?, ?)",
+            UUID.fromString("22222222-2222-2222-2222-222222222222"),
+            UUID.fromString("33333333-3333-3333-3333-333333333333"));
         activeContextHolder.clear();
     }
 
     @Test
     void mainFlow_noContextReturnsNoAccessDecision() {
         var account = accountRepository.findByEmail("unassigned@example.test").orElseGet(() -> {
-            jdbc.update("insert into account (id, email, first_name, last_name, password_hash, locked) values (?, ?, ?, ?, ?, false)",
-                    UUID.fromString("11111111-1111-1111-1111-111111111111"), "unassigned@example.test", "No", "Access", "noop");
+            jdbc.update(
+                "insert into account (id, email, first_name, last_name, password_hash, locked) values (?, ?, ?, ?, ?, false)",
+                UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                "unassigned@example.test",
+                "No",
+                "Access",
+                "noop");
             return accountRepository.findByEmail("unassigned@example.test").orElseThrow();
         });
 
-        assertThat(contextSelectionService.resolveLoginContext(account)).isInstanceOf(ContextSelectionResult.NoAccess.class);
+        assertThat(contextSelectionService.resolveLoginContext(account))
+                .isInstanceOf(ContextSelectionResult.NoAccess.class);
     }
 
     @Test
     void mainFlow_oneClassMembershipAutoSelectsGroupClassContext() {
-        var result = contextSelectionService.resolveLoginContext(accountRepository.findById(STUDENT_ACCOUNT_ID).orElseThrow());
+        var result = contextSelectionService
+                .resolveLoginContext(accountRepository.findById(STUDENT_ACCOUNT_ID).orElseThrow());
 
         assertThat(result).isInstanceOf(ContextSelectionResult.Selected.class);
         assertThat(((ContextSelectionResult.Selected) result).option().level()).isEqualTo(ContextLevel.GROUP_CLASS);
@@ -95,11 +109,15 @@ class UC003LoginContextNavigationAndRouteSecurity {
 
     @Test
     void mainFlow_multipleClassMembershipsRequireSelection() {
-        jdbc.update("insert into group_class_member (id, group_class_id, tenant_account_id, member_kind, locked) values (?, ?, ?, 'PROFESSOR', false) on conflict do nothing",
-                UUID.fromString("22222222-2222-2222-2222-222222222222"), DISCRETE_MATH_CLASS_ID, UUID.fromString("c754e015-2113-403a-96a8-292d1aa137ae"));
+        jdbc.update(
+            "insert into group_class_member (id, group_class_id, tenant_account_id, member_kind, locked) values (?, ?, ?, 'PROFESSOR', false) on conflict do nothing",
+            UUID.fromString("22222222-2222-2222-2222-222222222222"),
+            DISCRETE_MATH_CLASS_ID,
+            UUID.fromString("c754e015-2113-403a-96a8-292d1aa137ae"));
         jdbc.update("delete from account_context_preference where account_id = ?", PROFESSOR_ACCOUNT_ID);
 
-        var result = contextSelectionService.resolveLoginContext(accountRepository.findById(PROFESSOR_ACCOUNT_ID).orElseThrow());
+        var result = contextSelectionService
+                .resolveLoginContext(accountRepository.findById(PROFESSOR_ACCOUNT_ID).orElseThrow());
 
         assertThat(result).isInstanceOf(ContextSelectionResult.SelectionRequired.class);
         assertThat(((ContextSelectionResult.SelectionRequired) result).options())
@@ -122,8 +140,11 @@ class UC003LoginContextNavigationAndRouteSecurity {
 
     @Test
     void mainFlow_tenantAdminProfessorClassSwitcherContainsOnlyRealMembershipClasses() {
-        jdbc.update("insert into group_class_member (id, group_class_id, tenant_account_id, member_kind, locked) values (?, ?, ?, 'PROFESSOR', false) on conflict do nothing",
-                UUID.fromString("33333333-3333-3333-3333-333333333333"), ALGORITHMS_CLASS_ID, TENANT_ADMIN_TENANT_ACCOUNT_ID);
+        jdbc.update(
+            "insert into group_class_member (id, group_class_id, tenant_account_id, member_kind, locked) values (?, ?, ?, 'PROFESSOR', false) on conflict do nothing",
+            UUID.fromString("33333333-3333-3333-3333-333333333333"),
+            ALGORITHMS_CLASS_ID,
+            TENANT_ADMIN_TENANT_ACCOUNT_ID);
         var account = accountRepository.findById(TENANT_ADMIN_ACCOUNT_ID).orElseThrow();
 
         assertThat(contextDiscoveryService.discover(account))
@@ -142,10 +163,13 @@ class UC003LoginContextNavigationAndRouteSecurity {
             "org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration",
             "io.arconia.dev.services.docling.DoclingDevServicesAutoConfiguration",
             "io.arconia.docling.autoconfigure.DoclingAutoConfiguration",
-            "io.arconia.docling.autoconfigure.actuate.DoclingServeHealthContributorAutoConfiguration"
-    })
+            "io.arconia.docling.autoconfigure.actuate.DoclingServeHealthContributorAutoConfiguration" })
     @EnableJpaRepositories(basePackages = "com.wornux.data.repositories")
     @EntityScan(basePackages = "com.wornux.data.entities")
-    @Import({ContextDiscoveryService.class, ContextSelectionService.class, ActiveContextHolder.class, AccessSnapshotService.class})
+    @Import({
+            ContextDiscoveryService.class,
+            ContextSelectionService.class,
+            ActiveContextHolder.class,
+            AccessSnapshotService.class })
     static class TestApp {}
 }

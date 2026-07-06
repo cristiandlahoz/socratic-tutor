@@ -10,7 +10,6 @@ class NavigationSecurityConfig {
     @Bean
     NavigationAccessControlConfigurer navigationAccessControlConfigurer(
             PermissionNavigationAccessChecker permissionNavigationAccessChecker) {
-        return new NavigationAccessControlConfigurer()
-                .withNavigationAccessChecker(permissionNavigationAccessChecker);
+        return new NavigationAccessControlConfigurer().withNavigationAccessChecker(permissionNavigationAccessChecker);
     }
 }

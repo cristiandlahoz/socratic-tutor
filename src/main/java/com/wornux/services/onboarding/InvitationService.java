@@ -218,7 +218,10 @@ public class InvitationService {
         if (invitation.getTargetRole() == InvitationTargetRole.PROFESSOR
                 || invitation.getTargetRole() == InvitationTargetRole.STUDENT) {
             groupClassMember = createOrReuseMembership(tenantAccount, invitation);
-            assignGroupClassRoleIfNeeded(groupClassMember, invitation.getTargetRole(), invitation.getInvitedByGroupClassMember());
+            assignGroupClassRoleIfNeeded(
+                groupClassMember,
+                invitation.getTargetRole(),
+                invitation.getInvitedByGroupClassMember());
         }
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
@@ -267,8 +270,9 @@ public class InvitationService {
         var tenantAccount = new TenantAccount();
         tenantAccount.setId(UUID.randomUUID());
         tenantAccount.setAccount(account);
-        tenantAccount.setTenant(tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("The target tenant was not found.")));
+        tenantAccount.setTenant(
+            tenantRepository.findById(tenantId)
+                    .orElseThrow(() -> new IllegalArgumentException("The target tenant was not found.")));
         tenantAccount.setLocked(false);
         tenantAccount.setJoinedAt(Instant.now());
         tenantAccount.setUpdatedAt(Instant.now());
@@ -280,8 +284,8 @@ public class InvitationService {
             InvitationTargetRole targetRole,
             TenantAccount assignedBy) {
         var roleCode = targetRole.name();
-        var role = roleRepository.findByRoleNamespace_IdAndCode(
-                tenantAccount.getTenant().getRoleNamespace().getId(), roleCode)
+        var role = roleRepository
+                .findByRoleNamespace_IdAndCode(tenantAccount.getTenant().getRoleNamespace().getId(), roleCode)
                 .orElseThrow(() -> new IllegalStateException("Missing role %s".formatted(roleCode)));
         if (tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(tenantAccount.getId(), roleCode)
                 .isPresent()) {
@@ -305,11 +309,13 @@ public class InvitationService {
             InvitationTargetRole targetRole,
             GroupClassMember assignedBy) {
         var roleCode = targetRole.name();
-        var role = roleRepository.findByRoleNamespace_IdAndCode(
-                groupClassMember.getTenantAccount().getTenant().getRoleNamespace().getId(), roleCode)
-                .orElseThrow(() -> new IllegalStateException("Missing role %s".formatted(roleCode)));
-        if (groupClassMemberRoleRepository
-                .findByGroupClassMember_IdAndRole_Code(groupClassMember.getId(), roleCode)
+        var role =
+                roleRepository
+                        .findByRoleNamespace_IdAndCode(
+                            groupClassMember.getTenantAccount().getTenant().getRoleNamespace().getId(),
+                            roleCode)
+                        .orElseThrow(() -> new IllegalStateException("Missing role %s".formatted(roleCode)));
+        if (groupClassMemberRoleRepository.findByGroupClassMember_IdAndRole_Code(groupClassMember.getId(), roleCode)
                 .isPresent()) {
             return;
         }

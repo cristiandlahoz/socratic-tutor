@@ -252,8 +252,9 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     }
 
     private void clearDialogAddressBarState() {
-        getUI().ifPresent(ui -> ui.getPage()
-                .getHistory()
-                .replaceState(null, new Location("training-activities", QueryParameters.empty())));
+        getUI().ifPresent(
+            ui -> ui.getPage()
+                    .getHistory()
+                    .replaceState(null, new Location("training-activities", QueryParameters.empty())));
     }
 }

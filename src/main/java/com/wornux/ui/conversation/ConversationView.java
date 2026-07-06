@@ -25,20 +25,20 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.wornux.config.ChatProperties;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
 import com.wornux.services.security.AuthenticatedAccountService;
-import com.wornux.security.authorization.RequiresPermission;
-import com.wornux.security.permission.AppPermission;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.components.chat.StudentQuestionPanel;
-import com.wornux.ui.css.UiCss;
 import com.wornux.ui.crunner.DebuggerPanel;
+import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.MessageType;
@@ -109,11 +109,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         root.setSizeFull();
         UiCss.CONVERSATION_VIEW.addTo(root);
 
-        var chatPane = new Div(
-                debuggerToggleButton,
-                historyScroller,
-                createUsageBadge(state),
-                createInputShell(state));
+        var chatPane = new Div(debuggerToggleButton, historyScroller, createUsageBadge(state), createInputShell(state));
         chatPane.setSizeFull();
         UiCss.CONVERSATION_PANE.addTo(chatPane);
 
@@ -186,10 +182,8 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 .getSingleParameter(ConversationViewModel.CONVERSATION_QUERY_PARAMETER)
                 .orElse(null);
 
-        var initialization = viewModel.initializeFromRoute(
-            requestedConversationParam,
-            draftRequested,
-            event.isRefreshEvent());
+        var initialization =
+                viewModel.initializeFromRoute(requestedConversationParam, draftRequested, event.isRefreshEvent());
         if (initialization.rerouteRequired()) {
             rerouteToResolvedConversation(event, initialization.rerouteConversationId());
         }
@@ -418,48 +412,46 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         debuggerVisible = visible;
         UiCss.CONVERSATION_DEBUG_SPLIT_COLLAPSED.addTo(splitLayout, !visible);
         splitLayout.getElement()
-                .executeJs(
-                    """
-                    clearTimeout(this.__debuggerAnimationTimer);
-                    cancelAnimationFrame(this.__debuggerAnimationFrame);
-                    const collapsedClass = 'conversation-view__debug-split--collapsed';
-                    const animatingClass = 'conversation-view__debug-split--animating';
-                    const primary = this.querySelector('[slot="primary"]');
-                    const secondary = this.querySelector('[slot="secondary"]');
-                    const setSplit = () => {
-                      if (!primary || !secondary) {
-                        return;
-                      }
-                      primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
-                      secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
-                    };
-                    const collapse = () => {
-                      if (!primary || !secondary) {
-                        return;
-                      }
-                      primary.style.flex = '1 1 100%';
-                      secondary.style.flex = '0 1 0%';
-                    };
-                    this.classList.add(animatingClass);
-                    if ($0) {
-                      this.classList.add(collapsedClass);
-                      collapse();
-                      this.__debuggerAnimationFrame = requestAnimationFrame(() => {
-                        this.classList.remove(collapsedClass);
-                        setSplit();
-                      });
-                    } else {
-                      this.classList.remove(collapsedClass);
-                      this.__debuggerAnimationFrame = requestAnimationFrame(() => {
-                        this.classList.add(collapsedClass);
-                        collapse();
-                      });
-                    }
-                    this.__debuggerAnimationTimer = setTimeout(() => {
-                      this.classList.remove(animatingClass);
-                    }, 220);
-                    """,
-                    visible);
+                .executeJs("""
+                           clearTimeout(this.__debuggerAnimationTimer);
+                           cancelAnimationFrame(this.__debuggerAnimationFrame);
+                           const collapsedClass = 'conversation-view__debug-split--collapsed';
+                           const animatingClass = 'conversation-view__debug-split--animating';
+                           const primary = this.querySelector('[slot="primary"]');
+                           const secondary = this.querySelector('[slot="secondary"]');
+                           const setSplit = () => {
+                             if (!primary || !secondary) {
+                               return;
+                             }
+                             primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
+                             secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
+                           };
+                           const collapse = () => {
+                             if (!primary || !secondary) {
+                               return;
+                             }
+                             primary.style.flex = '1 1 100%';
+                             secondary.style.flex = '0 1 0%';
+                           };
+                           this.classList.add(animatingClass);
+                           if ($0) {
+                             this.classList.add(collapsedClass);
+                             collapse();
+                             this.__debuggerAnimationFrame = requestAnimationFrame(() => {
+                               this.classList.remove(collapsedClass);
+                               setSplit();
+                             });
+                           } else {
+                             this.classList.remove(collapsedClass);
+                             this.__debuggerAnimationFrame = requestAnimationFrame(() => {
+                               this.classList.add(collapsedClass);
+                               collapse();
+                             });
+                           }
+                           this.__debuggerAnimationTimer = setTimeout(() => {
+                             this.classList.remove(animatingClass);
+                           }, 220);
+                           """, visible);
         debuggerToggleButton.setAriaLabel(visible ? "Ocultar depurador" : "Abrir depurador");
         debuggerToggleButton.getElement().setAttribute("title", visible ? "Ocultar depurador" : "Abrir depurador");
         UiCss.CONVERSATION_DEBUGGER_TOGGLE_HIDDEN.addTo(debuggerToggleButton, visible);
@@ -467,8 +459,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private MessageItem toMessageListItem(MessageState message) {
         var isUserMessage = message.role() == MessageType.USER;
-        return new MessageItem(
-                message.content(),
+        return new MessageItem(message.content(),
                 message.createdAt(),
                 isUserMessage ? "Tú" : "Tutor Socrático",
                 isUserMessage ? MessageItem.Variant.USER : MessageItem.Variant.ASSISTANT,
@@ -485,44 +476,42 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             QueryParameters.of(ConversationViewModel.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
     }
 
-
     private void installResponsiveSplitBehavior(SplitLayout splitLayout) {
         splitLayout.getElement()
-                .executeJs(
-                    """
-                    if (this.__responsiveSplitInstalled) {
-                      return;
-                    }
-                    this.__responsiveSplitInstalled = true;
+                .executeJs("""
+                           if (this.__responsiveSplitInstalled) {
+                             return;
+                           }
+                           this.__responsiveSplitInstalled = true;
 
-                    const media = window.matchMedia('(max-width: 960px)');
-                    const update = () => {
-                      const primary = this.querySelector('[slot="primary"]');
-                      const secondary = this.querySelector('[slot="secondary"]');
-                      const setSplit = () => {
-                        if (!primary || !secondary) {
-                          return;
-                        }
-                        primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
-                        secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
-                      };
-                      const collapse = () => {
-                        if (!primary || !secondary) {
-                          return;
-                        }
-                        primary.style.flex = '1 1 100%';
-                        secondary.style.flex = '0 1 0%';
-                      };
-                      this.orientation = 'horizontal';
-                      if (this.classList.contains('conversation-view__debug-split--collapsed')) {
-                        collapse();
-                      } else {
-                        setSplit();
-                      }
-                    };
-                    media.addEventListener?.('change', update);
-                    media.addListener?.(update);
-                    update();
-                    """);
+                           const media = window.matchMedia('(max-width: 960px)');
+                           const update = () => {
+                             const primary = this.querySelector('[slot="primary"]');
+                             const secondary = this.querySelector('[slot="secondary"]');
+                             const setSplit = () => {
+                               if (!primary || !secondary) {
+                                 return;
+                               }
+                               primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
+                               secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
+                             };
+                             const collapse = () => {
+                               if (!primary || !secondary) {
+                                 return;
+                               }
+                               primary.style.flex = '1 1 100%';
+                               secondary.style.flex = '0 1 0%';
+                             };
+                             this.orientation = 'horizontal';
+                             if (this.classList.contains('conversation-view__debug-split--collapsed')) {
+                               collapse();
+                             } else {
+                               setSplit();
+                             }
+                           };
+                           media.addEventListener?.('change', update);
+                           media.addListener?.(update);
+                           update();
+                           """);
     }
 }

@@ -31,7 +31,10 @@ public class TenantMemberRoleAssignmentView extends VerticalLayout {
     public TenantMemberRoleAssignmentView(RoleAdministrationService roleAdministrationService) {
         this.roleAdministrationService = roleAdministrationService;
         setSizeFull();
-        add(new H1("Asignación de roles institucionales"), new Paragraph("Asigna roles TENANT activos y asignables a miembros del tenant activo."), grid);
+        add(
+            new H1("Asignación de roles institucionales"),
+            new Paragraph("Asigna roles TENANT activos y asignables a miembros del tenant activo."),
+            grid);
         refresh();
     }
 
@@ -40,7 +43,9 @@ public class TenantMemberRoleAssignmentView extends VerticalLayout {
         var matrix = roleAdministrationService.tenantAssignments();
         grid.addColumn(member -> displayName(member)).setHeader("Miembro").setAutoWidth(true);
         for (var role : matrix.roles()) {
-            grid.addComponentColumn(member -> checkbox(member.getId(), role)).setHeader(role.getName()).setAutoWidth(true);
+            grid.addComponentColumn(member -> checkbox(member.getId(), role))
+                    .setHeader(role.getName())
+                    .setAutoWidth(true);
         }
         grid.setItems(matrix.members());
     }
@@ -68,7 +73,9 @@ public class TenantMemberRoleAssignmentView extends VerticalLayout {
 
     private String displayName(TenantAccount member) {
         var account = member.getAccount();
-        var name = "%s %s".formatted(account.getFirstName() == null ? "" : account.getFirstName(), account.getLastName() == null ? "" : account.getLastName()).trim();
+        var name = "%s %s".formatted(
+            account.getFirstName() == null ? "" : account.getFirstName(),
+            account.getLastName() == null ? "" : account.getLastName()).trim();
         return name.isBlank() ? account.getEmail() : "%s <%s>".formatted(name, account.getEmail());
     }
 }

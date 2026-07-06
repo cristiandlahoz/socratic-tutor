@@ -29,6 +29,5 @@ public class RbacUiRegistry {
         void remove();
     }
 
-    record RegisteredUi(UI ui, UUID roleNamespaceId, Runnable refreshAction) {
-    }
+    record RegisteredUi(UI ui, UUID roleNamespaceId, Runnable refreshAction) {}
 }

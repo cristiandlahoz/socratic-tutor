@@ -24,7 +24,8 @@ import org.springframework.ai.tokenizer.TokenCountEstimator;
 
 public final class TokenBudgetRecursiveSummarizationCompactionStrategy implements CompactionStrategy {
 
-    private static final Logger log = LoggerFactory.getLogger(TokenBudgetRecursiveSummarizationCompactionStrategy.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(TokenBudgetRecursiveSummarizationCompactionStrategy.class);
 
     private static final String STRATEGY_NAME = "token-budget-recursive-summarization";
     private static final int DEFAULT_OVERLAP_EVENTS = 2;
@@ -33,20 +34,20 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
     private static final String DEFAULT_SHADOW_PROMPT = "Resume la conversación de tutoría hasta ahora.";
     private static final String DEFAULT_SYSTEM_PROMPT = "Summarize the tutoring conversation.";
     private static final String DEFAULT_USER_PROMPT_TEMPLATE = """
-            <prior-summary>
-            $priorSummary$
-            </prior-summary>
+                                                               <prior-summary>
+                                                               $priorSummary$
+                                                               </prior-summary>
 
-            <conversation-to-summarize>
-            $conversationToSummarize$
-            </conversation-to-summarize>
+                                                               <conversation-to-summarize>
+                                                               $conversationToSummarize$
+                                                               </conversation-to-summarize>
 
-            <upcoming-context purpose=\"continuity-only\">
-            $upcomingContext$
-            </upcoming-context>
+                                                               <upcoming-context purpose="continuity-only">
+                                                               $upcomingContext$
+                                                               </upcoming-context>
 
-            Please write the summary now.
-            """;
+                                                               Please write the summary now.
+                                                               """;
 
     private final ChatClient chatClient;
     private final int recentHistoryTokenBudget;
@@ -142,9 +143,12 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
         return PromptUtil.render(
             userPromptTemplate,
             Map.of(
-                "priorSummary", priorSummary(priorSummaries),
-                "conversationToSummarize", formatEvents(eventsToSummarize),
-                "upcomingContext", formatEvents(overlap)));
+                "priorSummary",
+                priorSummary(priorSummaries),
+                "conversationToSummarize",
+                formatEvents(eventsToSummarize),
+                "upcomingContext",
+                formatEvents(overlap)));
     }
 
     private String priorSummary(List<SessionEvent> priorSummaries) {
@@ -198,9 +202,10 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
                     .map(toolCall -> toolCall.name() + "(" + truncate(toolCall.arguments()) + ")")
                     .collect(Collectors.joining(", "));
             var text = assistantMessage.getText();
-            return truncate(text != null && !text.isBlank()
-                    ? role + ": " + text + " [tool calls: " + calls + "]"
-                    : role + " [tool calls: " + calls + "]");
+            return truncate(
+                text != null && !text.isBlank()
+                        ? role + ": " + text + " [tool calls: " + calls + "]"
+                        : role + " [tool calls: " + calls + "]");
         }
 
         if (event.getMessage() instanceof ToolResponseMessage toolResponseMessage) {
@@ -272,14 +277,13 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
         }
 
         public TokenBudgetRecursiveSummarizationCompactionStrategy build() {
-            return new TokenBudgetRecursiveSummarizationCompactionStrategy(
-                chatClient,
-                recentHistoryTokenBudget,
-                overlapEvents,
-                systemPrompt,
-                userPromptTemplate,
-                shadowPrompt,
-                tokenCountEstimator);
+            return new TokenBudgetRecursiveSummarizationCompactionStrategy(chatClient,
+                    recentHistoryTokenBudget,
+                    overlapEvents,
+                    systemPrompt,
+                    userPromptTemplate,
+                    shadowPrompt,
+                    tokenCountEstimator);
         }
     }
 }

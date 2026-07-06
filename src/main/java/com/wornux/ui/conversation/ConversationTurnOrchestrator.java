@@ -20,8 +20,8 @@ import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ChatSessionActivityBus;
 import com.wornux.services.chat.ChatStreamTimeoutException;
 import com.wornux.services.chat.ConversationService;
-import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.chat.ConversationTitleService;
+import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.ui.MainLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,10 +141,7 @@ public class ConversationTurnOrchestrator {
             activity -> setActivityForCurrentStream(context, streamId, activity));
     }
 
-    private void setActivityForCurrentStream(
-            TurnContext context,
-            long streamId,
-            ChatSessionActivity activity) {
+    private void setActivityForCurrentStream(TurnContext context, long streamId, ChatSessionActivity activity) {
         runUiSideEffect(() -> {
             if (isStaleStream(streamId)) {
                 return;
@@ -178,9 +175,7 @@ public class ConversationTurnOrchestrator {
         });
     }
 
-    private void stopLoadingOnFirstToken(
-            AtomicBoolean firstTokenReceived,
-            ValueSignal<MessageState> responseMessage) {
+    private void stopLoadingOnFirstToken(AtomicBoolean firstTokenReceived, ValueSignal<MessageState> responseMessage) {
         if (firstTokenReceived.compareAndSet(false, true)) {
             responseMessage.update(message -> Objects.requireNonNull(message).stopLoading());
         }
@@ -221,9 +216,10 @@ public class ConversationTurnOrchestrator {
     }
 
     private void showAssistantFailure(ValueSignal<MessageState> responseMessage) {
-        runUiSideEffect(() -> responseMessage.update(
-            message -> Objects.requireNonNull(message)
-                    .fallback("Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente.")));
+        runUiSideEffect(
+            () -> responseMessage.update(
+                message -> Objects.requireNonNull(message)
+                        .fallback("Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente.")));
     }
 
     private void finishStreamedMessage(

@@ -83,7 +83,10 @@ public class DocumentIngestionService {
                 vectorIds);
     }
 
-    public CourseMaterialCatalog generateCatalog(String title, String catalogUseWhen, List<EditableSegmentViewModel> segments) {
+    public CourseMaterialCatalog generateCatalog(
+            String title,
+            String catalogUseWhen,
+            List<EditableSegmentViewModel> segments) {
         requireProfessorContext();
         return catalogGenerationService.generate(title, catalogUseWhen, segments);
     }

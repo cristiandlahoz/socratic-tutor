@@ -26,10 +26,10 @@ import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.conversation.ConversationView;
+import com.wornux.ui.css.UiCss;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.training_activity.TrainingActivityView;
 import jakarta.annotation.security.PermitAll;
-import com.wornux.ui.css.UiCss;
 
 @Route(value = "professor", layout = MainLayout.class)
 @PageTitle("Espacio del profesor")
@@ -72,10 +72,12 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
         add(
             new H1("Espacio del profesor"),
             classSelector,
-            new HorizontalLayout(new Button("Abrir conversación", _ -> UI.getCurrent().navigate(ConversationView.class)),
+            new HorizontalLayout(
+                    new Button("Abrir conversación", _ -> UI.getCurrent().navigate(ConversationView.class)),
                     new Button("Documentos", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
                     new Button("Actividades formativas", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
-            new HorizontalLayout(studentEmailField, new Button("Enviar invitación", new Icon(VaadinIcon.PAPERPLANE), _ -> inviteStudent())),
+            new HorizontalLayout(studentEmailField,
+                    new Button("Enviar invitación", new Icon(VaadinIcon.PAPERPLANE), _ -> inviteStudent())),
             studentsGrid);
     }
 

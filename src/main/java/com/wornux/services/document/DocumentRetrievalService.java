@@ -31,7 +31,10 @@ public class DocumentRetrievalService {
     private final JdbcClient jdbcClient;
     private final DocumentIngestionProperties properties;
 
-    public DocumentRetrievalService(VectorStore vectorStore, JdbcClient jdbcClient, DocumentIngestionProperties properties) {
+    public DocumentRetrievalService(
+            VectorStore vectorStore,
+            JdbcClient jdbcClient,
+            DocumentIngestionProperties properties) {
         this.vectorStore = vectorStore;
         this.jdbcClient = jdbcClient;
         this.properties = properties;
@@ -49,7 +52,8 @@ public class DocumentRetrievalService {
                 .filterExpression(searchFilter(groupClassId))
                 .build();
 
-        List<DocumentSearchHit> hits = vectorStore.similaritySearch(request).stream()
+        List<DocumentSearchHit> hits = vectorStore.similaritySearch(request)
+                .stream()
                 .map(this::toSearchHit)
                 .flatMap(Optional::stream)
                 .toList();
@@ -68,25 +72,25 @@ public class DocumentRetrievalService {
 
         int requestedPageSize = normalizedPageSize(pageSize);
         var documentCursor = decodedCursor.get();
-        var chunks = jdbcClient.sql(
-            """
-            select content, metadata ->> 'title' as source, (metadata ->> 'chunkIndex')::int as chunk_index
-            from grounding_vector_store
-            where metadata ->> 'groupClassId' = :groupClassId
-              and metadata ->> 'ingestionId' = :ingestionId
-              and metadata ->> 'status' = 'READY'
-              and (metadata ->> 'chunkIndex')::int >= :chunkIndex
-            order by (metadata ->> 'chunkIndex')::int
-            limit :limit
-            """)
+        var chunks = jdbcClient
+                .sql("""
+                     select content, metadata ->> 'title' as source, (metadata ->> 'chunkIndex')::int as chunk_index
+                     from grounding_vector_store
+                     where metadata ->> 'groupClassId' = :groupClassId
+                       and metadata ->> 'ingestionId' = :ingestionId
+                       and metadata ->> 'status' = 'READY'
+                       and (metadata ->> 'chunkIndex')::int >= :chunkIndex
+                     order by (metadata ->> 'chunkIndex')::int
+                     limit :limit
+                     """)
                 .param("groupClassId", groupClassId.toString())
                 .param("ingestionId", documentCursor.ingestionId().toString())
                 .param("chunkIndex", documentCursor.chunkIndex())
                 .param("limit", requestedPageSize + 1)
-                .query((rs, _) -> new DocumentChunk(
-                        rs.getString("source"),
-                        rs.getString("content"),
-                        rs.getInt("chunk_index")))
+                .query(
+                    (rs, _) -> new DocumentChunk(rs.getString("source"),
+                            rs.getString("content"),
+                            rs.getInt("chunk_index")))
                 .list();
 
         if (chunks.isEmpty()) {
@@ -121,10 +125,10 @@ public class DocumentRetrievalService {
         if (ingestionId == null || chunkIndex == null) {
             return Optional.empty();
         }
-        return Optional.of(new DocumentSearchHit(
-                stringValue(metadata.get("title")),
-                preview(document.getText()),
-                encodeCursor(new DocumentCursor(ingestionId, chunkIndex))));
+        return Optional.of(
+            new DocumentSearchHit(stringValue(metadata.get("title")),
+                    preview(document.getText()),
+                    encodeCursor(new DocumentCursor(ingestionId, chunkIndex))));
     }
 
     private DocumentPageResult emptyPage() {
@@ -148,7 +152,9 @@ public class DocumentRetrievalService {
 
     private String preview(String content) {
         var normalized = normalize(content);
-        return normalized.length() <= PREVIEW_MAX_CHARS ? normalized : normalized.substring(0, PREVIEW_MAX_CHARS - 3) + "...";
+        return normalized.length() <= PREVIEW_MAX_CHARS
+                ? normalized
+                : normalized.substring(0, PREVIEW_MAX_CHARS - 3) + "...";
     }
 
     private String normalize(String content) {
@@ -191,9 +197,9 @@ public class DocumentRetrievalService {
             if (separator < 0) {
                 return Optional.empty();
             }
-            return Optional.of(new DocumentCursor(
-                    UUID.fromString(decoded.substring(0, separator)),
-                    Integer.parseInt(decoded.substring(separator + 1))));
+            return Optional.of(
+                new DocumentCursor(UUID.fromString(decoded.substring(0, separator)),
+                        Integer.parseInt(decoded.substring(separator + 1))));
         }
         catch (RuntimeException exception) {
             return Optional.empty();

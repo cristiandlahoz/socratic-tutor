@@ -14,13 +14,11 @@ public class ConversationHistoryDrawer extends Div {
         var history = new ConversationsHistory();
         history.addConversationOpenRequestedListener(event -> viewModel.onOpenConversation(event.getConversationId()));
 
-        Signal.effect(
-            history,
-            () -> {
-                history.setConversations(state.conversationHistory().get().stream().map(Signal::get).toList());
-                history.setActiveConversationId(state.activeConversationId().get());
-                history.setDisabled(state.responseInProgress().get());
-            });
+        Signal.effect(history, () -> {
+            history.setConversations(state.conversationHistory().get().stream().map(Signal::get).toList());
+            history.setActiveConversationId(state.activeConversationId().get());
+            history.setDisabled(state.responseInProgress().get());
+        });
 
         add(history);
     }

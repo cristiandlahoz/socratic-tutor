@@ -1,7 +1,5 @@
 package com.wornux.ui.auth;
 
-import java.util.Optional;
-
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -22,18 +20,18 @@ import com.wornux.services.onboarding.InvitationStateException;
 import com.wornux.services.security.AuthenticatedAccountService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.ui.admin.SystemAdminWorkspaceView;
+import com.wornux.ui.css.UiCss;
 import com.wornux.ui.professor.ProfessorWorkspaceView;
 import com.wornux.ui.student.StudentWorkspaceView;
 import com.wornux.ui.tenant.TenantAdminWorkspaceView;
-import com.wornux.ui.css.UiCss;
 
 @Route(value = "invitations/accept", autoLayout = false)
 @PageTitle("Accept invitation")
 @AnonymousAllowed
 public class InvitationAcceptView extends VerticalLayout implements BeforeEnterObserver {
 
-    private final InvitationService invitationService;
-    private final AuthenticatedAccountService authenticatedAccountService;
+    private final transient InvitationService invitationService;
+    private final transient AuthenticatedAccountService authenticatedAccountService;
     private final EmailField emailField = new EmailField("Invited email");
     private final TextField firstNameField = new TextField("First name");
     private final TextField lastNameField = new TextField("Last name");

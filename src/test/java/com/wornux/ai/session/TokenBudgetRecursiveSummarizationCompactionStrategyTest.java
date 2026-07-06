@@ -40,7 +40,8 @@ class TokenBudgetRecursiveSummarizationCompactionStrategyTest {
             event(new UserMessage("retained turn student question with enough length")),
             event(new AssistantMessage("retained turn tutor answer with enough length")));
 
-        var result = strategy.compact(CompactionRequest.of(Session.builder().id("conversation-1").userId("user-1").build(), events));
+        var result = strategy
+                .compact(CompactionRequest.of(Session.builder().id("conversation-1").userId("user-1").build(), events));
 
         assertThat(result.archivedEvents()).containsExactly(events.get(0), events.get(1));
         assertThat(result.compactedEvents()).hasSize(4);

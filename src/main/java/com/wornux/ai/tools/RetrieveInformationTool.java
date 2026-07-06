@@ -5,7 +5,6 @@ import java.util.UUID;
 import com.wornux.dtos.document.DocumentContextResult;
 import com.wornux.dtos.document.DocumentPageResult;
 import com.wornux.services.document.DocumentRetrievalService;
-
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -31,7 +30,8 @@ public class RetrieveInformationTool {
             description = "Search stored course material for factual course context. Returns short previews and read cursors. Use "
                     + READ_COURSE_MATERIAL_PAGE + " when a preview is not enough to answer.")
     public DocumentContextResult searchCourseMaterial(
-            @ToolParam(description = "The specific question or fact to search for in stored course material.") String query,
+            @ToolParam(
+                    description = "The specific question or fact to search for in stored course material.") String query,
             ToolContext toolContext) {
         return toolUsageAuditService.audit(
             SEARCH_COURSE_MATERIAL,
@@ -48,7 +48,8 @@ public class RetrieveInformationTool {
             description = "Read stored course material from a cursor returned by " + SEARCH_COURSE_MATERIAL
                     + ". Use nextCursor or previousCursor to continue reading nearby chunks.")
     public DocumentPageResult readCourseMaterialPage(
-            @ToolParam(description = "A readCursor, nextCursor, or previousCursor returned by a course material tool.") String cursor,
+            @ToolParam(
+                    description = "A readCursor, nextCursor, or previousCursor returned by a course material tool.") String cursor,
             @ToolParam(required = false,
                     description = "Number of chunks to read. Default is 1; maximum is 3.") Integer pageSize,
             ToolContext toolContext) {
@@ -59,8 +60,8 @@ public class RetrieveInformationTool {
             () -> {
                 var result = documentRetrievalService.readPage(groupClassId(toolContext), cursor, pageSize);
                 return new ToolUsageAuditService.ToolResult<>(result,
-                        "content_found=%s has_previous=%s has_next=%s".formatted(
-                            !result.content().isBlank(), result.hasPrevious(), result.hasNext()));
+                        "content_found=%s has_previous=%s has_next=%s"
+                                .formatted(!result.content().isBlank(), result.hasPrevious(), result.hasNext()));
             });
     }
 

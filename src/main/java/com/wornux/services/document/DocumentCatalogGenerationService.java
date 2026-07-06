@@ -27,8 +27,10 @@ public class DocumentCatalogGenerationService {
 
     private final ChatModel chatModel;
     private final PromptResources promptResources;
-    private final BeanOutputConverter<GeneratedCatalog> outputConverter = new BeanOutputConverter<>(GeneratedCatalog.class);
-    private final BeanOutputConverter<SpecificityClassification> specificityOutputConverter = new BeanOutputConverter<>(SpecificityClassification.class);
+    private final BeanOutputConverter<GeneratedCatalog> outputConverter =
+            new BeanOutputConverter<>(GeneratedCatalog.class);
+    private final BeanOutputConverter<SpecificityClassification> specificityOutputConverter =
+            new BeanOutputConverter<>(SpecificityClassification.class);
 
     @Value("${app.ai.switzerland-knife.model:${app.ai.guard.model}}")
     private String model;
@@ -46,7 +48,9 @@ public class DocumentCatalogGenerationService {
 
     private GeneratedCatalog generatedCatalog(String title, String useWhen, String firstChunk) {
         var prompt = Prompt.builder()
-                .messages(new SystemMessage(promptResources.documentCatalogSystem()), new UserMessage(userPrompt(title, useWhen, firstChunk)))
+                .messages(
+                    new SystemMessage(promptResources.documentCatalogSystem()),
+                    new UserMessage(userPrompt(title, useWhen, firstChunk)))
                 .chatOptions(chatOptions(outputConverter))
                 .build();
 
@@ -84,15 +88,18 @@ public class DocumentCatalogGenerationService {
                 .filter(alias -> alias.length() <= MAX_ALIAS_LENGTH)
                 .filter(alias -> isSpecific(alias, "catalog alias"))
                 .limit(MAX_ALIASES)
-                .collect(java.util.stream.Collectors.collectingAndThen(
-                    java.util.stream.Collectors.toCollection(LinkedHashSet::new),
-                    List::copyOf));
+                .collect(
+                    java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toCollection(LinkedHashSet::new),
+                        List::copyOf));
     }
 
     private String requireSpecificText(String value, String fieldName) {
         var normalized = normalize(value);
         if (normalized.isBlank() || !isSpecific(normalized, fieldName)) {
-            throw new DocumentIngestionException("The generated %s is too generic. Improve the usage description and generate again.".formatted(fieldName));
+            throw new DocumentIngestionException(
+                    "The generated %s is too generic. Improve the usage description and generate again."
+                            .formatted(fieldName));
         }
         return normalized;
     }
@@ -100,7 +107,8 @@ public class DocumentCatalogGenerationService {
     private void requireSpecificUseWhen(String useWhen) {
         var normalized = normalize(useWhen);
         if (normalized.isBlank()) {
-            throw new DocumentIngestionException("Describe when the tutor should use this material before generating the catalog.");
+            throw new DocumentIngestionException(
+                    "Describe when the tutor should use this material before generating the catalog.");
         }
         if (normalized.length() > MAX_USE_WHEN_LENGTH) {
             throw new DocumentIngestionException("The usage description cannot exceed 200 characters.");
@@ -118,7 +126,9 @@ public class DocumentCatalogGenerationService {
                 .map(EditableSegmentViewModel::content)
                 .filter(content -> content != null && !content.isBlank())
                 .findFirst()
-                .orElseThrow(() -> new DocumentIngestionException("At least one non-empty chunk is required before generating the catalog."));
+                .orElseThrow(
+                    () -> new DocumentIngestionException(
+                            "At least one non-empty chunk is required before generating the catalog."));
     }
 
     private boolean isSpecific(String value, String fieldName) {
@@ -134,9 +144,8 @@ public class DocumentCatalogGenerationService {
     }
 
     private String specificityUserPrompt(String fieldName, String value) {
-        return PromptUtil.render(
-            promptResources.documentSpecificityUser(),
-            Map.of("fieldName", fieldName, "value", value));
+        return PromptUtil
+                .render(promptResources.documentSpecificityUser(), Map.of("fieldName", fieldName, "value", value));
     }
 
     private OpenAiChatOptions chatOptions(BeanOutputConverter<?> converter) {
@@ -149,7 +158,8 @@ public class DocumentCatalogGenerationService {
 
     private String responseText(ChatResponse response) {
         if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
-            throw new DocumentIngestionException("The AI model did not return a usable response. Try generating again.");
+            throw new DocumentIngestionException(
+                    "The AI model did not return a usable response. Try generating again.");
         }
 
         var text = response.getResult().getOutput().getText();
@@ -165,7 +175,7 @@ public class DocumentCatalogGenerationService {
 
     private DocumentIngestionException genericCatalogMessage() {
         return new DocumentIngestionException(
-            "The catalog would be too generic. Add specific topics, assignment names, concepts, or situations and generate again.");
+                "The catalog would be too generic. Add specific topics, assignment names, concepts, or situations and generate again.");
     }
 
     private record GeneratedCatalog(boolean createCatalog, String label, String useWhen, List<String> aliases) {}

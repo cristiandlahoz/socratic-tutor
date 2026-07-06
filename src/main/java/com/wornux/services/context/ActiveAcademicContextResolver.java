@@ -37,30 +37,35 @@ public class ActiveAcademicContextResolver {
 
     @Transactional(readOnly = true)
     public Optional<ActiveAcademicContext> resolveCurrent() {
-        return authenticatedUserContext.currentAccount().flatMap(account -> accountContextPreferenceRepository
-                .findById(account.getId())
-                .filter(preference -> preference.getTenant() != null && preference.getGroupClass() != null)
-                .flatMap(preference -> {
-                    var tenantAccount = tenantAccountRepository
-                            .findByTenant_IdAndAccount_Id(preference.getTenant().getId(), account.getId())
-                            .orElse(null);
-                    if (tenantAccount == null || tenantAccount.isLocked()) {
-                        return Optional.empty();
-                    }
+        return authenticatedUserContext.currentAccount()
+                .flatMap(
+                    account -> accountContextPreferenceRepository.findById(account.getId())
+                            .filter(preference -> preference.getTenant() != null && preference.getGroupClass() != null)
+                            .flatMap(preference -> {
+                                var tenantAccount = tenantAccountRepository
+                                        .findByTenant_IdAndAccount_Id(preference.getTenant().getId(), account.getId())
+                                        .orElse(null);
+                                if (tenantAccount == null || tenantAccount.isLocked()) {
+                                    return Optional.empty();
+                                }
 
-                    var groupClassMember = groupClassMemberRepository
-                            .findByGroupClass_IdAndTenantAccount_Id(preference.getGroupClass().getId(), tenantAccount.getId())
-                            .orElse(null);
-                    if (groupClassMember == null || groupClassMember.isLocked()) {
-                        return Optional.empty();
-                    }
+                                var groupClassMember =
+                                        groupClassMemberRepository
+                                                .findByGroupClass_IdAndTenantAccount_Id(
+                                                    preference.getGroupClass().getId(),
+                                                    tenantAccount.getId())
+                                                .orElse(null);
+                                if (groupClassMember == null || groupClassMember.isLocked()) {
+                                    return Optional.empty();
+                                }
 
-                    return Optional.of(new ActiveAcademicContext(account.getId(),
-                            tenantAccount.getId(),
-                            groupClassMember.getId(),
-                            groupClassMember.getGroupClass().getId(),
-                            groupClassMember.getMemberKind()));
-                }));
+                                return Optional.of(
+                                    new ActiveAcademicContext(account.getId(),
+                                            tenantAccount.getId(),
+                                            groupClassMember.getId(),
+                                            groupClassMember.getGroupClass().getId(),
+                                            groupClassMember.getMemberKind()));
+                            }));
     }
 
     @Transactional(readOnly = true)

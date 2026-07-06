@@ -17,10 +17,8 @@ public class WorkspaceDrawerNavigation extends Div {
         var actions = new Div();
         UiCss.SIDEBAR_ACTIONS_LIST.addTo(actions);
 
-        entries.forEach(entry -> actions.add(createNavigationButton(
-                entry.routeTarget(),
-                entry.label(),
-                entry.createIcon())));
+        entries.forEach(
+            entry -> actions.add(createNavigationButton(entry.routeTarget(), entry.label(), entry.createIcon())));
 
         add(actions);
     }

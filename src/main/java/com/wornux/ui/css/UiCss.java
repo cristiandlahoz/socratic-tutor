@@ -61,7 +61,8 @@ public final class UiCss {
     public static final CssClass CONVERSATION_DEBUG_SPLIT = css("conversation-view__debug-split");
     public static final CssClass CONVERSATION_DEBUG_SPLIT_COLLAPSED = css("conversation-view__debug-split--collapsed");
     public static final CssClass CONVERSATION_DEBUGGER_TOGGLE = css("conversation-view__debugger-toggle");
-    public static final CssClass CONVERSATION_DEBUGGER_TOGGLE_HIDDEN = css("conversation-view__debugger-toggle--hidden");
+    public static final CssClass CONVERSATION_DEBUGGER_TOGGLE_HIDDEN =
+            css("conversation-view__debugger-toggle--hidden");
     public static final CssClass CONVERSATION_THREAD = css("conversation-thread");
     public static final CssClass CONVERSATION_EMPTY = css("conversation-empty");
     public static final CssClass CONVERSATION_EMPTY_LAYOUT = css("conversation-empty__layout");
@@ -103,14 +104,19 @@ public final class UiCss {
     public static final CssClass CONVERSATION_QUESTION_OPTION_LABEL = css("conversation-question__option-label");
     public static final CssClass CONVERSATION_QUESTION_OPTION_INFO = css("conversation-question__option-info");
     public static final CssClass CONVERSATION_QUESTION_OPTION_POPOVER = css("conversation-question__option-popover");
-    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION = css("conversation-question__option-description");
-    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION_INLINE = css("conversation-question__option-description--inline");
-    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION_POPOVER = css("conversation-question__option-description--popover");
-    public static final CssClass CONVERSATION_QUESTION_OPTION_MOBILE_HEADER = css("conversation-question__option-mobile-header");
+    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION =
+            css("conversation-question__option-description");
+    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION_INLINE =
+            css("conversation-question__option-description--inline");
+    public static final CssClass CONVERSATION_QUESTION_OPTION_DESCRIPTION_POPOVER =
+            css("conversation-question__option-description--popover");
+    public static final CssClass CONVERSATION_QUESTION_OPTION_MOBILE_HEADER =
+            css("conversation-question__option-mobile-header");
     public static final CssClass CONVERSATION_QUESTION_CUSTOM_TEXT = css("conversation-question__custom-text");
     public static final CssClass CONVERSATION_QUESTION_COMPOSER = css("conversation-question__composer");
     public static final CssClass CONVERSATION_QUESTION_COMPOSER_WRAP = css("conversation-question__composer-wrap");
-    public static final CssClass CONVERSATION_QUESTION_COMPOSER_ACTIONS = css("conversation-question__composer-actions");
+    public static final CssClass CONVERSATION_QUESTION_COMPOSER_ACTIONS =
+            css("conversation-question__composer-actions");
     public static final CssClass CONVERSATION_QUESTION_NAV_BUTTON = css("conversation-question__nav-button");
     public static final CssClass CONVERSATION_QUESTION_SUBMIT_BUTTON = css("conversation-question__submit-button");
 
@@ -154,8 +160,10 @@ public final class UiCss {
     public static final CssClass DOCUMENT_INGEST_BACK_BUTTON = css("document-ingest-back-button");
     public static final CssClass DOCUMENT_INGEST_CATALOG_SHELL = css("document-ingest-catalog-shell");
     public static final CssClass DOCUMENT_INGEST_CATALOG_USE_WHEN = css("document-ingest-catalog-use-when");
-    public static final CssClass DOCUMENT_INGEST_GENERATE_CATALOG_BUTTON = css("document-ingest-generate-catalog-button");
-    public static final CssClass DOCUMENT_INGEST_GENERATED_CATALOG_PREVIEW = css("document-ingest-generated-catalog-preview");
+    public static final CssClass DOCUMENT_INGEST_GENERATE_CATALOG_BUTTON =
+            css("document-ingest-generate-catalog-button");
+    public static final CssClass DOCUMENT_INGEST_GENERATED_CATALOG_PREVIEW =
+            css("document-ingest-generated-catalog-preview");
     public static final CssClass DOCUMENT_INGEST_DESCRIPTION = css("document-ingest-description");
     public static final CssClass DOCUMENT_INGEST_EYEBROW = css("document-ingest-eyebrow");
     public static final CssClass DOCUMENT_INGEST_HEADER = css("document-ingest-header");
@@ -240,8 +248,7 @@ public final class UiCss {
     public static final CssClass WORKSPACE_TENANT_GRID = css("workspace-tenant-grid");
     public static final CssClass WORKSPACE_VIEW = css("workspace-view");
 
-    private UiCss() {
-    }
+    private UiCss() {}
 
     private static CssClass css(String value) {
         return new CssClass(value);

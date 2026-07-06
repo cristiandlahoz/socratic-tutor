@@ -48,25 +48,27 @@ import jakarta.annotation.security.PermitAll;
 public class RoleMatrixView extends VerticalLayout {
 
     private static final Map<AppResource, String> RESOURCE_LABELS = Map.ofEntries(
-            Map.entry(AppResource.TENANT, "Tenant"),
-            Map.entry(AppResource.ACCOUNT, "Account"),
-            Map.entry(AppResource.ROLE, "Role"),
-            Map.entry(AppResource.SUBJECT, "Subject"),
-            Map.entry(AppResource.ACADEMIC_PERIOD, "Academic Period"),
-            Map.entry(AppResource.GROUP_CLASS, "Group Class"),
-            Map.entry(AppResource.GROUP_CLASS_MEMBER, "Group Class Member"),
-            Map.entry(AppResource.GROUP_CLASS_JOIN_CODE, "Group Class Join Code"),
-            Map.entry(AppResource.CONVERSATION, "Conversation"),
-            Map.entry(AppResource.TRAINING_ACTIVITY, "Training Activity"),
-            Map.entry(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, "Training Activity Assignment"),
-            Map.entry(AppResource.COURSE_MATERIAL, "Course Material"));
+        Map.entry(AppResource.TENANT, "Tenant"),
+        Map.entry(AppResource.ACCOUNT, "Account"),
+        Map.entry(AppResource.ROLE, "Role"),
+        Map.entry(AppResource.SUBJECT, "Subject"),
+        Map.entry(AppResource.ACADEMIC_PERIOD, "Academic Period"),
+        Map.entry(AppResource.GROUP_CLASS, "Group Class"),
+        Map.entry(AppResource.GROUP_CLASS_MEMBER, "Group Class Member"),
+        Map.entry(AppResource.GROUP_CLASS_JOIN_CODE, "Group Class Join Code"),
+        Map.entry(AppResource.CONVERSATION, "Conversation"),
+        Map.entry(AppResource.TRAINING_ACTIVITY, "Training Activity"),
+        Map.entry(AppResource.TRAINING_ACTIVITY_ASSIGNMENT, "Training Activity Assignment"),
+        Map.entry(AppResource.COURSE_MATERIAL, "Course Material"));
 
     private final RoleAdministrationService roleAdministrationService;
     private final ActiveContextHolder activeContextHolder;
     private final ComboBox<RoleAssignmentLevel> levelSelector = new ComboBox<>("Tipo de rol visible");
     private final VerticalLayout matrix = new VerticalLayout();
 
-    public RoleMatrixView(RoleAdministrationService roleAdministrationService, ActiveContextHolder activeContextHolder) {
+    public RoleMatrixView(
+            RoleAdministrationService roleAdministrationService,
+            ActiveContextHolder activeContextHolder) {
         this.roleAdministrationService = roleAdministrationService;
         this.activeContextHolder = activeContextHolder;
         setSizeFull();
@@ -74,7 +76,8 @@ public class RoleMatrixView extends VerticalLayout {
         setSpacing(true);
 
         var title = new H1("Matriz de roles");
-        var description = new Paragraph("Administra paquetes de permisos. La membresía académica y la propiedad de datos se gestionan fuera de RBAC.");
+        var description = new Paragraph(
+                "Administra paquetes de permisos. La membresía académica y la propiedad de datos se gestionan fuera de RBAC.");
         var create = new Button("Crear rol", _ -> openCreateDialog());
         create.addThemeVariants(ButtonVariant.PRIMARY);
         levelSelector.setItems(RoleAssignmentLevel.TENANT, RoleAssignmentLevel.GROUP_CLASS);
@@ -95,11 +98,14 @@ public class RoleMatrixView extends VerticalLayout {
             return;
         }
         if (context.level() == ContextLevel.GROUP_CLASS) {
-            matrix.add(new Paragraph("Los roles se crean y editan desde la administración institucional. Vuelve al contexto de tenant si tienes acceso."));
+            matrix.add(
+                new Paragraph(
+                        "Los roles se crean y editan desde la administración institucional. Vuelve al contexto de tenant si tienes acceso."));
             return;
         }
         levelSelector.setVisible(context.level() == ContextLevel.TENANT);
-        var visibleLevel = context.level() == ContextLevel.PLATFORM ? RoleAssignmentLevel.PLATFORM : levelSelector.getValue();
+        var visibleLevel =
+                context.level() == ContextLevel.PLATFORM ? RoleAssignmentLevel.PLATFORM : levelSelector.getValue();
         roleAdministrationService.rolesForActiveContext(visibleLevel).forEach(role -> matrix.add(roleCard(role)));
     }
 
@@ -110,10 +116,14 @@ public class RoleMatrixView extends VerticalLayout {
         card.getStyle().set("border-radius", "12px");
         card.getStyle().set("padding", "1rem");
         var heading = new H2("%s · %s".formatted(role.getName(), role.getAssignmentLevel()));
-        var meta = new Span("Prioridad %d · %s · %s".formatted(role.getPriority(), role.isActive() ? "activo" : "inactivo", role.isAssignable() ? "asignable" : "no asignable"));
+        var meta = new Span("Prioridad %d · %s · %s".formatted(
+            role.getPriority(),
+            role.isActive() ? "activo" : "inactivo",
+            role.isAssignable() ? "asignable" : "no asignable"));
         var edit = new Button("Editar", _ -> openEditDialog(role));
         card.add(new HorizontalLayout(heading, edit), meta);
-        permissionsByResource().forEach((resource, permissions) -> card.add(permissionGroup(role, resource, permissions)));
+        permissionsByResource()
+                .forEach((resource, permissions) -> card.add(permissionGroup(role, resource, permissions)));
         return card;
     }
 
@@ -141,8 +151,14 @@ public class RoleMatrixView extends VerticalLayout {
                     updated.remove(permission.code());
                 }
                 try {
-                    roleAdministrationService.updateRole(new UpdateRoleCommand(
-                            role.getId(), role.getName(), role.getDescription(), role.isActive(), role.isAssignable(), role.getPriority(), updated));
+                    roleAdministrationService.updateRole(
+                        new UpdateRoleCommand(role.getId(),
+                                role.getName(),
+                                role.getDescription(),
+                                role.isActive(),
+                                role.isAssignable(),
+                                role.getPriority(),
+                                updated));
                     Notification.show("Rol actualizado");
                     refresh();
                 }
@@ -185,7 +201,12 @@ public class RoleMatrixView extends VerticalLayout {
         dialog.add(form);
         var save = new Button("Crear", _ -> {
             try {
-                roleAdministrationService.createRole(new CreateRoleCommand(name.getValue(), description.getValue(), level.getValue(), priority.getValue(), permissions.getValue()));
+                roleAdministrationService.createRole(
+                    new CreateRoleCommand(name.getValue(),
+                            description.getValue(),
+                            level.getValue(),
+                            priority.getValue(),
+                            permissions.getValue()));
                 dialog.close();
                 refresh();
             }
@@ -213,7 +234,14 @@ public class RoleMatrixView extends VerticalLayout {
         dialog.add(new FormLayout(name, description, active, assignable, priority, permissions));
         var save = new Button("Guardar", _ -> {
             try {
-                roleAdministrationService.updateRole(new UpdateRoleCommand(role.getId(), name.getValue(), description.getValue(), active.getValue(), assignable.getValue(), priority.getValue(), permissions.getValue()));
+                roleAdministrationService.updateRole(
+                    new UpdateRoleCommand(role.getId(),
+                            name.getValue(),
+                            description.getValue(),
+                            active.getValue(),
+                            assignable.getValue(),
+                            priority.getValue(),
+                            permissions.getValue()));
                 dialog.close();
                 refresh();
             }
@@ -238,6 +266,8 @@ public class RoleMatrixView extends VerticalLayout {
     }
 
     private Map<AppResource, List<AppPermission>> permissionsByResource() {
-        return Arrays.stream(AppPermission.values()).collect(Collectors.groupingBy(AppPermission::resource, java.util.LinkedHashMap::new, Collectors.toList()));
+        return Arrays.stream(AppPermission.values())
+                .collect(
+                    Collectors.groupingBy(AppPermission::resource, java.util.LinkedHashMap::new, Collectors.toList()));
     }
 }

@@ -82,7 +82,8 @@ public class SystemAdminWorkspaceService {
     }
 
     private boolean isSystemAdmin(Account account) {
-        return accountPlatformRoleRepository.findByAccount_IdAndRole_CodeAndRole_ActiveTrue(account.getId(), "SYSTEM_ADMIN")
+        return accountPlatformRoleRepository
+                .findByAccount_IdAndRole_CodeAndRole_ActiveTrue(account.getId(), "SYSTEM_ADMIN")
                 .isPresent();
     }
 }

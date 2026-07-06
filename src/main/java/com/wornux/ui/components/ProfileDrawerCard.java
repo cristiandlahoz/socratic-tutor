@@ -69,7 +69,8 @@ public class ProfileDrawerCard extends Component implements HasComponents {
             container.add(contextSummary("Institución", tenantOptions.getFirst().label()));
         }
 
-        if (classOptions.size() > 1 || active.map(context -> context.level() == ContextLevel.GROUP_CLASS).orElse(false)) {
+        if (classOptions.size() > 1
+                || active.map(context -> context.level() == ContextLevel.GROUP_CLASS).orElse(false)) {
             var selector = new ComboBox<AvailableContextOption>("Clase");
             UiCss.PROFILE_DRAWER_CARD_CONTEXT_SELECT.addTo(selector);
             selector.setItems(classOptions);
@@ -115,7 +116,11 @@ public class ProfileDrawerCard extends Component implements HasComponents {
 
         var identityChildren = new java.util.ArrayList<Component>(List.of(name, email));
         activeContextHolder.current()
-                .flatMap(context -> contextDiscoveryService.discover(account).stream().filter(option -> option.matches(context)).findFirst())
+                .flatMap(
+                    context -> contextDiscoveryService.discover(account)
+                            .stream()
+                            .filter(option -> option.matches(context))
+                            .findFirst())
                 .map(AvailableContextOption::label)
                 .ifPresent(contextLabel -> {
                     var context = new Span(contextLabel);

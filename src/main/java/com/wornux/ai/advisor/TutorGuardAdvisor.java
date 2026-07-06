@@ -26,17 +26,17 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
     private static final int GUARD_MESSAGE_WINDOW = 4;
     private static final String GUARD_POLICY_TEMPLATE = """
-            $system$
+                                                        $system$
 
-            <guard-policy mode="$mode$">
-            $policy$
-            </guard-policy>
-            """;
+                                                        <guard-policy mode="$mode$">
+                                                        $policy$
+                                                        </guard-policy>
+                                                        """;
     private static final String STANDALONE_GUARD_POLICY_TEMPLATE = """
-            <guard-policy mode="$mode$">
-            $policy$
-            </guard-policy>
-            """;
+                                                                   <guard-policy mode="$mode$">
+                                                                   $policy$
+                                                                   </guard-policy>
+                                                                   """;
 
     private final int order;
     private final GuardClassifierService guardClassifierService;
@@ -101,15 +101,18 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private ChatClientRequest applyGuardPolicy(ChatClientRequest request, String policyText, String policyMode) {
-        Prompt guardedPrompt = request.prompt().augmentSystemMessage(system -> system.mutate()
-                .text(systemWithGuardPolicy(system.getText(), policyMode, policyText))
-                .build());
+        Prompt guardedPrompt = request.prompt()
+                .augmentSystemMessage(
+                    system -> system.mutate()
+                            .text(systemWithGuardPolicy(system.getText(), policyMode, policyText))
+                            .build());
 
         return request.mutate().prompt(guardedPrompt).build();
     }
 
     private String systemWithGuardPolicy(String systemText, String policyMode, String policyText) {
-        return PromptUtil.render(guardPolicyTemplate(systemText), guardPolicyVariables(systemText, policyMode, policyText));
+        return PromptUtil
+                .render(guardPolicyTemplate(systemText), guardPolicyVariables(systemText, policyMode, policyText));
     }
 
     private String guardPolicyTemplate(String systemText) {
@@ -117,10 +120,7 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private Map<String, Object> guardPolicyVariables(String systemText, String policyMode, String policyText) {
-        return Map.of(
-            "system", isBlank(systemText) ? "" : systemText,
-            "mode", policyMode,
-            "policy", policyText);
+        return Map.of("system", isBlank(systemText) ? "" : systemText, "mode", policyMode, "policy", policyText);
     }
 
     private boolean isBlank(String value) {

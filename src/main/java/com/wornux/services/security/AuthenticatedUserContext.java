@@ -84,11 +84,12 @@ public class AuthenticatedUserContext {
 
     public Optional<AuthenticatedAccountDetails> refreshCurrentAuthentication(UUID accountId) {
         var refreshed = userDetailsService.loadUserByAccountId(accountId);
-        currentAuthentication().ifPresent(authentication -> SecurityContextHolder.getContext()
-                .setAuthentication(new UsernamePasswordAuthenticationToken(
-                    refreshed,
-                    authentication.getCredentials(),
-                    refreshed.getAuthorities())));
+        currentAuthentication().ifPresent(
+            authentication -> SecurityContextHolder.getContext()
+                    .setAuthentication(
+                        new UsernamePasswordAuthenticationToken(refreshed,
+                                authentication.getCredentials(),
+                                refreshed.getAuthorities())));
         remember(refreshed);
         return Optional.of(refreshed);
     }

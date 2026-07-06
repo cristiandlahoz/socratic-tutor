@@ -125,10 +125,11 @@ public class WorkspaceRoutingService {
                 .collect(java.util.stream.Collectors.groupingBy(TenantAccountRole::getTenantAccount))
                 .entrySet()
                 .stream()
-                .map(entry -> new AccessibleTenant(entry.getKey().getTenant().getId(),
-                        entry.getKey().getId(),
-                        entry.getKey().getTenant().getName(),
-                        entry.getValue().stream().map(role -> role.getRole().getCode()).sorted().toList()))
+                .map(
+                    entry -> new AccessibleTenant(entry.getKey().getTenant().getId(),
+                            entry.getKey().getId(),
+                            entry.getKey().getTenant().getName(),
+                            entry.getValue().stream().map(role -> role.getRole().getCode()).sorted().toList()))
                 .sorted(Comparator.comparing(AccessibleTenant::tenantName))
                 .toList();
     }
@@ -139,13 +140,14 @@ public class WorkspaceRoutingService {
                 .findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId())
                 .stream()
                 .filter(member -> member.getMemberKind() == memberKind)
-                .map(member -> new AccessibleClass(member.getGroupClass().getId(),
-                        member.getId(),
-                        member.getTenantAccount().getId(),
-                        member.getGroupClass().getTenant().getName(),
-                        member.getGroupClass().getCode(),
-                        member.getGroupClass().getName(),
-                        member.getMemberKind()))
+                .map(
+                    member -> new AccessibleClass(member.getGroupClass().getId(),
+                            member.getId(),
+                            member.getTenantAccount().getId(),
+                            member.getGroupClass().getTenant().getName(),
+                            member.getGroupClass().getCode(),
+                            member.getGroupClass().getName(),
+                            member.getMemberKind()))
                 .toList();
     }
 
@@ -173,20 +175,25 @@ public class WorkspaceRoutingService {
         return groupClassMemberRepository
                 .findByTenantAccount_Account_IdAndLockedFalseOrderByJoinedAtAsc(account.getId())
                 .stream()
-                .anyMatch(member -> member.getGroupClass().getId().equals(groupClassId)
-                        && (requiredKind == null || member.getMemberKind() == requiredKind));
+                .anyMatch(
+                    member -> member.getGroupClass().getId().equals(groupClassId)
+                            && (requiredKind == null || member.getMemberKind() == requiredKind));
     }
 
     @Transactional(readOnly = true)
     public Optional<GroupClassMember> currentClassMembership(Account account, GroupClassMemberKind requiredKind) {
         return accountContextPreferenceRepository.findById(account.getId())
                 .filter(preference -> preference.getGroupClass() != null)
-                .flatMap(preference -> requiredKind == null
-                        ? groupClassMemberRepository.findByGroupClass_IdAndTenantAccount_Account_IdAndLockedFalse(
-                                preference.getGroupClass().getId(), account.getId())
-                        : groupClassMemberRepository
-                                .findByGroupClass_IdAndTenantAccount_Account_IdAndMemberKindAndLockedFalse(
-                                        preference.getGroupClass().getId(), account.getId(), requiredKind));
+                .flatMap(
+                    preference -> requiredKind == null
+                            ? groupClassMemberRepository.findByGroupClass_IdAndTenantAccount_Account_IdAndLockedFalse(
+                                preference.getGroupClass().getId(),
+                                account.getId())
+                            : groupClassMemberRepository
+                                    .findByGroupClass_IdAndTenantAccount_Account_IdAndMemberKindAndLockedFalse(
+                                        preference.getGroupClass().getId(),
+                                        account.getId(),
+                                        requiredKind));
     }
 
     private boolean prepareTenantAdminAccess(Account account) {
@@ -194,11 +201,12 @@ public class WorkspaceRoutingService {
         if (tenantAdminRoles.isEmpty()) {
             return false;
         }
-        var currentTenant = accountContextPreferenceRepository.findById(account.getId())
-                .map(AccountContextPreference::getTenant);
+        var currentTenant =
+                accountContextPreferenceRepository.findById(account.getId()).map(AccountContextPreference::getTenant);
         if (currentTenant.isPresent()
-                && tenantAdminRoles.stream().anyMatch(role -> role.getTenantAccount().getTenant().getId()
-                        .equals(currentTenant.get().getId()))) {
+                && tenantAdminRoles.stream()
+                        .anyMatch(
+                            role -> role.getTenantAccount().getTenant().getId().equals(currentTenant.get().getId()))) {
             return true;
         }
         var tenantAccount = tenantAdminRoles.getFirst().getTenantAccount();
@@ -220,7 +228,8 @@ public class WorkspaceRoutingService {
     }
 
     private boolean hasGlobalRole(Account account, String roleCode) {
-        return accountPlatformRoleRepository.findByAccount_IdAndRole_CodeAndRole_ActiveTrue(account.getId(), roleCode).isPresent();
+        return accountPlatformRoleRepository.findByAccount_IdAndRole_CodeAndRole_ActiveTrue(account.getId(), roleCode)
+                .isPresent();
     }
 
     private List<TenantAccountRole> findTenantAdminRoles(Account account) {

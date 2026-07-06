@@ -17,7 +17,7 @@ public class RbacUiBroadcaster {
     @EventListener
     public void onRbacChanged(RbacChangedEvent event) {
         accessSnapshotService.invalidateNamespace(event.roleNamespaceId());
-        rbacUiRegistry.affectedBy(event.roleNamespaceId()).forEach(registeredUi ->
-            registeredUi.ui().access(() -> registeredUi.refreshAction().run()));
+        rbacUiRegistry.affectedBy(event.roleNamespaceId())
+                .forEach(registeredUi -> registeredUi.ui().access(() -> registeredUi.refreshAction().run()));
     }
 }

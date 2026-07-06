@@ -51,8 +51,9 @@ public class InvitationEmailService {
 
         var html = emailTemplateService
                 .render(new TemplatedEmailMessage(invitation.getInvitedEmail(), subject, "invitation", model));
-        var plainText = "%s%n%n%s%n%nAccept invitation:%n%s%n%nIf you were not expecting this invitation, you can ignore this email."
-                .formatted(headline, intro, acceptUrl);
+        var plainText =
+                "%s%n%n%s%n%nAccept invitation:%n%s%n%nIf you were not expecting this invitation, you can ignore this email."
+                        .formatted(headline, intro, acceptUrl);
         emailService.send(new EmailMessage(invitation.getInvitedEmail(), subject, plainText, html));
     }
 }

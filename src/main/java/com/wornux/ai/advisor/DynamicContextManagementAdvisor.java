@@ -25,7 +25,8 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
     private static final String NAME = "dynamic-context-management-advisor";
     private static final String CATALOG_PARAMETER = "catalog";
 
-    private static final String CATALOG_QUERY = """
+    private static final String CATALOG_QUERY =
+            """
             select distinct on (metadata ->> 'ingestionId')
                    metadata -> 'catalog' ->> 'label' as label,
                    metadata -> 'catalog' ->> 'useWhen' as use_when,
@@ -87,8 +88,7 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
     }
 
     private Optional<String> catalogBlock(Map<String, Object> context) {
-        return groupClassId(context)
-                .map(this::catalogEntries)
+        return groupClassId(context).map(this::catalogEntries)
                 .filter(entries -> !entries.isEmpty())
                 .map(this::formatCatalog);
     }
@@ -105,7 +105,8 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
                <available_course_material>
                Use this catalog only to decide whether to call searchCourseMaterial. Do not answer from this catalog itself.
                Stored material currently available:
-               %s</available_course_material>""".formatted(formatCatalogEntries(entries));
+               %s</available_course_material>"""
+                .formatted(formatCatalogEntries(entries));
     }
 
     private String formatCatalogEntries(List<CatalogEntry> entries) {

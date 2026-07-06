@@ -52,11 +52,9 @@ public class RoleManagementService {
         return authorizationService.snapshot().permissionCodes().containsAll(permissionCodes);
     }
 
-    private void enforcePriorityBoundary(
-            UserAccessSnapshot actor,
-            UUID roleNamespaceId,
-            int targetPriority) {
-        var actorHighestPriority = roleRepository.findByRoleNamespace_IdAndActiveTrue(roleNamespaceId).stream()
+    private void enforcePriorityBoundary(UserAccessSnapshot actor, UUID roleNamespaceId, int targetPriority) {
+        var actorHighestPriority = roleRepository.findByRoleNamespace_IdAndActiveTrue(roleNamespaceId)
+                .stream()
                 .filter(role -> actor.roleCodes().contains(role.getCode()))
                 .mapToInt(role -> role.getPriority())
                 .max()
