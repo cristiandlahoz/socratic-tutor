@@ -143,7 +143,7 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
         try {
             return Optional.of(UUID.fromString(String.valueOf(value)));
         }
-        catch (IllegalArgumentException exception) {
+        catch (IllegalArgumentException _) {
             return Optional.empty();
         }
     }

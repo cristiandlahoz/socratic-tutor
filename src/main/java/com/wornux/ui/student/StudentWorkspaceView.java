@@ -9,8 +9,6 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
@@ -159,12 +157,6 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
                 .setHeader("Opciones")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
-    }
-
-    private Button primaryButton(String label, Runnable action) {
-        var button = new Button(label, _ -> action.run());
-        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        return button;
     }
 
     private String assignmentStatusLabel(TrainingActivityAssignmentStatus status) {
