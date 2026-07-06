@@ -1,6 +1,7 @@
 package com.wornux.ai.advisor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -122,7 +123,11 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private Map<String, Object> guardPolicyVariables(@Nullable String systemText, String policyMode, String policyText) {
-        return Map.of("system", isBlank(systemText) ? "" : systemText, "mode", policyMode, "policy", policyText);
+        var variables = new HashMap<String, Object>();
+        variables.put("system", systemText == null ? "" : systemText);
+        variables.put("mode", policyMode);
+        variables.put("policy", policyText);
+        return variables;
     }
 
     private boolean hasText(UserMessage message) {
