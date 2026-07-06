@@ -10,6 +10,7 @@ import com.wornux.services.security.AuthenticatedUserContextUtils;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.security.access.AccessDeniedException;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -55,7 +56,7 @@ public class PermissionNavigationAccessChecker implements NavigationAccessChecke
                         : AccessCheckResult.deny("Missing permission " + permission.value().code());
             }
             catch (AccessDeniedException exception) {
-                return AccessCheckResult.deny(exception.getMessage());
+                return AccessCheckResult.deny(exception.getMessage() == null ? "Access denied" : exception.getMessage());
             }
         }
         if (target.getPackageName().startsWith("com.wornux.ui.auth")
@@ -65,7 +66,7 @@ public class PermissionNavigationAccessChecker implements NavigationAccessChecke
         return AccessCheckResult.deny("Protected routes require @RequiresPermission");
     }
 
-    private AccessCheckResult ensureActiveContext() {
+    private @Nullable AccessCheckResult ensureActiveContext() {
         if (activeContextHolder.current().isPresent()) {
             return null;
         }

@@ -12,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -80,13 +81,13 @@ public class AuthenticatedUserContextUtils {
             return Optional.empty();
         }
         var authentication = context.getAuthentication();
-        if (!authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
+        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
             return Optional.empty();
         }
         return Optional.of(authentication);
     }
 
-    private boolean authenticationNameMatches(Authentication authentication, AuthenticatedAccountDetails details) {
+    private boolean authenticationNameMatches(@Nullable Authentication authentication, AuthenticatedAccountDetails details) {
         if (authentication == null || authentication.getName() == null) {
             return false;
         }
