@@ -70,7 +70,7 @@ public class ChatProperties {
 
     public static class Ui {
 
-        private String thinkingSpinner;
+        private String thinkingSpinner = "";
 
         public String getThinkingSpinner() {
             return thinkingSpinner;
