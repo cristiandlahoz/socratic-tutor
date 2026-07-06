@@ -10,8 +10,8 @@ public record ToolExecutionAudit(UUID conversationId, UUID groupClassMemberId, U
         String status, long latencyMs, String inputSummary, String outputSummary, @Nullable String toolReturnJson,
         @Nullable String toolReturnPreview, boolean returnCaptured, boolean modelRequested, @Nullable String failureCode) {
 
-    public Map<String, Object> toMap() {
-        Map<String, Object> auditFields = new LinkedHashMap<>();
+    public Map<String, @Nullable Object> toMap() {
+        Map<String, @Nullable Object> auditFields = new LinkedHashMap<>();
         auditFields.put("toolName", toolName);
         auditFields.put("status", status);
         auditFields.put("latencyMs", latencyMs);
