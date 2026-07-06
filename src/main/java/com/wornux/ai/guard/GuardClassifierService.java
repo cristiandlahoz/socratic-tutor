@@ -14,6 +14,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -31,7 +32,7 @@ public class GuardClassifierService {
     @Value("${app.ai.guard.model}")
     private String guardModel;
 
-    public GuardClassifierService(ChatModel chatModel, PromptResources promptResources) {
+    public GuardClassifierService(@Qualifier("openAiChatModel") ChatModel chatModel, PromptResources promptResources) {
         this.chatModel = chatModel;
         this.promptResources = promptResources;
     }
