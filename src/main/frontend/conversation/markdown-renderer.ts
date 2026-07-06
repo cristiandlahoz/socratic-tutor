@@ -1,23 +1,14 @@
 import 'Frontend/shared/code/code-block-viewer.js';
 import DOMPurify from 'dompurify';
+import { LitElement, html, type PropertyValues } from 'lit';
 import { Marked, type HooksObject, type RendererObject, type Tokens } from 'marked';
-import { LitElement } from 'lit';
 
 const MARKDOWN_RENDERER_STYLE_ID = 'markdown-renderer-styles';
-
-/*
- * Markdown typography is derived from a single base size so the message
- * surface can scale without a second type system. The host message defines
- * --message-item-font-size-base. This renderer then computes heading sizes
- * from that value: h1 is 1.70x, h2 is 1.46x, and h3 is 1.15x. Lower headings
- * keep the base size and rely on weight to preserve hierarchy without making
- * dense tutor answers visually noisy.
- */
+const MARKDOWN_CONTENT_SELECTOR = '[data-markdown-content]';
 
 type CodeBlock = {
   code: string;
   lang: string;
-  meta: string;
 };
 
 type CodeBlockViewer = HTMLElement & {
@@ -75,7 +66,7 @@ function ensureMarkdownRendererStyles(): void {
       --mk-border: var(--vaadin-border-color-secondary, var(--vaadin-border-color));
       --mk-border-strong: var(--vaadin-border-color);
 
-      --mk-inline-code-bg: light-dark(#C4C4BD, #2b2b2b);
+      --mk-inline-code-bg: light-dark(#c4c4bd, #2b2b2b);
       --mk-inline-code-text: var(--aura-code-text-color, #eb5757);
       --mk-block-code-bg: var(--vaadin-background-container);
       --mk-highlight-bg: color-mix(in srgb, var(--aura-yellow, var(--mk-primary)) 20%, transparent);
@@ -130,15 +121,21 @@ function ensureMarkdownRendererStyles(): void {
       box-sizing: border-box;
     }
 
+    markdown-renderer .markdown-renderer__content {
+      display: block;
+      width: 100%;
+      min-width: 0;
+    }
+
     markdown-renderer ::selection {
       background: var(--mk-selection-bg);
     }
 
-    markdown-renderer > :first-child {
+    markdown-renderer .markdown-renderer__content > :first-child {
       margin-top: 0 !important;
     }
 
-    markdown-renderer > :last-child {
+    markdown-renderer .markdown-renderer__content > :last-child {
       margin-bottom: 0 !important;
     }
 
@@ -579,46 +576,45 @@ function ensureMarkdownRendererStyles(): void {
       }
     }
   `;
+
   document.head.appendChild(style);
 }
 
-function parseInfoString(info: string | undefined): { lang: string; meta: string } {
-  const normalized = info?.trim() ?? '';
-  if (!normalized) {
-    return { lang: '', meta: '' };
-  }
-
-  const [lang = '', ...metaParts] = normalized.split(/\s+/);
-  return { lang, meta: metaParts.join(' ') };
+function parseLanguage(info: string | undefined): string {
+  return info?.trim().split(/\s+/)[0] ?? '';
 }
 
 function sanitizeMarkdownHtml(html: string): string {
   return DOMPurify.sanitize(html, {
-    ADD_ATTR: ['data-markdown-render-id', 'data-code-block-index'],
+    ADD_ATTR: ['data-code-block-index'],
     CUSTOM_ELEMENT_HANDLING: {
       tagNameCheck: (tagName) => tagName === 'code-block-viewer',
-      attributeNameCheck: (attributeName) =>
-        attributeName === 'data-markdown-render-id' || attributeName === 'data-code-block-index',
+      attributeNameCheck: (attributeName) => attributeName === 'data-code-block-index',
     },
   }).replace(/\r?\n$/, '');
 }
 
-function createMarkdown(blocks: CodeBlock[], renderId: string): Marked {
+function createMarkdown(blocks: CodeBlock[]): Marked {
   const renderer: RendererObject = {
     code(token: Tokens.Code): string {
-      const { lang, meta } = parseInfoString(token.lang);
       const index = blocks.length;
-      blocks.push({ code: token.text, lang, meta });
 
-      return `<code-block-viewer data-markdown-render-id="${renderId}" data-code-block-index="${index}"></code-block-viewer>`;
+      blocks.push({
+        code: token.text,
+        lang: parseLanguage(token.lang),
+      });
+
+      return `<code-block-viewer data-code-block-index="${index}"></code-block-viewer>`;
     },
   };
+
   const hooks: HooksObject = {
     postprocess: sanitizeMarkdownHtml,
   };
 
   return new Marked({
     gfm: true,
+    breaks: true,
     renderer,
     hooks,
   });
@@ -641,7 +637,7 @@ function synchronizeAttributes(targetElement: Element, sourceElement: Element): 
 }
 
 function canSynchronizeNode(targetChild: Node, sourceChild: Node): boolean {
-  return sourceChild.nodeType === targetChild.nodeType && sourceChild.nodeName === targetChild.nodeName;
+  return targetChild.nodeType === sourceChild.nodeType && targetChild.nodeName === sourceChild.nodeName;
 }
 
 function synchronizeExistingNode(targetChild: SynchronizableChildNode, sourceChild: Node): void {
@@ -650,13 +646,21 @@ function synchronizeExistingNode(targetChild: SynchronizableChildNode, sourceChi
     return;
   }
 
-  if (sourceChild.nodeType === Node.ELEMENT_NODE && targetChild.nodeType === Node.ELEMENT_NODE) {
-    synchronizeAttributes(targetChild as Element, sourceChild as Element);
-    synchronizeNodes(targetChild, sourceChild);
+  if (targetChild.nodeType === Node.ELEMENT_NODE && sourceChild.nodeType === Node.ELEMENT_NODE) {
+    const targetElement = targetChild as Element;
+    const sourceElement = sourceChild as Element;
+
+    synchronizeAttributes(targetElement, sourceElement);
+
+    if (targetElement.localName === 'code-block-viewer') {
+      return;
+    }
+
+    synchronizeNodes(targetElement, sourceElement);
     return;
   }
 
-  if (sourceChild.nodeType === Node.TEXT_NODE && targetChild.nodeValue !== sourceChild.nodeValue) {
+  if (targetChild.nodeType === Node.TEXT_NODE && targetChild.nodeValue !== sourceChild.nodeValue) {
     targetChild.nodeValue = sourceChild.nodeValue;
   }
 }
@@ -715,9 +719,10 @@ class MarkdownRenderer extends LitElement {
 
   disconnectedCallback(): void {
     if (this.renderFrame) {
-      cancelAnimationFrame(this.renderFrame);
+      globalThis.cancelAnimationFrame(this.renderFrame);
       this.renderFrame = 0;
     }
+
     super.disconnectedCallback();
   }
 
@@ -725,11 +730,24 @@ class MarkdownRenderer extends LitElement {
     return this;
   }
 
-  protected updated(changedProperties: Map<string, unknown>): void {
+  protected render() {
+    return html`<div class="markdown-renderer__content" data-markdown-content></div>`;
+  }
+
+  protected firstUpdated(): void {
+    this.scheduleMarkdownRender();
+  }
+
+  protected updated(changedProperties: PropertyValues<this>): void {
     super.updated(changedProperties);
+
     if (changedProperties.has('content') || changedProperties.has('debuggableCodeBlocks')) {
       this.scheduleMarkdownRender();
     }
+  }
+
+  private markdownContentElement(): HTMLElement | null {
+    return this.querySelector<HTMLElement>(MARKDOWN_CONTENT_SELECTOR);
   }
 
   private scheduleMarkdownRender(): void {
@@ -738,49 +756,55 @@ class MarkdownRenderer extends LitElement {
     }
 
     if (this.renderFrame) {
-      cancelAnimationFrame(this.renderFrame);
+      globalThis.cancelAnimationFrame(this.renderFrame);
     }
 
-    this.renderFrame = requestAnimationFrame(() => {
+    this.renderFrame = globalThis.requestAnimationFrame(() => {
       this.renderFrame = 0;
       this.renderMarkdown();
     });
   }
 
   private renderMarkdown(): void {
+    const target = this.markdownContentElement();
+
+    if (!target) {
+      return;
+    }
+
     if (this.content === this.renderedContent && this.debuggableCodeBlocks === this.renderedDebuggableCodeBlocks) {
       return;
     }
 
     const blocks: CodeBlock[] = [];
-    const renderId = crypto.randomUUID();
-    const marked = createMarkdown(blocks, renderId);
+    const marked = createMarkdown(blocks);
     const template = document.createElement('template');
+
     template.innerHTML = marked.parse(this.content || '') as string;
 
-    synchronizeNodes(this, template.content);
-    this.bindCodeBlocks(blocks, renderId);
+    synchronizeNodes(target, template.content);
+    this.bindCodeBlocks(target, blocks);
+
     this.renderedContent = this.content;
     this.renderedDebuggableCodeBlocks = this.debuggableCodeBlocks;
   }
 
-  private bindCodeBlocks(blocks: CodeBlock[], renderId: string): void {
-    this.querySelectorAll<CodeBlockViewer>(`code-block-viewer[data-markdown-render-id="${renderId}"]`).forEach(
-      (viewer) => {
-        const index = Number(viewer.dataset.codeBlockIndex);
-        const block = blocks[index];
-        if (!block) {
-          return;
-        }
+  private bindCodeBlocks(target: HTMLElement, blocks: CodeBlock[]): void {
+    target.querySelectorAll<CodeBlockViewer>('code-block-viewer[data-code-block-index]').forEach((viewer) => {
+      const index = Number(viewer.dataset.codeBlockIndex);
+      const block = blocks[index];
 
-        viewer.value = block.code;
-        viewer.lang = block.lang;
-        viewer.debuggable = this.debuggableCodeBlocks;
-      },
-    );
+      if (!block) {
+        return;
+      }
+
+      viewer.value = block.code;
+      viewer.lang = block.lang;
+      viewer.debuggable = this.debuggableCodeBlocks;
+    });
   }
 }
 
-if (!customElements.get('markdown-renderer')) {
-  customElements.define('markdown-renderer', MarkdownRenderer);
+if (!globalThis.customElements.get('markdown-renderer')) {
+  globalThis.customElements.define('markdown-renderer', MarkdownRenderer);
 }
