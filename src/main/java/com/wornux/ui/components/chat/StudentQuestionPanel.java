@@ -44,7 +44,7 @@ public class StudentQuestionPanel extends Composite<Div> {
     private final Map<String, Map<String, VerticalLayout>> optionRowsByQuestion = new LinkedHashMap<>();
 
     private StudentQuestionSet questionSet;
-    private Consumer<StudentQuestionResponse> submitHandler = _ -> {};
+    private transient Consumer<StudentQuestionResponse> submitHandler = _ -> {};
     private boolean submitting;
     private int activeQuestionIndex;
 

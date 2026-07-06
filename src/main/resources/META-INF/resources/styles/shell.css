@@ -155,6 +155,8 @@ vaadin-app-layout>.conversation-view.conversation-view:nth-child(1 of :not([slot
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
   background: transparent;

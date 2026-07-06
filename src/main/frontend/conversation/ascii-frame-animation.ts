@@ -1,7 +1,7 @@
 import { LitElement, css, html } from 'lit';
 
 class AsciiFrameAnimation extends LitElement {
-  static properties = {
+  static readonly properties = {
     frameFolder: { type: String, attribute: 'frame-folder' },
     frameCount: { type: Number, attribute: 'frame-count' },
     fps: { type: Number },
@@ -12,7 +12,7 @@ class AsciiFrameAnimation extends LitElement {
     currentFrame: { state: true },
   };
 
-  static styles = css`
+  static readonly styles = css`
     :host {
       display: block;
       width: 100%;

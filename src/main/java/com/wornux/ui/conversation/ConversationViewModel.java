@@ -33,8 +33,6 @@ public class ConversationViewModel implements Serializable {
     private static final long serialVersionUID = 1L;
 
     static final String CONVERSATION_QUERY_PARAMETER = "c";
-    static final String DRAFT_QUERY_PARAMETER = "draft";
-    static final String DRAFT_QUERY_VALUE = "new";
 
     private final transient ChatService chatService;
     private final transient ConversationService conversationService;
@@ -93,10 +91,7 @@ public class ConversationViewModel implements Serializable {
         themeOrchestrator.applyThemePreference(resolvedPreference);
     }
 
-    RouteInitialization initializeFromRoute(
-            String requestedConversationParam,
-            boolean draftRequested,
-            boolean refreshEvent) {
+    RouteInitialization initializeFromRoute(String requestedConversationParam, boolean refreshEvent) {
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
         state.setupRequired().set(contextResolver.resolveCurrent().isEmpty());
@@ -109,13 +104,8 @@ public class ConversationViewModel implements Serializable {
         state.responseInProgress().set(false);
         state.activity().set(ChatSessionActivity.IDLE);
 
-        if (draftRequested) {
-            state.activeConversationId().set(null);
-            state.replaceMessages(List.of());
-            state.clearUsage();
-            state.clearCompactionStatus();
-            state.clearPendingQuestionState();
-            refreshConversationHistory();
+        if (requestedConversationParam == null) {
+            startNewConversationDraft();
             return RouteInitialization.noReroute();
         }
 
@@ -134,11 +124,6 @@ public class ConversationViewModel implements Serializable {
             return new RouteInitialization(true, resolvedConversation.activeConversationId());
         }
 
-        if (requestedConversationParam == null && state.activeConversationId().peek() != null) {
-            navigationOrchestrator
-                    .synchronizeAddressBar(CONVERSATION_QUERY_PARAMETER, state.activeConversationId().peek());
-        }
-
         return RouteInitialization.noReroute();
     }
 
@@ -155,7 +140,7 @@ public class ConversationViewModel implements Serializable {
         if (state.responseInProgress().peek() || state.questionSubmissionInProgress().peek()) {
             return;
         }
-        navigationOrchestrator.openDraft(DRAFT_QUERY_PARAMETER, DRAFT_QUERY_VALUE);
+        navigationOrchestrator.openNewConversation();
     }
 
     public boolean onSubmitPrompt() {
@@ -230,6 +215,15 @@ public class ConversationViewModel implements Serializable {
 
         state.themePreference().set(themePreferenceService.getThemePreference());
         state.themePreferenceLoaded().set(true);
+    }
+
+    private void startNewConversationDraft() {
+        state.activeConversationId().set(null);
+        state.replaceMessages(List.of());
+        state.clearUsage();
+        state.clearCompactionStatus();
+        state.clearPendingQuestionState();
+        refreshConversationHistory();
     }
 
     private EnsuredConversation ensureConversation(String prompt) {

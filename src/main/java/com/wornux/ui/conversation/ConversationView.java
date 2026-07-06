@@ -172,18 +172,12 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT);
             }
         }
-        var draftRequested = event.getLocation()
-                .getQueryParameters()
-                .getSingleParameter(ConversationViewModel.DRAFT_QUERY_PARAMETER)
-                .filter(ConversationViewModel.DRAFT_QUERY_VALUE::equals)
-                .isPresent();
         var requestedConversationParam = event.getLocation()
                 .getQueryParameters()
                 .getSingleParameter(ConversationViewModel.CONVERSATION_QUERY_PARAMETER)
                 .orElse(null);
 
-        var initialization =
-                viewModel.initializeFromRoute(requestedConversationParam, draftRequested, event.isRefreshEvent());
+        var initialization = viewModel.initializeFromRoute(requestedConversationParam, event.isRefreshEvent());
         if (initialization.rerouteRequired()) {
             rerouteToResolvedConversation(event, initialization.rerouteConversationId());
         }

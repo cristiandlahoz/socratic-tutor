@@ -40,7 +40,7 @@ public record NavigationEntry(
       }
 
       link.setRoute(this.viewTarget);
-      link.setQueryParameters(QueryParameters.empty());
+      link.setQueryParameters(this.parameters);
     }
   }
 

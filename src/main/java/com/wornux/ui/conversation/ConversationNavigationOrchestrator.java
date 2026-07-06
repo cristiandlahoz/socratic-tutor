@@ -15,8 +15,8 @@ public class ConversationNavigationOrchestrator {
                 .navigate(ConversationView.class, QueryParameters.of(conversationParameter, conversationId.toString()));
     }
 
-    public void openDraft(String draftParameter, String draftValue) {
-        UI.getCurrent().navigate(ConversationView.class, QueryParameters.of(draftParameter, draftValue));
+    public void openNewConversation() {
+        UI.getCurrent().navigate(ConversationView.class);
     }
 
     public void synchronizeAddressBar(String conversationParameter, UUID conversationId) {
