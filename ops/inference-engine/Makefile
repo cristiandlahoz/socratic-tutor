@@ -50,16 +50,19 @@ _bootswap:
 	fi; \
 	read -r -a connect_parts <<< "$${connect}"; \
 	remote_host="$${connect_parts[0]}"; \
-	ssh_opts=("$${connect_parts[@]:1}"); \
 	remote_dir_input="$(or $(REMOTE_DIR),$(DEFAULT_REMOTE_DIR))"; \
 	echo "Copying inference engine files to $${remote_host}:$${remote_dir_input}"; \
 	remote_resolve="remote_dir='$${remote_dir_input}'; if [[ \"\$$remote_dir\" == \"~\" ]]; then remote_dir=\"\$$HOME\"; elif [[ \"\$$remote_dir\" == \"~/\"* ]]; then remote_dir=\"\$$HOME/\$${remote_dir:2}\"; elif [[ \"\$$remote_dir\" != /* ]]; then remote_dir=\"\$$HOME/\$$remote_dir\"; fi"; \
 	remote_prepare="$${remote_resolve}; mkdir -p \"\$$remote_dir\"; tar --no-same-owner -xzf - -C \"\$$remote_dir\""; \
-	COPYFILE_DISABLE=1 tar --no-xattrs -C "$(INFERENCE_ENGINE_DIR)" -czf - . | ssh "$${ssh_opts[@]}" "$${remote_host}" "$${remote_prepare}"; \
+	if (( $${#connect_parts[@]} > 1 )); then \
+	  COPYFILE_DISABLE=1 tar --no-xattrs -C "$(INFERENCE_ENGINE_DIR)" -czf - . | ssh "$${connect_parts[@]:1}" "$${remote_host}" "$${remote_prepare}"; \
+	else \
+	  COPYFILE_DISABLE=1 tar --no-xattrs -C "$(INFERENCE_ENGINE_DIR)" -czf - . | ssh "$${remote_host}" "$${remote_prepare}"; \
+	fi; \
 	if [[ "$${run_requested}" == "true" ]]; then \
 	  echo "Starting $(BOOTSTRAP) on $${remote_host}"; \
 	  if [[ "$(DETACHED)" == "true" ]]; then remote_cmd="$${remote_resolve}; cd \"\$$remote_dir\" && ./$(BOOTSTRAP) -d"; else remote_cmd="$${remote_resolve}; cd \"\$$remote_dir\" && ./$(BOOTSTRAP)"; fi; \
-	  ssh "$${ssh_opts[@]}" "$${remote_host}" "$${remote_cmd}"; \
+	  if (( $${#connect_parts[@]} > 1 )); then ssh "$${connect_parts[@]:1}" "$${remote_host}" "$${remote_cmd}"; else ssh "$${remote_host}" "$${remote_cmd}"; fi; \
 	else \
 	  echo "Copied only. Set RUN=true or pass ARGS='... --run true' to start $(BOOTSTRAP)."; \
 	fi
