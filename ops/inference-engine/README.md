@@ -93,8 +93,9 @@ Use `RUNPOD_WORKSPACE=/some/path` if the persistent mount is not `/workspace`.
 
 ## Copying to a remote host
 
-The local `Makefile` can copy this whole inference-engine folder over SSH. By
-default it only copies files and does not start the engine:
+The local `Makefile` can copy this whole inference-engine folder over SSH using
+`tar`, so the remote host does not need `rsync`. By default it only copies files
+and does not start the engine:
 
 ```bash
 make bootswap-inference-engine CONNECT='root@host -p 1234'

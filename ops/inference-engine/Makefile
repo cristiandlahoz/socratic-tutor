@@ -52,11 +52,11 @@ _bootswap:
 	remote_host="$${connect_parts[0]}"; \
 	ssh_opts=("$${connect_parts[@]:1}"); \
 	echo "Copying inference engine files to $${remote_host}:$(REMOTE_DIR)"; \
-	ssh "$${ssh_opts[@]}" "$${remote_host}" "mkdir -p '$(REMOTE_DIR)'"; \
-	rsync -az --delete -e "ssh $${ssh_opts[*]}" "$(INFERENCE_ENGINE_DIR)" "$${remote_host}:$(REMOTE_DIR)/"; \
+	remote_prepare='remote_dir='"'"'$(REMOTE_DIR)'"'"'; case "$$remote_dir" in "~") remote_dir="$$HOME" ;; "~/"*) remote_dir="$$HOME/$${remote_dir#~/}" ;; esac; rm -rf "$$remote_dir"; mkdir -p "$$remote_dir"; tar -xzf - -C "$$remote_dir"'; \
+	tar -C "$(INFERENCE_ENGINE_DIR)" -czf - . | ssh "$${ssh_opts[@]}" "$${remote_host}" "$${remote_prepare}"; \
 	if [[ "$${run_requested}" == "true" ]]; then \
 	  echo "Starting $(BOOTSTRAP) on $${remote_host}"; \
-	  if [[ "$(DETACHED)" == "true" ]]; then remote_cmd="cd '$(REMOTE_DIR)' && ./$(BOOTSTRAP) -d"; else remote_cmd="cd '$(REMOTE_DIR)' && ./$(BOOTSTRAP)"; fi; \
+	  if [[ "$(DETACHED)" == "true" ]]; then remote_cmd='remote_dir='"'"'$(REMOTE_DIR)'"'"'; case "$$remote_dir" in "~") remote_dir="$$HOME" ;; "~/"*) remote_dir="$$HOME/$${remote_dir#~/}" ;; esac; cd "$$remote_dir" && ./$(BOOTSTRAP) -d'; else remote_cmd='remote_dir='"'"'$(REMOTE_DIR)'"'"'; case "$$remote_dir" in "~") remote_dir="$$HOME" ;; "~/"*) remote_dir="$$HOME/$${remote_dir#~/}" ;; esac; cd "$$remote_dir" && ./$(BOOTSTRAP)'; fi; \
 	  ssh "$${ssh_opts[@]}" "$${remote_host}" "$${remote_cmd}"; \
 	else \
 	  echo "Copied only. Set RUN=true or pass ARGS='... --run true' to start $(BOOTSTRAP)."; \
