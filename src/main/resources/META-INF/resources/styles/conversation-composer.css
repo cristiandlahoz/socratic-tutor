@@ -255,16 +255,22 @@ vaadin-button.conversation-composer__send-button {
   bottom: 0.8rem;
   margin: 0;
   --vaadin-button-padding: 0;
+  --composer-send-button-surface: color-mix(in srgb, var(--color-neutral-900) 82%, var(--aura-background-color-light));
+  --composer-send-button-border: color-mix(in srgb, var(--color-black-700) 52%, transparent);
+  --composer-send-button-color: color-mix(in srgb, var(--color-black-700) 78%, var(--aura-accent-text-color-light));
+  --composer-send-button-hover-surface: var(--aura-accent-color-light);
+  --composer-send-button-hover-border: var(--aura-accent-color-light);
+  --composer-send-button-hover-color: var(--aura-accent-contrast-color-light);
 }
 
 vaadin-button.conversation-composer__send-button::part(button) {
   width: 2.8rem;
   height: 2.8rem;
   border-radius: var(--vaadin-radius-m);
-  background: color-mix(in srgb, var(--composer-surface) 82%, var(--aura-app-background));
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-border);
+  background: var(--composer-send-button-surface);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-send-button-border);
   box-shadow: var(--aura-shadow-xs);
-  color: color-mix(in srgb, var(--vaadin-text-color) 78%, var(--aura-accent-text-color));
+  color: var(--composer-send-button-color);
   transition:
     background var(--motion-fast),
     border-color var(--motion-fast),
@@ -273,9 +279,9 @@ vaadin-button.conversation-composer__send-button::part(button) {
 }
 
 vaadin-button.conversation-composer__send-button:hover::part(button) {
-  background: var(--aura-accent-color);
-  border-color: var(--aura-accent-border-color);
-  color: var(--aura-accent-contrast-color);
+  background: var(--composer-send-button-hover-surface);
+  border-color: var(--composer-send-button-hover-border);
+  color: var(--composer-send-button-hover-color);
   transform: translateY(-1px);
 }
 
