@@ -1,6 +1,12 @@
+import { haptic } from 'Frontend/shared/haptics.js';
 import { css, html, LitElement } from 'lit';
 
 class DocumentUploadDropzoneElement extends LitElement {
+  private uploadElement: HTMLElement | null = null;
+
+  private readonly handleFileRejected = (): void => haptic('error');
+  private readonly handleUploadError = (): void => haptic('error');
+  private readonly handleUploadSuccess = (): void => haptic('success');
   static readonly styles = css`
     :host {
       display: block;
@@ -58,16 +64,53 @@ class DocumentUploadDropzoneElement extends LitElement {
     }
   `;
 
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.updateComplete.then(() => {
+      if (this.isConnected) {
+        this.attachUploadElement();
+      }
+    });
+  }
+
+  disconnectedCallback(): void {
+    this.detachUploadElement();
+    super.disconnectedCallback();
+  }
+
   protected render() {
     return html`
-      <div class="dropzone">
+      <div class="dropzone" @drop=${this.handleDrop}>
         <span class="title">Sube materiales PDF</span>
         <span class="hint">Arrastra uno o varios archivos para transformarlos antes de indexar.</span>
         <div class="upload-slot">
-          <slot></slot>
+          <slot @slotchange=${this.attachUploadElement}></slot>
         </div>
       </div>
     `;
+  }
+
+  private readonly handleDrop = (): void => haptic('selection');
+
+  private attachUploadElement = (): void => {
+    const upload = this.querySelector<HTMLElement>('vaadin-upload');
+
+    if (upload === this.uploadElement) {
+      return;
+    }
+
+    this.detachUploadElement();
+    this.uploadElement = upload;
+    this.uploadElement?.addEventListener('file-reject', this.handleFileRejected);
+    this.uploadElement?.addEventListener('upload-error', this.handleUploadError);
+    this.uploadElement?.addEventListener('upload-success', this.handleUploadSuccess);
+  };
+
+  private detachUploadElement(): void {
+    this.uploadElement?.removeEventListener('file-reject', this.handleFileRejected);
+    this.uploadElement?.removeEventListener('upload-error', this.handleUploadError);
+    this.uploadElement?.removeEventListener('upload-success', this.handleUploadSuccess);
+    this.uploadElement = null;
   }
 }
 

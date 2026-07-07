@@ -21,13 +21,13 @@ import org.springframework.stereotype.Component;
 public class NavigationRegistry {
     private final List<NavigationEntry> entries = List.of(
             new NavigationEntry("Administración", SystemAdminWorkspaceView.class, () -> new Icon(VaadinIcon.HOME), ContextLevel.PLATFORM, AppPermission.TENANT_VIEW, 10),
-            new NavigationEntry("Panel profesoral", ProfessorWorkspaceView.class, () -> new Icon(VaadinIcon.ACADEMY_CAP), ContextLevel.GROUP_CLASS, AppPermission.GROUP_CLASS_MEMBER_VIEW, 11),
-            new NavigationEntry("Panel estudiantil", StudentWorkspaceView.class, () -> new Icon(VaadinIcon.USER), ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, 12),
+            new NavigationEntry("Panel profesoral", ProfessorWorkspaceView.class, () -> new SvgIcon("/icons/panels.svg"), ContextLevel.GROUP_CLASS, AppPermission.GROUP_CLASS_MEMBER_VIEW, 11),
+            new NavigationEntry("Panel estudiantil", StudentWorkspaceView.class, () -> new SvgIcon("/icons/panels.svg"), ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, 12),
             new NavigationEntry("Institución", TenantAdminWorkspaceView.class, () -> new Icon(VaadinIcon.INSTITUTION), ContextLevel.TENANT, AppPermission.GROUP_CLASS_CREATE, 20),
-            new NavigationEntry("Roles y permisos", RoleMatrixView.class, () -> new Icon(VaadinIcon.KEY), ContextLevel.PLATFORM, AppPermission.ROLE_VIEW, 22),
+            new NavigationEntry("Roles y permisos", RoleMatrixView.class, () -> new SvgIcon("/icons/role.svg"), ContextLevel.PLATFORM, AppPermission.ROLE_VIEW, 22),
             new NavigationEntry("Conversación", ConversationView.class, () -> new SvgIcon("/icons/pencil.svg"), ContextLevel.GROUP_CLASS, AppPermission.CONVERSATION_VIEW, 30),
-            new NavigationEntry("Documentos", DocumentIngestionView.class, () -> new Icon(VaadinIcon.FILE_TEXT), ContextLevel.GROUP_CLASS, AppPermission.COURSE_MATERIAL_VIEW, 40),
-            new NavigationEntry("Actividades", TrainingActivityView.class, () -> new Icon(VaadinIcon.TASKS), ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_CREATE, 50));
+            new NavigationEntry("Documentos", DocumentIngestionView.class, () -> new SvgIcon("/icons/documents.svg"), ContextLevel.GROUP_CLASS, AppPermission.COURSE_MATERIAL_VIEW, 40),
+            new NavigationEntry("Actividades", TrainingActivityView.class, () -> new SvgIcon("/icons/training-activities.svg"), ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_CREATE, 50));
 
     public List<NavigationEntry> entries() {
         return entries;

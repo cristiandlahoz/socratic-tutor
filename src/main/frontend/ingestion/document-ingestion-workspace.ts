@@ -264,10 +264,11 @@ class DocumentIngestionWorkspaceElement extends LitElement {
     }
 
     .cards {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-start;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+      grid-auto-rows: 16rem;
       gap: var(--vaadin-gap-m);
+      width: 100%;
     }
 
     .content-grid[detail] .list-heading {
@@ -284,11 +285,11 @@ class DocumentIngestionWorkspaceElement extends LitElement {
       display: flex;
       flex-direction: column;
       gap: var(--vaadin-gap-m);
-      flex: 0 1 auto;
-      width: fit-content;
-      min-width: min(100%, 18rem);
-      max-width: min(100%, 28rem);
-      min-height: 12rem;
+      width: 100%;
+      min-width: 0;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
       padding: var(--vaadin-padding-m);
       border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
       border-radius: var(--vaadin-radius-l);
@@ -304,14 +305,22 @@ class DocumentIngestionWorkspaceElement extends LitElement {
       width: 100%;
       min-width: 0;
       max-width: none;
-      min-height: auto;
+      height: 12rem;
       gap: var(--vaadin-gap-s);
     }
 
-    .card .muted {
+    .card .muted,
+    .card-title {
       display: -webkit-box;
       overflow: hidden;
       -webkit-box-orient: vertical;
+    }
+
+    .card-title {
+      -webkit-line-clamp: 2;
+    }
+
+    .card .muted {
       -webkit-line-clamp: 4;
     }
 
@@ -352,6 +361,10 @@ class DocumentIngestionWorkspaceElement extends LitElement {
       display: inline-flex;
       align-items: center;
       width: fit-content;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       padding: var(--vaadin-padding-xs) var(--vaadin-padding-s);
       border-radius: var(--vaadin-radius-s);
       border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);

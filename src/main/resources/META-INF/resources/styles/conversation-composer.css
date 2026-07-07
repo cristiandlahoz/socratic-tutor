@@ -303,15 +303,6 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
   pointer-events: none;
 }
 
-.conversation-composer__busy-label {
-  color: var(--composer-prompt-prefix-color, var(--vaadin-text-color-secondary));
-  font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-s);
-  font-weight: var(--aura-font-weight-medium);
-  line-height: 1;
-  white-space: nowrap;
-}
-
 .conversation-composer__send-spinner braille-spinner {
   --thinking-spinner-size: 1.05rem;
   --thinking-spinner-weight: 500;

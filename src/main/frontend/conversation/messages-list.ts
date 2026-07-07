@@ -1,4 +1,5 @@
 import './message-item.js';
+import { haptic } from 'Frontend/shared/haptics.js';
 import { LitElement, html } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import type { BrailleSpinnerName } from './braille-spinners.js';
@@ -295,7 +296,13 @@ class MessagesList extends LitElement {
       return;
     }
 
+    const wasBusy = this.busy;
     this.busy = busy;
+
+    if (wasBusy && !busy) {
+      haptic('done');
+    }
+
     this.dispatchEvent(new CustomEvent('conversation-busy-changed', {
       detail: { busy },
       bubbles: true,

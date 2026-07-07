@@ -82,7 +82,7 @@ function ensureMessageItemStyles(): void {
     }
 
     message-item[loading] braille-spinner {
-      --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
+      --thinking-spinner-size: clamp(0.75rem, 1vw, 0.975rem);
       --thinking-spinner-weight: 400;
       --thinking-spinner-color: var(--aura-accent-text-color);
       --thinking-spinner-accent-color: var(--aura-red);

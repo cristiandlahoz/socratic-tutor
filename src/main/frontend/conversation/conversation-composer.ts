@@ -3,6 +3,7 @@ import '@vaadin/icon';
 import '@vaadin/icons';
 import '@vaadin/text-area';
 import './braille-spinner.js';
+import { haptic } from 'Frontend/shared/haptics.js';
 import { LitElement, html } from 'lit';
 import { renderConversationDisclaimer } from './conversation-disclaimer.js';
 
@@ -119,6 +120,7 @@ class ConversationComposer extends LitElement {
 
     const prompt = this.value.trim();
     this.value = '';
+    haptic('messageSent');
 
     this.dispatchEvent(new CustomEvent('submit-prompt', {
       detail: { prompt },
@@ -187,7 +189,6 @@ class ConversationComposer extends LitElement {
           role="status"
         >
           <braille-spinner spinner="braille"></braille-spinner>
-          <span class="conversation-composer__busy-label">${this.busyLabel()}</span>
         </span>
       `;
     }
