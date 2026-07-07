@@ -7,6 +7,7 @@ import { LitElement, html } from 'lit';
 import { renderConversationDisclaimer } from './conversation-disclaimer.js';
 
 type ModelStatus = 'connected' | 'offline' | 'checking';
+type ChatActivity = 'idle' | 'generating' | 'compacting';
 
 class ConversationComposer extends LitElement {
   private scrollPane: HTMLElement | null = null;
@@ -32,6 +33,7 @@ class ConversationComposer extends LitElement {
     conversationCompacted: { type: Boolean, attribute: 'conversation-compacted' },
     scrollToBottomVisible: { type: Boolean, attribute: 'scroll-to-bottom-visible' },
     responseBusy: { type: Boolean, attribute: 'response-busy' },
+    activity: { type: String },
   };
 
   declare value: string;
@@ -44,6 +46,7 @@ class ConversationComposer extends LitElement {
   declare conversationCompacted: boolean;
   declare scrollToBottomVisible: boolean;
   declare responseBusy: boolean;
+  declare activity: ChatActivity;
 
   constructor() {
     super();
@@ -57,6 +60,7 @@ class ConversationComposer extends LitElement {
     this.conversationCompacted = false;
     this.scrollToBottomVisible = false;
     this.responseBusy = false;
+    this.activity = 'idle';
   }
 
   connectedCallback(): void {
@@ -178,11 +182,12 @@ class ConversationComposer extends LitElement {
       return html`
         <span
           class="conversation-composer__send-spinner"
-          aria-label="Generando respuesta"
+          aria-label=${this.busyLabel()}
           aria-live="polite"
           role="status"
         >
           <braille-spinner spinner="braille"></braille-spinner>
+          <span class="conversation-composer__busy-label">${this.busyLabel()}</span>
         </span>
       `;
     }
@@ -197,6 +202,13 @@ class ConversationComposer extends LitElement {
         <vaadin-icon icon="vaadin:arrow-up"></vaadin-icon>
       </vaadin-button>
     `;
+  }
+
+  private busyLabel(): string {
+    if (this.activity === 'compacting') {
+      return 'Compactando el contexto…';
+    }
+    return 'Generando respuesta…';
   }
 
   private helperText(): string {

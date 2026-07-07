@@ -79,6 +79,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
         messageList = new MessagesList();
         messageList.setThinkingSpinner(chatProperties.getUi().getThinkingSpinner());
+        Signal.effect(messageList, () -> messageList.setActivity(state.activity().get()));
         messageList.addDebugCodeRequestListener(event -> handleDebugCodeRequest(event.getCode(), event.getLang()));
         messageList.setWidthFull();
         Signal.effect(

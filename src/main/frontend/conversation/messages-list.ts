@@ -14,6 +14,7 @@ type MessageItemModel = {
 };
 
 type ScrollMode = 'auto' | 'force';
+type ChatActivity = 'idle' | 'generating' | 'compacting';
 
 function normalizeItems(items: unknown): MessageItemModel[] {
   if (typeof items === 'string') {
@@ -31,10 +32,12 @@ class MessagesList extends LitElement {
   static readonly properties = {
     items: { type: Array },
     thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
+    activity: { type: String },
   };
 
   declare items: MessageItemModel[];
   declare thinkingSpinner: BrailleSpinnerName;
+  declare activity: ChatActivity;
 
   private readonly bottomThresholdPx = 72;
   private readonly bottomThresholdRatio = 0.12;
@@ -74,6 +77,7 @@ class MessagesList extends LitElement {
     super();
     this.items = [];
     this.thinkingSpinner = 'braille';
+    this.activity = 'idle';
   }
 
   connectedCallback(): void {
@@ -514,8 +518,16 @@ class MessagesList extends LitElement {
         .variant=${variant}
         .loading=${Boolean(item.loading)}
         .thinkingSpinner=${this.thinkingSpinner}
+        .loadingLabel=${this.loadingLabel()}
       ></message-item>
     `;
+  }
+
+  private loadingLabel(): string {
+    if (this.activity === 'compacting') {
+      return 'Compactando el contexto…';
+    }
+    return 'Generando respuesta…';
   }
 }
 

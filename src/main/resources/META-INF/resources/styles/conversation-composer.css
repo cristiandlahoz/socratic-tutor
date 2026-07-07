@@ -294,12 +294,22 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.8rem;
+  gap: var(--vaadin-gap-xs);
+  min-width: 2.8rem;
   height: 2.8rem;
   border: 0;
   background: transparent;
   box-shadow: none;
   pointer-events: none;
+}
+
+.conversation-composer__busy-label {
+  color: var(--composer-prompt-prefix-color, var(--vaadin-text-color-secondary));
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-s);
+  font-weight: var(--aura-font-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .conversation-composer__send-spinner braille-spinner {

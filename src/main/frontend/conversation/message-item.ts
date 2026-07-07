@@ -135,6 +135,7 @@ class MessageItem extends LitElement {
     variant: { type: String, reflect: true },
     loading: { type: Boolean, reflect: true },
     thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
+    loadingLabel: { type: String, attribute: 'loading-label' },
   };
 
   declare text: string;
@@ -143,6 +144,7 @@ class MessageItem extends LitElement {
   declare variant: MessageVariant;
   declare loading: boolean;
   declare thinkingSpinner: BrailleSpinnerName;
+  declare loadingLabel: string;
 
   constructor() {
     super();
@@ -152,6 +154,7 @@ class MessageItem extends LitElement {
     this.variant = 'assistant';
     this.loading = false;
     this.thinkingSpinner = 'braille';
+    this.loadingLabel = 'Generando respuesta';
   }
 
   connectedCallback(): void {
@@ -172,7 +175,7 @@ class MessageItem extends LitElement {
       return html`
         <span class="message-item__loading">
           <braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>
-          <span class="message-item__loading-label">Generando respuesta</span>
+          <span class="message-item__loading-label">${this.loadingLabel}</span>
         </span>
       `;
     }
@@ -185,7 +188,7 @@ class MessageItem extends LitElement {
 
   private accessibleLabel(): string {
     if (this.loading) {
-      return 'Tutor Socrático está pensando';
+      return this.loadingLabel;
     }
 
     const author = this.userName?.trim() || 'Mensaje';

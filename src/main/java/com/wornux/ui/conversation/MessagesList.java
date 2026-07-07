@@ -16,6 +16,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.shared.Registration;
+import com.wornux.services.chat.ChatSessionActivity;
 
 @Tag("messages-list")
 @JsModule("./conversation/messages-list.ts")
@@ -64,6 +65,11 @@ public final class MessagesList extends Component implements HasSize {
         }
 
         getElement().setProperty("thinkingSpinner", thinkingSpinner.trim());
+    }
+
+    public void setActivity(ChatSessionActivity activity) {
+        var resolvedActivity = activity == null ? ChatSessionActivity.IDLE : activity;
+        getElement().setProperty("activity", resolvedActivity.name().toLowerCase(java.util.Locale.ROOT));
     }
 
     public Registration addDebugCodeRequestListener(ComponentEventListener<DebugCodeRequestEvent> listener) {
