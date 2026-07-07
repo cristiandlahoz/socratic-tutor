@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 INFERENCE_ENGINE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-REMOTE_DIR ?= inference-engine
+REMOTE_DIR ?=
 CONNECT ?=
 ARGS ?=
 RUN ?= false
@@ -10,10 +10,10 @@ DETACHED ?= true
 .PHONY: bootswap-inference-engine bootswap-inference-engine-runpod
 
 bootswap-inference-engine:
-	@$(MAKE) --no-print-directory _bootswap BOOTSTRAP=bootstrap-inference_engine.sh
+	@$(MAKE) --no-print-directory _bootswap BOOTSTRAP=bootstrap-inference_engine.sh DEFAULT_REMOTE_DIR='~/inference-engine'
 
 bootswap-inference-engine-runpod:
-	@$(MAKE) --no-print-directory _bootswap BOOTSTRAP=bootstrap-inference_engine-runpod.sh
+	@$(MAKE) --no-print-directory _bootswap BOOTSTRAP=bootstrap-inference_engine-runpod.sh DEFAULT_REMOTE_DIR=/workspace/inference-engine
 
 .PHONY: _bootswap
 _bootswap:
@@ -51,9 +51,10 @@ _bootswap:
 	read -r -a connect_parts <<< "$${connect}"; \
 	remote_host="$${connect_parts[0]}"; \
 	ssh_opts=("$${connect_parts[@]:1}"); \
-	echo "Copying inference engine files to $${remote_host}:$(REMOTE_DIR)"; \
-	remote_resolve='remote_dir='"'"'$(REMOTE_DIR)'"'"'; if [[ "$$remote_dir" == "~" ]]; then remote_dir="$$HOME"; elif [[ "$$remote_dir" == "~/"* ]]; then remote_dir="$$HOME/$${remote_dir:2}"; elif [[ "$$remote_dir" != /* ]]; then remote_dir="$$HOME/$$remote_dir"; fi'; \
-	remote_prepare="$${remote_resolve}; rm -rf \"\$$remote_dir\"; mkdir -p \"\$$remote_dir\"; tar -xzf - -C \"\$$remote_dir\""; \
+	remote_dir_input="$(or $(REMOTE_DIR),$(DEFAULT_REMOTE_DIR))"; \
+	echo "Copying inference engine files to $${remote_host}:$${remote_dir_input}"; \
+	remote_resolve="remote_dir='$${remote_dir_input}'; if [[ \"\$$remote_dir\" == \"~\" ]]; then remote_dir=\"\$$HOME\"; elif [[ \"\$$remote_dir\" == \"~/\"* ]]; then remote_dir=\"\$$HOME/\$${remote_dir:2}\"; elif [[ \"\$$remote_dir\" != /* ]]; then remote_dir=\"\$$HOME/\$$remote_dir\"; fi"; \
+	remote_prepare="$${remote_resolve}; mkdir -p \"\$$remote_dir\"; tar --no-same-owner -xzf - -C \"\$$remote_dir\""; \
 	COPYFILE_DISABLE=1 tar --no-xattrs -C "$(INFERENCE_ENGINE_DIR)" -czf - . | ssh "$${ssh_opts[@]}" "$${remote_host}" "$${remote_prepare}"; \
 	if [[ "$${run_requested}" == "true" ]]; then \
 	  echo "Starting $(BOOTSTRAP) on $${remote_host}"; \
