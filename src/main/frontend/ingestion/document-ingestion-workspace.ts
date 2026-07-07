@@ -689,7 +689,7 @@ class DocumentIngestionWorkspaceElement extends LitElement {
           <div class="title-row">
             <h1>Materiales de clase</h1>
             <button class="info-button" type="button" aria-label="Ver descripción de materiales de clase">
-              <vaadin-icon icon="vaadin:info-circle-o" aria-hidden="true"></vaadin-icon>
+              <vaadin-icon src="/icons/IconInfo.svg" aria-hidden="true"></vaadin-icon>
               <span class="tooltip" role="tooltip">
                 Gestiona los PDFs que el tutor puede consultar. Revisa segmentos, corrige contenido y reindexa cuando
                 cambie la evidencia.
@@ -859,7 +859,7 @@ class DocumentIngestionWorkspaceElement extends LitElement {
                   ?disabled=${this.busy || this.catalogUseWhen.trim().length === 0}
                   @click=${() => this.generateCatalog()}
                 >
-                  <vaadin-icon icon="vaadin:magic" slot="prefix"></vaadin-icon>
+                  <vaadin-icon src="/icons/IconSparkles.svg" slot="prefix" aria-hidden="true"></vaadin-icon>
                   Generar catálogo
                 </vaadin-button>
               </div>
@@ -907,7 +907,7 @@ class DocumentIngestionWorkspaceElement extends LitElement {
           Eliminar documento
         </vaadin-button>
         <vaadin-button theme="primary" ?disabled=${!canIndex || (!isDraft && !this.dirty)} @click=${() => this.commit()}>
-          <vaadin-icon icon="vaadin:database" slot="prefix"></vaadin-icon>
+          <vaadin-icon src="/icons/IconServer.svg" slot="prefix" aria-hidden="true"></vaadin-icon>
           ${isDraft ? 'Indexar' : 'Reindexar'}
         </vaadin-button>
       </div>

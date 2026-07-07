@@ -215,7 +215,7 @@ public class RoleMatrixView extends VerticalLayout {
         return LitRenderer.<Role>of("""
                     <span class="role-management-role-count" aria-label="${item.count} miembros">
                         <span>${item.count}</span>
-                        <vaadin-icon icon="vaadin:user" aria-hidden="true"></vaadin-icon>
+                        <vaadin-icon src="/icons/IconPeople.svg" aria-hidden="true"></vaadin-icon>
                     </span>
                 """)
                 .withProperty("count", role -> roleMemberCounts.getOrDefault(role.getId(), 0L));
@@ -559,8 +559,8 @@ public class RoleMatrixView extends VerticalLayout {
         var matrix = roleAdministrationService.tenantAssignments();
         var assignedMemberIds = roleAdministrationService.tenantAccountIdsAssignedToRole(role.getId());
         var grid = new Grid<>(TenantAccount.class, false);
-        grid.addColumn(this::tenantMemberName).setHeader("Miembro").setAutoWidth(true);
-        grid.addComponentColumn(member -> tenantRoleCheckbox(member, role, assignedMemberIds)).setHeader(role.getName()).setAutoWidth(true);
+        grid.addColumn(this::tenantMemberName).setHeader("Miembro").setFlexGrow(1);
+        grid.addComponentColumn(member -> tenantRoleCheckbox(member, role, assignedMemberIds)).setHeader(role.getName()).setAutoWidth(true).setFlexGrow(0);
         grid.setItems(matrix.members());
         grid.setWidthFull();
         UiCss.ROLE_MANAGEMENT_MEMBERS_GRID.addTo(grid);
@@ -598,6 +598,7 @@ public class RoleMatrixView extends VerticalLayout {
     private Component createClassMembersTab(Role role) {
         var classSelector = new ComboBox<GroupClass>("Clase");
         var gridHolder = new Div();
+        gridHolder.setWidthFull();
         var classes = classesAssignableInCurrentContext();
         classSelector.setItems(classes);
         classSelector.setItemLabelGenerator(this::classLabel);
@@ -625,9 +626,9 @@ public class RoleMatrixView extends VerticalLayout {
         var matrix = roleAdministrationService.groupClassAssignments(groupClass.getId());
         var assignedMemberIds = roleAdministrationService.groupClassMemberIdsAssignedToRole(groupClass.getId(), role.getId());
         var grid = new Grid<>(GroupClassMember.class, false);
-        grid.addColumn(this::classMemberName).setHeader("Miembro").setAutoWidth(true);
-        grid.addColumn(member -> member.getMemberKind().name()).setHeader("Tipo").setAutoWidth(true);
-        grid.addComponentColumn(member -> classRoleCheckbox(member, role, assignedMemberIds)).setHeader(role.getName()).setAutoWidth(true);
+        grid.addColumn(this::classMemberName).setHeader("Miembro").setFlexGrow(1);
+        grid.addColumn(member -> member.getMemberKind().name()).setHeader("Tipo").setAutoWidth(true).setFlexGrow(0);
+        grid.addComponentColumn(member -> classRoleCheckbox(member, role, assignedMemberIds)).setHeader(role.getName()).setAutoWidth(true).setFlexGrow(0);
         grid.setItems(matrix.members());
         grid.setWidthFull();
         UiCss.ROLE_MANAGEMENT_MEMBERS_GRID.addTo(grid);

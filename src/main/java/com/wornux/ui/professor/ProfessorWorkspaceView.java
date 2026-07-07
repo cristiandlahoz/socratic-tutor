@@ -5,8 +5,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -77,7 +76,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
                     new Button("Documentos", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
                     new Button("Actividades formativas", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
             new HorizontalLayout(studentEmailField,
-                    new Button("Enviar invitación", new Icon(VaadinIcon.PAPERPLANE), _ -> inviteStudent())),
+                    new Button("Enviar invitación", new SvgIcon("/icons/IconEnvelope.svg"), _ -> inviteStudent())),
             studentsGrid);
     }
 

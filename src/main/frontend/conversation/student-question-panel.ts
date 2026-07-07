@@ -200,7 +200,7 @@ class StudentQuestionPanelElement extends LitElement {
             aria-label=${`Ver detalle de ${option.label}`}
             ?disabled=${this.submitting}
           >
-            <vaadin-icon icon="vaadin:info-circle-o"></vaadin-icon>
+            <vaadin-icon src="/icons/IconInfo.svg" aria-hidden="true"></vaadin-icon>
           </vaadin-button>
           <vaadin-popover class="conversation-question__option-popover" for=${this.infoButtonId(currentQuestionKey, index)}>
             <p class="conversation-question__option-description conversation-question__option-description--popover">
@@ -247,7 +247,7 @@ class StudentQuestionPanelElement extends LitElement {
             ?disabled=${this.submitting}
             @click=${this.showPreviousQuestion}
           >
-            <vaadin-icon icon="vaadin:arrow-left"></vaadin-icon>
+            <vaadin-icon src="/icons/IconArrowLeftBar.svg" aria-hidden="true"></vaadin-icon>
           </vaadin-button>
         `
       : nothing;
@@ -265,7 +265,7 @@ class StudentQuestionPanelElement extends LitElement {
             ?disabled=${this.submitting}
             @click=${this.showNextQuestion}
           >
-            <vaadin-icon icon="vaadin:arrow-right"></vaadin-icon>
+            <vaadin-icon src="/icons/IconArrowRight.svg" aria-hidden="true"></vaadin-icon>
           </vaadin-button>
         `
       : nothing;

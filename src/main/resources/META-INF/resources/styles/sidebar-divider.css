@@ -79,7 +79,7 @@ vaadin-button.app-sidebar__brand-info::part(button) {
   border-radius: 999px;
   background: transparent;
   box-shadow: none;
-  color: color-mix(in srgb, var(--vaadin-text-color) 72%, transparent);
+  color: var(--drawer-foreground);
   transition:
     border-color var(--motion-fast),
     color var(--motion-fast),
@@ -100,7 +100,7 @@ vaadin-button.app-sidebar__brand-info:hover::part(button),
 vaadin-button.app-sidebar__brand-info:focus-within::part(button) {
   border-color: color-mix(in srgb, var(--vaadin-text-color) 52%, transparent);
   background: color-mix(in srgb, var(--vaadin-text-color) 7%, transparent);
-  color: var(--vaadin-text-color);
+  color: var(--drawer-foreground-strong);
 }
 
 .theme-switcher {

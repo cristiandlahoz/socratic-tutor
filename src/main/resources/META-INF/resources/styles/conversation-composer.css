@@ -267,7 +267,7 @@ vaadin-button.conversation-composer__send-button {
 vaadin-button.conversation-composer__send-button::part(button) {
   width: 2.8rem;
   height: 2.8rem;
-  border-radius: var(--vaadin-radius-m);
+  border-radius: var(--vaadin-radius-l);
   background: var(--composer-send-button-surface);
   border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-send-button-border);
   box-shadow: var(--aura-shadow-xs);

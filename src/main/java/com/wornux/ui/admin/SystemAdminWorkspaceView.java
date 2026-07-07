@@ -10,8 +10,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -101,7 +100,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         UiCss.WORKSPACE_FIELD.addTo(searchField);
         searchField.setPlaceholder("Nombre de la institución");
         searchField.setClearButtonVisible(true);
-        searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        searchField.setPrefixComponent(new SvgIcon("/icons/IconSearch.svg"));
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(_ -> applyFilters());
 
@@ -113,7 +112,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         adminFilter.addValueChangeListener(_ -> applyFilters());
 
         var createButton = primaryButton("Crear institución", this::openCreateTenantDialog);
-        createButton.setIcon(new Icon(VaadinIcon.PLUS));
+        createButton.setIcon(new SvgIcon("/icons/IconBuildingPlus.svg"));
 
         var toolbar = new HorizontalLayout(searchField, adminFilter, createButton);
         UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
@@ -152,7 +151,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
                             .<Tenant>of(
                                 """
                                     <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${sendInvite}" aria-label="Enviar invitación a ${item.name}">
-                                        <vaadin-icon icon="vaadin:paperplane" slot="prefix"></vaadin-icon>
+                                        <vaadin-icon src="/icons/IconEnvelope.svg" slot="prefix" aria-hidden="true"></vaadin-icon>
                                         Enviar
                                     </vaadin-button>
                                 """)
@@ -217,7 +216,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         dialog.add(new VerticalLayout(tenantName, help, emailField));
         var cancel = secondaryButton("Cancelar", dialog::close);
         var send = primaryButton("Enviar invitación", () -> onInviteTenantAdmin(dialog, tenant, emailField));
-        send.setIcon(new Icon(VaadinIcon.PAPERPLANE));
+        send.setIcon(new SvgIcon("/icons/IconEnvelope.svg"));
         dialog.getFooter().add(cancel, send);
         dialog.open();
         emailField.focus();

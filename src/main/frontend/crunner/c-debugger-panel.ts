@@ -125,7 +125,7 @@ class CDebuggerPanel extends LitElement {
         <div class="c-runner-panel">
           <div class="c-runner-header">
             <button class="c-runner-panel-toggle" type="button" title="Ocultar depurador" @click=${this.closePanel}>
-              <vaadin-icon icon="vaadin:angle-right"></vaadin-icon>
+              <vaadin-icon src="/icons/IconArrowRight.svg" aria-hidden="true"></vaadin-icon>
             </button>
             <h2 class="c-runner-title">Depurador Visual</h2>
           </div>
@@ -210,9 +210,9 @@ class CDebuggerPanel extends LitElement {
   private renderControls() {
     return html`
       <div class="c-runner-controls">
-        ${this.renderControlButton('vaadin:play', 'Ejecutar depuracion', 'c-runner-validate-button', this.validateDebug)}
-        ${this.renderControlButton('vaadin:arrow-right', 'Paso siguiente', '', this.stepDebug)}
-        ${this.renderControlButton('vaadin:rotate-left', 'Reiniciar', '', this.resetDebug)}
+        ${this.renderControlButton('/icons/IconArrowRight.svg', 'Ejecutar depuracion', 'c-runner-validate-button', this.validateDebug)}
+        ${this.renderControlButton('/icons/IconArrowRight.svg', 'Paso siguiente', '', this.stepDebug)}
+        ${this.renderControlButton('/icons/IconReload.svg', 'Reiniciar', '', this.resetDebug)}
       </div>
     `;
   }
@@ -226,7 +226,7 @@ class CDebuggerPanel extends LitElement {
         ?disabled=${!this.controlsEnabled}
         @click=${listener}
       >
-        <vaadin-icon icon=${icon}></vaadin-icon>
+        <vaadin-icon src=${icon} aria-hidden="true"></vaadin-icon>
       </vaadin-button>
     `;
   }

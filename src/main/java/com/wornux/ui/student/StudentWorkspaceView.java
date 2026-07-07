@@ -148,7 +148,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
                             .<TrainingActivityAssignment>of(
                                 """
                                     <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${openTutor}" aria-label="Abrir tutor para ${item.title}">
-                                        <vaadin-icon icon="vaadin:comments" slot="prefix"></vaadin-icon>
+                                        <vaadin-icon src="/icons/IconConvo.svg" slot="prefix" aria-hidden="true"></vaadin-icon>
                                         Abrir tutor
                                     </vaadin-button>
                                 """)

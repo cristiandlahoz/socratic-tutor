@@ -171,7 +171,7 @@ vaadin-button.conversation-view__debugger-toggle svg {
   gap: var(--vaadin-gap-s);
 }
 
-vaadin-icon.c-runner-panel-toggle {
+button.c-runner-panel-toggle {
   flex: 0 0 auto;
   width: 1.35rem;
   min-width: 1.35rem;
@@ -186,27 +186,20 @@ vaadin-icon.c-runner-panel-toggle {
   cursor: pointer;
 }
 
-vaadin-icon.c-runner-panel-toggle:hover,
-vaadin-icon.c-runner-panel-toggle:focus-visible {
+button.c-runner-panel-toggle:hover,
+button.c-runner-panel-toggle:focus-visible {
   color: var(--ui-toggle-hover-color);
 }
 
-vaadin-icon.c-runner-panel-toggle:focus-visible {
+button.c-runner-panel-toggle:focus-visible {
   outline: var(--vaadin-focus-ring-width, 2px) solid var(--aura-accent-border-color);
   outline-offset: 2px;
 }
 
-vaadin-icon.c-runner-panel-toggle vaadin-icon,
-vaadin-icon.c-runner-panel-toggle svg {
-  width: 18px;
-  height: 18px;
-  color: currentColor;
-  stroke: currentColor;
+button.c-runner-panel-toggle vaadin-icon {
+  width: var(--vaadin-icon-size);
+  height: var(--vaadin-icon-size);
   transform: scaleX(-1);
-}
-
-vaadin-icon.c-runner-panel-toggle svg path {
-  stroke: currentColor;
 }
 
 .c-runner-title {

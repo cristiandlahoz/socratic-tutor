@@ -8,9 +8,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.SvgIcon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
@@ -24,6 +22,7 @@ import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionService;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
+import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.sidebar.ConversationHistoryDrawer;
@@ -52,6 +51,7 @@ public class MainLayout extends AppLayout {
     private final ContextDiscoveryService contextDiscoveryService;
     private final ContextSelectionService contextSelectionService;
     private final NavigationRegistry navigationRegistry;
+    private final WorkspaceRoutingService workspaceRoutingService;
     private final Div drawerContent = new Div();
 
     public MainLayout(
@@ -63,7 +63,8 @@ public class MainLayout extends AppLayout {
             AuthorizationService authorizationService,
             ContextDiscoveryService contextDiscoveryService,
             ContextSelectionService contextSelectionService,
-            NavigationRegistry navigationRegistry) {
+            NavigationRegistry navigationRegistry,
+            WorkspaceRoutingService workspaceRoutingService) {
         this.state = state;
         this.viewModel = viewModel;
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
@@ -73,6 +74,7 @@ public class MainLayout extends AppLayout {
         this.contextDiscoveryService = contextDiscoveryService;
         this.contextSelectionService = contextSelectionService;
         this.navigationRegistry = navigationRegistry;
+        this.workspaceRoutingService = workspaceRoutingService;
 
         setPrimarySection(Section.DRAWER);
         addToNavbar(createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE, "Abrir menú"));
@@ -99,11 +101,14 @@ public class MainLayout extends AppLayout {
             return;
         }
 
+        var account = currentAccount.get();
         var entries = navigationRegistry.entries().stream()
                 .filter(entry -> activeContextHolder.current()
                         .map(context -> context.level().ordinal() >= entry.minimumContextLevel().ordinal())
                         .orElse(false))
                 .filter(entry -> authorizationService.can(entry.requiredPermission()))
+                .filter(entry -> entry.workspaceDestination() == null
+                        || workspaceRoutingService.canAccessWorkspace(account, entry.workspaceDestination()))
                 .sorted(Comparator.comparingInt(NavigationEntry::order))
                 .toList();
         drawerContent.add(new WorkspaceDrawerNavigation(entries));
@@ -148,7 +153,7 @@ public class MainLayout extends AppLayout {
 
         var appDescription = "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia "
                 + "con conversaciones guiadas.";
-        var appInfo = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
+        var appInfo = new Button(new SvgIcon("/icons/IconInfo.svg"));
         appInfo.addThemeVariants(ButtonVariant.TERTIARY);
         UiCss.APP_SIDEBAR_BRAND_INFO.addTo(appInfo);
         appInfo.setAriaLabel("Acerca de Tutor Socrático");

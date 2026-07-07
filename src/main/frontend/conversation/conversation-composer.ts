@@ -165,7 +165,7 @@ class ConversationComposer extends LitElement {
         aria-label="Bajar al final de la conversación"
         @click=${this.scrollToBottom}
       >
-        <vaadin-icon icon="vaadin:angle-down"></vaadin-icon>
+        <vaadin-icon src="/icons/IconChevron.svg" aria-hidden="true"></vaadin-icon>
         <span>Bajar al final</span>
       </vaadin-button>
     `;
@@ -200,7 +200,7 @@ class ConversationComposer extends LitElement {
         ?disabled=${!this.canSubmit()}
         @click=${this.submit}
       >
-        <vaadin-icon icon="vaadin:arrow-up"></vaadin-icon>
+        <vaadin-icon src="/icons/IconArrowRightShort.svg" style="transform: rotate(-90deg);" aria-hidden="true"></vaadin-icon>
       </vaadin-button>
     `;
   }

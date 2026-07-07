@@ -16,8 +16,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -107,7 +106,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         UiCss.WORKSPACE_FIELD.addTo(searchField);
         searchField.setPlaceholder("Clase, código, asignatura o período");
         searchField.setClearButtonVisible(true);
-        searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        searchField.setPrefixComponent(new SvgIcon("/icons/IconSearch.svg"));
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(_ -> applyFilters());
 
@@ -189,7 +188,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
                             .<GroupClass>of(
                                 """
                                     <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${inviteProfessor}" aria-label="Invitar profesor a ${item.name}">
-                                        <vaadin-icon icon="vaadin:paperplane" slot="prefix"></vaadin-icon>
+                                        <vaadin-icon src="/icons/IconEnvelope.svg" slot="prefix" aria-hidden="true"></vaadin-icon>
                                         Invitar profesor
                                     </vaadin-button>
                                 """)
@@ -211,11 +210,11 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     private Component createToolbar() {
         var createPeriod = secondaryButton("Crear período", this::openCreatePeriodDialog);
-        createPeriod.setIcon(new Icon(VaadinIcon.CALENDAR));
+        createPeriod.setIcon(new SvgIcon("/icons/IconCalendar.svg"));
         var createSubject = secondaryButton("Crear asignatura", this::openCreateSubjectDialog);
-        createSubject.setIcon(new Icon(VaadinIcon.BOOK));
+        createSubject.setIcon(new SvgIcon("/icons/IconBook.svg"));
         var createClass = primaryButton("Crear clase", this::openCreateClassDialog);
-        createClass.setIcon(new Icon(VaadinIcon.PLUS));
+        createClass.setIcon(new SvgIcon("/icons/IconPlus.svg"));
 
         var toolbar = new HorizontalLayout(tenantSelector,
                 searchField,
@@ -335,7 +334,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         UiCss.WORKSPACE_FIELD.addTo(email);
 
         var send = primaryButton("Enviar invitación", () -> onInviteProfessor(dialog, groupClass, email));
-        send.setIcon(new Icon(VaadinIcon.PAPERPLANE));
+        send.setIcon(new SvgIcon("/icons/IconEnvelope.svg"));
         dialog.add(new VerticalLayout(className, help, email));
         dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), send);
         dialog.open();

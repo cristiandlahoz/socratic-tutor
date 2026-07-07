@@ -14,8 +14,7 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -98,7 +97,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         instructionField.setMinHeight("8rem");
         instructionField.setValueChangeMode(ValueChangeMode.EAGER);
         saveButton.addThemeVariants(ButtonVariant.PRIMARY);
-        saveButton.setIcon(new Icon(VaadinIcon.PLUS));
+        saveButton.setIcon(new SvgIcon("/icons/IconPlus.svg"));
         saveButton.addClickShortcut(Key.ENTER).listenOn(instructionField);
         saveButton.addClickListener(_ -> onSave());
         var card = new Div(titleField, instructionField, saveButton);
