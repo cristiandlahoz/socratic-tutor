@@ -16,6 +16,8 @@ import com.wornux.services.document.DocumentIngestionService;
 import com.wornux.services.document.StartIngestionCommand;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.conversation.ConversationState;
+import com.wornux.ui.conversation.ConversationView;
+
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
@@ -144,11 +146,11 @@ public class DocumentIngestionUiController implements Serializable {
         if (conversationUiState.activeConversationId().peek() != null) {
             UI.getCurrent()
                     .navigate(
-                        com.wornux.ui.conversation.ConversationView.class,
+                        ConversationView.class,
                         QueryParameters.of("c", conversationUiState.activeConversationId().peek().toString()));
             return;
         }
-        UI.getCurrent().navigate(com.wornux.ui.conversation.ConversationView.class);
+        UI.getCurrent().navigate(ConversationView.class);
     }
 
     private ApproveDocumentCommand approveCommand() {

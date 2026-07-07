@@ -18,6 +18,8 @@ import com.wornux.data.entities.identity.Account;
 import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
+import com.wornux.services.document.DocumentIngestionService;
+import com.wornux.services.document.DocumentWorkspaceService;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
@@ -97,14 +99,15 @@ class RouteAccessViewTest {
     void documentsDenyStudentAccess() {
         var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
         var workspaceRoutingService = mock(WorkspaceRoutingService.class);
-        var controller = mock(DocumentIngestionUiController.class);
+        var ingestionService = mock(DocumentIngestionService.class);
+        var workspaceService = mock(DocumentWorkspaceService.class);
         var event = mock(BeforeEnterEvent.class);
         var account = mock(Account.class);
         when(authenticatedUserContextUtils.requireCurrentAccount()).thenReturn(account);
         when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
 
-        var view = new DocumentIngestionView(controller,
-                new DocumentIngestionState(),
+        var view = new DocumentIngestionView(ingestionService,
+                workspaceService,
                 new DocumentIngestionProperties(),
                 authenticatedUserContextUtils,
                 workspaceRoutingService);
