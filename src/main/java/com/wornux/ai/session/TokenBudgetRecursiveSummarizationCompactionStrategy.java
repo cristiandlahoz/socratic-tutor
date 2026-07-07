@@ -114,7 +114,7 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
         var rawCutIndex = realEvents.size();
         var tokens = 0;
         for (var index = realEvents.size() - 1; index >= 0; index--) {
-            var eventTokens = tokenCountEstimator.estimate(formatEvent(realEvents.get(index)));
+            var eventTokens = tokenCountEstimator.estimate(formatEventForTokenAccounting(realEvents.get(index)));
             if (tokens + eventTokens > recentHistoryTokenBudget) {
                 break;
             }
@@ -183,10 +183,18 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
     }
 
     private int archivedTokens(List<SessionEvent> archived) {
-        return archived.stream().mapToInt(event -> tokenCountEstimator.estimate(formatEvent(event))).sum();
+        return archived.stream().mapToInt(event -> tokenCountEstimator.estimate(formatEventForTokenAccounting(event))).sum();
     }
 
     private static String formatEvent(SessionEvent event) {
+        return formatEvent(event, true);
+    }
+
+    private static String formatEventForTokenAccounting(SessionEvent event) {
+        return formatEvent(event, false);
+    }
+
+    private static String formatEvent(SessionEvent event, boolean truncateContent) {
         var role = switch (event.getMessageType()) {
             case USER -> "User";
             case ASSISTANT -> "Assistant";
@@ -197,25 +205,26 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
         if (event.getMessage() instanceof AssistantMessage assistantMessage && assistantMessage.hasToolCalls()) {
             var calls = assistantMessage.getToolCalls()
                     .stream()
-                    .map(toolCall -> toolCall.name() + "(" + truncate(toolCall.arguments()) + ")")
+                    .map(toolCall -> toolCall.name() + "(" + maybeTruncate(toolCall.arguments(), truncateContent) + ")")
                     .collect(Collectors.joining(", "));
             var text = assistantMessage.getText();
-            return truncate(
+            return maybeTruncate(
                 text != null && !text.isBlank()
                         ? role + ": " + text + " [tool calls: " + calls + "]"
-                        : role + " [tool calls: " + calls + "]");
+                        : role + " [tool calls: " + calls + "]",
+                truncateContent);
         }
 
         if (event.getMessage() instanceof ToolResponseMessage toolResponseMessage) {
             var responses = toolResponseMessage.getResponses()
                     .stream()
-                    .map(response -> response.name() + " -> " + truncate(response.responseData()))
+                    .map(response -> response.name() + " -> " + maybeTruncate(response.responseData(), truncateContent))
                     .collect(Collectors.joining(", "));
-            return truncate(role + " [responses: " + responses + "]");
+            return maybeTruncate(role + " [responses: " + responses + "]", truncateContent);
         }
 
         var text = event.getMessage().getText();
-        return truncate(role + ": " + (text == null ? "[no text content]" : text));
+        return maybeTruncate(role + ": " + (text == null ? "[no text content]" : text), truncateContent);
     }
 
     private static String truncate(@Nullable String value) {
