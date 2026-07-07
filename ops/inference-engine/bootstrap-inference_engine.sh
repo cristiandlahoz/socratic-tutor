@@ -16,6 +16,7 @@ set -euo pipefail
 #
 # Useful overrides:
 #   AUTO_INSTALL_DEBIAN_DEPS=true|false|auto   default: auto
+#   AUTO_INSTALL_CUDA_TOOLKIT=true|false|auto   default: auto
 #   FORCE_LLAMA_CPP_REBUILD=true|false         default: false
 #   LLAMA_CPP_BUILD_JOBS=4                     default: cuda=>4, otherwise nproc
 #   LLAMA_CPP_BACKEND=auto|cuda|metal|cpu      default: auto
@@ -38,6 +39,7 @@ LLAMA_CPP_REF="${LLAMA_CPP_REF:-}"
 LLAMA_CPP_BUILD_JOBS="${LLAMA_CPP_BUILD_JOBS:-}"
 FORCE_LLAMA_CPP_REBUILD="${FORCE_LLAMA_CPP_REBUILD:-false}"
 AUTO_INSTALL_DEBIAN_DEPS="${AUTO_INSTALL_DEBIAN_DEPS:-auto}" # auto|true|false
+AUTO_INSTALL_CUDA_TOOLKIT="${AUTO_INSTALL_CUDA_TOOLKIT:-auto}" # auto|true|false
 LLAMA_SWAP_VERSION="${LLAMA_SWAP_VERSION:-233}"
 LLAMA_SWAP_BIN="${LLAMA_SWAP_BIN:-$BIN_DIR/llama-swap}"
 LLAMA_SERVER_BIN="${LLAMA_SERVER_BIN:-$BIN_DIR/llama-server}"
@@ -50,7 +52,7 @@ BOOTSTRAP_STARTUP_CHECK_SECONDS="${BOOTSTRAP_STARTUP_CHECK_SECONDS:-3}"
 HF_HTTPS_TEST_MODEL="${HF_HTTPS_TEST_MODEL:-this-repo/should-not-exist-for-https-test:q4_0}"
 
 mkdir -p "$BIN_DIR" "$LLAMA_CACHE"
-export PATH="$BIN_DIR:$PATH"
+export PATH="$BIN_DIR:/usr/local/cuda/bin:$PATH"
 
 log() {
   printf '[bootstrap] %s\n' "$*"
@@ -105,6 +107,11 @@ apt_install_if_possible() {
   apt-get install -y --no-install-recommends "$@"
 }
 
+apt_package_exists() {
+  local package_name="$1"
+  apt-cache show "$package_name" >/dev/null 2>&1
+}
+
 ensure_debian_dependencies() {
   case "$AUTO_INSTALL_DEBIAN_DEPS" in
     false|FALSE|0|no|NO|off|OFF)
@@ -144,6 +151,59 @@ ensure_debian_dependencies() {
   fi
 
   log "apt-get unavailable or not root; assuming dependencies are already installed"
+}
+
+ensure_cuda_toolkit_if_needed() {
+  case "$AUTO_INSTALL_CUDA_TOOLKIT" in
+    false|FALSE|0|no|NO|off|OFF)
+      log "skipping CUDA Toolkit installation because AUTO_INSTALL_CUDA_TOOLKIT=$AUTO_INSTALL_CUDA_TOOLKIT"
+      return 0
+      ;;
+    true|TRUE|1|yes|YES|on|ON|auto)
+      ;;
+    *)
+      fail "AUTO_INSTALL_CUDA_TOOLKIT must be auto, true, or false"
+      ;;
+  esac
+
+  if ! command -v nvidia-smi >/dev/null 2>&1 || ! nvidia-smi -L >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if cuda_toolkit_available; then
+    return 0
+  fi
+
+  if ! command -v apt-get >/dev/null 2>&1 || [[ "$(id -u)" != "0" ]]; then
+    if [[ "$AUTO_INSTALL_CUDA_TOOLKIT" == "auto" ]]; then
+      log "NVIDIA GPU detected, but CUDA Toolkit/nvcc is missing and apt-get is unavailable or not root"
+      return 0
+    fi
+    fail "cannot auto-install CUDA Toolkit: apt-get unavailable or current user is not root"
+  fi
+
+  export DEBIAN_FRONTEND=noninteractive
+  log "NVIDIA GPU detected but nvcc is missing; trying to install CUDA Toolkit"
+  apt-get update
+
+  local package
+  for package in cuda-toolkit nvidia-cuda-toolkit; do
+    if apt_package_exists "$package"; then
+      log "installing CUDA Toolkit package: $package"
+      apt-get install -y --no-install-recommends "$package"
+      break
+    fi
+  done
+
+  if ! cuda_toolkit_available; then
+    if [[ "$AUTO_INSTALL_CUDA_TOOLKIT" == "auto" ]]; then
+      log "CUDA Toolkit package was not available or did not provide nvcc; continuing without CUDA backend"
+      return 0
+    fi
+    fail "CUDA Toolkit installation did not provide nvcc. Use a CUDA development image or configure NVIDIA CUDA apt repositories."
+  fi
+
+  log "CUDA Toolkit check passed: $(command -v nvcc 2>/dev/null || echo /usr/local/cuda/bin/nvcc)"
 }
 
 ensure_companion_scripts() {
@@ -471,8 +531,10 @@ log "bin dir: $BIN_DIR"
 log "llama cache: $LLAMA_CACHE"
 log "detached: $DETACHED"
 log "auto install Debian deps: $AUTO_INSTALL_DEBIAN_DEPS"
+log "auto install CUDA Toolkit: $AUTO_INSTALL_CUDA_TOOLKIT"
 
 ensure_debian_dependencies
+ensure_cuda_toolkit_if_needed
 require_command python3
 ensure_companion_scripts
 install_llama_swap

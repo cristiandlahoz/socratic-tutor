@@ -91,12 +91,13 @@ The wrapper sources `runpod.env`, which defaults to these persistent paths:
 
 Use `RUNPOD_WORKSPACE=/some/path` if the persistent mount is not `/workspace`.
 
-For GPU acceleration, the pod image must include the CUDA Toolkit (`nvcc`) or a
-configured `CUDAToolkit_ROOT`. `nvidia-smi` alone only proves that the GPU driver
-is available; it is not enough to build llama.cpp's CUDA backend. If the toolkit
-is missing, the bootstrap falls back to a CPU build in `auto` mode. Use a CUDA
-development RunPod image for GPU builds, or explicitly run with
-`LLAMA_CPP_BACKEND=cpu` if CPU inference is acceptable.
+For GPU acceleration, llama.cpp needs the CUDA Toolkit (`nvcc`) or a configured
+`CUDAToolkit_ROOT`. `nvidia-smi` alone only proves that the GPU driver is
+available. On NVIDIA hosts, the bootstrap tries to install a CUDA Toolkit package
+with `apt-get` when `nvcc` is missing. If no toolkit package is available in the
+image's configured apt repositories, `auto` mode falls back to a CPU build. Set
+`AUTO_INSTALL_CUDA_TOOLKIT=false` to skip this attempt, or use a CUDA development
+RunPod image when you want a guaranteed GPU build.
 
 ## Copying to a remote host
 
