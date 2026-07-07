@@ -68,6 +68,55 @@ Override it with:
 LLAMA_CACHE=/srv/llama-cache ./bootstrap-inference_engine.sh -d
 ```
 
+## RunPod persistent setup
+
+RunPod keeps `/workspace` persistent across pods. Use the RunPod wrapper so
+llama.cpp builds, downloaded GGUF files, logs, PID files, and monitor state are
+stored there instead of under an ephemeral home directory:
+
+```bash
+./bootstrap-inference_engine-runpod.sh -d
+```
+
+The wrapper sources `runpod.env`, which defaults to these persistent paths:
+
+```bash
+/workspace/bin
+/workspace/llama.cpp
+/workspace/llama-cache
+/workspace/inference-engine
+/workspace/huggingface
+/workspace/.cache
+```
+
+Use `RUNPOD_WORKSPACE=/some/path` if the persistent mount is not `/workspace`.
+
+## Copying to a remote host
+
+The local `Makefile` can copy this whole inference-engine folder over SSH. By
+default it only copies files and does not start the engine:
+
+```bash
+make bootswap-inference-engine CONNECT='root@host -p 1234'
+make bootswap-inference-engine-runpod CONNECT='root@host -p 1234'
+```
+
+Set `RUN=true` to start the selected bootstrap script after copying:
+
+```bash
+make bootswap-inference-engine-runpod CONNECT='root@host -p 1234' RUN=true
+```
+
+The same remote connection can be passed through `ARGS`, including the optional
+`--run true` flag:
+
+```bash
+make bootswap-inference-engine-runpod ARGS='root@host -p 1234 --run true'
+```
+
+Files are copied to `~/inference-engine` on the remote host by default. Override
+with `REMOTE_DIR=/path/to/inference-engine`.
+
 The monitor handles CPU → GPU promotion for configured models on NVIDIA hosts. If Ornith or Gemma was started on CPU because VRAM was busy, the monitor periodically checks free VRAM. When enough VRAM becomes available for that model, it unloads the model from llama-swap and sends a tiny warm-up request so llama-swap restarts it; `start-llama-server.sh` then re-checks VRAM and starts it on GPU.
 
 `llama-swap`'s built-in preload hook is intentionally not used because v233 preloads with `GET /`; this returns `404` when `llama-server` is started with `--no-ui`. The engine instead warms models through the same OpenAI-compatible chat endpoint used by the application.
