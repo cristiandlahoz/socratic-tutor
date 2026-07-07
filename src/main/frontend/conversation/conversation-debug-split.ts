@@ -8,10 +8,10 @@ const PRIMARY_SLOT = 'primary';
 const SECONDARY_SLOT = 'secondary';
 const ANIMATION_MS = 220;
 const DEBUGGER_CONTENT_SELECTOR = '.c-runner-panel';
-const DEBUGGER_MIN_WIDTH_PX = 390;
-const DEBUGGER_WIDTH_BUFFER_PX = 24;
-const PRIMARY_MIN_WIDTH_PX = 520;
-const DEBUGGER_MAX_WIDTH_RATIO = 0.54;
+const DEBUGGER_MIN_WIDTH_PX = 560;
+const DEBUGGER_WIDTH_BUFFER_PX = 40;
+const PRIMARY_MIN_WIDTH_PX = 460;
+const DEBUGGER_MAX_WIDTH_RATIO = 0.64;
 
 type SplitLayoutElement = HTMLElement & {
   orientation: string;
@@ -28,14 +28,6 @@ class ConversationDebugSplit extends LitElement {
   private animationTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
   private animationFrame = 0;
   private mutationObserver: MutationObserver | null = null;
-  private observedDebuggerContent: Element | null = null;
-
-  private readonly resizeObserver =
-    typeof globalThis.ResizeObserver === 'function'
-      ? new globalThis.ResizeObserver(() => this.syncDebuggerWidth())
-      : undefined;
-
-  private readonly handleWindowResize = (): void => this.syncDebuggerWidth();
 
   constructor() {
     super();
@@ -53,7 +45,6 @@ class ConversationDebugSplit extends LitElement {
     this.style.height = '100%';
     this.ensureSplitLayout();
     this.installMutationObserver();
-    globalThis.addEventListener('resize', this.handleWindowResize, { passive: true });
     this.updateSplitState(false);
   }
 
@@ -61,8 +52,6 @@ class ConversationDebugSplit extends LitElement {
     this.clearAnimation();
     this.mutationObserver?.disconnect();
     this.mutationObserver = null;
-    this.unobserveDebuggerContent();
-    globalThis.removeEventListener('resize', this.handleWindowResize);
     super.disconnectedCallback();
   }
 
@@ -81,12 +70,8 @@ class ConversationDebugSplit extends LitElement {
       return;
     }
 
-    this.mutationObserver = new MutationObserver(() => {
-      const split = this.ensureSplitLayout();
-      this.observeDebuggerContent(split);
-      this.syncDebuggerWidth();
-    });
-    this.mutationObserver.observe(this, { childList: true, subtree: true });
+    this.mutationObserver = new MutationObserver(() => this.ensureSplitLayout());
+    this.mutationObserver.observe(this, { childList: true });
   }
 
   private ensureSplitLayout(): SplitLayoutElement {
@@ -95,7 +80,6 @@ class ConversationDebugSplit extends LitElement {
       this.splitLayout = existing;
       this.configureSplitLayout(existing);
       this.moveLooseChildren(existing);
-      this.observeDebuggerContent(existing);
       return existing;
     }
 
@@ -104,7 +88,6 @@ class ConversationDebugSplit extends LitElement {
     this.splitLayout = split;
     this.moveLooseChildren(split);
     this.append(split);
-    this.observeDebuggerContent(split);
     return split;
   }
 
@@ -145,10 +128,9 @@ class ConversationDebugSplit extends LitElement {
 
     if (this.debuggerVisible) {
       split.classList.add(COLLAPSED_CLASS);
-      this.collapse(primary, secondary);
+      this.expand(primary, secondary);
       this.animationFrame = globalThis.requestAnimationFrame(() => {
         split.classList.remove(COLLAPSED_CLASS);
-        this.expand(primary, secondary);
       });
       return;
     }
@@ -165,45 +147,6 @@ class ConversationDebugSplit extends LitElement {
 
     primary.style.flex = `1 1 calc(100% - ${width}px)`;
     secondary.style.flex = `0 0 ${width}px`;
-  }
-
-  private syncDebuggerWidth(): void {
-    if (!this.debuggerVisible) {
-      return;
-    }
-
-    const split = this.ensureSplitLayout();
-    const primary = split.querySelector<HTMLElement>('[slot="primary"]');
-    const secondary = split.querySelector<HTMLElement>('[slot="secondary"]');
-
-    if (!primary || !secondary) {
-      return;
-    }
-
-    this.expand(primary, secondary);
-  }
-
-  private observeDebuggerContent(split: SplitLayoutElement): void {
-    const content = split.querySelector(DEBUGGER_CONTENT_SELECTOR);
-
-    if (content === this.observedDebuggerContent) {
-      return;
-    }
-
-    this.unobserveDebuggerContent();
-    this.observedDebuggerContent = content;
-
-    if (this.observedDebuggerContent) {
-      this.resizeObserver?.observe(this.observedDebuggerContent);
-    }
-  }
-
-  private unobserveDebuggerContent(): void {
-    if (this.observedDebuggerContent) {
-      this.resizeObserver?.unobserve(this.observedDebuggerContent);
-    }
-
-    this.observedDebuggerContent = null;
   }
 
   private debuggerWidth(secondary: HTMLElement): number {

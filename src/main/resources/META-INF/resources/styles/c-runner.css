@@ -236,9 +236,17 @@ vaadin-icon.c-runner-panel-toggle svg path {
 
 .c-runner-state-header {
   min-height: 48px;
+  display: flex;
   align-items: center;
   gap: var(--vaadin-gap-m);
   padding: var(--vaadin-padding-m) var(--vaadin-padding-m) var(--vaadin-padding-s);
+}
+
+.c-runner-state-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vaadin-gap-m);
 }
 
 .c-runner-state-title {
@@ -264,7 +272,6 @@ vaadin-icon.c-runner-panel-toggle svg path {
   padding: 0 var(--vaadin-padding-m) var(--vaadin-padding-s);
 }
 
-.c-runner-state-group,
 .c-runner-collapsed-group {
   min-width: 0;
   align-items: center;
@@ -274,19 +281,6 @@ vaadin-icon.c-runner-panel-toggle svg path {
   line-height: 1.15;
 }
 
-.c-runner-state-group {
-  min-height: 34px;
-  padding: var(--vaadin-padding-xs) 2px var(--vaadin-padding-s);
-  font-size: var(--aura-font-size-m);
-}
-
-.c-runner-group-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.c-runner-state-group vaadin-icon,
 .c-runner-collapsed-group vaadin-icon {
   width: 15px;
   height: 15px;
@@ -393,8 +387,8 @@ vaadin-icon.c-runner-panel-toggle svg path {
 }
 
 .c-runner-controls {
-  align-self: center;
   flex: 0 0 auto;
+  margin-inline-start: auto;
   height: 38px;
   overflow: hidden;
   border: var(--c-runner-border-width) solid var(--c-runner-card-border);

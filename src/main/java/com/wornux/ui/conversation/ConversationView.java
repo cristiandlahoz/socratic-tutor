@@ -367,6 +367,9 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private void setDebuggerVisible(boolean visible) {
         debuggerVisible = visible;
+        if (visible) {
+            getContent().getElement().executeJs("const layout = this.closest('vaadin-app-layout'); if (layout) { layout.drawerOpened = false; }");
+        }
         debugSplit.setDebuggerVisible(visible);
         debuggerToggleButton.setAriaLabel(visible ? "Ocultar depurador" : "Abrir depurador");
         debuggerToggleButton.getElement().setAttribute("title", visible ? "Ocultar depurador" : "Abrir depurador");

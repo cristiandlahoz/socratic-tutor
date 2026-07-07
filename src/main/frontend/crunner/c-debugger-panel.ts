@@ -130,7 +130,6 @@ class CDebuggerPanel extends LitElement {
             <h2 class="c-runner-title">Depurador Visual</h2>
           </div>
           ${this.renderStateCard()}
-          ${this.renderControls()}
           <span class="c-runner-status-text">${this.statusText}</span>
           <div class="c-runner-code-frame">
             <div class="c-runner-viewer-shell">
@@ -155,14 +154,13 @@ class CDebuggerPanel extends LitElement {
     return html`
       <div class="c-runner-state-card">
         <div class="c-runner-state-header">
-          <span class="c-runner-state-title">Estado</span>
-          <span class="c-runner-state-pill">${this.locals.length} vars</span>
+          <div class="c-runner-state-heading">
+            <span class="c-runner-state-title">Estado</span>
+            <span class="c-runner-state-pill">${this.locals.length} vars</span>
+          </div>
+          ${this.renderControls()}
         </div>
         <div class="c-runner-state-body">
-          <div class="c-runner-state-group">
-            <vaadin-icon icon="vaadin:eye"></vaadin-icon>
-            <span class="c-runner-group-label">Variables</span>
-          </div>
           <div class="c-runner-vars-scroll">
             <table class="c-runner-vars-table">
               <thead>

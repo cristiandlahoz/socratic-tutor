@@ -122,7 +122,6 @@ public final class UiCss {
     public static final CssClass C_RUNNER_COL_VALUE = css("c-runner-col-value");
     public static final CssClass C_RUNNER_CONTROL_BUTTON = css("c-runner-control-button");
     public static final CssClass C_RUNNER_CONTROLS = css("c-runner-controls");
-    public static final CssClass C_RUNNER_GROUP_LABEL = css("c-runner-group-label");
     public static final CssClass C_RUNNER_HEADER = css("c-runner-header");
     public static final CssClass C_RUNNER_PANEL = css("c-runner-panel");
     public static final CssClass C_RUNNER_PANEL_TOGGLE = css("c-runner-panel-toggle");
@@ -130,11 +129,9 @@ public final class UiCss {
     public static final CssClass C_RUNNER_SOURCE_VIEWER = css("c-runner-source-viewer");
     public static final CssClass C_RUNNER_STATE_BODY = css("c-runner-state-body");
     public static final CssClass C_RUNNER_STATE_CARD = css("c-runner-state-card");
-    public static final CssClass C_RUNNER_STATE_GROUP = css("c-runner-state-group");
     public static final CssClass C_RUNNER_STATE_HEADER = css("c-runner-state-header");
     public static final CssClass C_RUNNER_STATE_PILL = css("c-runner-state-pill");
     public static final CssClass C_RUNNER_STATE_TITLE = css("c-runner-state-title");
-    public static final CssClass C_RUNNER_STATUS_TEXT = css("c-runner-status-text");
     public static final CssClass C_RUNNER_STDIN = css("c-runner-stdin");
     public static final CssClass C_RUNNER_STDOUT = css("c-runner-stdout");
     public static final CssClass C_RUNNER_STDOUT_BLOCK = css("c-runner-stdout-block");
