@@ -89,7 +89,58 @@ The wrapper sources `runpod.env`, which defaults to these persistent paths:
 /workspace/.cache
 ```
 
-Use `RUNPOD_WORKSPACE=/some/path` if the persistent mount is not `/workspace`.
+Use `RUNPOD_WORKSPACE=/some/path` if the persistent mount is not `/workspace`,
+or pass the wrapper option directly:
+
+```bash
+./bootstrap-inference_engine-runpod.sh --workspace /some/path -d
+./bootstrap-inference_engine-runpod.sh --home -d
+```
+
+`--home` sets the workspace root to `$HOME`, so binaries, llama.cpp, caches,
+logs, PID files, monitor state, and Hugging Face caches all stay under the home
+directory.
+
+## Lightning AI persistent setup
+
+Lightning AI Studios usually set `$HOME` to the persistent Studio directory,
+for example `/teamspace/studios/this_studio`. Confirm this first:
+
+```bash
+ssh user@ssh.lightning.ai 'echo $HOME'
+```
+
+Then copy or keep this inference-engine folder under `$HOME` and start the
+RunPod wrapper with `--home`:
+
+```bash
+cd "$HOME/inference-engine"
+./bootstrap-inference_engine-runpod.sh --home -d
+```
+
+With `--home`, all runtime artifacts stay under the persistent Studio home:
+
+```bash
+$HOME/bin                # llama-swap and llama-server symlink
+$HOME/llama.cpp          # llama.cpp source and build output
+$HOME/llama-cache        # downloaded GGUF models used by llama-server
+$HOME/inference-engine   # logs, PID files, and monitor state
+$HOME/huggingface        # Hugging Face cache
+$HOME/.cache             # XDG cache
+```
+
+Verify the engine after startup:
+
+```bash
+curl -fsS http://127.0.0.1:8080/v1/models
+```
+
+If Lightning reports a non-persistent `$HOME`, do not use `--home`; instead pass
+an explicit persistent path:
+
+```bash
+./bootstrap-inference_engine-runpod.sh --workspace /teamspace/studios/this_studio/inference-engine-state -d
+```
 
 For GPU acceleration, llama.cpp needs the CUDA Toolkit (`nvcc`) or a configured
 `CUDAToolkit_ROOT`. `nvidia-smi` alone only proves that the GPU driver is
