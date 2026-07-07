@@ -116,7 +116,7 @@ make bootswap-inference-engine-runpod ARGS='root@host -p 1234 --run true'
 ```
 
 Files are copied to `~/inference-engine` on the remote host by default. Override
-with `REMOTE_DIR=/path/to/inference-engine`.
+with `REMOTE_DIR=/path/to/inference-engine` or another home-relative path.
 
 The monitor handles CPU → GPU promotion for configured models on NVIDIA hosts. If Ornith or Gemma was started on CPU because VRAM was busy, the monitor periodically checks free VRAM. When enough VRAM becomes available for that model, it unloads the model from llama-swap and sends a tiny warm-up request so llama-swap restarts it; `start-llama-server.sh` then re-checks VRAM and starts it on GPU.
 
