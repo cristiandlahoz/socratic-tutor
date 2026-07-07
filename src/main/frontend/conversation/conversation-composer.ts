@@ -7,12 +7,20 @@ import { LitElement, html } from 'lit';
 type ModelStatus = 'connected' | 'offline' | 'checking';
 
 class ConversationComposer extends LitElement {
+  private scrollPane: HTMLElement | null = null;
+
+  private readonly handleBottomStateChanged = (event: Event): void => {
+    const detail = (event as CustomEvent<{ atBottom?: boolean }>).detail;
+    this.scrollToBottomVisible = !Boolean(detail?.atBottom);
+  };
+
   static properties = {
     value: { type: String },
     promptLimit: { type: Number, attribute: 'prompt-limit' },
     composerEnabled: { type: Boolean, attribute: 'composer-enabled' },
     sendAvailable: { type: Boolean, attribute: 'send-available' },
     modelStatus: { type: String, attribute: 'model-status' },
+    scrollToBottomVisible: { type: Boolean, attribute: 'scroll-to-bottom-visible' },
   };
 
   declare value: string;
@@ -20,6 +28,7 @@ class ConversationComposer extends LitElement {
   declare composerEnabled: boolean;
   declare sendAvailable: boolean;
   declare modelStatus: ModelStatus;
+  declare scrollToBottomVisible: boolean;
 
   constructor() {
     super();
@@ -28,6 +37,17 @@ class ConversationComposer extends LitElement {
     this.composerEnabled = true;
     this.sendAvailable = false;
     this.modelStatus = 'checking';
+    this.scrollToBottomVisible = false;
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.attachScrollPane();
+  }
+
+  disconnectedCallback(): void {
+    this.detachScrollPane();
+    super.disconnectedCallback();
   }
 
   protected createRenderRoot(): HTMLElement | DocumentFragment {
@@ -36,6 +56,7 @@ class ConversationComposer extends LitElement {
 
   protected render() {
     return html`
+      ${this.renderScrollToBottomButton()}
       <vaadin-text-area
         class="conversation-composer__input"
         .value=${this.value}
@@ -57,6 +78,9 @@ class ConversationComposer extends LitElement {
       >
         <vaadin-icon icon="vaadin:arrow-up"></vaadin-icon>
       </vaadin-button>
+      <p class="conversation-composer__disclaimer">
+        La IA puede cometer <span class="conversation-composer__disclaimer-italic">errores;</span> revisa adecuadamente.
+      </p>
     `;
   }
 
@@ -82,6 +106,46 @@ class ConversationComposer extends LitElement {
       bubbles: true,
       composed: true,
     }));
+  }
+
+  private scrollToBottom(): void {
+    this.closest('.conversation-view__pane')
+      ?.querySelector<HTMLElement & { scrollToBottom?: () => void }>('messages-list')
+      ?.scrollToBottom?.();
+  }
+
+  private attachScrollPane(): void {
+    const pane = this.closest<HTMLElement>('.conversation-view__pane');
+
+    if (pane === this.scrollPane) {
+      return;
+    }
+
+    this.detachScrollPane();
+    this.scrollPane = pane;
+    this.scrollPane?.addEventListener('bottom-state-changed', this.handleBottomStateChanged);
+  }
+
+  private detachScrollPane(): void {
+    this.scrollPane?.removeEventListener('bottom-state-changed', this.handleBottomStateChanged);
+    this.scrollPane = null;
+  }
+
+  private renderScrollToBottomButton() {
+    if (!this.scrollToBottomVisible) {
+      return null;
+    }
+
+    return html`
+      <vaadin-button
+        class="conversation-composer__scroll-bottom-button"
+        aria-label="Bajar al final de la conversación"
+        @click=${this.scrollToBottom}
+      >
+        <vaadin-icon icon="vaadin:angle-down"></vaadin-icon>
+        <span>Bajar al final</span>
+      </vaadin-button>
+    `;
   }
 
   private canSubmit(): boolean {

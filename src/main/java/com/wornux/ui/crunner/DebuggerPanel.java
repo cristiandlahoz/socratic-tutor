@@ -6,58 +6,39 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import com.vaadin.flow.component.Composite;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.ComponentEvent;
+import com.vaadin.flow.component.ComponentEventListener;
+import com.vaadin.flow.component.DomEvent;
+import com.vaadin.flow.component.EventData;
 import com.vaadin.flow.component.HasSize;
-import com.vaadin.flow.component.HtmlContainer;
+import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.StyleSheet;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Pre;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.Scroller;
-import com.vaadin.flow.component.orderedlayout.Scroller.ScrollDirection;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.popover.Popover;
-import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.internal.JacksonUtils;
+import com.vaadin.flow.shared.Registration;
 import com.wornux.services.crunner.CDebugRequest;
 import com.wornux.services.crunner.CDebugSessionResult;
 import com.wornux.services.crunner.CDebugSnapshot;
-import com.wornux.services.crunner.CDebugVariable;
 import com.wornux.services.crunner.CDiagnosticSeverity;
 import com.wornux.services.crunner.CExamplePreparationResult;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CExamplePreparationStatus;
 import com.wornux.services.crunner.CProgramDebugService;
-import com.wornux.ui.components.ToggleIcon;
-import com.wornux.ui.css.CssClass;
-import com.wornux.ui.css.UiCss;
 
+@Tag("c-debugger-panel")
+@JsModule("./crunner/c-debugger-panel.ts")
 @StyleSheet("styles/c-runner.css")
-public final class DebuggerPanel extends Composite<Div> implements HasSize {
+public final class DebuggerPanel extends Component implements HasSize {
 
     private final CProgramDebugService debugService;
     private final CExamplePreparationService preparationService;
     private final Executor cRunnerExecutor;
-    private final Button validateButton = createIconButton(VaadinIcon.PLAY, "Ejecutar depuracion");
-    private final Button stepButton = createIconButton(VaadinIcon.ARROW_RIGHT, "Paso siguiente");
-    private final Button resetButton = createIconButton(VaadinIcon.ROTATE_LEFT, "Reiniciar");
-    private final ToggleIcon toggle = createPanelToggleButton();
-    private final Span statusText = new Span("");
-    private final DebugSourceViewer sourceViewer = new DebugSourceViewer();
-    private final TextArea stdinField = new TextArea("stdin");
-    private final Pre stdoutText = new Pre("");
-    private final Span localsLabel = new Span("Variables");
-    private final Span variableCount = new Span();
-    private final HtmlContainer localsBody = new HtmlContainer("tbody");
     private List<com.wornux.services.crunner.CDiagnostic> currentDiagnostics = List.of();
     private List<CDebugSnapshot> snapshots = List.of();
     private String currentSource = "";
+    private String currentStdin = "";
     private String currentDebugger = "";
     private long currentDebugElapsedMs = 0;
     private int activeLine = 0;
@@ -72,95 +53,34 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         this.debugService = Objects.requireNonNull(debugService, "debugService must not be null");
         this.preparationService = Objects.requireNonNull(preparationService, "preparationService must not be null");
         this.cRunnerExecutor = Objects.requireNonNull(cRunnerExecutor, "cRunnerExecutor must not be null");
-
-        var title = new H2("Depurador Visual");
-        UiCss.C_RUNNER_TITLE.addTo(title);
-
-        toggle.addClickListener(_ -> closeHandler.run());
-
-        var header = new HorizontalLayout(toggle, title);
-        header.setPadding(false);
-        header.setSpacing(false);
-        header.setWidthFull();
-        UiCss.C_RUNNER_HEADER.addTo(header);
-
-        UiCss.C_RUNNER_STATUS_TEXT.addTo(statusText);
-        statusText.setText("Pega codigo C o abre un ejemplo del asistente para visualizar la ejecucion.");
-        UiCss.C_RUNNER_GROUP_LABEL.addTo(localsLabel);
-        UiCss.C_RUNNER_STATE_PILL.addTo(variableCount);
-
-        UiCss.C_RUNNER_VALIDATE_BUTTON.addTo(validateButton);
-        validateButton.addClickListener(_ -> debugCurrentSourceAsync());
-        stepButton.addClickListener(_ -> stepActiveLine());
-        resetButton.addClickListener(_ -> resetActiveLine());
-        UiCss.C_RUNNER_STDIN.addTo(stdinField);
-        stdinField.setValueChangeMode(ValueChangeMode.EAGER);
-        stdinField.setPlaceholder("stdin antes de ejecutar, ej: 42");
-        UiCss.C_RUNNER_STDOUT.addTo(stdoutText);
-
-        var controls = new HorizontalLayout(validateButton, stepButton, resetButton);
-        controls.setPadding(false);
-        controls.setSpacing(false);
-        UiCss.C_RUNNER_CONTROLS.addTo(controls);
-
-        sourceViewer.setValue("");
-        sourceViewer.setEditable(true);
-        sourceViewer.setDiagnostics(List.of());
-        sourceViewer.setActiveLine(activeLine);
-        sourceViewer.setSizeFull();
-        UiCss.C_RUNNER_SOURCE_VIEWER.addTo(sourceViewer);
-        sourceViewer.addValueChangeListener(event -> {
-            debugJobSequence++;
-            currentSource = event.getValue();
-            currentDiagnostics = List.of();
-            snapshots = List.of();
-            snapshotIndex = 0;
-            activeLine = 0;
-            sourceViewer.setDiagnostics(List.of());
-            sourceViewer.setActiveLine(0);
-            renderLocals(List.of());
-            renderStdout("");
-            setControlsEnabled(true);
-            statusText.setText(
-                currentSource.isBlank()
-                        ? "Pega codigo C o abre un ejemplo del asistente para visualizar la ejecucion."
-                        : "Codigo editado. Ejecuta para actualizar la visualizacion.");
+        setSizeFull();
+        initializeClientState();
+        addClosePanelRequestedListener(_ -> closeHandler.run());
+        addSourceValueChangedListener(event -> handleSourceValueChanged(event.getValue()));
+        addStdinValueChangedListener(event -> currentStdin = event.getValue());
+        addValidateDebugRequestedListener(event -> {
+            currentSource = event.getSourceValue();
+            currentStdin = event.getStdin();
+            debugCurrentSourceAsync();
         });
-
-        var viewerShell = new Div(sourceViewer);
-        UiCss.C_RUNNER_VIEWER_SHELL.addTo(viewerShell);
-
-        var codeFrame = new Div(viewerShell);
-        UiCss.C_RUNNER_CODE_FRAME.addTo(codeFrame);
-
-        var root = getContent();
-        root.setSizeFull();
-        var content = new Div();
-        UiCss.C_RUNNER_PANEL.addTo(content);
-        content.add(header, createStateCard(), controls, statusText, codeFrame, createTerminalCard());
-        var scrollable = new Scroller(content, ScrollDirection.VERTICAL);
-        scrollable.setSizeFull();
-        UiCss.C_RUNNER_SCROLL_SHELL.addTo(scrollable);
-        root.add(scrollable);
-        renderLocals(List.of());
-        renderStdout("");
+        addStepDebugRequestedListener(_ -> stepActiveLine());
+        addResetDebugRequestedListener(_ -> resetActiveLine());
     }
 
     public void loadSource(String source) {
         setSource(source);
-        statusText.setText("Codigo cargado. Puedes editarlo antes de ejecutar.");
+        setStatusText("Codigo cargado. Puedes editarlo antes de ejecutar.");
     }
 
     public void prepareAndDebugAssistantExample(String source, String lang) {
         var ui = UI.getCurrent();
-        var stdin = stdinField.getValue();
         setSource("");
         var jobId = startAsyncJob("Preparando este ejemplo para que pueda ejecutarse...");
         if (ui == null) {
-            renderPreparedDebug(jobId, prepareAndDebug(source, lang, stdin), null);
+            renderPreparedDebug(jobId, prepareAndDebug(source, lang, currentStdin), null);
             return;
         }
-        CompletableFuture.supplyAsync(() -> prepareAndDebug(source, lang, stdin), cRunnerExecutor)
+        CompletableFuture.supplyAsync(() -> prepareAndDebug(source, lang, currentStdin), cRunnerExecutor)
                 .whenComplete((preparedResult, ex) -> ui.access(() -> renderPreparedDebug(jobId, preparedResult, ex)));
     }
 
@@ -174,11 +94,11 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
 
     void setSourceForTesting(String source) {
         setSource(source);
-        statusText.setText("");
+        setStatusText("");
     }
 
     String statusTextForTesting() {
-        return statusText.getText();
+        return getElement().getProperty("statusText", "");
     }
 
     int activeLineForTesting() {
@@ -187,7 +107,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
 
     void stepActiveLine() {
         if (snapshots.isEmpty()) {
-            statusText.setText("Ejecuta primero");
+            setStatusText("Ejecuta primero");
             return;
         }
         snapshotIndex = Math.min(snapshotIndex + 1, snapshots.size() - 1);
@@ -196,10 +116,10 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
 
     void resetActiveLine() {
         if (snapshots.isEmpty()) {
-            sourceViewer.setActiveLine(0);
+            setActiveLine(0);
             renderLocals(List.of());
             renderStdout("");
-            statusText.setText("");
+            setStatusText("");
             return;
         }
         snapshotIndex = 0;
@@ -212,12 +132,12 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
 
     void debugCurrentSourceAsync() {
         if (currentSource.isBlank()) {
-            statusText.setText("Pega codigo C antes de ejecutar.");
+            setStatusText("Pega codigo C antes de ejecutar.");
             return;
         }
         var ui = UI.getCurrent();
         var source = currentSource;
-        var stdin = stdinField.getValue();
+        var stdin = currentStdin;
         var jobId = startAsyncJob("Depurando...");
         if (ui == null) {
             renderDebugJob(jobId, source, debugService.debug(new CDebugRequest(source, "c17", "main.c", stdin)), null);
@@ -228,6 +148,35 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
                     () -> debugService.debug(new CDebugRequest(source, "c17", "main.c", stdin)),
                     cRunnerExecutor)
                 .whenComplete((result, ex) -> ui.access(() -> renderDebugJob(jobId, source, result, ex)));
+    }
+
+    private void initializeClientState() {
+        setSource("");
+        setDiagnostics(List.of());
+        setLocals(List.of());
+        renderStdout("");
+        setControlsEnabled(true);
+        setEditable(true);
+        getElement().setProperty("lang", "c");
+        setStatusText("Pega codigo C o abre un ejemplo del asistente para visualizar la ejecucion.");
+    }
+
+    private void handleSourceValueChanged(String value) {
+        debugJobSequence++;
+        currentSource = value;
+        currentDiagnostics = List.of();
+        snapshots = List.of();
+        snapshotIndex = 0;
+        activeLine = 0;
+        setDiagnostics(List.of());
+        setActiveLine(0);
+        renderLocals(List.of());
+        renderStdout("");
+        setControlsEnabled(true);
+        setStatusText(
+            currentSource.isBlank()
+                    ? "Pega codigo C o abre un ejemplo del asistente para visualizar la ejecucion."
+                    : "Codigo editado. Ejecuta para actualizar la visualizacion.");
     }
 
     private PreparedDebugResult prepareAndDebug(String source, String lang, String stdin) {
@@ -243,7 +192,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         var jobId = ++debugJobSequence;
         setControlsEnabled(false);
         clearDebugState();
-        statusText.setText(status);
+        setStatusText(status);
         return jobId;
     }
 
@@ -253,20 +202,20 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         }
         setControlsEnabled(true);
         if (ex != null) {
-            statusText.setText("No se pudo preparar el ejemplo. Intenta pegar el codigo manualmente.");
+            setStatusText("No se pudo preparar el ejemplo. Intenta pegar el codigo manualmente.");
             return;
         }
         var preparation = preparedResult.preparation();
         if (preparation.status() != CExamplePreparationStatus.READY) {
             currentSource = preparedResult.originalSource() == null ? "" : preparedResult.originalSource();
-            sourceViewer.setValue(currentSource);
-            statusText.setText(preparation.educationalNote());
+            setSource(currentSource);
+            setStatusText(preparation.educationalNote());
             return;
         }
         currentSource = preparation.source();
-        sourceViewer.setValue(currentSource);
+        setSource(currentSource);
         if (preparedResult.debugResult() == null) {
-            statusText.setText(preparation.educationalNote());
+            setStatusText(preparation.educationalNote());
             return;
         }
         renderDebugResult(preparedResult.debugResult());
@@ -278,7 +227,7 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         }
         setControlsEnabled(true);
         if (ex != null) {
-            statusText.setText("No se pudo ejecutar el debugger.");
+            setStatusText("No se pudo ejecutar el debugger.");
             return;
         }
         currentSource = source;
@@ -288,8 +237,8 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
     private void setSource(String source) {
         debugJobSequence++;
         currentSource = source == null ? "" : source;
-        sourceViewer.setValue(currentSource);
-        sourceViewer.setDiagnostics(List.of());
+        getElement().setProperty("source", currentSource);
+        setDiagnostics(List.of());
         currentDiagnostics = List.of();
         snapshots = List.of();
         snapshotIndex = 0;
@@ -297,8 +246,9 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         currentDebugElapsedMs = 0;
         activeLine = 0;
         renderLocals(List.of());
-        sourceViewer.setActiveLine(0);
-        stdinField.clear();
+        setActiveLine(0);
+        currentStdin = "";
+        getElement().setProperty("stdin", "");
         renderStdout("");
         setControlsEnabled(true);
     }
@@ -310,22 +260,37 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
         activeLine = 0;
         currentDebugger = "";
         currentDebugElapsedMs = 0;
-        sourceViewer.setDiagnostics(List.of());
-        sourceViewer.setActiveLine(0);
+        setDiagnostics(List.of());
+        setActiveLine(0);
         renderLocals(List.of());
         renderStdout("");
     }
 
     private void setControlsEnabled(boolean enabled) {
-        validateButton.setEnabled(enabled);
-        stepButton.setEnabled(enabled);
-        resetButton.setEnabled(enabled);
-        stdinField.setEnabled(enabled);
+        getElement().setProperty("controlsEnabled", enabled);
+    }
+
+    private void setEditable(boolean editable) {
+        getElement().setProperty("editable", editable);
+    }
+
+    private void setStatusText(String statusText) {
+        getElement().setProperty("statusText", statusText == null ? "" : statusText);
+    }
+
+    private void setDiagnostics(List<com.wornux.services.crunner.CDiagnostic> diagnostics) {
+        var safeDiagnostics = diagnostics == null ? List.<com.wornux.services.crunner.CDiagnostic>of() : diagnostics;
+        getElement().setPropertyJson("diagnostics", JacksonUtils.listToJson(safeDiagnostics));
+    }
+
+    private void setActiveLine(int activeLine) {
+        this.activeLine = activeLine;
+        getElement().setProperty("activeLine", activeLine);
     }
 
     private void renderDebugResult(CDebugSessionResult result) {
-        sourceViewer.setValue(currentSource);
-        sourceViewer.setDiagnostics(result.diagnostics());
+        getElement().setProperty("source", currentSource);
+        setDiagnostics(result.diagnostics());
         currentDiagnostics = new ArrayList<>(result.diagnostics());
         snapshots = result.snapshots();
         snapshotIndex = 0;
@@ -339,9 +304,8 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
                     .count();
             renderLocals(List.of());
             renderStdout("");
-            sourceViewer.setActiveLine(0);
-            statusText.setText(
-                "Debugger | %d error(es) | %s | %d ms".formatted(errors, result.compiler(), result.elapsedMs()));
+            setActiveLine(0);
+            setStatusText("Debugger | %d error(es) | %s | %d ms".formatted(errors, result.compiler(), result.elapsedMs()));
             return;
         }
 
@@ -349,176 +313,148 @@ public final class DebuggerPanel extends Composite<Div> implements HasSize {
     }
 
     private void renderSnapshot(CDebugSnapshot snapshot) {
-        activeLine = snapshot.line() == null ? 0 : snapshot.line();
-        sourceViewer.setActiveLine(activeLine);
+        setActiveLine(snapshot.line() == null ? 0 : snapshot.line());
         renderLocals(snapshot.locals());
         renderStdout(snapshot.stdout());
         if (!snapshots.isEmpty()) {
-            statusText.setText(
+            setStatusText(
                 "Snapshot %d/%d | %s | %d ms"
                         .formatted(snapshotIndex + 1, snapshots.size(), currentDebugger, currentDebugElapsedMs));
         }
     }
 
-    private void renderLocals(List<CDebugVariable> locals) {
-        localsBody.removeAll();
-        var safeLocals = locals == null ? List.<CDebugVariable>of() : locals;
-        variableCount.setText("%d vars".formatted(safeLocals.size()));
-        safeLocals.forEach(variable -> localsBody.add(createVariableRow(variable.name(), variable.value())));
+    private void renderLocals(List<com.wornux.services.crunner.CDebugVariable> locals) {
+        var safeLocals = locals == null ? List.<com.wornux.services.crunner.CDebugVariable>of() : locals;
+        setLocals(safeLocals);
+    }
+
+    private void setLocals(List<com.wornux.services.crunner.CDebugVariable> locals) {
+        getElement().setPropertyJson("locals", JacksonUtils.listToJson(locals));
     }
 
     private void renderStdout(String stdout) {
-        var safeStdout = stdout == null || stdout.isBlank() ? "No hay salida" : stdout;
-        stdoutText.setText(safeStdout);
-        stdoutText.getElement().setAttribute("data-empty", Boolean.toString(stdout == null || stdout.isBlank()));
+        getElement().setProperty("stdout", stdout == null ? "" : stdout);
     }
 
+    @SuppressWarnings("unused")
     private void showDiagnosticsSummary() {
         if (currentDiagnostics.isEmpty()) {
-            statusText.setText("Sin diagnosticos");
+            setStatusText("Sin diagnosticos");
             return;
         }
         var first = currentDiagnostics.getFirst();
-        statusText.setText("%s linea %d: %s".formatted(first.severity(), first.line(), first.message()));
+        setStatusText("%s linea %d: %s".formatted(first.severity(), first.line(), first.message()));
     }
 
-    private static Button createIconButton(VaadinIcon icon, String label) {
-        var button = new Button(new Icon(icon));
-        UiCss.C_RUNNER_CONTROL_BUTTON.addTo(button);
-        button.getElement().setAttribute("aria-label", label);
-        button.getElement().setAttribute("title", label);
-        return button;
+    private Registration addClosePanelRequestedListener(ComponentEventListener<ClosePanelRequestedEvent> listener) {
+        return addListener(ClosePanelRequestedEvent.class, listener);
     }
 
-    private static ToggleIcon createPanelToggleButton() {
-        var toggle = new ToggleIcon();
-        UiCss.C_RUNNER_PANEL_TOGGLE.addTo(toggle);
-        toggle.getElement().setAttribute("title", "Ocultar depurador");
-        return toggle;
+    private Registration addSourceValueChangedListener(ComponentEventListener<SourceValueChangedEvent> listener) {
+        return addListener(SourceValueChangedEvent.class, listener);
     }
 
-    private VerticalLayout createStateCard() {
-        var stateTitle = new Span("Estado");
-        UiCss.C_RUNNER_STATE_TITLE.addTo(stateTitle);
-
-        var stateHeader = new HorizontalLayout(stateTitle, variableCount);
-        stateHeader.setPadding(false);
-        stateHeader.setSpacing(false);
-        stateHeader.setWidthFull();
-        stateHeader.expand(stateTitle);
-        UiCss.C_RUNNER_STATE_HEADER.addTo(stateHeader);
-
-        var localsGroup = new HorizontalLayout(new Icon(VaadinIcon.EYE), localsLabel);
-        localsGroup.setPadding(false);
-        localsGroup.setSpacing(false);
-        localsGroup.setWidthFull();
-        UiCss.C_RUNNER_STATE_GROUP.addTo(localsGroup);
-
-        var body = new VerticalLayout();
-        body.setPadding(false);
-        body.setSpacing(false);
-        body.setWidthFull();
-        body.add(localsGroup, createVariablesScroll());
-        UiCss.C_RUNNER_STATE_BODY.addTo(body);
-
-        var card = new VerticalLayout(stateHeader, body);
-        card.setPadding(false);
-        card.setSpacing(false);
-        card.setWidthFull();
-        UiCss.C_RUNNER_STATE_CARD.addTo(card);
-        return card;
+    private Registration addStdinValueChangedListener(ComponentEventListener<StdinValueChangedEvent> listener) {
+        return addListener(StdinValueChangedEvent.class, listener);
     }
 
-    private Div createVariablesScroll() {
-        var scroll = new Div(createVariablesTable());
-        UiCss.C_RUNNER_VARS_SCROLL.addTo(scroll);
-        return scroll;
+    private Registration addValidateDebugRequestedListener(ComponentEventListener<ValidateDebugRequestedEvent> listener) {
+        return addListener(ValidateDebugRequestedEvent.class, listener);
     }
 
-    private HtmlContainer createVariablesTable() {
-        var table = new HtmlContainer("table");
-        UiCss.C_RUNNER_VARS_TABLE.addTo(table);
-
-        var thead = new HtmlContainer("thead", createHeaderRow());
-        table.add(thead, localsBody);
-        return table;
+    private Registration addStepDebugRequestedListener(ComponentEventListener<StepDebugRequestedEvent> listener) {
+        return addListener(StepDebugRequestedEvent.class, listener);
     }
 
-    private static HtmlContainer createHeaderRow() {
-        return new HtmlContainer("tr",
-                createCell("th", "Name", UiCss.C_RUNNER_COL_NAME),
-                createCell("th", "Value", UiCss.C_RUNNER_COL_VALUE));
+    private Registration addResetDebugRequestedListener(ComponentEventListener<ResetDebugRequestedEvent> listener) {
+        return addListener(ResetDebugRequestedEvent.class, listener);
     }
 
-    private static HtmlContainer createVariableRow(String name, String value) {
-        var nameText = new Span(name);
-        UiCss.C_RUNNER_VAR_NAME.addTo(nameText);
+    @DomEvent("close-panel-requested")
+    public static final class ClosePanelRequestedEvent extends ComponentEvent<DebuggerPanel> {
 
-        var valueText = new Span(value);
-        UiCss.C_RUNNER_VAR_VALUE.addTo(valueText);
-        valueText.getElement().setAttribute("title", value == null ? "" : value);
-        valueText.getElement().setAttribute("tabindex", "0");
-        valueText.getElement().setAttribute("role", "button");
-        valueText.getElement().setAttribute("aria-label", "Ver valor completo de %s".formatted(name));
-        attachValuePopover(name, value, valueText);
-
-        return new HtmlContainer("tr",
-                createCell("td", nameText, UiCss.C_RUNNER_COL_NAME),
-                createCell("td", valueText, UiCss.C_RUNNER_COL_VALUE));
+        public ClosePanelRequestedEvent(DebuggerPanel source, boolean fromClient) {
+            super(source, fromClient);
+        }
     }
 
-    private Div createTerminalCard() {
-        var title = new Span("Terminal");
-        UiCss.C_RUNNER_TERMINAL_TITLE.addTo(title);
+    @DomEvent("source-value-changed")
+    public static final class SourceValueChangedEvent extends ComponentEvent<DebuggerPanel> {
 
-        var body = new Div(stdinField, createStdoutBlock());
-        UiCss.C_RUNNER_TERMINAL_BODY.addTo(body);
+        private final String value;
 
-        var card = new Div(title, body);
-        UiCss.C_RUNNER_TERMINAL_CARD.addTo(card);
-        return card;
+        public SourceValueChangedEvent(
+                DebuggerPanel source,
+                boolean fromClient,
+                @EventData("event.detail.value") String value) {
+            super(source, fromClient);
+            this.value = value == null ? "" : value;
+        }
+
+        public String getValue() {
+            return value;
+        }
     }
 
-    private Div createStdoutBlock() {
-        var label = new Span("stdout");
-        UiCss.C_RUNNER_TERMINAL_LABEL.addTo(label);
+    @DomEvent("stdin-value-changed")
+    public static final class StdinValueChangedEvent extends ComponentEvent<DebuggerPanel> {
 
-        var block = new Div(label, stdoutText);
-        UiCss.C_RUNNER_STDOUT_BLOCK.addTo(block);
-        return block;
+        private final String value;
+
+        public StdinValueChangedEvent(
+                DebuggerPanel source,
+                boolean fromClient,
+                @EventData("event.detail.value") String value) {
+            super(source, fromClient);
+            this.value = value == null ? "" : value;
+        }
+
+        public String getValue() {
+            return value;
+        }
     }
 
-    private static void attachValuePopover(String name, String value, Span target) {
-        var title = new Span(name == null || name.isBlank() ? "value" : name);
-        UiCss.C_RUNNER_VALUE_POPOVER_TITLE.addTo(title);
+    @DomEvent("validate-debug-requested")
+    public static final class ValidateDebugRequestedEvent extends ComponentEvent<DebuggerPanel> {
 
-        var fullValue = new Pre(value == null || value.isBlank() ? "(empty)" : value);
-        UiCss.C_RUNNER_VALUE_POPOVER_CONTENT.addTo(fullValue);
+        private final String sourceValue;
+        private final String stdin;
 
-        var popover = new Popover();
-        popover.setTarget(target);
-        popover.setModal(false);
-        UiCss.C_RUNNER_VALUE_POPOVER.addTo(popover);
-        popover.add(new Div(title, fullValue));
+        public ValidateDebugRequestedEvent(
+                DebuggerPanel source,
+                boolean fromClient,
+                @EventData("event.detail.source") String sourceValue,
+                @EventData("event.detail.stdin") String stdin) {
+            super(source, fromClient);
+            this.sourceValue = sourceValue == null ? "" : sourceValue;
+            this.stdin = stdin == null ? "" : stdin;
+        }
+
+        public String getSourceValue() {
+            return sourceValue;
+        }
+
+        public String getStdin() {
+            return stdin;
+        }
     }
 
-    private static HtmlContainer createCell(String tag, String text, CssClass className) {
-        var cell = new HtmlContainer(tag);
-        cell.setText(text);
-        className.addTo(cell);
-        return cell;
+    @DomEvent("step-debug-requested")
+    public static final class StepDebugRequestedEvent extends ComponentEvent<DebuggerPanel> {
+
+        public StepDebugRequestedEvent(DebuggerPanel source, boolean fromClient) {
+            super(source, fromClient);
+        }
     }
 
-    private static HtmlContainer createCell(
-            String tag,
-            com.vaadin.flow.component.Component content,
-            CssClass className) {
-        var cell = new HtmlContainer(tag, content);
-        className.addTo(cell);
-        return cell;
+    @DomEvent("reset-debug-requested")
+    public static final class ResetDebugRequestedEvent extends ComponentEvent<DebuggerPanel> {
+
+        public ResetDebugRequestedEvent(DebuggerPanel source, boolean fromClient) {
+            super(source, fromClient);
+        }
     }
 
     private record PreparedDebugResult(String originalSource, CExamplePreparationResult preparation,
             CDebugSessionResult debugResult) {}
-
 }

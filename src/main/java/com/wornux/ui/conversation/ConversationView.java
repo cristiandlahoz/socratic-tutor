@@ -18,7 +18,6 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.popover.Popover;
-import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.QueryParameters;
@@ -57,7 +56,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private final Button debuggerToggleButton;
     private final StudentQuestionPanel questionPanel;
     private final DebuggerPanel debuggerPanel;
-    private final SplitLayout splitLayout;
+    private final ConversationDebugSplit debugSplit;
     private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient WorkspaceRoutingService workspaceRoutingService;
     private transient AutoCloseable modelAvailabilitySubscription;
@@ -119,14 +118,10 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         debuggerPanel.setSizeFull();
         debuggerPanel.setCloseHandler(() -> setDebuggerVisible(false));
 
-        splitLayout = new SplitLayout(chatPane, debuggerPanel);
-        splitLayout.setSizeFull();
-        splitLayout.setSplitterPosition(58);
-        UiCss.CONVERSATION_DEBUG_SPLIT.addTo(splitLayout);
-        splitLayout.addAttachListener(_ -> installResponsiveSplitBehavior(splitLayout));
+        debugSplit = new ConversationDebugSplit(chatPane, debuggerPanel);
         setDebuggerVisible(false);
 
-        root.add(splitLayout);
+        root.add(debugSplit);
     }
 
     private void bindModelAvailability(ConversationState state, ModelAvailabilityService modelAvailabilityService) {
@@ -427,48 +422,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private void setDebuggerVisible(boolean visible) {
         debuggerVisible = visible;
-        UiCss.CONVERSATION_DEBUG_SPLIT_COLLAPSED.addTo(splitLayout, !visible);
-        splitLayout.getElement()
-                .executeJs("""
-                           clearTimeout(this.__debuggerAnimationTimer);
-                           cancelAnimationFrame(this.__debuggerAnimationFrame);
-                           const collapsedClass = 'conversation-view__debug-split--collapsed';
-                           const animatingClass = 'conversation-view__debug-split--animating';
-                           const primary = this.querySelector('[slot="primary"]');
-                           const secondary = this.querySelector('[slot="secondary"]');
-                           const setSplit = () => {
-                             if (!primary || !secondary) {
-                               return;
-                             }
-                             primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
-                             secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
-                           };
-                           const collapse = () => {
-                             if (!primary || !secondary) {
-                               return;
-                             }
-                             primary.style.flex = '1 1 100%';
-                             secondary.style.flex = '0 1 0%';
-                           };
-                           this.classList.add(animatingClass);
-                           if ($0) {
-                             this.classList.add(collapsedClass);
-                             collapse();
-                             this.__debuggerAnimationFrame = requestAnimationFrame(() => {
-                               this.classList.remove(collapsedClass);
-                               setSplit();
-                             });
-                           } else {
-                             this.classList.remove(collapsedClass);
-                             this.__debuggerAnimationFrame = requestAnimationFrame(() => {
-                               this.classList.add(collapsedClass);
-                               collapse();
-                             });
-                           }
-                           this.__debuggerAnimationTimer = setTimeout(() => {
-                             this.classList.remove(animatingClass);
-                           }, 220);
-                           """, visible);
+        debugSplit.setDebuggerVisible(visible);
         debuggerToggleButton.setAriaLabel(visible ? "Ocultar depurador" : "Abrir depurador");
         debuggerToggleButton.getElement().setAttribute("title", visible ? "Ocultar depurador" : "Abrir depurador");
         UiCss.CONVERSATION_DEBUGGER_TOGGLE_HIDDEN.addTo(debuggerToggleButton, visible);
@@ -493,42 +447,4 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             QueryParameters.of(ConversationViewModel.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
     }
 
-    private void installResponsiveSplitBehavior(SplitLayout splitLayout) {
-        splitLayout.getElement()
-                .executeJs("""
-                           if (this.__responsiveSplitInstalled) {
-                             return;
-                           }
-                           this.__responsiveSplitInstalled = true;
-
-                           const media = window.matchMedia('(max-width: 960px)');
-                           const update = () => {
-                             const primary = this.querySelector('[slot="primary"]');
-                             const secondary = this.querySelector('[slot="secondary"]');
-                             const setSplit = () => {
-                               if (!primary || !secondary) {
-                                 return;
-                               }
-                               primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
-                               secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
-                             };
-                             const collapse = () => {
-                               if (!primary || !secondary) {
-                                 return;
-                               }
-                               primary.style.flex = '1 1 100%';
-                               secondary.style.flex = '0 1 0%';
-                             };
-                             this.orientation = 'horizontal';
-                             if (this.classList.contains('conversation-view__debug-split--collapsed')) {
-                               collapse();
-                             } else {
-                               setSplit();
-                             }
-                           };
-                           media.addEventListener?.('change', update);
-                           media.addListener?.(update);
-                           update();
-                           """);
-    }
 }
