@@ -9,10 +9,10 @@ type MarkdownEstimateOptions = {
 
 const DEFAULTS = {
   fontSizePx: 13,
-  lineHeightRatio: 1.5,
+  lineHeightRatio: 1.56,
   proseColumns: 76,
   codeColumns: 88,
-  blockGapPx: 10,
+  blockGapPx: 12,
   maxBlockSizePx: 50_000,
 } satisfies Required<MarkdownEstimateOptions>;
 
@@ -67,7 +67,7 @@ export function estimateMarkdownBlockSize(markdown: string, options: MarkdownEst
       return;
     }
 
-    addBlock(tableRows * (lineHeightPx + 8) + 12);
+    addBlock(tableRows * (lineHeightPx * 1.42 + settings.fontSizePx * 1.24) + 2);
     tableRows = 0;
   };
 
@@ -82,15 +82,19 @@ export function estimateMarkdownBlockSize(markdown: string, options: MarkdownEst
     const headingLineHeight = settings.fontSizePx * scale * 1.18;
     const columns = Math.max(28, Math.floor(settings.proseColumns / scale));
 
-    addBlock(wrappedLines(text, columns) * headingLineHeight + (level <= 2 ? 7 : 0));
+    const headingSpacing = level <= 2 ? settings.fontSizePx * 1.25 : settings.fontSizePx * 0.75;
+    addBlock(wrappedLines(text, columns) * headingLineHeight + headingSpacing);
   };
+
+  const estimateCodeBlockHeight = (visualLines: number): number =>
+    Math.max(1, visualLines) * lineHeightPx * 1.55 + settings.fontSizePx * 2 + 2;
 
   for (const rawLine of markdown.replace(/\r\n?/g, '\n').split('\n')) {
     const line = rawLine.trim();
 
     if (line.startsWith('```')) {
       if (inCodeFence) {
-        addBlock(Math.max(1, codeVisualLines) * lineHeightPx + 32);
+        addBlock(estimateCodeBlockHeight(codeVisualLines));
         codeVisualLines = 0;
         inCodeFence = false;
       }
@@ -131,7 +135,7 @@ export function estimateMarkdownBlockSize(markdown: string, options: MarkdownEst
     if (listItem) {
       flushParagraph();
       flushTable();
-      listHeight += wrappedLines(listItem[1]) * lineHeightPx + (listHeight > 0 ? 2 : 0);
+      listHeight += wrappedLines(listItem[1]) * lineHeightPx + settings.fontSizePx * 0.28 + (listHeight > 0 ? settings.fontSizePx * 0.28 : 0);
       continue;
     }
 
@@ -143,7 +147,7 @@ export function estimateMarkdownBlockSize(markdown: string, options: MarkdownEst
   flushTextBlocks();
 
   if (inCodeFence) {
-    addBlock(Math.max(1, codeVisualLines) * lineHeightPx + 32);
+    addBlock(estimateCodeBlockHeight(codeVisualLines));
   }
 
   return Math.min(settings.maxBlockSizePx, Math.ceil(totalHeight));

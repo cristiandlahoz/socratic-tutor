@@ -74,6 +74,13 @@ function ensureMessageItemStyles(): void {
       letter-spacing: 0;
     }
 
+    message-item[loading] .message-item__loading {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--vaadin-gap-s);
+      min-width: 0;
+    }
+
     message-item[loading] braille-spinner {
       --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
       --thinking-spinner-weight: 400;
@@ -83,6 +90,15 @@ function ensureMessageItemStyles(): void {
       display: inline-block;
       min-width: 2ch;
       white-space: pre;
+    }
+
+    message-item[loading] .message-item__loading-label {
+      color: var(--vaadin-text-color-secondary);
+      font-family: var(--aura-font-family);
+      font-size: var(--aura-font-size-s);
+      font-weight: var(--aura-font-weight-medium);
+      line-height: 1.2;
+      white-space: nowrap;
     }
 
     message-item code,
@@ -153,7 +169,12 @@ class MessageItem extends LitElement {
 
   protected render() {
     if (this.loading) {
-      return html`<braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>`;
+      return html`
+        <span class="message-item__loading">
+          <braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>
+          <span class="message-item__loading-label">Generando respuesta</span>
+        </span>
+      `;
     }
 
     return html`<markdown-renderer

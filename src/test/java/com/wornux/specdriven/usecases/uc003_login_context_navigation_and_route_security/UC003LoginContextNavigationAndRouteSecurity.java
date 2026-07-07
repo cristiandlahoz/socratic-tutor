@@ -42,7 +42,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
                 "spring.flyway.locations=classpath:db/migration/prod,classpath:db/migration/dev" })
 class UC003LoginContextNavigationAndRouteSecurity {
 
-    private static final UUID TENANT_ID = UUID.fromString("034daffd-5907-48f7-bce6-b2c0e71f4015");
     private static final UUID ALGORITHMS_CLASS_ID = UUID.fromString("c63c4824-8ec7-4f62-9417-efd48b9adc62");
     private static final UUID DISCRETE_MATH_CLASS_ID = UUID.fromString("61e0d5a3-de6f-4607-a8a7-fd6847c623cb");
     private static final UUID STUDENT_ACCOUNT_ID = UUID.fromString("32b92c98-3b76-49bb-9fcf-3b12a7f17b2c");

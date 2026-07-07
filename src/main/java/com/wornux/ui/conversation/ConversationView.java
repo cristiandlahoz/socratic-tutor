@@ -1,6 +1,5 @@
 package com.wornux.ui.conversation;
 
-import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 
@@ -12,13 +11,10 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.popover.Popover;
-import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.QueryParameters;
@@ -29,7 +25,6 @@ import com.wornux.config.ChatProperties;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
@@ -57,7 +52,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private final Button debuggerToggleButton;
     private final StudentQuestionPanel questionPanel;
     private final DebuggerPanel debuggerPanel;
-    private final SplitLayout splitLayout;
+    private final ConversationDebugSplit debugSplit;
     private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient WorkspaceRoutingService workspaceRoutingService;
     private transient AutoCloseable modelAvailabilitySubscription;
@@ -111,7 +106,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         root.setSizeFull();
         UiCss.CONVERSATION_VIEW.addTo(root);
 
-        var chatPane = new Div(debuggerToggleButton, historyScroller, createUsageBadge(state), createInputShell(state));
+        var chatPane = new Div(debuggerToggleButton, historyScroller, createInputShell(state));
         chatPane.setSizeFull();
         UiCss.CONVERSATION_PANE.addTo(chatPane);
 
@@ -119,14 +114,10 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         debuggerPanel.setSizeFull();
         debuggerPanel.setCloseHandler(() -> setDebuggerVisible(false));
 
-        splitLayout = new SplitLayout(chatPane, debuggerPanel);
-        splitLayout.setSizeFull();
-        splitLayout.setSplitterPosition(58);
-        UiCss.CONVERSATION_DEBUG_SPLIT.addTo(splitLayout);
-        splitLayout.addAttachListener(_ -> installResponsiveSplitBehavior(splitLayout));
+        debugSplit = new ConversationDebugSplit(chatPane, debuggerPanel);
         setDebuggerVisible(false);
 
-        root.add(splitLayout);
+        root.add(debugSplit);
     }
 
     private void bindModelAvailability(ConversationState state, ModelAvailabilityService modelAvailabilityService) {
@@ -252,14 +243,13 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private Div createInputShell(ConversationState state) {
         var inputShell = new Div();
         UiCss.CONVERSATION_COMPOSER.addTo(inputShell);
-        var activityBlocker = createActivityBlocker(state);
 
-        Signal.effect(inputShell, () -> showCurrentInput(inputShell, state, activityBlocker));
+        Signal.effect(inputShell, () -> showCurrentInput(inputShell, state));
 
         return inputShell;
     }
 
-    private void showCurrentInput(Div inputShell, ConversationState state, Div activityBlocker) {
+    private void showCurrentInput(Div inputShell, ConversationState state) {
         inputShell.removeAll();
         var currentQuestionSet = currentQuestionSetForUi(state);
         inputShell.getElement()
@@ -269,141 +259,11 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             inputShell.add(questionPanel);
             return;
         }
-        inputShell.add(isComposerAvailable(state) ? composer : activityBlocker);
+        inputShell.add(composer);
     }
 
     private static StudentQuestionSet currentQuestionSetForUi(ConversationState state) {
         return state.pendingQuestionSet().get();
-    }
-
-    private boolean isComposerAvailable(ConversationState state) {
-        return state.activity().get() == ChatSessionActivity.IDLE;
-    }
-
-    private Div createActivityBlocker(ConversationState state) {
-        var spinner = createFillSweepSpinner();
-        var title = createActivityTitle();
-        var description = createActivityDescription();
-        var blocker = createActivityBlockerShell(spinner, title, description);
-
-        Signal.effect(blocker, () -> describeActivity(state.activity().get(), title, description));
-
-        return blocker;
-    }
-
-    private BrailleSpinner createFillSweepSpinner() {
-        var spinner = new BrailleSpinner("fillsweep");
-        UiCss.CONVERSATION_ACTIVITY_SPINNER.addTo(spinner);
-        return spinner;
-    }
-
-    private Span createActivityTitle() {
-        var title = new Span();
-        UiCss.CONVERSATION_ACTIVITY_TITLE.addTo(title);
-        return title;
-    }
-
-    private Span createActivityDescription() {
-        var description = new Span();
-        UiCss.CONVERSATION_ACTIVITY_DESCRIPTION.addTo(description);
-        return description;
-    }
-
-    private Div createActivityBlockerShell(BrailleSpinner spinner, Span title, Span description) {
-        var copy = new Div(title, description);
-        UiCss.CONVERSATION_ACTIVITY_COPY.addTo(copy);
-
-        var blocker = new Div(spinner, copy);
-        UiCss.CONVERSATION_ACTIVITY_BLOCKER.addTo(blocker);
-        blocker.getElement().setAttribute("aria-live", "polite");
-        blocker.getElement().setAttribute("aria-busy", "true");
-        return blocker;
-    }
-
-    private void describeActivity(ChatSessionActivity activity, Span title, Span description) {
-        if (activity == ChatSessionActivity.COMPACTING) {
-            title.setText("Compactando el contexto");
-            description.setText("Resumiendo el historial para mantener la conversación precisa.");
-            return;
-        }
-        title.setText("Generando respuesta");
-        description.setText("El tutor está razonando; el compositor se habilitará al terminar.");
-    }
-
-    private Div createUsageBadge(ConversationState state) {
-        var usageText = new Span();
-        UiCss.CONVERSATION_USAGE_TEXT.addTo(usageText);
-
-        var lineageText = new Span();
-        UiCss.CONVERSATION_USAGE_LINEAGE.addTo(lineageText);
-
-        var usageCopy = new Div(usageText, lineageText);
-        UiCss.CONVERSATION_USAGE_COPY.addTo(usageCopy);
-
-        var helpButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
-        helpButton.addThemeVariants(ButtonVariant.TERTIARY);
-        UiCss.CONVERSATION_USAGE_HELP_BUTTON.addTo(helpButton);
-        helpButton.setAriaLabel("Explicar uso del contexto");
-
-        var helpPopover = new Popover();
-        helpPopover.setTarget(helpButton);
-        helpPopover.setModal(false);
-        UiCss.USAGE_HELP_POPOVER.addTo(helpPopover);
-
-        var helpTitle = new Span("Uso del contexto");
-        UiCss.USAGE_HELP_POPOVER_TITLE.addTo(helpTitle);
-
-        var helpCopy = new Paragraph(
-                "Muestra los tokens de entrada del contexto activo y el porcentaje usado respecto al umbral de compactación configurado para resumir la conversación antes de perder calidad.");
-        UiCss.USAGE_HELP_POPOVER_DESCRIPTION.addTo(helpCopy);
-        helpPopover.add(new Div(helpTitle, helpCopy));
-
-        var usageBadge = new Div(usageCopy, helpButton);
-        UiCss.CONVERSATION_USAGE.addTo(usageBadge);
-        usageBadge.setVisible(false);
-
-        Signal.effect(usageBadge, () -> {
-            var inputTokens = state.usageInputTokens().get();
-            var usagePercent = state.usagePercent().get();
-            var compacted = Boolean.TRUE.equals(state.conversationCompacted().get());
-            var visible = (inputTokens != null && usagePercent != null) || compacted;
-            usageBadge.setVisible(visible);
-            if (inputTokens != null && usagePercent != null) {
-                usageText.setText("%s (%d%%)".formatted(formatTokenCount(inputTokens), usagePercent));
-            }
-            else {
-                usageText.setText("Contexto compactado");
-            }
-
-            if (compacted) {
-                lineageText.setText("Historial resumido para el contexto activo");
-                lineageText.setVisible(true);
-            }
-            else {
-                lineageText.setText("");
-                lineageText.setVisible(false);
-            }
-        });
-
-        return usageBadge;
-    }
-
-    private String formatTokenCount(int tokens) {
-        if (tokens >= 1_000_000) {
-            return compact(tokens / 1_000_000d) + "M";
-        }
-        if (tokens >= 1_000) {
-            return compact(tokens / 1_000d) + "K";
-        }
-        return Integer.toString(tokens);
-    }
-
-    private String compact(double value) {
-        var rounded = Math.round(value * 10.0) / 10.0;
-        if (rounded == Math.rint(rounded)) {
-            return Integer.toString((int) rounded);
-        }
-        return String.format(Locale.US, "%.1f", rounded);
     }
 
     private void submitPrompt() {
@@ -411,7 +271,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     }
 
     private Button createDebuggerToggleButton() {
-        var button = new Button(new Icon(VaadinIcon.ANGLE_LEFT));
+        var button = new Button(new SvgIcon("/icons/debugger-toggle.svg"));
         button.addThemeVariants(ButtonVariant.TERTIARY);
         UiCss.CONVERSATION_DEBUGGER_TOGGLE.addTo(button);
         button.setAriaLabel("Abrir depurador");
@@ -427,48 +287,10 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private void setDebuggerVisible(boolean visible) {
         debuggerVisible = visible;
-        UiCss.CONVERSATION_DEBUG_SPLIT_COLLAPSED.addTo(splitLayout, !visible);
-        splitLayout.getElement()
-                .executeJs("""
-                           clearTimeout(this.__debuggerAnimationTimer);
-                           cancelAnimationFrame(this.__debuggerAnimationFrame);
-                           const collapsedClass = 'conversation-view__debug-split--collapsed';
-                           const animatingClass = 'conversation-view__debug-split--animating';
-                           const primary = this.querySelector('[slot="primary"]');
-                           const secondary = this.querySelector('[slot="secondary"]');
-                           const setSplit = () => {
-                             if (!primary || !secondary) {
-                               return;
-                             }
-                             primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
-                             secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
-                           };
-                           const collapse = () => {
-                             if (!primary || !secondary) {
-                               return;
-                             }
-                             primary.style.flex = '1 1 100%';
-                             secondary.style.flex = '0 1 0%';
-                           };
-                           this.classList.add(animatingClass);
-                           if ($0) {
-                             this.classList.add(collapsedClass);
-                             collapse();
-                             this.__debuggerAnimationFrame = requestAnimationFrame(() => {
-                               this.classList.remove(collapsedClass);
-                               setSplit();
-                             });
-                           } else {
-                             this.classList.remove(collapsedClass);
-                             this.__debuggerAnimationFrame = requestAnimationFrame(() => {
-                               this.classList.add(collapsedClass);
-                               collapse();
-                             });
-                           }
-                           this.__debuggerAnimationTimer = setTimeout(() => {
-                             this.classList.remove(animatingClass);
-                           }, 220);
-                           """, visible);
+        if (visible) {
+            getContent().getElement().executeJs("const layout = this.closest('vaadin-app-layout'); if (layout) { layout.drawerOpened = false; }");
+        }
+        debugSplit.setDebuggerVisible(visible);
         debuggerToggleButton.setAriaLabel(visible ? "Ocultar depurador" : "Abrir depurador");
         debuggerToggleButton.getElement().setAttribute("title", visible ? "Ocultar depurador" : "Abrir depurador");
         UiCss.CONVERSATION_DEBUGGER_TOGGLE_HIDDEN.addTo(debuggerToggleButton, visible);
@@ -493,42 +315,4 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             QueryParameters.of(ConversationViewModel.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
     }
 
-    private void installResponsiveSplitBehavior(SplitLayout splitLayout) {
-        splitLayout.getElement()
-                .executeJs("""
-                           if (this.__responsiveSplitInstalled) {
-                             return;
-                           }
-                           this.__responsiveSplitInstalled = true;
-
-                           const media = window.matchMedia('(max-width: 960px)');
-                           const update = () => {
-                             const primary = this.querySelector('[slot="primary"]');
-                             const secondary = this.querySelector('[slot="secondary"]');
-                             const setSplit = () => {
-                               if (!primary || !secondary) {
-                                 return;
-                               }
-                               primary.style.flex = '1 1 calc(100% - var(--vaadin-app-layout-drawer-width))';
-                               secondary.style.flex = '0 0 var(--vaadin-app-layout-drawer-width)';
-                             };
-                             const collapse = () => {
-                               if (!primary || !secondary) {
-                                 return;
-                               }
-                               primary.style.flex = '1 1 100%';
-                               secondary.style.flex = '0 1 0%';
-                             };
-                             this.orientation = 'horizontal';
-                             if (this.classList.contains('conversation-view__debug-split--collapsed')) {
-                               collapse();
-                             } else {
-                               setSplit();
-                             }
-                           };
-                           media.addEventListener?.('change', update);
-                           media.addListener?.(update);
-                           update();
-                           """);
-    }
 }

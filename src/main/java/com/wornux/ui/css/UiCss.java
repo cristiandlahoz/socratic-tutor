@@ -51,10 +51,6 @@ public final class UiCss {
     public static final CssClass PROFILE_DRAWER_CARD_MENU_CONTENT = css("profile-drawer-card__menu-content");
     public static final CssClass PROFILE_DRAWER_CARD_NAME = css("profile-drawer-card__name");
 
-    public static final CssClass USAGE_HELP_POPOVER = css("usage-help-popover");
-    public static final CssClass USAGE_HELP_POPOVER_TITLE = css("usage-help-popover__title");
-    public static final CssClass USAGE_HELP_POPOVER_DESCRIPTION = css("usage-help-popover__description");
-
     public static final CssClass CONVERSATION_VIEW = css("conversation-view");
     public static final CssClass CONVERSATION_REVIEW_APP_BAR = css("conversation-review-app-bar");
     public static final CssClass CONVERSATION_REVIEW_APP_BAR_BACK_BUTTON = css("conversation-review-app-bar__back-button");
@@ -81,16 +77,6 @@ public final class UiCss {
     public static final CssClass CONVERSATION_COMPOSER_MODEL_STATUS = css("conversation-composer__model-status");
     public static final CssClass CONVERSATION_COMPOSER_INPUT = css("conversation-composer__input");
     public static final CssClass CONVERSATION_COMPOSER_SEND_BUTTON = css("conversation-composer__send-button");
-    public static final CssClass CONVERSATION_ACTIVITY_BLOCKER = css("conversation-composer__activity-blocker");
-    public static final CssClass CONVERSATION_ACTIVITY_SPINNER = css("conversation-composer__activity-spinner");
-    public static final CssClass CONVERSATION_ACTIVITY_COPY = css("conversation-composer__activity-copy");
-    public static final CssClass CONVERSATION_ACTIVITY_TITLE = css("conversation-composer__activity-title");
-    public static final CssClass CONVERSATION_ACTIVITY_DESCRIPTION = css("conversation-composer__activity-description");
-    public static final CssClass CONVERSATION_USAGE = css("conversation-usage");
-    public static final CssClass CONVERSATION_USAGE_COPY = css("conversation-usage__copy");
-    public static final CssClass CONVERSATION_USAGE_TEXT = css("conversation-usage__text");
-    public static final CssClass CONVERSATION_USAGE_LINEAGE = css("conversation-usage__lineage");
-    public static final CssClass CONVERSATION_USAGE_HELP_BUTTON = css("conversation-usage__help-button");
     public static final CssClass CONVERSATION_QUESTION = css("conversation-question");
     public static final CssClass CONVERSATION_QUESTION_OPEN = css("conversation-question--open");
     public static final CssClass CONVERSATION_QUESTION_SUBMITTING = css("conversation-question--submitting");
@@ -130,7 +116,6 @@ public final class UiCss {
     public static final CssClass C_RUNNER_COL_VALUE = css("c-runner-col-value");
     public static final CssClass C_RUNNER_CONTROL_BUTTON = css("c-runner-control-button");
     public static final CssClass C_RUNNER_CONTROLS = css("c-runner-controls");
-    public static final CssClass C_RUNNER_GROUP_LABEL = css("c-runner-group-label");
     public static final CssClass C_RUNNER_HEADER = css("c-runner-header");
     public static final CssClass C_RUNNER_PANEL = css("c-runner-panel");
     public static final CssClass C_RUNNER_PANEL_TOGGLE = css("c-runner-panel-toggle");
@@ -138,11 +123,9 @@ public final class UiCss {
     public static final CssClass C_RUNNER_SOURCE_VIEWER = css("c-runner-source-viewer");
     public static final CssClass C_RUNNER_STATE_BODY = css("c-runner-state-body");
     public static final CssClass C_RUNNER_STATE_CARD = css("c-runner-state-card");
-    public static final CssClass C_RUNNER_STATE_GROUP = css("c-runner-state-group");
     public static final CssClass C_RUNNER_STATE_HEADER = css("c-runner-state-header");
     public static final CssClass C_RUNNER_STATE_PILL = css("c-runner-state-pill");
     public static final CssClass C_RUNNER_STATE_TITLE = css("c-runner-state-title");
-    public static final CssClass C_RUNNER_STATUS_TEXT = css("c-runner-status-text");
     public static final CssClass C_RUNNER_STDIN = css("c-runner-stdin");
     public static final CssClass C_RUNNER_STDOUT = css("c-runner-stdout");
     public static final CssClass C_RUNNER_STDOUT_BLOCK = css("c-runner-stdout-block");

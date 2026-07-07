@@ -72,16 +72,11 @@
   background: transparent;
 }
 
-.conversation-view__pane .conversation-usage {
-  position: absolute;
-}
-
 vaadin-button.conversation-view__debugger-toggle {
   position: fixed;
   z-index: 12;
-  inset-block-start: 50%;
-  inset-inline-end: 0;
-  transform: translateY(-50%);
+  top: var(--vaadin-padding-l);
+  right: var(--vaadin-padding-l);
   color: var(--ui-toggle-color);
   transition:
     opacity var(--motion-fast),
@@ -93,20 +88,20 @@ vaadin-button.conversation-view__debugger-toggle--hidden {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
-  transform: translateY(-50%) translateX(100%);
+  transform: translateY(-0.35rem);
 }
 
 vaadin-button.conversation-view__debugger-toggle::part(button) {
-  width: 2.25rem;
+  width: 2.45rem;
   min-width: 0;
-  height: 4.5rem;
+  height: 2.45rem;
   padding: 0;
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
-  border-inline-end: 0;
-  border-radius: var(--vaadin-radius-m) 0 0 var(--vaadin-radius-m);
-  background: var(--vaadin-background-container-strong);
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--ui-toggle-color) 34%, transparent);
+  border-radius: var(--vaadin-radius-m);
+  background: color-mix(in srgb, var(--aura-app-background) 86%, transparent);
   box-shadow: var(--aura-shadow-s);
-  backdrop-filter: blur(16px);
+  color: var(--ui-toggle-color);
+  backdrop-filter: blur(12px) saturate(1.04);
 }
 
 vaadin-button.conversation-view__debugger-toggle:hover,
@@ -114,12 +109,21 @@ vaadin-button.conversation-view__debugger-toggle:focus-within {
   color: var(--ui-toggle-hover-color);
 }
 
+vaadin-button.conversation-view__debugger-toggle:hover::part(button),
+vaadin-button.conversation-view__debugger-toggle:focus-within::part(button) {
+  background: color-mix(in srgb, var(--aura-app-background) 72%, var(--vaadin-background-container-strong));
+  border-color: color-mix(in srgb, var(--drawer-accent-color) 54%, var(--vaadin-border-color));
+  color: var(--ui-toggle-hover-color);
+  transform: translateY(-1px);
+}
+
 vaadin-button.conversation-view__debugger-toggle vaadin-icon,
 vaadin-button.conversation-view__debugger-toggle svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.35rem;
+  height: 1.35rem;
   color: currentColor;
-  stroke: currentColor;
+  fill: currentColor;
+  stroke: none;
 }
 
 .c-runner-panel,
@@ -228,9 +232,17 @@ vaadin-icon.c-runner-panel-toggle svg path {
 
 .c-runner-state-header {
   min-height: 48px;
+  display: flex;
   align-items: center;
   gap: var(--vaadin-gap-m);
   padding: var(--vaadin-padding-m) var(--vaadin-padding-m) var(--vaadin-padding-s);
+}
+
+.c-runner-state-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--vaadin-gap-m);
 }
 
 .c-runner-state-title {
@@ -256,7 +268,6 @@ vaadin-icon.c-runner-panel-toggle svg path {
   padding: 0 var(--vaadin-padding-m) var(--vaadin-padding-s);
 }
 
-.c-runner-state-group,
 .c-runner-collapsed-group {
   min-width: 0;
   align-items: center;
@@ -266,19 +277,6 @@ vaadin-icon.c-runner-panel-toggle svg path {
   line-height: 1.15;
 }
 
-.c-runner-state-group {
-  min-height: 34px;
-  padding: var(--vaadin-padding-xs) 2px var(--vaadin-padding-s);
-  font-size: var(--aura-font-size-m);
-}
-
-.c-runner-group-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.c-runner-state-group vaadin-icon,
 .c-runner-collapsed-group vaadin-icon {
   width: 15px;
   height: 15px;
@@ -385,8 +383,8 @@ vaadin-icon.c-runner-panel-toggle svg path {
 }
 
 .c-runner-controls {
-  align-self: center;
   flex: 0 0 auto;
+  margin-inline-start: auto;
   height: 38px;
   overflow: hidden;
   border: var(--c-runner-border-width) solid var(--c-runner-card-border);

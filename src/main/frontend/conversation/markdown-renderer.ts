@@ -6,7 +6,7 @@ import { estimateMarkdownBlockSize } from './markdown-layout-estimate.js';
 
 const MARKDOWN_RENDERER_STYLE_ID = 'markdown-renderer-styles';
 const MARKDOWN_CONTENT_SELECTOR = '[data-markdown-content]';
-const MIN_PENDING_RENDER_BLOCK_SIZE_PX = 480;
+const MIN_PENDING_RENDER_BLOCK_SIZE_PX = 96;
 
 type CodeBlock = {
   code: string;

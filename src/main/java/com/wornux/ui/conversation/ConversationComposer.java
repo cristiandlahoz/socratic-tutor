@@ -25,6 +25,10 @@ public final class ConversationComposer extends Component implements HasSize {
         Signal.effect(this, () -> setComposerEnabled(Boolean.TRUE.equals(state.composerEnabled().get())));
         Signal.effect(this, () -> setSendAvailable(Boolean.TRUE.equals(state.composerSubmitAllowed().get())));
         Signal.effect(this, () -> setModelStatus(state.modelAvailabilityStatus().get()));
+        Signal.effect(this, () -> setTokenUsage(
+            state.usageInputTokens().get(),
+            state.usagePercent().get(),
+            Boolean.TRUE.equals(state.conversationCompacted().get())));
 
         addSubmitPromptListener(event -> {
             state.composerText().set(event.getPrompt());
@@ -51,6 +55,12 @@ public final class ConversationComposer extends Component implements HasSize {
     public void setModelStatus(ModelAvailabilityStatus status) {
         var resolvedStatus = status == null ? ModelAvailabilityStatus.CHECKING : status;
         getElement().setProperty("modelStatus", resolvedStatus.name().toLowerCase());
+    }
+
+    public void setTokenUsage(Integer inputTokens, Integer usagePercent, boolean compacted) {
+        getElement().setProperty("usageInputTokens", inputTokens == null ? -1 : inputTokens);
+        getElement().setProperty("usagePercent", usagePercent == null ? -1 : usagePercent);
+        getElement().setProperty("conversationCompacted", compacted);
     }
 
     public Registration addSubmitPromptListener(ComponentEventListener<SubmitPromptEvent> listener) {
