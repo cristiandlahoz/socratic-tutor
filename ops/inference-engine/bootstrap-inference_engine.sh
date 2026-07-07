@@ -284,9 +284,22 @@ install_llama_swap() {
   log "llama-swap check passed"
 }
 
+cuda_toolkit_available() {
+  command -v nvcc >/dev/null 2>&1 \
+    || [[ -n "${CUDAToolkit_ROOT:-}" ]] \
+    || [[ -x /usr/local/cuda/bin/nvcc ]]
+}
+
 detect_llama_cpp_backend() {
   case "$LLAMA_CPP_BACKEND" in
-    cuda|metal|cpu)
+    cuda)
+      if ! cuda_toolkit_available; then
+        fail "LLAMA_CPP_BACKEND=cuda was requested, but the CUDA Toolkit was not found. Use a CUDA development image, set CUDAToolkit_ROOT, or use LLAMA_CPP_BACKEND=cpu."
+      fi
+      printf 'cuda\n'
+      return 0
+      ;;
+    metal|cpu)
       printf '%s\n' "$LLAMA_CPP_BACKEND"
       return 0
       ;;
@@ -299,9 +312,12 @@ detect_llama_cpp_backend() {
 
   if [[ "$(uname -s)" == "Darwin" ]] && sysctl -n hw.optional.arm64 2>/dev/null | grep -q '^1$'; then
     printf 'metal\n'
-  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+  elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1 && cuda_toolkit_available; then
     printf 'cuda\n'
   else
+    if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+      log "NVIDIA GPU detected, but CUDA Toolkit/nvcc was not found; building CPU backend. Use a CUDA development image or set LLAMA_CPP_BACKEND=cuda after installing the toolkit."
+    fi
     printf 'cpu\n'
   fi
 }
@@ -347,10 +363,6 @@ install_llama_cpp() {
   for cmd in git cmake curl find ln; do
     require_command "$cmd"
   done
-
-  if [[ "$backend" == "cuda" ]] && ! command -v nvcc >/dev/null 2>&1; then
-    log "CUDA backend selected but nvcc was not found; CMake may still find CUDA if your toolkit is configured"
-  fi
 
   if [[ ! -e "$LLAMA_CPP_DIR" ]]; then
     git clone https://github.com/ggml-org/llama.cpp.git "$LLAMA_CPP_DIR"

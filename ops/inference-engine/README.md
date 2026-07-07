@@ -91,6 +91,13 @@ The wrapper sources `runpod.env`, which defaults to these persistent paths:
 
 Use `RUNPOD_WORKSPACE=/some/path` if the persistent mount is not `/workspace`.
 
+For GPU acceleration, the pod image must include the CUDA Toolkit (`nvcc`) or a
+configured `CUDAToolkit_ROOT`. `nvidia-smi` alone only proves that the GPU driver
+is available; it is not enough to build llama.cpp's CUDA backend. If the toolkit
+is missing, the bootstrap falls back to a CPU build in `auto` mode. Use a CUDA
+development RunPod image for GPU builds, or explicitly run with
+`LLAMA_CPP_BACKEND=cpu` if CPU inference is acceptable.
+
 ## Copying to a remote host
 
 The local `Makefile` can copy this whole inference-engine folder over SSH using
