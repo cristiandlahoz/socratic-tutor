@@ -50,7 +50,7 @@ recentHistoryRetentionTokens = contextWindowTokens * 0.25 = 2048
 Meaning:
 
 - When estimated active context exceeds about `5734` tokens, compaction runs.
-- After compaction, about `2048` tokens of recent real conversation are kept verbatim.
+- After compaction, up to about `2048` tokens of recent real conversation are kept verbatim.
 - Older real conversation is summarized and archived.
 
 ## Runtime flow
@@ -114,8 +114,8 @@ entry:   0      1      2      3      4      5      6      7      8
 Entries `0..5` are summarized and archived. Entries `6..8` are recent enough
 to stay in the active context exactly as they happened.
 
-The retention scan walks backward from the newest event until the recent-history
-token budget is reached, then snaps to a complete root user turn:
+The retention scan walks backward from the newest event while events fit inside the
+recent-history token budget, then snaps forward to a complete root user turn:
 
 ```text
 entry:     0      1      2      3      4      5      6      7      8
@@ -128,7 +128,7 @@ event:   │ user │ asst │ user │ asst │ tool │ asst │ user │ asst
                                      newest events are counted first
 
 firstKeptEntry = entry 6
-reason         = nearest root user event at or before the token-budget cut
+reason         = nearest root user event at or after the token-budget cut
 ```
 
 After compaction, older real events are archived and a synthetic summary turn is
@@ -200,8 +200,8 @@ Algorithm:
 
 2. Walk backward from newest real event.
 3. Estimate formatted-event tokens.
-4. Stop once accumulated tokens >= recentHistoryRetentionTokens.
-5. Snap backward to the nearest root UserMessage.
+4. Stop before adding an event that would exceed recentHistoryRetentionTokens.
+5. Snap forward to the nearest root UserMessage.
 6. Archive everything before that cut point.
 7. Keep everything from that cut point onward verbatim.
 ```

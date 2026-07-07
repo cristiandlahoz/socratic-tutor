@@ -114,26 +114,24 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
         var rawCutIndex = realEvents.size();
         var tokens = 0;
         for (var index = realEvents.size() - 1; index >= 0; index--) {
-            tokens += tokenCountEstimator.estimate(formatEvent(realEvents.get(index)));
-            rawCutIndex = index;
-            if (tokens >= recentHistoryTokenBudget) {
+            var eventTokens = tokenCountEstimator.estimate(formatEvent(realEvents.get(index)));
+            if (tokens + eventTokens > recentHistoryTokenBudget) {
                 break;
             }
+            tokens += eventTokens;
+            rawCutIndex = index;
         }
-        return snapBackwardToTurnStart(realEvents, rawCutIndex);
+        return snapForwardToTurnStart(realEvents, rawCutIndex);
     }
 
-    private int snapBackwardToTurnStart(List<SessionEvent> realEvents, int rawCutIndex) {
+    private int snapForwardToTurnStart(List<SessionEvent> realEvents, int rawCutIndex) {
         var index = rawCutIndex;
-        while (index > 0
+        while (index < realEvents.size()
                 && !(realEvents.get(index).isRootEvent()
                         && realEvents.get(index).getMessageType() == MessageType.USER)) {
-            index--;
+            index++;
         }
-        if (realEvents.get(index).isRootEvent() && realEvents.get(index).getMessageType() == MessageType.USER) {
-            return index;
-        }
-        return 0;
+        return index;
     }
 
     private String buildSummarizationPrompt(

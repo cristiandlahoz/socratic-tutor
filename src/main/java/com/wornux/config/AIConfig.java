@@ -1,10 +1,8 @@
 package com.wornux.config;
 
-import java.util.Optional;
-import java.util.UUID;
-
 import com.wornux.ai.advisor.DynamicContextManagementAdvisor;
 import com.wornux.ai.advisor.TutorGuardAdvisor;
+import com.wornux.ai.advisor.UsageBasedCompactionAdvisor;
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.session.TokenBudgetRecursiveSummarizationCompactionStrategy;
@@ -22,7 +20,6 @@ import org.springframework.ai.session.advisor.SessionMemoryAdvisor;
 import org.springframework.ai.session.compaction.CompactionRequest;
 import org.springframework.ai.session.compaction.CompactionResult;
 import org.springframework.ai.session.compaction.CompactionStrategy;
-import org.springframework.ai.session.compaction.CompactionTrigger;
 import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,11 +51,17 @@ public class AIConfig {
                 .userPromptTemplate(promptResources.compactionUser())
                 .tokenCountEstimator(tokenCountEstimator)
                 .build();
+        var loggingCompactionStrategy = loggingCompactionStrategy(compactionStrategy, activityBus);
         var sessionMemoryAdvisor = SessionMemoryAdvisor.builder(sessionService)
                 .eventFilter(EventFilter.active())
-                .compactionTrigger(apiUsageCompactionTrigger(jdbcClient, compactionThresholdTokens))
-                .compactionStrategy(loggingCompactionStrategy(compactionStrategy, activityBus))
                 .build();
+        var usageBasedCompactionAdvisor = new UsageBasedCompactionAdvisor(
+                sessionMemoryAdvisor.getOrder() - 1,
+                sessionMemoryAdvisor.getScheduler(),
+                sessionService,
+                jdbcClient,
+                compactionThresholdTokens,
+                loggingCompactionStrategy);
         var dynamicContextManagementAdvisor =
                 new DynamicContextManagementAdvisor(sessionMemoryAdvisor.getOrder() + 1, jdbcClient);
         var tutorGuardAdvisor =
@@ -66,39 +69,13 @@ public class AIConfig {
 
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
                 .defaultOptions(OpenAiChatOptions.builder().temperature(0.6).topP(0.95).topK(20))
-                .defaultAdvisors(sessionMemoryAdvisor, dynamicContextManagementAdvisor, tutorGuardAdvisor)
+                .defaultAdvisors(
+                    usageBasedCompactionAdvisor,
+                    sessionMemoryAdvisor,
+                    dynamicContextManagementAdvisor,
+                    tutorGuardAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();
-    }
-
-    private CompactionTrigger apiUsageCompactionTrigger(JdbcClient jdbcClient, int compactionThresholdTokens) {
-        return request -> {
-            var promptTokens = lastPromptTokens(jdbcClient, request).orElse(null);
-            if (promptTokens == null || promptTokens < compactionThresholdTokens) {
-                return false;
-            }
-            log.info(
-                "Chat session compaction triggered: sessionId={}, userId={}, events={}, turns={}, promptTokens={}, thresholdTokens={}",
-                sessionId(request),
-                userId(request),
-                request.currentEventCount(),
-                request.currentTurnCount(),
-                promptTokens,
-                compactionThresholdTokens);
-            return true;
-        };
-    }
-
-    private Optional<Integer> lastPromptTokens(JdbcClient jdbcClient, CompactionRequest request) {
-        try {
-            return jdbcClient.sql("select last_prompt_tokens from conversation where id = :conversationId")
-                    .param("conversationId", UUID.fromString(sessionId(request)))
-                    .query(Integer.class)
-                    .optional();
-        }
-        catch (IllegalArgumentException _) {
-            return Optional.empty();
-        }
     }
 
     private CompactionStrategy loggingCompactionStrategy(

@@ -1,8 +1,6 @@
 package com.wornux.services.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -33,23 +31,25 @@ class ChatUsageServiceTest {
     }
 
     @Test
-    void storesActualProviderPromptTokensOnTheDomainConversation() {
+    void readsActualProviderPromptTokensFromTheDomainConversation() {
         var conversationId = UUID.randomUUID();
         var conversation = new Conversation();
-        when(conversationService.requireOwnedConversation(conversationId)).thenReturn(conversation);
+        conversation.setLastPromptTokens(1_250);
         when(conversationService.findOwnedConversation(conversationId)).thenReturn(Optional.of(conversation));
 
-        chatUsageService.updateConversationInputTokens(conversationId, 1_250);
+        var usage = chatUsageService.getConversationTokenUsage(conversationId);
 
-        assertThat(conversation.getLastPromptTokens()).isEqualTo(1_250);
-        assertThat(chatUsageService.getConversationTokenUsage(conversationId).usagePercent()).isEqualTo(25);
-        verify(conversationService).requireOwnedConversation(conversationId);
+        assertThat(usage.inputTokens()).isEqualTo(1_250);
+        assertThat(usage.usagePercent()).isEqualTo(25);
     }
 
     @Test
-    void ignoresMissingProviderUsageInsteadOfEstimatingIt() {
-        chatUsageService.updateConversationInputTokens(UUID.randomUUID(), null);
+    void returnsEmptyUsageWhenProviderUsageIsMissing() {
+        var conversationId = UUID.randomUUID();
+        var conversation = new Conversation();
+        when(conversationService.findOwnedConversation(conversationId)).thenReturn(Optional.of(conversation));
 
-        verifyNoInteractions(conversationService);
+        assertThat(chatUsageService.getConversationTokenUsage(conversationId).inputTokens()).isNull();
+        assertThat(chatUsageService.getConversationTokenUsage(conversationId).usagePercent()).isNull();
     }
 }

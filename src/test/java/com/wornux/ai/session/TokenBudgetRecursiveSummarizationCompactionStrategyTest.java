@@ -30,15 +30,15 @@ class TokenBudgetRecursiveSummarizationCompactionStrategyTest {
             return new ChatResponse(List.of(new Generation(new AssistantMessage("summary"))));
         };
         var strategy = TokenBudgetRecursiveSummarizationCompactionStrategy.builder(ChatClient.builder(model).build())
-                .recentHistoryTokenBudget(40)
+                .recentHistoryTokenBudget(30)
                 .overlapEvents(1)
                 .tokenCountEstimator(new CharacterTokenCountEstimator())
                 .build();
         var events = List.of(
             event(new UserMessage("archived turn student question with enough length")),
             event(new AssistantMessage("archived turn tutor answer with enough length")),
-            event(new UserMessage("retained turn student question with enough length")),
-            event(new AssistantMessage("retained turn tutor answer with enough length")));
+            event(new UserMessage("new q")),
+            event(new AssistantMessage("new a")));
 
         var result = strategy
                 .compact(CompactionRequest.of(Session.builder().id("conversation-1").userId("user-1").build(), events));
@@ -56,7 +56,7 @@ class TokenBudgetRecursiveSummarizationCompactionStrategyTest {
             "archived turn student question",
             "archived turn tutor answer",
             "<upcoming-context purpose=\"continuity-only\">",
-            "retained turn student question");
+            "new q");
     }
 
     private SessionEvent event(org.springframework.ai.chat.messages.Message message) {

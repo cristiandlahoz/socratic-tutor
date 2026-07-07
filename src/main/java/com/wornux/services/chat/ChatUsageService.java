@@ -1,6 +1,5 @@
 package com.wornux.services.chat;
 
-import java.time.Instant;
 import java.util.UUID;
 
 import com.wornux.config.ChatProperties;
@@ -17,16 +16,6 @@ public class ChatUsageService {
     public ChatUsageService(ConversationService conversationService, ChatProperties chatProperties) {
         this.conversationService = conversationService;
         this.chatProperties = chatProperties;
-    }
-
-    @Transactional
-    public void updateConversationInputTokens(UUID conversationId, Integer inputTokens) {
-        if (inputTokens == null) {
-            return;
-        }
-        var conversation = conversationService.requireOwnedConversation(conversationId);
-        conversation.setLastPromptTokens(inputTokens);
-        conversation.setUpdatedAt(Instant.now());
     }
 
     @Transactional(readOnly = true)
