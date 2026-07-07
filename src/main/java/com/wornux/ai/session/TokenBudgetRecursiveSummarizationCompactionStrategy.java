@@ -227,11 +227,11 @@ public final class TokenBudgetRecursiveSummarizationCompactionStrategy implement
         return maybeTruncate(role + ": " + (text == null ? "[no text content]" : text), truncateContent);
     }
 
-    private static String truncate(@Nullable String value) {
+    private static String maybeTruncate(@Nullable String value, boolean truncateContent) {
         if (value == null) {
             return "";
         }
-        if (value.length() <= MAX_FORMATTED_EVENT_CHARS) {
+        if (!truncateContent || value.length() <= MAX_FORMATTED_EVENT_CHARS) {
             return value;
         }
         return value.substring(0, MAX_FORMATTED_EVENT_CHARS) + "… [truncated "

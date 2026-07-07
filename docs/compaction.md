@@ -199,7 +199,7 @@ Algorithm:
      realEvents      = events where !event.isSynthetic()
 
 2. Walk backward from newest real event.
-3. Estimate formatted-event tokens.
+3. Estimate full formatted-event tokens (without summarizer truncation).
 4. Stop before adding an event that would exceed recentHistoryRetentionTokens.
 5. Snap forward to the nearest root UserMessage.
 6. Archive everything before that cut point.
@@ -305,7 +305,7 @@ Summary B incorporates Summary A plus newly archived events.
 ## Tool output handling
 
 Each formatted event is truncated at `2000` characters before it is sent to the
-summarizer.
+summarizer. Token-budget decisions still use the full formatted event text.
 
 ```text
 Tool [responses: searchCourseMaterial -> The first 2000 chars...
