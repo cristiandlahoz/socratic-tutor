@@ -49,6 +49,8 @@ class MessagesList extends LitElement {
 
   private autoScrollEnabled = true;
   private programmaticScroll = false;
+  private atBottom = true;
+  private busy = false;
 
   private scrollTarget: HTMLElement | null = null;
   private observedContent: Element | null = null;
@@ -99,10 +101,23 @@ class MessagesList extends LitElement {
 
   protected updated(): void {
     this.observeContent();
+    this.notifyBusyState();
   }
 
   setItems(items: unknown): void {
     this.updateItems(normalizeItems(items), 'force');
+  }
+
+  scrollToBottom(): void {
+    this.attachScrollTarget();
+
+    this.updateComplete.then(() => {
+      if (!this.isConnected) {
+        return;
+      }
+
+      this.scheduleBottomScroll('force');
+    });
   }
 
   addItems(items: unknown): void {
@@ -243,7 +258,10 @@ class MessagesList extends LitElement {
   }
 
   private updateAutoScrollState(): void {
-    if (this.isCloseToBottom()) {
+    const closeToBottom = this.isCloseToBottom();
+    this.notifyBottomState(closeToBottom);
+
+    if (closeToBottom) {
       this.autoScrollEnabled = true;
       return;
     }
@@ -251,6 +269,34 @@ class MessagesList extends LitElement {
     if (!this.programmaticScroll) {
       this.autoScrollEnabled = false;
     }
+  }
+
+  private notifyBottomState(atBottom: boolean): void {
+    if (atBottom === this.atBottom) {
+      return;
+    }
+
+    this.atBottom = atBottom;
+    this.dispatchEvent(new CustomEvent('bottom-state-changed', {
+      detail: { atBottom },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
+  private notifyBusyState(): void {
+    const busy = this.items.some(item => Boolean(item.loading));
+
+    if (busy === this.busy) {
+      return;
+    }
+
+    this.busy = busy;
+    this.dispatchEvent(new CustomEvent('conversation-busy-changed', {
+      detail: { busy },
+      bubbles: true,
+      composed: true,
+    }));
   }
 
   private scheduleBottomScroll(mode: ScrollMode): void {

@@ -2,7 +2,9 @@ import '@vaadin/button';
 import '@vaadin/icon';
 import '@vaadin/icons';
 import '@vaadin/text-area';
+import './braille-spinner.js';
 import { LitElement, html } from 'lit';
+import { renderConversationDisclaimer } from './conversation-disclaimer.js';
 
 type ModelStatus = 'connected' | 'offline' | 'checking';
 
@@ -14,6 +16,11 @@ class ConversationComposer extends LitElement {
     this.scrollToBottomVisible = !Boolean(detail?.atBottom);
   };
 
+  private readonly handleBusyChanged = (event: Event): void => {
+    const detail = (event as CustomEvent<{ busy?: boolean }>).detail;
+    this.responseBusy = Boolean(detail?.busy);
+  };
+
   static properties = {
     value: { type: String },
     promptLimit: { type: Number, attribute: 'prompt-limit' },
@@ -21,6 +28,7 @@ class ConversationComposer extends LitElement {
     sendAvailable: { type: Boolean, attribute: 'send-available' },
     modelStatus: { type: String, attribute: 'model-status' },
     scrollToBottomVisible: { type: Boolean, attribute: 'scroll-to-bottom-visible' },
+    responseBusy: { type: Boolean, attribute: 'response-busy' },
   };
 
   declare value: string;
@@ -29,6 +37,7 @@ class ConversationComposer extends LitElement {
   declare sendAvailable: boolean;
   declare modelStatus: ModelStatus;
   declare scrollToBottomVisible: boolean;
+  declare responseBusy: boolean;
 
   constructor() {
     super();
@@ -38,6 +47,7 @@ class ConversationComposer extends LitElement {
     this.sendAvailable = false;
     this.modelStatus = 'checking';
     this.scrollToBottomVisible = false;
+    this.responseBusy = false;
   }
 
   connectedCallback(): void {
@@ -60,7 +70,7 @@ class ConversationComposer extends LitElement {
       <vaadin-text-area
         class="conversation-composer__input"
         .value=${this.value}
-        ?disabled=${!this.composerEnabled}
+        ?disabled=${this.inputDisabled()}
         maxlength=${this.promptLimit}
         helper-text=${this.helperText()}
         placeholder=""
@@ -70,17 +80,8 @@ class ConversationComposer extends LitElement {
       ></vaadin-text-area>
       <span class=${this.modelStatusClass()} aria-live="polite">${this.modelStatusLabel()}</span>
       <span class="conversation-composer__prompt-prefix" aria-hidden="true">~</span>
-      <vaadin-button
-        class="conversation-composer__send-button"
-        aria-label="Enviar mensaje"
-        ?disabled=${!this.canSubmit()}
-        @click=${this.submit}
-      >
-        <vaadin-icon icon="vaadin:arrow-up"></vaadin-icon>
-      </vaadin-button>
-      <p class="conversation-composer__disclaimer">
-        La IA puede cometer <span class="conversation-composer__disclaimer-italic">errores;</span> revisa adecuadamente.
-      </p>
+      ${this.renderSendControl()}
+      ${renderConversationDisclaimer()}
     `;
   }
 
@@ -124,10 +125,12 @@ class ConversationComposer extends LitElement {
     this.detachScrollPane();
     this.scrollPane = pane;
     this.scrollPane?.addEventListener('bottom-state-changed', this.handleBottomStateChanged);
+    this.scrollPane?.addEventListener('conversation-busy-changed', this.handleBusyChanged);
   }
 
   private detachScrollPane(): void {
     this.scrollPane?.removeEventListener('bottom-state-changed', this.handleBottomStateChanged);
+    this.scrollPane?.removeEventListener('conversation-busy-changed', this.handleBusyChanged);
     this.scrollPane = null;
   }
 
@@ -149,7 +152,37 @@ class ConversationComposer extends LitElement {
   }
 
   private canSubmit(): boolean {
-    return this.composerEnabled && this.sendAvailable && this.value.trim().length > 0;
+    return this.composerEnabled && !this.responseBusy && this.sendAvailable && this.value.trim().length > 0;
+  }
+
+  private inputDisabled(): boolean {
+    return !this.composerEnabled && !this.responseBusy;
+  }
+
+  private renderSendControl() {
+    if (this.responseBusy) {
+      return html`
+        <span
+          class="conversation-composer__send-spinner"
+          aria-label="Generando respuesta"
+          aria-live="polite"
+          role="status"
+        >
+          <braille-spinner spinner="braille"></braille-spinner>
+        </span>
+      `;
+    }
+
+    return html`
+      <vaadin-button
+        class="conversation-composer__send-button"
+        aria-label="Enviar mensaje"
+        ?disabled=${!this.canSubmit()}
+        @click=${this.submit}
+      >
+        <vaadin-icon icon="vaadin:arrow-up"></vaadin-icon>
+      </vaadin-button>
+    `;
   }
 
   private helperText(): string {

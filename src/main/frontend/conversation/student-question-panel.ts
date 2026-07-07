@@ -5,6 +5,7 @@ import '@vaadin/popover';
 import '@vaadin/text-area';
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { renderConversationDisclaimer } from './conversation-disclaimer.js';
 
 type StudentQuestionOption = {
   label: string;
@@ -154,6 +155,7 @@ class StudentQuestionPanelElement extends LitElement {
       <div class="conversation-question__composer">
         ${this.renderResponseComposer(activeQuestion)}
       </div>
+      ${renderConversationDisclaimer()}
     `;
   }
 

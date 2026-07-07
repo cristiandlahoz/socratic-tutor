@@ -13,6 +13,7 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -28,7 +29,6 @@ import com.wornux.config.ChatProperties;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
-import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
@@ -247,14 +247,13 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     private Div createInputShell(ConversationState state) {
         var inputShell = new Div();
         UiCss.CONVERSATION_COMPOSER.addTo(inputShell);
-        var activityBlocker = createActivityBlocker(state);
 
-        Signal.effect(inputShell, () -> showCurrentInput(inputShell, state, activityBlocker));
+        Signal.effect(inputShell, () -> showCurrentInput(inputShell, state));
 
         return inputShell;
     }
 
-    private void showCurrentInput(Div inputShell, ConversationState state, Div activityBlocker) {
+    private void showCurrentInput(Div inputShell, ConversationState state) {
         inputShell.removeAll();
         var currentQuestionSet = currentQuestionSetForUi(state);
         inputShell.getElement()
@@ -264,65 +263,11 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
             inputShell.add(questionPanel);
             return;
         }
-        inputShell.add(isComposerAvailable(state) ? composer : activityBlocker);
+        inputShell.add(composer);
     }
 
     private static StudentQuestionSet currentQuestionSetForUi(ConversationState state) {
         return state.pendingQuestionSet().get();
-    }
-
-    private boolean isComposerAvailable(ConversationState state) {
-        return state.activity().get() == ChatSessionActivity.IDLE;
-    }
-
-    private Div createActivityBlocker(ConversationState state) {
-        var spinner = createFillSweepSpinner();
-        var title = createActivityTitle();
-        var description = createActivityDescription();
-        var blocker = createActivityBlockerShell(spinner, title, description);
-
-        Signal.effect(blocker, () -> describeActivity(state.activity().get(), title, description));
-
-        return blocker;
-    }
-
-    private BrailleSpinner createFillSweepSpinner() {
-        var spinner = new BrailleSpinner("fillsweep");
-        UiCss.CONVERSATION_ACTIVITY_SPINNER.addTo(spinner);
-        return spinner;
-    }
-
-    private Span createActivityTitle() {
-        var title = new Span();
-        UiCss.CONVERSATION_ACTIVITY_TITLE.addTo(title);
-        return title;
-    }
-
-    private Span createActivityDescription() {
-        var description = new Span();
-        UiCss.CONVERSATION_ACTIVITY_DESCRIPTION.addTo(description);
-        return description;
-    }
-
-    private Div createActivityBlockerShell(BrailleSpinner spinner, Span title, Span description) {
-        var copy = new Div(title, description);
-        UiCss.CONVERSATION_ACTIVITY_COPY.addTo(copy);
-
-        var blocker = new Div(spinner, copy);
-        UiCss.CONVERSATION_ACTIVITY_BLOCKER.addTo(blocker);
-        blocker.getElement().setAttribute("aria-live", "polite");
-        blocker.getElement().setAttribute("aria-busy", "true");
-        return blocker;
-    }
-
-    private void describeActivity(ChatSessionActivity activity, Span title, Span description) {
-        if (activity == ChatSessionActivity.COMPACTING) {
-            title.setText("Compactando el contexto");
-            description.setText("Resumiendo el historial para mantener la conversación precisa.");
-            return;
-        }
-        title.setText("Generando respuesta");
-        description.setText("El tutor está razonando; el compositor se habilitará al terminar.");
     }
 
     private Div createUsageBadge(ConversationState state) {
@@ -406,7 +351,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     }
 
     private Button createDebuggerToggleButton() {
-        var button = new Button(new Icon(VaadinIcon.ANGLE_LEFT));
+        var button = new Button(new SvgIcon("/icons/debugger-toggle.svg"));
         button.addThemeVariants(ButtonVariant.TERTIARY);
         UiCss.CONVERSATION_DEBUGGER_TOGGLE.addTo(button);
         button.setAriaLabel("Abrir depurador");
