@@ -51,10 +51,6 @@ public final class UiCss {
     public static final CssClass PROFILE_DRAWER_CARD_MENU_CONTENT = css("profile-drawer-card__menu-content");
     public static final CssClass PROFILE_DRAWER_CARD_NAME = css("profile-drawer-card__name");
 
-    public static final CssClass USAGE_HELP_POPOVER = css("usage-help-popover");
-    public static final CssClass USAGE_HELP_POPOVER_TITLE = css("usage-help-popover__title");
-    public static final CssClass USAGE_HELP_POPOVER_DESCRIPTION = css("usage-help-popover__description");
-
     public static final CssClass CONVERSATION_VIEW = css("conversation-view");
     public static final CssClass CONVERSATION_PANE = css("conversation-view__pane");
     public static final CssClass CONVERSATION_SCROLL_REGION = css("conversation-view__scroll-region");
@@ -78,11 +74,6 @@ public final class UiCss {
     public static final CssClass CONVERSATION_COMPOSER_MODEL_STATUS = css("conversation-composer__model-status");
     public static final CssClass CONVERSATION_COMPOSER_INPUT = css("conversation-composer__input");
     public static final CssClass CONVERSATION_COMPOSER_SEND_BUTTON = css("conversation-composer__send-button");
-    public static final CssClass CONVERSATION_USAGE = css("conversation-usage");
-    public static final CssClass CONVERSATION_USAGE_COPY = css("conversation-usage__copy");
-    public static final CssClass CONVERSATION_USAGE_TEXT = css("conversation-usage__text");
-    public static final CssClass CONVERSATION_USAGE_LINEAGE = css("conversation-usage__lineage");
-    public static final CssClass CONVERSATION_USAGE_HELP_BUTTON = css("conversation-usage__help-button");
     public static final CssClass CONVERSATION_QUESTION = css("conversation-question");
     public static final CssClass CONVERSATION_QUESTION_OPEN = css("conversation-question--open");
     public static final CssClass CONVERSATION_QUESTION_SUBMITTING = css("conversation-question--submitting");

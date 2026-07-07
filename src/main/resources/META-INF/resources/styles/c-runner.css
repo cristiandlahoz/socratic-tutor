@@ -72,10 +72,6 @@
   background: transparent;
 }
 
-.conversation-view__pane .conversation-usage {
-  position: absolute;
-}
-
 vaadin-button.conversation-view__debugger-toggle {
   position: fixed;
   z-index: 12;

@@ -27,6 +27,9 @@ class ConversationComposer extends LitElement {
     composerEnabled: { type: Boolean, attribute: 'composer-enabled' },
     sendAvailable: { type: Boolean, attribute: 'send-available' },
     modelStatus: { type: String, attribute: 'model-status' },
+    usageInputTokens: { type: Number, attribute: 'usage-input-tokens' },
+    usagePercent: { type: Number, attribute: 'usage-percent' },
+    conversationCompacted: { type: Boolean, attribute: 'conversation-compacted' },
     scrollToBottomVisible: { type: Boolean, attribute: 'scroll-to-bottom-visible' },
     responseBusy: { type: Boolean, attribute: 'response-busy' },
   };
@@ -36,6 +39,9 @@ class ConversationComposer extends LitElement {
   declare composerEnabled: boolean;
   declare sendAvailable: boolean;
   declare modelStatus: ModelStatus;
+  declare usageInputTokens: number;
+  declare usagePercent: number;
+  declare conversationCompacted: boolean;
   declare scrollToBottomVisible: boolean;
   declare responseBusy: boolean;
 
@@ -46,6 +52,9 @@ class ConversationComposer extends LitElement {
     this.composerEnabled = true;
     this.sendAvailable = false;
     this.modelStatus = 'checking';
+    this.usageInputTokens = -1;
+    this.usagePercent = -1;
+    this.conversationCompacted = false;
     this.scrollToBottomVisible = false;
     this.responseBusy = false;
   }
@@ -79,6 +88,7 @@ class ConversationComposer extends LitElement {
         @keydown=${this.handleKeyDown}
       ></vaadin-text-area>
       <span class=${this.modelStatusClass()} aria-live="polite">${this.modelStatusLabel()}</span>
+      ${this.renderUsage()}
       <span class="conversation-composer__prompt-prefix" aria-hidden="true">~</span>
       ${this.renderSendControl()}
       ${renderConversationDisclaimer()}
@@ -102,8 +112,12 @@ class ConversationComposer extends LitElement {
     if (!this.canSubmit()) {
       return;
     }
+
+    const prompt = this.value.trim();
+    this.value = '';
+
     this.dispatchEvent(new CustomEvent('submit-prompt', {
-      detail: { prompt: this.value.trim() },
+      detail: { prompt },
       bubbles: true,
       composed: true,
     }));
@@ -187,6 +201,54 @@ class ConversationComposer extends LitElement {
 
   private helperText(): string {
     return `${this.value.length}/${this.promptLimit} caracteres`;
+  }
+
+  private renderUsage() {
+    if (!this.usageVisible()) {
+      return null;
+    }
+
+    return html`
+      <span
+        class="conversation-composer__usage"
+        data-tooltip=${this.usageTooltip()}
+        aria-label=${this.usageTooltip()}
+      >${this.usageLabel()}</span>
+    `;
+  }
+
+  private usageVisible(): boolean {
+    return (this.usageInputTokens >= 0 && this.usagePercent >= 0) || this.conversationCompacted;
+  }
+
+  private usageLabel(): string {
+    if (this.usageInputTokens >= 0 && this.usagePercent >= 0) {
+      return `${this.formatTokenCount(this.usageInputTokens)} (${this.usagePercent}%)`;
+    }
+    return 'Contexto compactado';
+  }
+
+  private usageTooltip(): string {
+    const usageDescription = 'Tokens de entrada del contexto activo y porcentaje usado respecto al umbral de compactación.';
+    if (this.conversationCompacted) {
+      return `${usageDescription} Historial resumido para el contexto activo.`;
+    }
+    return usageDescription;
+  }
+
+  private formatTokenCount(tokens: number): string {
+    if (tokens >= 1_000_000) {
+      return `${this.compact(tokens / 1_000_000)}M`;
+    }
+    if (tokens >= 1_000) {
+      return `${this.compact(tokens / 1_000)}K`;
+    }
+    return String(tokens);
+  }
+
+  private compact(value: number): string {
+    const rounded = Math.round(value * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   }
 
   private modelStatusLabel(): string {

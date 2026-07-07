@@ -35,10 +35,6 @@
     font-size: var(--aura-font-size-m);
   }
 
-  .conversation-usage {
-    top: 1rem;
-    right: 1rem;
-  }
 }
 
 @media (max-width: 640px) {
@@ -47,11 +43,6 @@
     left: 1rem;
   }
 
-  .conversation-usage {
-    top: 4.2rem;
-    right: 0.75rem;
-    max-width: calc(100vw - 1.5rem);
-  }
 
   .shell-drawer-content {
     gap: var(--vaadin-gap-xs);
@@ -61,18 +52,6 @@
   .app-sidebar {
     --sidebar-divider-line-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
     --sidebar-section-inline-end: var(--vaadin-gap-s);
-  }
-
-  .conversations-history-empty {
-    margin: 0.4rem var(--sidebar-section-inline-end) 0.7rem 0;
-  }
-
-  .conversations-history-timeline {
-    padding: 0.18rem 0.4rem 0.72rem;
-  }
-
-  .conversations-history-entry-row {
-    grid-template-columns: 2rem minmax(0, 1fr);
   }
 
   .app-sidebar__brand-title {

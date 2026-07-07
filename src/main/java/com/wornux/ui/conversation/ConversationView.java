@@ -1,6 +1,5 @@
 package com.wornux.ui.conversation;
 
-import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 
@@ -12,13 +11,10 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.SvgIcon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.popover.Popover;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.QueryParameters;
@@ -110,7 +106,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         root.setSizeFull();
         UiCss.CONVERSATION_VIEW.addTo(root);
 
-        var chatPane = new Div(debuggerToggleButton, historyScroller, createUsageBadge(state), createInputShell(state));
+        var chatPane = new Div(debuggerToggleButton, historyScroller, createInputShell(state));
         chatPane.setSizeFull();
         UiCss.CONVERSATION_PANE.addTo(chatPane);
 
@@ -268,82 +264,6 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private static StudentQuestionSet currentQuestionSetForUi(ConversationState state) {
         return state.pendingQuestionSet().get();
-    }
-
-    private Div createUsageBadge(ConversationState state) {
-        var usageText = new Span();
-        UiCss.CONVERSATION_USAGE_TEXT.addTo(usageText);
-
-        var lineageText = new Span();
-        UiCss.CONVERSATION_USAGE_LINEAGE.addTo(lineageText);
-
-        var usageCopy = new Div(usageText, lineageText);
-        UiCss.CONVERSATION_USAGE_COPY.addTo(usageCopy);
-
-        var helpButton = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
-        helpButton.addThemeVariants(ButtonVariant.TERTIARY);
-        UiCss.CONVERSATION_USAGE_HELP_BUTTON.addTo(helpButton);
-        helpButton.setAriaLabel("Explicar uso del contexto");
-
-        var helpPopover = new Popover();
-        helpPopover.setTarget(helpButton);
-        helpPopover.setModal(false);
-        UiCss.USAGE_HELP_POPOVER.addTo(helpPopover);
-
-        var helpTitle = new Span("Uso del contexto");
-        UiCss.USAGE_HELP_POPOVER_TITLE.addTo(helpTitle);
-
-        var helpCopy = new Paragraph(
-                "Muestra los tokens de entrada del contexto activo y el porcentaje usado respecto al umbral de compactación configurado para resumir la conversación antes de perder calidad.");
-        UiCss.USAGE_HELP_POPOVER_DESCRIPTION.addTo(helpCopy);
-        helpPopover.add(new Div(helpTitle, helpCopy));
-
-        var usageBadge = new Div(usageCopy, helpButton);
-        UiCss.CONVERSATION_USAGE.addTo(usageBadge);
-        usageBadge.setVisible(false);
-
-        Signal.effect(usageBadge, () -> {
-            var inputTokens = state.usageInputTokens().get();
-            var usagePercent = state.usagePercent().get();
-            var compacted = Boolean.TRUE.equals(state.conversationCompacted().get());
-            var visible = (inputTokens != null && usagePercent != null) || compacted;
-            usageBadge.setVisible(visible);
-            if (inputTokens != null && usagePercent != null) {
-                usageText.setText("%s (%d%%)".formatted(formatTokenCount(inputTokens), usagePercent));
-            }
-            else {
-                usageText.setText("Contexto compactado");
-            }
-
-            if (compacted) {
-                lineageText.setText("Historial resumido para el contexto activo");
-                lineageText.setVisible(true);
-            }
-            else {
-                lineageText.setText("");
-                lineageText.setVisible(false);
-            }
-        });
-
-        return usageBadge;
-    }
-
-    private String formatTokenCount(int tokens) {
-        if (tokens >= 1_000_000) {
-            return compact(tokens / 1_000_000d) + "M";
-        }
-        if (tokens >= 1_000) {
-            return compact(tokens / 1_000d) + "K";
-        }
-        return Integer.toString(tokens);
-    }
-
-    private String compact(double value) {
-        var rounded = Math.round(value * 10.0) / 10.0;
-        if (rounded == Math.rint(rounded)) {
-            return Integer.toString((int) rounded);
-        }
-        return String.format(Locale.US, "%.1f", rounded);
     }
 
     private void submitPrompt() {

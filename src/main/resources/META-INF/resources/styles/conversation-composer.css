@@ -5,65 +5,6 @@
   min-width: 0;
 }
 
-.conversation-usage {
-  position: fixed;
-  top: 1.25rem;
-  right: 1.5rem;
-  z-index: 30;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--vaadin-gap-xs);
-  min-height: 2.2rem;
-  padding: 0.35rem 0.45rem 0.35rem 0.85rem;
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
-  border-radius: var(--vaadin-radius-m);
-  background: var(--vaadin-background-container-strong);
-  color: var(--vaadin-text-color-secondary);
-  box-shadow: var(--aura-shadow-s);
-}
-
-.conversation-usage__copy {
-  display: flex;
-  flex-direction: column;
-  gap: var(--vaadin-gap-xs);
-}
-
-.conversation-usage__text {
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-s);
-  line-height: 1;
-}
-
-.conversation-usage__lineage {
-  color: var(--vaadin-text-color-disabled);
-  font-family: var(--aura-font-family);
-  font-size: var(--aura-font-size-xs);
-  line-height: 1.1;
-}
-
-vaadin-button.conversation-usage__help-button {
-  --vaadin-button-padding: 0;
-  flex-shrink: 0;
-}
-
-vaadin-button.conversation-usage__help-button::part(button) {
-  width: 1.9rem;
-  height: 1.9rem;
-  border-radius: calc(var(--vaadin-radius-m) - 2px);
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  color: var(--vaadin-text-color-secondary);
-}
-
-vaadin-button.conversation-usage__help-button:hover::part(button),
-vaadin-button.conversation-usage__help-button:focus-within::part(button) {
-  border-color: var(--aura-accent-text-color);
-  color: var(--vaadin-text-color);
-}
-
 vaadin-button.conversation-composer__scroll-bottom-button {
   position: absolute;
   right: 0;
@@ -228,6 +169,60 @@ vaadin-text-area.conversation-composer__input[has-error-message] > [slot="error-
   background: var(--aura-orange);
 }
 
+.conversation-composer__usage {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  max-width: 34%;
+  height: var(--composer-header-height);
+  overflow: visible;
+  color: var(--composer-helper-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--composer-helper-font-size);
+  font-weight: var(--composer-helper-font-weight);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+  transform: translateX(-50%);
+}
+
+.conversation-composer__usage::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - var(--vaadin-gap-xs));
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(18rem, 72vw);
+  padding: var(--vaadin-padding-s) var(--vaadin-padding-m);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
+  border-radius: var(--vaadin-radius-m);
+  background: var(--vaadin-background-container-strong);
+  color: var(--vaadin-text-color-secondary);
+  box-shadow: var(--aura-shadow-s);
+  font-size: var(--aura-font-size-s);
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  text-wrap: pretty;
+  transform: translate(-50%, 0.25rem);
+  transition:
+    opacity var(--motion-fast),
+    transform var(--motion-fast);
+  white-space: normal;
+}
+
+.conversation-composer__usage:hover::after,
+.conversation-composer__usage:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 .conversation-composer__prompt-prefix {
   position: absolute;
   top: calc(var(--composer-header-height) + 0.48rem);
@@ -294,10 +289,9 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
   justify-content: center;
   width: 2.8rem;
   height: 2.8rem;
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--composer-border);
-  border-radius: var(--vaadin-radius-m);
-  background: color-mix(in srgb, var(--composer-surface) 82%, var(--aura-app-background));
-  box-shadow: var(--aura-shadow-xs);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   pointer-events: none;
 }
 
@@ -331,7 +325,7 @@ vaadin-button.conversation-composer__send-button:hover::part(button) {
 
 .conversation-input-disclaimer__italic {
   color: light-dark(
-    color-mix(in srgb, color(srgb 0.918627 0.952549 0.914902) 58%, var(--vaadin-text-color-disabled)),
+    color-mix(in srgb, color(srgb 0.918627 0.952549 0.914902) 45%, color(srgb 0.14 0.32 0.18) 55%),
     color-mix(in srgb, var(--aura-accent-text-color) 58%, var(--vaadin-text-color-disabled))
   );
   font-family: "Boska-Italic", "Boska-Regular", var(--aura-font-family);

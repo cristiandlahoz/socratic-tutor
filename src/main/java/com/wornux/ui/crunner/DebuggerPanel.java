@@ -32,11 +32,11 @@ import com.wornux.services.crunner.CProgramDebugService;
 @StyleSheet("styles/c-runner.css")
 public final class DebuggerPanel extends Component implements HasSize {
 
-    private final CProgramDebugService debugService;
-    private final CExamplePreparationService preparationService;
-    private final Executor cRunnerExecutor;
-    private List<com.wornux.services.crunner.CDiagnostic> currentDiagnostics = List.of();
-    private List<CDebugSnapshot> snapshots = List.of();
+    private final transient CProgramDebugService debugService;
+    private final transient CExamplePreparationService preparationService;
+    private final transient Executor cRunnerExecutor;
+    private transient List<com.wornux.services.crunner.CDiagnostic> currentDiagnostics = List.of();
+    private transient List<CDebugSnapshot> snapshots = List.of();
     private String currentSource = "";
     private String currentStdin = "";
     private String currentDebugger = "";
@@ -44,7 +44,7 @@ public final class DebuggerPanel extends Component implements HasSize {
     private int activeLine = 0;
     private int snapshotIndex = 0;
     private long debugJobSequence = 0;
-    private Runnable closeHandler = () -> {};
+    private transient Runnable closeHandler = () -> {};
 
     public DebuggerPanel(
             CProgramDebugService debugService,
