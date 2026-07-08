@@ -134,9 +134,6 @@ public class ConversationViewModel implements Serializable {
     }
 
     public void onOpenConversation(UUID conversationId) {
-        if (conversationId.equals(state.activeConversationId().peek())) {
-            return;
-        }
         navigationOrchestrator.openConversation(conversationId);
     }
 
