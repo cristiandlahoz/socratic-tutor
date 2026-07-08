@@ -15,11 +15,12 @@ It uses `llama-swap` as a single OpenAI-compatible endpoint and routes requests 
 ### Side-job model
 
 - `unsloth/gemma-4-E4B-it-GGUF:IQ4_XS`
-- Context window: `2048`
+- Context window: `20000`
 - Purpose: low/medium-stakes support jobs:
   - C runner scaffolding / example preparation
   - Chat title/name generation
   - Guardrails / safety classification
+  - Subject syllabus PDF-to-context generation
 
 ## GPU / CPU handling
 
@@ -198,9 +199,7 @@ Spring AI uses one base URL and selects the backend with the model name.
 ```bash
 OPENAI_BASE_URL=http://127.0.0.1:8080/v1
 CHAT_MODEL=AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL
-GUARD_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
-TITLE_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
-C_EXAMPLE_PREPARATION_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
+SWITZERLAND_KNIFE_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
 ```
 
 ## Useful overrides
@@ -214,6 +213,9 @@ LLAMA_CPP_REF=b1234 ./bootstrap-inference_engine.sh -d
 
 # Start Gemma directly through the launcher alias.
 ./start-llama-server.sh gemma 5800
+
+# Override Gemma context when needed. The default Gemma context is 20000.
+GEMMA_CONTEXT=12000 ./start-llama-server.sh gemma 5800
 
 # Start Ornith directly through the launcher alias.
 ./start-llama-server.sh ornith 5800

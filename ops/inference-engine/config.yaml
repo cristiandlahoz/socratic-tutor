@@ -16,7 +16,7 @@ models:
   "unsloth/gemma-4-E4B-it-GGUF:IQ4_XS":
     proxy: "http://127.0.0.1:${PORT}"
     cmd: |
-      ./start-llama-server.sh unsloth/gemma-4-E4B-it-GGUF:IQ4_XS ${PORT} 4000 2048
+      ./start-llama-server.sh unsloth/gemma-4-E4B-it-GGUF:IQ4_XS ${PORT} 4000 20000
 
 # Allow both models to remain loaded concurrently.
 matrix:
