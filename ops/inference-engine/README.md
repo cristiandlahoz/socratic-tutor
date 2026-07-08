@@ -9,7 +9,7 @@ It uses `llama-swap` as a single OpenAI-compatible endpoint and routes requests 
 ### Main tutor model
 
 - `AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL`
-- Context window: `8192`
+- Context window: `20000`
 - Purpose: primary tutoring conversations and higher-quality reasoning.
 
 ### Side-job model

@@ -77,7 +77,7 @@ app:
   ai:
     conversation:
       config:
-        context-window-tokens: ${AI_CONVERSATION_CONTEXT_WINDOW_TOKENS:8192}
+        context-window-tokens: ${AI_CONVERSATION_CONTEXT_WINDOW_TOKENS:20000}
         compaction-threshold-ratio: ${AI_CONVERSATION_COMPACTION_THRESHOLD_RATIO:0.70}
         recent-history-retention-ratio: ${AI_CONVERSATION_RECENT_HISTORY_RETENTION_RATIO:0.25}
       ui:

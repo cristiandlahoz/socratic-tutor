@@ -11,7 +11,7 @@ models:
   "AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL":
     proxy: "http://127.0.0.1:${PORT}"
     cmd: |
-      ./start-llama-server.sh AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL ${PORT} 7000 8192
+      ./start-llama-server.sh AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL ${PORT} 7000 20000
 
   "unsloth/gemma-4-E4B-it-GGUF:IQ4_XS":
     proxy: "http://127.0.0.1:${PORT}"

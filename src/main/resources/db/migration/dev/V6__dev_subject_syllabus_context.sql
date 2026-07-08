@@ -1,5 +1,9 @@
 update subject
-set syllabus = 'Scope: introductory algorithmic reasoning in C. Competencies: trace variables, design conditions and loops, decompose problems into functions, use arrays and structs, debug compiler/runtime errors, and justify boundary cases. Technology stack: C language, GCC toolchain, terminal execution, basic debugging with compiler diagnostics and GDB-style traces. The tutor must keep help inside these competencies unless uploaded course material adds more specific scope.'
+set syllabus = 'Scope: ICC-101-T: Introduction to Algorithmic Thinking. Focuses on computational problem-solving and structured programming fundamentals.
+Competencies: Students must analyze real-world problems to outline steps (non-computational) and implement algorithms using a structured, medium-level programming language.
+Technology stack: C language, Structured programming language/EDI environment.
+Tutor actions: Assist with algorithm design, understanding data types, control structures (selection, repetitive), modularization, and array manipulation. Guide students through the process of translating problems into code.
+Boundaries: Do not answer questions regarding institutional policies, grading percentages, or topics outside the scope of structured programming and algorithms.'
 where id = 'd8675849-e396-48b5-b807-adf71cd113e6'
   and syllabus is null;
 

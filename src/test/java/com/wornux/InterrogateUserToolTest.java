@@ -9,7 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wornux.ai.guard.GuardClassifierService;
-import com.wornux.ai.tools.AskStudentQuestionTool;
+import com.wornux.ai.tools.InterrogateUserTool;
 import com.wornux.ai.tools.ToolContextKeys;
 import com.wornux.data.enums.GuardDecision;
 import com.wornux.dtos.chat.questions.StudentQuestion;
@@ -43,10 +43,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
                 "spring.ai.tools.throw-exception-on-error=true",
                 "app.ai.conversation.config.context-window-tokens=8192",
                 "app.ai.conversation.config.compaction-threshold-ratio=0.30",
-                "test.openai.transcript-name=ask-student-question-tool-test" })
-class AskStudentQuestionToolTest {
+                "test.openai.transcript-name=interrogate-user-tool-test" })
+class InterrogateUserToolTest {
 
-    private static final Logger log = LoggerFactory.getLogger(AskStudentQuestionToolTest.class);
+    private static final Logger log = LoggerFactory.getLogger(InterrogateUserToolTest.class);
 
     @Autowired
     ChatClient chatClient;
@@ -76,7 +76,7 @@ class AskStudentQuestionToolTest {
                             .param(SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY, conversationId.toString())
                             .param(SessionMemoryAdvisor.USER_ID_CONTEXT_KEY, groupClassMemberId.toString())
                             .param(ToolContextKeys.GROUP_CLASS_MEMBER_ID, groupClassMemberId))
-                .tools(new AskStudentQuestionTool(questionHandler(capturedQuestionSet)))
+                .tools(new InterrogateUserTool(questionHandler(capturedQuestionSet)))
                 .user("""
                       necesito ayuda para resolver un ejercicio de cajero
                       """)
@@ -84,13 +84,13 @@ class AskStudentQuestionToolTest {
                 .content();
 
         log.info("Converted StudentQuestionSet:\n{}", capturedQuestionSet.get());
-        log.info("Ask student question final model content:\n{}", response);
+        log.info("Interrogate user final model content:\n{}", response);
 
         assertQuestionSetSchema(capturedQuestionSet.get());
         assertThat(response).isNotNull();
     }
 
-    private AskStudentQuestionTool.QuestionHandler questionHandler(
+    private InterrogateUserTool.QuestionHandler questionHandler(
             AtomicReference<StudentQuestionSet> capturedQuestionSet) {
         return questionSet -> {
             capturedQuestionSet.set(questionSet);

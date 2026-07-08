@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.openai.errors.OpenAIIoException;
-import com.wornux.ai.tools.AskStudentQuestionTool;
+import com.wornux.ai.tools.InterrogateUserTool;
 import com.wornux.ai.tools.ToolContextKeys;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.dtos.chat.*;
@@ -44,7 +44,7 @@ public class ChatService {
             UUID turnId,
             String userInput,
             UUID conversationId,
-            AskStudentQuestionTool.QuestionHandler questionHandler) {
+            InterrogateUserTool.QuestionHandler questionHandler) {
         var academicCtx = contextResolver.requireCurrent();
         conversationService.requireOwnedConversation(conversationId);
         var sessionContext = buildSessionContext(academicCtx, conversationId);
@@ -61,7 +61,7 @@ public class ChatService {
                 .toolContext(buildToolContext(Optional.of(academicCtx), conversationId, turnId))
                 .user(userInput);
         if (questionHandler != null) {
-            clientRequestSpec = clientRequestSpec.tools(new AskStudentQuestionTool(questionHandler));
+            clientRequestSpec = clientRequestSpec.tools(new InterrogateUserTool(questionHandler));
         }
 
         return clientRequestSpec.stream()

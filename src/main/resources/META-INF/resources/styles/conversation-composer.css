@@ -692,6 +692,17 @@ vaadin-text-area.conversation-question__custom-text::part(input-field) {
   max-width: calc(100% - 1.5rem);
 }
 
+vaadin-button.conversation-question__nav-button,
+vaadin-button.conversation-question__submit-button {
+  color: color-mix(in srgb, var(--composer-text-color, var(--vaadin-text-color)) 88%, transparent);
+}
+
+vaadin-button.conversation-question__nav-button vaadin-icon,
+vaadin-button.conversation-question__submit-button vaadin-icon {
+  color: currentColor;
+  --vaadin-icon-color: currentColor;
+}
+
 vaadin-button.conversation-question__nav-button::part(button),
 vaadin-button.conversation-question__submit-button::part(button) {
   width: 2.5rem;
@@ -702,7 +713,7 @@ vaadin-button.conversation-question__submit-button::part(button) {
   border-radius: calc(var(--vaadin-radius-m) - 2px);
   background: var(--question-control-surface);
   box-shadow: var(--aura-shadow-xs);
-  color: color-mix(in srgb, var(--composer-text-color, var(--vaadin-text-color)) 88%, var(--aura-accent-text-color));
+  color: currentColor;
   transition:
     background var(--motion-fast),
     border-color var(--motion-fast),
@@ -710,9 +721,14 @@ vaadin-button.conversation-question__submit-button::part(button) {
     transform var(--motion-fast);
 }
 
+vaadin-button.conversation-question__nav-button:hover,
+vaadin-button.conversation-question__submit-button:hover {
+  color: var(--aura-accent-contrast-color);
+}
+
 vaadin-button.conversation-question__nav-button:hover::part(button),
 vaadin-button.conversation-question__submit-button:hover::part(button) {
-  color: var(--aura-accent-contrast-color);
+  color: currentColor;
   border-color: var(--aura-accent-border-color);
   background: var(--aura-accent-color);
   transform: translateY(-1px);

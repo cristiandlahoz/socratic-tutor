@@ -14,8 +14,9 @@ set -euo pipefail
 # Optional:
 #   MIN_FREE_VRAM_MB=4096
 #   LLAMA_SERVER_BIN=llama-server
-#   LLAMA_CONTEXT=8192
+#   LLAMA_CONTEXT=20000
 #   GEMMA_CONTEXT=20000
+#   ORNITH_CONTEXT=20000
 #   LLAMA_CACHE=$HOME/.cache/llama.cpp
 #   LLAMA_PARALLEL=1
 #   LLAMA_BATCH_SIZE=1024
@@ -45,10 +46,11 @@ case "$MODEL" in
     ;;
   ornith)
     MODEL="${ORNITH_MODEL:-AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL}"
+    REQUESTED_CONTEXT="${REQUESTED_CONTEXT:-${ORNITH_CONTEXT:-20000}}"
     ;;
 esac
 
-LLAMA_CONTEXT="${REQUESTED_CONTEXT:-8192}"
+LLAMA_CONTEXT="${REQUESTED_CONTEXT:-20000}"
 
 if [[ "$MODEL" != */* ]]; then
   echo "error: MODEL must be a Hugging Face repo reference like repo/model[:quant], or a known alias such as gemma/ornith" >&2

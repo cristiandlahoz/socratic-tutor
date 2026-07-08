@@ -225,6 +225,7 @@ class StudentQuestionPanelElement extends LitElement {
           ?disabled=${this.submitting}
           placeholder=${openQuestion ? 'Escribe tu respuesta...' : 'Agrega contexto extra si quieres...'}
           aria-label=${openQuestion ? 'Respuesta a la pregunta' : 'Respuesta complementaria'}
+          @input=${(event: Event) => this.updateCustomText(currentQuestionKey, event)}
           @value-changed=${(event: CustomEvent<{ value?: string }>) => this.updateCustomText(currentQuestionKey, event)}
         ></vaadin-text-area>
         <div class="conversation-question__composer-actions">
@@ -318,17 +319,35 @@ class StudentQuestionPanelElement extends LitElement {
     this.requestUpdate();
   }
 
-  private updateCustomText(questionId: string, event: CustomEvent<{ value?: string }>): void {
-    this.draftFor(questionId).customText = event.detail.value ?? '';
+  private updateCustomText(questionId: string, event: Event | CustomEvent<{ value?: string }>): void {
+    this.draftFor(questionId).customText = this.customTextFromEvent(event);
     this.requestUpdate();
   }
 
+  private customTextFromEvent(event: Event | CustomEvent<{ value?: string }>): string {
+    if ('detail' in event && typeof event.detail?.value === 'string') {
+      return event.detail.value;
+    }
+
+    const target = event.target as { value?: unknown } | null;
+    return typeof target?.value === 'string' ? target.value : '';
+  }
+
+  private syncActiveCustomText(): void {
+    const textArea = this.querySelector('vaadin-text-area.conversation-question__custom-text') as { value?: unknown } | null;
+    if (typeof textArea?.value === 'string') {
+      this.draftFor(questionKey(this.activeQuestionIndex)).customText = textArea.value;
+    }
+  }
+
   private showPreviousQuestion = (): void => {
+    this.syncActiveCustomText();
     this.activeQuestionIndex = Math.max(0, this.activeQuestionIndex - 1);
     this.requestUpdate();
   };
 
   private showNextQuestion = (): void => {
+    this.syncActiveCustomText();
     const total = this.questionSet?.questions.length ?? 0;
     this.activeQuestionIndex = Math.min(total - 1, this.activeQuestionIndex + 1);
     this.requestUpdate();
@@ -343,6 +362,7 @@ class StudentQuestionPanelElement extends LitElement {
   }
 
   private submitAnswers = (): void => {
+    this.syncActiveCustomText();
     if (!this.canSubmit() || !this.questionSet) {
       return;
     }

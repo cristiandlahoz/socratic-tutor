@@ -24,7 +24,7 @@ public class NavigationRegistry {
             new NavigationEntry("Panel estudiantil", StudentWorkspaceView.class, () -> new SvgIcon("/icons/panels.svg"), ScopeLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, WorkspaceDestination.STUDENT, 12),
             new NavigationEntry("Institución", TenantAdminWorkspaceView.class, () -> new SvgIcon("/icons/panels.svg"), ScopeLevel.TENANT, AppPermission.GROUP_CLASS_CREATE, 20),
             new NavigationEntry("Roles y permisos", RoleMatrixView.class, () -> new SvgIcon("/icons/role.svg"), ScopeLevel.PLATFORM, AppPermission.ROLE_VIEW, 22),
-            new NavigationEntry("Conversación", ConversationView.class, () -> new SvgIcon("/icons/pencil.svg"), ScopeLevel.GROUP_CLASS, AppPermission.CONVERSATION_VIEW, 30),
+            new NavigationEntry("Nueva Conversación", ConversationView.class, () -> new SvgIcon("/icons/pencil.svg"), ScopeLevel.GROUP_CLASS, AppPermission.CONVERSATION_VIEW, 30),
             new NavigationEntry("Documentos", DocumentIngestionView.class, () -> new SvgIcon("/icons/documents.svg"), ScopeLevel.GROUP_CLASS, AppPermission.COURSE_MATERIAL_VIEW, 40),
             new NavigationEntry("Actividades", TrainingActivityView.class, () -> new SvgIcon("/icons/training-activities.svg"), ScopeLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_CREATE, 50));
 
