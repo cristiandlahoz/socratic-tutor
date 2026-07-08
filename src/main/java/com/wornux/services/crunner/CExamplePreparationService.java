@@ -3,6 +3,7 @@ package com.wornux.services.crunner;
 import java.util.List;
 import java.util.Objects;
 
+import com.wornux.config.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -11,7 +12,6 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,9 +37,9 @@ public class CExamplePreparationService {
 
     public CExamplePreparationService(
             ChatModel chatModel,
-            @Value("${app.ai.c-example-preparation.model:${spring.ai.openai.chat.model}}") String model) {
+            ApplicationProperties.Ai.SwitzerlandKnife switzerlandKnifeProperties) {
         this.chatModel = chatModel;
-        this.model = model;
+        this.model = switzerlandKnifeProperties.getModel();
     }
 
     public CExamplePreparationResult prepare(String source, String language) {

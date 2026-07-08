@@ -6,7 +6,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-import com.wornux.config.TutorAiProperties;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.Observation;
@@ -26,18 +25,15 @@ public class ToolUsageAuditService {
     private final MeterRegistry meterRegistry;
     private final ObservationRegistry observationRegistry;
     private final ObjectMapper objectMapper;
-    private final TutorAiProperties tutorAiProperties;
     private final ConcurrentHashMap<UUID, List<ToolExecutionAudit>> auditsByTurnId = new ConcurrentHashMap<>();
 
     public ToolUsageAuditService(
             MeterRegistry meterRegistry,
             ObservationRegistry observationRegistry,
-            ObjectMapper objectMapper,
-            TutorAiProperties tutorAiProperties) {
+            ObjectMapper objectMapper) {
         this.meterRegistry = meterRegistry;
         this.observationRegistry = observationRegistry;
         this.objectMapper = objectMapper;
-        this.tutorAiProperties = tutorAiProperties;
     }
 
     public <T> T audit(
@@ -155,16 +151,12 @@ public class ToolUsageAuditService {
     }
 
     private CapturedToolReturn captureToolReturn(@Nullable Object value) {
-        var observability = tutorAiProperties.getToolObservability();
-        if (observability == null || !observability.isCaptureToolReturns()) {
-            return CapturedToolReturn.disabled();
-        }
         try {
             if (value == null) {
                 return new CapturedToolReturn(true, null, null);
             }
             var json = objectMapper.writeValueAsString(value);
-            return new CapturedToolReturn(true, json, preview(json, observability.getMaxToolReturnChars()));
+            return new CapturedToolReturn(true, json, preview(json));
         }
         catch (JacksonException ex) {
             return new CapturedToolReturn(true,
@@ -177,10 +169,8 @@ public class ToolUsageAuditService {
         return value == null ? "" : value;
     }
 
-    private String preview(String json, int maxToolReturnChars) {
-        var maxLength = Math.max(0, maxToolReturnChars);
-        var oneLine = json.replaceAll("\\s+", " ");
-        return oneLine.length() <= maxLength ? oneLine : oneLine.substring(0, maxLength);
+    private String preview(String json) {
+        return json.replaceAll("\\s+", " ");
     }
 
     private ToolInvocationIds ids(ToolContext toolContext) {
@@ -194,10 +184,6 @@ public class ToolUsageAuditService {
     public record ToolResult<T>(T value, String outputSummary) {}
 
     private record CapturedToolReturn(boolean captured, @Nullable String json, @Nullable String preview) {
-
-        static CapturedToolReturn disabled() {
-            return new CapturedToolReturn(false, null, null);
-        }
     }
 
     private record ToolInvocationIds(UUID groupClassMemberId, UUID conversationId, UUID turnId) {}

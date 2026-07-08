@@ -35,7 +35,7 @@ public class AIConfig {
             ChatClient.Builder builder,
             ChatModel chatModel,
             SessionService sessionService,
-            ChatProperties chatProperties,
+            ApplicationProperties.Ai.Conversation chatProperties,
             GuardClassifierService guardClassifierService,
             RetrieveInformationTool retrieveInformationTool,
             PromptResources promptResources,

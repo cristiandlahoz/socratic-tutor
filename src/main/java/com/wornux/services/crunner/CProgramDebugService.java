@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.wornux.config.CProgramAnalysisProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.infrastructure.external.crunner.DockerGdbCDebuggerAdapter;
 import com.wornux.util.Sha256;
 import org.springframework.stereotype.Service;
@@ -16,10 +16,10 @@ public class CProgramDebugService {
     private static final String SUPPORTED_STANDARD = "c17";
 
     private final DockerGdbCDebuggerAdapter debugger;
-    private final CProgramAnalysisProperties properties;
+    private final ApplicationProperties.CRunner properties;
     private final Cache<CDebugCacheKey, CDebugSessionResult> cache;
 
-    public CProgramDebugService(DockerGdbCDebuggerAdapter debugger, CProgramAnalysisProperties properties) {
+    public CProgramDebugService(DockerGdbCDebuggerAdapter debugger, ApplicationProperties.CRunner properties) {
         this.debugger = debugger;
         this.properties = properties;
         this.cache = Caffeine.newBuilder()

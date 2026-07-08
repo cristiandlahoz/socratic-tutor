@@ -4,8 +4,8 @@ import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.config.AIConfig;
-import com.wornux.config.ChatProperties;
-import com.wornux.config.TutorAiProperties;
+import com.wornux.config.ApplicationProperties;
+import com.wornux.config.ApplicationPropertiesConfiguration;
 import com.wornux.services.document.DocumentRetrievalService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -27,8 +27,8 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootConfiguration
-@EnableConfigurationProperties({ TutorAiProperties.class, ChatProperties.class })
-@Import({ AIConfig.class })
+@EnableConfigurationProperties({ ApplicationProperties.class })
+@Import({ AIConfig.class, ApplicationPropertiesConfiguration.class })
 @ImportAutoConfiguration({
         OpenAiChatAutoConfiguration.class,
         ToolCallingAutoConfiguration.class,
@@ -56,11 +56,8 @@ class AiConfigToolTestSupport {
     ToolUsageAuditService toolUsageAuditService(
             MeterRegistry meterRegistry,
             ObservationRegistry observationRegistry,
-            ObjectMapper objectMapper,
-            TutorAiProperties tutorAiProperties) {
-        tutorAiProperties.getToolObservability().setCaptureToolReturns(true);
-        tutorAiProperties.getToolObservability().setMaxToolReturnChars(1_000);
-        return new ToolUsageAuditService(meterRegistry, observationRegistry, objectMapper, tutorAiProperties);
+            ObjectMapper objectMapper) {
+        return new ToolUsageAuditService(meterRegistry, observationRegistry, objectMapper);
     }
 
     @Bean

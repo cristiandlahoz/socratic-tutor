@@ -3,7 +3,7 @@ package com.wornux.infrastructure.external.crunner;
 import java.util.List;
 import java.util.Map;
 
-import com.wornux.config.CProgramAnalysisProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.services.crunner.CSourceRequest;
 import org.springframework.stereotype.Component;
 
@@ -12,10 +12,10 @@ class CCompilerRunner {
 
     private static final String WORKSPACE = "/workspace";
 
-    private final CProgramAnalysisProperties properties;
+    private final ApplicationProperties.CRunner properties;
     private final DockerContainerRunner containerRunner;
 
-    CCompilerRunner(CProgramAnalysisProperties properties, DockerContainerRunner containerRunner) {
+    CCompilerRunner(ApplicationProperties.CRunner properties, DockerContainerRunner containerRunner) {
         this.properties = properties;
         this.containerRunner = containerRunner;
     }

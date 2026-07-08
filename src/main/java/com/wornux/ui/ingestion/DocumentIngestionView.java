@@ -3,7 +3,7 @@ package com.wornux.ui.ingestion;
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.router.Route;
-import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.document.DocumentIngestionJobRegistry;
@@ -20,7 +20,7 @@ public class DocumentIngestionView extends Composite<Div> {
 
     public DocumentIngestionView(
             DocumentWorkspaceService workspaceService,
-            DocumentIngestionProperties properties,
+            ApplicationProperties.DocumentIngest properties,
             DocumentIngestionJobRegistry jobRegistry) {
         var root = getContent();
         root.setId("document-ingestion-view");

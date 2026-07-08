@@ -6,7 +6,7 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.wornux.config.ChatProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.conversation.Conversation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +24,7 @@ class ChatUsageServiceTest {
 
     @BeforeEach
     void setUp() {
-        var properties = new ChatProperties();
+        var properties = new ApplicationProperties.Ai.Conversation();
         properties.setContextWindowTokens(10_000);
         properties.setCompactionThresholdRatio(0.5);
         chatUsageService = new ChatUsageService(conversationService, properties);

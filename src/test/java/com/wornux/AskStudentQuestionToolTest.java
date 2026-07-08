@@ -41,8 +41,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
                 "spring.ai.openai.base-url=${OPENAI_BASE_URL:http://127.0.0.1:8080/v1}",
                 "spring.ai.openai.chat.model=${CHAT_MODEL:AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL}",
                 "spring.ai.tools.throw-exception-on-error=true",
-                "app.chat.context-window-tokens=8192",
-                "app.chat.compaction-threshold-ratio=0.30",
+                "app.ai.conversation.config.context-window-tokens=8192",
+                "app.ai.conversation.config.compaction-threshold-ratio=0.30",
                 "test.openai.transcript-name=ask-student-question-tool-test" })
 class AskStudentQuestionToolTest {
 

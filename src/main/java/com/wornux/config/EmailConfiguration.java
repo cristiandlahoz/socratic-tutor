@@ -11,7 +11,7 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 public class EmailConfiguration {
 
     @Bean
-    JavaMailSender javaMailSender(SocraticEmailProperties emailProperties) {
+    JavaMailSender javaMailSender(ApplicationProperties.Email emailProperties) {
         var sender = new JavaMailSenderImpl();
         sender.setHost(emailProperties.getSmtp().getHost());
         sender.setPort(emailProperties.getSmtp().getPort());

@@ -12,7 +12,7 @@ import java.util.concurrent.Executor;
 
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.RouteParameters;
-import com.wornux.config.ChatProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.security.authorization.RequiresPermission;
@@ -109,8 +109,8 @@ class RouteAccessViewTest {
         assertThat(permission.workspace()).isEqualTo(WorkspaceDestination.PROFESSOR);
     }
 
-    private ChatProperties chatProperties() {
-        var properties = new ChatProperties();
+    private ApplicationProperties.Ai.Conversation chatProperties() {
+        var properties = new ApplicationProperties.Ai.Conversation();
         properties.setContextWindowTokens(8192);
         return properties;
     }

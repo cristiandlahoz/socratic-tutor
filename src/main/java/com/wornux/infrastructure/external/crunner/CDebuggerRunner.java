@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.github.dockerjava.api.model.Capability;
-import com.wornux.config.CProgramAnalysisProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.services.crunner.CDebugRequest;
 import org.springframework.stereotype.Component;
 
@@ -13,10 +13,10 @@ class CDebuggerRunner {
 
     private static final String WORKSPACE = "/workspace";
 
-    private final CProgramAnalysisProperties properties;
+    private final ApplicationProperties.CRunner properties;
     private final DockerContainerRunner containerRunner;
 
-    CDebuggerRunner(CProgramAnalysisProperties properties, DockerContainerRunner containerRunner) {
+    CDebuggerRunner(ApplicationProperties.CRunner properties, DockerContainerRunner containerRunner) {
         this.properties = properties;
         this.containerRunner = containerRunner;
     }

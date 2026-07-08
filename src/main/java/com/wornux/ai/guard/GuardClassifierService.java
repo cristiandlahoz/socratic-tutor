@@ -6,6 +6,7 @@ import java.util.List;
 import com.wornux.ai.prompt.PromptResources;
 import com.wornux.data.enums.GuardDecision;
 import com.wornux.dtos.chat.GuardCheck;
+import com.wornux.config.ApplicationProperties;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -14,7 +15,6 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -33,10 +33,10 @@ public class GuardClassifierService {
     public GuardClassifierService(
             @Qualifier("openAiChatModel") ChatModel chatModel,
             PromptResources promptResources,
-            @Value("${app.ai.guard.model}") String guardModel) {
+            ApplicationProperties.Ai.SwitzerlandKnife switzerlandKnifeProperties) {
         this.chatModel = chatModel;
         this.promptResources = promptResources;
-        this.guardModel = guardModel;
+        this.guardModel = switzerlandKnifeProperties.getModel();
     }
 
     public GuardDecision classify(List<UserMessage> userMessages) {

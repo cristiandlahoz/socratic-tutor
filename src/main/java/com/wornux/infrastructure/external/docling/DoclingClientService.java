@@ -19,7 +19,7 @@ import ai.docling.serve.api.convert.request.source.FileSource;
 import ai.docling.serve.api.convert.request.target.InBodyTarget;
 import ai.docling.serve.api.convert.response.ConvertDocumentResponse;
 import ai.docling.serve.api.convert.response.InBodyConvertDocumentResponse;
-import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.dtos.document.*;
 import io.arconia.ai.document.docling.DoclingDocumentParser;
 import io.arconia.ai.document.docling.DoclingDocumentReader;
@@ -44,9 +44,9 @@ public class DoclingClientService {
     private static final String RAW_TEXT = "rawText";
     private static final String TOKEN_COUNT = "tokenCount";
     private final DoclingServeApi doclingServeApi;
-    private final DocumentIngestionProperties properties;
+    private final ApplicationProperties.DocumentIngest properties;
 
-    public DoclingClientService(DoclingServeApi doclingServeApi, DocumentIngestionProperties properties) {
+    public DoclingClientService(DoclingServeApi doclingServeApi, ApplicationProperties.DocumentIngest properties) {
         this.doclingServeApi = doclingServeApi;
         this.properties = properties;
         var hybrid = properties.getChunking().getHybrid();
@@ -88,6 +88,28 @@ public class DoclingClientService {
         catch (RuntimeException ex) {
             throw new DocumentIngestionException(
                     "Docling no pudo crear segmentos para este PDF. Revisa que Docling Serve este disponible e intenta de nuevo.",
+                    ex);
+        }
+    }
+
+    public String convertPdfToMarkdown(String filename, byte[] content) {
+        try {
+            String markdown = markdown(doclingServeApi.convertSource(buildConvertMarkdownRequest(filename, content)));
+            log.info(
+                "docling_markdown_conversion_trace filename={} final_md_length={}",
+                filename,
+                markdown.length());
+            if (markdown.isBlank()) {
+                throw new DocumentIngestionException("Docling returned an empty syllabus document.");
+            }
+            return markdown;
+        }
+        catch (DocumentIngestionException ex) {
+            throw ex;
+        }
+        catch (RuntimeException ex) {
+            throw new DocumentIngestionException(
+                    "Docling no pudo convertir este PDF a markdown. Revisa que Docling Serve este disponible e intenta de nuevo.",
                     ex);
         }
     }

@@ -21,7 +21,7 @@ import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.UploadI18N;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.streams.UploadHandler;
-import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.services.document.ApproveDocumentCommand;
 import com.wornux.services.document.CourseMaterialCatalog;
 import com.wornux.services.document.DocumentIngestionJobRegistry;
@@ -48,7 +48,7 @@ public class DocumentIngestionWorkspace extends Component {
 
     public DocumentIngestionWorkspace(
             DocumentWorkspaceService workspaceService,
-            DocumentIngestionProperties properties,
+            ApplicationProperties.DocumentIngest properties,
             DocumentIngestionJobRegistry jobRegistry) {
         this.workspaceService = workspaceService;
         this.jobRegistry = jobRegistry;
@@ -115,7 +115,7 @@ public class DocumentIngestionWorkspace extends Component {
         return toJson(workspaceService.listDocuments());
     }
 
-    private void configureUpload(DocumentIngestionProperties properties) {
+    private void configureUpload(ApplicationProperties.DocumentIngest properties) {
         var upload = new Upload(UploadHandler.inMemory((metadata, data) -> {
             var command = new StartIngestionCommand(metadata.fileName(), metadata.contentType(), data);
             jobRegistry.startIngestion(jobRegistry.requireProfessorContext(), command);

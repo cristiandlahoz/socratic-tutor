@@ -16,6 +16,7 @@ import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.prompt.PromptUtil;
 import com.wornux.dtos.document.DocumentIngestionException;
 import com.wornux.ui.ingestion.EditableSegmentViewModel;
+import com.wornux.config.ApplicationProperties;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -23,7 +24,6 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -43,13 +43,15 @@ public class DocumentCatalogGenerationService {
     private final BeanOutputConverter<SpecificityBatchClassification> specificityOutputConverter =
             new BeanOutputConverter<>(SpecificityBatchClassification.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final String model;
 
-    @Value("${app.ai.switzerland-knife.model:${app.ai.guard.model}}")
-    private String model;
-
-    public DocumentCatalogGenerationService(ChatModel chatModel, PromptResources promptResources) {
+    public DocumentCatalogGenerationService(
+            ChatModel chatModel,
+            PromptResources promptResources,
+            ApplicationProperties.Ai.SwitzerlandKnife switzerlandKnifeProperties) {
         this.chatModel = chatModel;
         this.promptResources = promptResources;
+        this.model = switzerlandKnifeProperties.getModel();
     }
 
     public CourseMaterialCatalog generate(String title, String useWhen, List<EditableSegmentViewModel> segments) {

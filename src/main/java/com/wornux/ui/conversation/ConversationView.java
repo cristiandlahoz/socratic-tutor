@@ -21,7 +21,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
-import com.wornux.config.ChatProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
@@ -65,7 +65,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     public ConversationView(
             @RouteScopeOwner(MainLayout.class) ConversationState state,
             @RouteScopeOwner(MainLayout.class) ConversationViewModel viewModel,
-            ChatProperties chatProperties,
+            ApplicationProperties.Ai.Conversation chatProperties,
             CProgramDebugService cProgramDebugService,
             CExamplePreparationService cExamplePreparationService,
             @Qualifier("cRunnerExecutor") Executor cRunnerExecutor,

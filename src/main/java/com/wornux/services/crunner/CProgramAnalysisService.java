@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.wornux.config.CProgramAnalysisProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.infrastructure.external.crunner.DockerGccCCompilerAdapter;
 import com.wornux.util.Sha256;
 import org.springframework.stereotype.Service;
@@ -16,10 +16,10 @@ public class CProgramAnalysisService {
     private static final String SUPPORTED_STANDARD = "c17";
 
     private final DockerGccCCompilerAdapter compiler;
-    private final CProgramAnalysisProperties properties;
+    private final ApplicationProperties.CRunner properties;
     private final Cache<CValidationCacheKey, CValidationResult> cache;
 
-    public CProgramAnalysisService(DockerGccCCompilerAdapter compiler, CProgramAnalysisProperties properties) {
+    public CProgramAnalysisService(DockerGccCCompilerAdapter compiler, ApplicationProperties.CRunner properties) {
         this.compiler = compiler;
         this.properties = properties;
         this.cache = Caffeine.newBuilder()

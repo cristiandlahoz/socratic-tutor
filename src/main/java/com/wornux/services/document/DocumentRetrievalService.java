@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.dtos.document.DocumentContextResult;
 import com.wornux.dtos.document.DocumentPageResult;
 import com.wornux.dtos.document.DocumentSearchHit;
@@ -30,12 +30,12 @@ public class DocumentRetrievalService {
 
     private final VectorStore vectorStore;
     private final JdbcClient jdbcClient;
-    private final DocumentIngestionProperties properties;
+    private final ApplicationProperties.DocumentIngest properties;
 
     public DocumentRetrievalService(
             VectorStore vectorStore,
             JdbcClient jdbcClient,
-            DocumentIngestionProperties properties) {
+            ApplicationProperties.DocumentIngest properties) {
         this.vectorStore = vectorStore;
         this.jdbcClient = jdbcClient;
         this.properties = properties;

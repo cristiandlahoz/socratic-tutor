@@ -3,7 +3,7 @@ package com.wornux.services.document;
 import java.util.List;
 import java.util.UUID;
 
-import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.enums.DocumentStatus;
 import com.wornux.dtos.document.DoclingSegmentDraft;
@@ -22,14 +22,14 @@ public class DocumentIngestionService {
     private final DoclingClientService doclingClientService;
     private final DocumentVectorIndexingService indexingService;
     private final DocumentCatalogGenerationService catalogGenerationService;
-    private final DocumentIngestionProperties properties;
+    private final ApplicationProperties.DocumentIngest properties;
     private final ActiveAcademicContextResolver contextResolver;
 
     public DocumentIngestionService(
             DoclingClientService doclingClientService,
             DocumentVectorIndexingService indexingService,
             DocumentCatalogGenerationService catalogGenerationService,
-            DocumentIngestionProperties properties,
+            ApplicationProperties.DocumentIngest properties,
             ActiveAcademicContextResolver contextResolver) {
         this.doclingClientService = doclingClientService;
         this.indexingService = indexingService;

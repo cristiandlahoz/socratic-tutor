@@ -2,7 +2,7 @@ package com.wornux.services.onboarding;
 
 import java.util.HashMap;
 
-import com.wornux.config.SocraticEmailProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.onboarding.Invitation;
 import com.wornux.services.email.EmailMessage;
 import com.wornux.services.email.EmailService;
@@ -13,12 +13,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class InvitationEmailService {
 
-    private final SocraticEmailProperties emailProperties;
+    private final ApplicationProperties.Email emailProperties;
     private final EmailTemplateService emailTemplateService;
     private final EmailService emailService;
 
     public InvitationEmailService(
-            SocraticEmailProperties emailProperties,
+            ApplicationProperties.Email emailProperties,
             EmailTemplateService emailTemplateService,
             EmailService emailService) {
         this.emailProperties = emailProperties;

@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import com.wornux.config.SocraticEmailProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InvitationService {
 
-    private final SocraticEmailProperties emailProperties;
+    private final ApplicationProperties.Email emailProperties;
     private final InvitationRepository invitationRepository;
     private final AccountRepository accountRepository;
     private final TenantRepository tenantRepository;
@@ -59,7 +59,7 @@ public class InvitationService {
     private final RoleTemplateSeeder roleTemplateSeeder;
 
     public InvitationService(
-            SocraticEmailProperties emailProperties,
+            ApplicationProperties.Email emailProperties,
             InvitationRepository invitationRepository,
             AccountRepository accountRepository,
             TenantRepository tenantRepository,
