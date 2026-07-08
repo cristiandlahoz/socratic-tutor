@@ -124,8 +124,8 @@ class CDebuggerPanel extends LitElement {
       <div class="c-runner-scroll-shell">
         <div class="c-runner-panel">
           <div class="c-runner-header">
-            <button class="c-runner-panel-toggle" type="button" title="Ocultar depurador" @click=${this.closePanel}>
-              <vaadin-icon src="/icons/IconArrowRight.svg" aria-hidden="true"></vaadin-icon>
+            <button class="c-runner-panel-toggle" type="button" title="Ocultar depurador" aria-label="Ocultar depurador" @click=${this.closePanel}>
+              <vaadin-icon src="/icons/IconSidebarOpen.svg" aria-hidden="true"></vaadin-icon>
             </button>
             <h2 class="c-runner-title">Depurador Visual</h2>
           </div>
@@ -210,9 +210,9 @@ class CDebuggerPanel extends LitElement {
   private renderControls() {
     return html`
       <div class="c-runner-controls">
-        ${this.renderControlButton('/icons/IconArrowRight.svg', 'Ejecutar depuracion', 'c-runner-validate-button', this.validateDebug)}
-        ${this.renderControlButton('/icons/IconArrowRight.svg', 'Paso siguiente', '', this.stepDebug)}
-        ${this.renderControlButton('/icons/IconReload.svg', 'Reiniciar', '', this.resetDebug)}
+        ${this.renderControlButton('/icons/IconDebuggerRun.svg', 'Ejecutar depuracion', 'c-runner-validate-button', this.validateDebug)}
+        ${this.renderControlButton('/icons/IconDebuggerStep.svg', 'Paso siguiente', 'c-runner-step-button', this.stepDebug)}
+        ${this.renderControlButton('/icons/IconDebuggerReload.svg', 'Reiniciar', 'c-runner-reset-button', this.resetDebug)}
       </div>
     `;
   }
