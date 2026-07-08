@@ -1,5 +1,2 @@
-Field name:
-$fieldName$
-
-Text to classify:
-$value$
+Classify each item in this request JSON:
+$request$
