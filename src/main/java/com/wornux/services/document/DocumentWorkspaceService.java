@@ -118,8 +118,13 @@ public class DocumentWorkspaceService {
 
     public DocumentWorkspaceDetail reindex(DocumentWorkspaceDetail detail) {
         var context = requireProfessorContext();
+        return reindex(detail, context);
+    }
+
+    public DocumentWorkspaceDetail reindex(DocumentWorkspaceDetail detail, ActiveAcademicContext context) {
+        requireProfessorContext(context);
         var ingestionId = parseIngestionId(detail.ingestionId());
-        deleteDocument(ingestionId.toString());
+        indexingService.delete(vectorIdsFor(context.groupClassId(), ingestionId));
         var segments = detail.segments() == null ? List.<EditableSegmentViewModel>of() : detail.segments();
         var nextSegments = normalizeOrdinals(segments);
         var catalog = detail.catalog() == null ? new CourseMaterialCatalog(detail.title(), "", List.of()) : detail.catalog();
@@ -211,10 +216,14 @@ public class DocumentWorkspaceService {
 
     private ActiveAcademicContext requireProfessorContext() {
         var context = contextResolver.requireCurrent();
+        requireProfessorContext(context);
+        return context;
+    }
+
+    private void requireProfessorContext(ActiveAcademicContext context) {
         if (context.groupClassKind() != GroupClassMemberKind.PROFESSOR) {
             throw new SetupRequiredException("An active professor class context is required for grounding uploads.");
         }
-        return context;
     }
 
     private UUID parseIngestionId(@Nullable String value) {

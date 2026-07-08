@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.JsModule;
@@ -18,16 +19,16 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.UploadI18N;
+import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.services.document.ApproveDocumentCommand;
 import com.wornux.services.document.CourseMaterialCatalog;
-import com.wornux.services.document.DocumentIngestionService;
+import com.wornux.services.document.DocumentIngestionJobRegistry;
 import com.wornux.services.document.DocumentWorkspaceDetail;
 import com.wornux.services.document.DocumentWorkspaceService;
 import com.wornux.services.document.StartIngestionCommand;
 import com.wornux.ui.css.UiCss;
-import com.wornux.ui.ingestion.DocumentReviewViewModel;
 import com.wornux.ui.ingestion.EditableSegmentViewModel;
 
 @Tag("document-ingestion-workspace")
@@ -41,18 +42,20 @@ public class DocumentIngestionWorkspace extends Component {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final TypeReference<List<EditableSegmentViewModel>> SEGMENT_LIST_TYPE = new TypeReference<>() {};
 
-    private final DocumentIngestionService ingestionService;
     private final DocumentWorkspaceService workspaceService;
-    private final transient Object ingestionLock = new Object();
+    private final transient DocumentIngestionJobRegistry jobRegistry;
+    private transient AutoCloseable jobSubscription;
 
     public DocumentIngestionWorkspace(
-            DocumentIngestionService ingestionService,
             DocumentWorkspaceService workspaceService,
-            DocumentIngestionProperties properties) {
-        this.ingestionService = ingestionService;
+            DocumentIngestionProperties properties,
+            DocumentIngestionJobRegistry jobRegistry) {
         this.workspaceService = workspaceService;
+        this.jobRegistry = jobRegistry;
         setId("document-ingestion-workspace");
         UiCss.DOCUMENT_INGEST_VIEW.addTo(this);
+        addAttachListener(event -> attachJobStream(event.getUI()));
+        addDetachListener(_ -> detachJobStream());
         configureUpload(properties);
     }
 
@@ -67,23 +70,43 @@ public class DocumentIngestionWorkspace extends Component {
     }
 
     @ClientCallable
-    public String generateCatalog(String title, String useWhen, String segmentsJson) {
+    public String generateCatalog(String ingestionId, String title, String useWhen, String markdown, String segmentsJson) {
         var segments = parseSegments(segmentsJson);
-        return toJson(ingestionService.generateCatalog(title, useWhen, segments));
+        var context = jobRegistry.requireProfessorContext();
+        jobRegistry.startCatalog(context, ingestionId, title, useWhen, markdown, segments);
+        return toJson(jobRegistry.snapshot(context));
     }
 
     @ClientCallable
     public String indexDraft(String ingestionId, String title, String catalogJson, String markdown, String segmentsJson) {
         var catalog = fromJson(catalogJson, CourseMaterialCatalog.class);
         var segments = parseSegments(segmentsJson);
-        var review = ingestionService.approve(new ApproveDocumentCommand(ingestionId, title, catalog, markdown, segments));
-        return toJson(toWorkspaceDetail(review, catalog));
+        var context = jobRegistry.requireProfessorContext();
+        jobRegistry.startIndex(context, new ApproveDocumentCommand(ingestionId, title, catalog, markdown, segments));
+        return toJson(jobRegistry.snapshot(context));
     }
 
     @ClientCallable
     public String reindexDocument(String detailJson) {
         var detail = fromJson(detailJson, DocumentWorkspaceDetail.class);
-        return toJson(workspaceService.reindex(detail));
+        var context = jobRegistry.requireProfessorContext();
+        jobRegistry.startReindex(context, detail);
+        return toJson(jobRegistry.snapshot(context));
+    }
+
+    @ClientCallable
+    public String updateDraft(String detailJson) {
+        var detail = fromJson(detailJson, DocumentWorkspaceDetail.class);
+        var context = jobRegistry.requireProfessorContext();
+        jobRegistry.updateDraft(context, detail);
+        return "{}";
+    }
+
+    @ClientCallable
+    public String deleteDraft(String ingestionId) {
+        var context = jobRegistry.requireProfessorContext();
+        jobRegistry.deleteDraft(context, ingestionId);
+        return toJson(jobRegistry.snapshot(context));
     }
 
     @ClientCallable
@@ -94,12 +117,8 @@ public class DocumentIngestionWorkspace extends Component {
 
     private void configureUpload(DocumentIngestionProperties properties) {
         var upload = new Upload(UploadHandler.inMemory((metadata, data) -> {
-            var ui = getUI().orElse(null);
-            synchronized (ingestionLock) {
-                var review = ingestionService.startIngestion(
-                    new StartIngestionCommand(metadata.fileName(), metadata.contentType(), data));
-                runUi(ui, () -> pushDraft(review));
-            }
+            var command = new StartIngestionCommand(metadata.fileName(), metadata.contentType(), data);
+            jobRegistry.startIngestion(jobRegistry.requireProfessorContext(), command);
         }));
         upload.setId("document-ingestion-upload");
         upload.setDropAllowed(true);
@@ -154,22 +173,30 @@ public class DocumentIngestionWorkspace extends Component {
         return i18n;
     }
 
-    private void pushDraft(DocumentReviewViewModel review) {
-        var detail = toWorkspaceDetail(review, null);
-        runClient("this.receiveDraft($0)", toJson(detail));
+    private void attachJobStream(UI ui) {
+        detachJobStream();
+        var context = jobRegistry.requireProfessorContext();
+        var session = ui.getSession();
+        jobSubscription = jobRegistry.subscribe(
+            context,
+            snapshot -> runUiSideEffect(ui, session, () -> pushJobSnapshot(snapshot)));
     }
 
-    private DocumentWorkspaceDetail toWorkspaceDetail(
-            DocumentReviewViewModel review,
-            CourseMaterialCatalog catalog) {
-        return new DocumentWorkspaceDetail(
-            review.ingestionId(),
-            review.filename(),
-            review.indexed() ? "INDEXED" : "REVIEW_READY",
-            catalog,
-            review.markdown(),
-            review.segments(),
-            review.vectorIds());
+    private void detachJobStream() {
+        if (jobSubscription == null) {
+            return;
+        }
+        try {
+            jobSubscription.close();
+        }
+        catch (Exception _) {
+            // Best-effort UI subscription cleanup.
+        }
+        jobSubscription = null;
+    }
+
+    private void pushJobSnapshot(DocumentIngestionJobRegistry.DocumentJobSnapshot snapshot) {
+        runClient("this.applyJobSnapshot($0)", toJson(snapshot));
     }
 
     private List<EditableSegmentViewModel> parseSegments(String segmentsJson) {
@@ -206,11 +233,15 @@ public class DocumentIngestionWorkspace extends Component {
         getElement().executeJs(expression, arguments);
     }
 
-    private void runUi(com.vaadin.flow.component.UI ui, Runnable runnable) {
-        if (ui == null) {
-            runnable.run();
+    private void runUiSideEffect(UI ui, VaadinSession session, Runnable callback) {
+        if (ui != null && ui.isAttached()) {
+            ui.access(callback::run);
             return;
         }
-        ui.access(runnable::run);
+        if (session != null) {
+            session.access(callback::run);
+            return;
+        }
+        callback.run();
     }
 }

@@ -49,10 +49,26 @@ type DocumentDetail = {
   vectorIds: string[];
 };
 
+type DocumentJobSnapshot = {
+  drafts: DocumentDetail[];
+  busy: boolean;
+  activeJobCount: number;
+  statusMessage: string;
+  errorMessage: string;
+  reloadDocuments: boolean;
+  selectedDetail: DocumentDetail | null;
+};
+
 type ServerBridge = {
   loadDocuments(): Promise<string>;
   loadDocument(ingestionId: string): Promise<string>;
-  generateCatalog(title: string, useWhen: string, segmentsJson: string): Promise<string>;
+  generateCatalog(
+    ingestionId: string,
+    title: string,
+    useWhen: string,
+    markdown: string,
+    segmentsJson: string
+  ): Promise<string>;
   indexDraft(
     ingestionId: string,
     title: string,
@@ -61,6 +77,8 @@ type ServerBridge = {
     segmentsJson: string
   ): Promise<string>;
   reindexDocument(detailJson: string): Promise<string>;
+  updateDraft(detailJson: string): Promise<string>;
+  deleteDraft(ingestionId: string): Promise<string>;
   deleteDocument(ingestionId: string): Promise<string>;
 };
 
@@ -617,6 +635,7 @@ class DocumentIngestionWorkspaceElement extends LitElement {
     selectedId: { state: true },
     dirty: { state: true },
     busy: { state: true },
+    pendingIngestionCount: { state: true },
     statusMessage: { state: true },
     errorMessage: { state: true },
     activeTab: { state: true },
@@ -629,6 +648,7 @@ class DocumentIngestionWorkspaceElement extends LitElement {
   declare selectedId: string;
   declare dirty: boolean;
   declare busy: boolean;
+  declare pendingIngestionCount: number;
   declare statusMessage: string;
   declare errorMessage: string;
   declare activeTab: 'segments' | 'catalog' | 'markdown';
@@ -644,6 +664,7 @@ class DocumentIngestionWorkspaceElement extends LitElement {
     this.selectedId = '';
     this.dirty = false;
     this.busy = false;
+    this.pendingIngestionCount = 0;
     this.statusMessage = '';
     this.errorMessage = '';
     this.activeTab = 'segments';
@@ -655,11 +676,24 @@ class DocumentIngestionWorkspaceElement extends LitElement {
     void this.loadDocuments();
   }
 
-  receiveDraft(detailJson: string): void {
-    const detail = parseJson<DocumentDetail>(detailJson);
-    this.errorMessage = '';
-    this.drafts = [detail, ...this.drafts.filter((draft) => draft.ingestionId !== detail.ingestionId)];
-    this.selectDetail(detail, false);
+  async applyJobSnapshot(snapshotJson: string): Promise<void> {
+    const snapshot = parseJson<DocumentJobSnapshot>(snapshotJson);
+    this.pendingIngestionCount = snapshot.activeJobCount;
+    this.busy = snapshot.busy;
+    this.errorMessage = snapshot.errorMessage || '';
+    this.statusMessage = snapshot.statusMessage || '';
+    this.drafts = snapshot.drafts.map(cloneDetail);
+    if (snapshot.selectedDetail) {
+      this.selectDetail(snapshot.selectedDetail, false);
+    } else if (this.selectedDocument?.status === 'REVIEW_READY') {
+      const selectedDraft = this.drafts.find((draft) => draft.ingestionId === this.selectedDocument?.ingestionId);
+      if (selectedDraft) {
+        this.selectDetail(selectedDraft, false);
+      }
+    }
+    if (snapshot.reloadDocuments) {
+      await this.loadDocuments();
+    }
   }
 
   protected render() {
@@ -929,7 +963,7 @@ class DocumentIngestionWorkspaceElement extends LitElement {
     } catch (error) {
       this.errorMessage = message(error);
     } finally {
-      this.busy = false;
+      this.busy = this.pendingIngestionCount > 0;
     }
   }
 
@@ -981,16 +1015,19 @@ class DocumentIngestionWorkspaceElement extends LitElement {
     this.busy = true;
     this.errorMessage = '';
     try {
-      const catalog = parseJson<CourseMaterialCatalog>(
-        await this.server().generateCatalog(detail.title, this.catalogUseWhen, JSON.stringify(detail.segments))
+      await this.applyJobSnapshot(
+        await this.server().generateCatalog(
+          detail.ingestionId,
+          detail.title,
+          this.catalogUseWhen,
+          detail.markdown,
+          JSON.stringify(detail.segments)
+        )
       );
-      this.selectedDocument = { ...detail, catalog };
-      this.replaceDraft(this.selectedDocument);
-      this.statusMessage = 'Catálogo generado. Ya puedes indexar el documento.';
     } catch (error) {
       this.errorMessage = message(error);
     } finally {
-      this.busy = false;
+      this.busy = this.pendingIngestionCount > 0;
     }
   }
 
@@ -1002,27 +1039,21 @@ class DocumentIngestionWorkspaceElement extends LitElement {
     this.busy = true;
     this.errorMessage = '';
     try {
-      const next =
+      const snapshot =
         detail.status === 'REVIEW_READY'
-          ? parseJson<DocumentDetail>(
-            await this.server().indexDraft(
-              detail.ingestionId,
-              detail.title,
-              JSON.stringify(detail.catalog),
-              detail.markdown,
-              JSON.stringify(detail.segments)
-            )
+          ? await this.server().indexDraft(
+            detail.ingestionId,
+            detail.title,
+            JSON.stringify(detail.catalog),
+            detail.markdown,
+            JSON.stringify(detail.segments)
           )
-          : parseJson<DocumentDetail>(await this.server().reindexDocument(JSON.stringify(detail)));
-      this.drafts = this.drafts.filter((draft) => draft.ingestionId !== next.ingestionId);
-      this.detailCache.set(next.ingestionId, cloneDetail(next));
-      this.selectDetail(next, false);
-      this.documents = parseJson<DocumentCard[]>(await this.server().loadDocuments());
-      this.statusMessage = 'Documento indexado para el tutor.';
+          : await this.server().reindexDocument(JSON.stringify(detail));
+      await this.applyJobSnapshot(snapshot);
     } catch (error) {
       this.errorMessage = message(error);
     } finally {
-      this.busy = false;
+      this.busy = this.pendingIngestionCount > 0;
     }
   }
 
@@ -1032,7 +1063,7 @@ class DocumentIngestionWorkspaceElement extends LitElement {
       return;
     }
     if (detail.status === 'REVIEW_READY') {
-      this.drafts = this.drafts.filter((draft) => draft.ingestionId !== detail.ingestionId);
+      await this.applyJobSnapshot(await this.server().deleteDraft(detail.ingestionId));
       this.clearSelection();
       return;
     }
@@ -1094,6 +1125,9 @@ class DocumentIngestionWorkspaceElement extends LitElement {
     this.dirty = this.dirty || indexedMutation;
     if (detail.status === 'REVIEW_READY') {
       this.replaceDraft(detail);
+      void this.server().updateDraft(JSON.stringify(detail)).catch((error: unknown) => {
+        this.errorMessage = message(error);
+      });
     }
   }
 
