@@ -3,6 +3,7 @@ import '@vaadin/icon';
 import '@vaadin/icons';
 import '@vaadin/popover';
 import '@vaadin/text-area';
+import type { TextArea } from '@vaadin/text-area';
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { renderConversationDisclaimer } from './conversation-disclaimer.js';
@@ -100,6 +101,7 @@ class StudentQuestionPanelElement extends LitElement {
 
   private activeQuestionIndex = 0;
   private answerDrafts = new Map<string, AnswerDraft>();
+  private questionSetSignature: string | null = null;
 
   constructor() {
     super();
@@ -113,19 +115,34 @@ class StudentQuestionPanelElement extends LitElement {
 
   setQuestionSet(value: unknown): void {
     this.questionSet = normalizeQuestionSet(value);
-    this.resetAnswers();
+    this.reconcileQuestionSet();
   }
 
   protected willUpdate(changedProperties: Map<PropertyKey, unknown>): void {
     if (changedProperties.has('questionSet')) {
-      this.resetAnswers();
+      this.reconcileQuestionSet();
     }
+  }
+
+  private reconcileQuestionSet(): void {
+    const signature = this.signatureForQuestionSet(this.questionSet);
+    if (signature === this.questionSetSignature) {
+      this.ensureDrafts();
+      return;
+    }
+
+    this.questionSetSignature = signature;
+    this.resetAnswers();
   }
 
   private resetAnswers(): void {
     this.activeQuestionIndex = 0;
     this.answerDrafts = new Map();
     this.ensureDrafts();
+  }
+
+  private signatureForQuestionSet(questionSet: StudentQuestionSet | null): string | null {
+    return questionSet == null ? null : JSON.stringify(questionSet);
   }
 
   setSubmitting(value: boolean): void {
@@ -225,8 +242,7 @@ class StudentQuestionPanelElement extends LitElement {
           ?disabled=${this.submitting}
           placeholder=${openQuestion ? 'Escribe tu respuesta...' : 'Agrega contexto extra si quieres...'}
           aria-label=${openQuestion ? 'Respuesta a la pregunta' : 'Respuesta complementaria'}
-          @input=${(event: Event) => this.updateCustomText(currentQuestionKey, event)}
-          @value-changed=${(event: CustomEvent<{ value?: string }>) => this.updateCustomText(currentQuestionKey, event)}
+          @input=${(event: Event) => this.updateCustomTextFromTextArea(currentQuestionKey, event)}
         ></vaadin-text-area>
         <div class="conversation-question__composer-actions">
           ${this.renderPreviousButton()}
@@ -319,22 +335,18 @@ class StudentQuestionPanelElement extends LitElement {
     this.requestUpdate();
   }
 
-  private updateCustomText(questionId: string, event: Event | CustomEvent<{ value?: string }>): void {
-    this.draftFor(questionId).customText = this.customTextFromEvent(event);
+  private updateCustomTextFromTextArea(questionId: string, event: Event): void {
+    const textArea = event.currentTarget as TextArea | null;
+    this.updateCustomText(questionId, textArea?.value ?? '');
+  }
+
+  private updateCustomText(questionId: string, value: string): void {
+    this.draftFor(questionId).customText = value;
     this.requestUpdate();
   }
 
-  private customTextFromEvent(event: Event | CustomEvent<{ value?: string }>): string {
-    if ('detail' in event && typeof event.detail?.value === 'string') {
-      return event.detail.value;
-    }
-
-    const target = event.target as { value?: unknown } | null;
-    return typeof target?.value === 'string' ? target.value : '';
-  }
-
   private syncActiveCustomText(): void {
-    const textArea = this.querySelector('vaadin-text-area.conversation-question__custom-text') as { value?: unknown } | null;
+    const textArea = this.querySelector('vaadin-text-area.conversation-question__custom-text') as TextArea | null;
     if (typeof textArea?.value === 'string') {
       this.draftFor(questionKey(this.activeQuestionIndex)).customText = textArea.value;
     }

@@ -1,4 +1,5 @@
 import '@vaadin/button';
+import 'Frontend/shell/width-aware-label.js';
 import { normalizeArrayProperty } from 'Frontend/shared/dom-utils.js';
 import { LitElement, html, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
@@ -353,7 +354,7 @@ class ConversationsHistory extends LitElement {
         }
 
         .conversations-history-item-title,
-        .width-aware-label.conversations-history-item-title {
+        width-aware-label.conversations-history-item-title {
           min-width: 0;
           display: block;
           white-space: nowrap;
@@ -441,7 +442,10 @@ class ConversationsHistory extends LitElement {
       >
         <div class=${classMap(rowClasses)}>
           ${this.renderNode(entry, active)}
-          <span class="conversations-history-item-title">${entry.conversation.title}</span>
+          <width-aware-label
+            class="conversations-history-item-title"
+            .fullText=${entry.conversation.title}
+          ></width-aware-label>
         </div>
       </vaadin-button>
     `;

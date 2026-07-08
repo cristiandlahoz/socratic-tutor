@@ -1,46 +1,76 @@
-import { LitElement } from 'lit';
+let sharedCanvasContext: CanvasRenderingContext2D | null | undefined;
 
-class WidthAwareLabel extends LitElement {
-  static properties = {
-    fullText: { type: String },
-    safetyPixels: { type: Number },
-  };
+function measureContext(): CanvasRenderingContext2D | null {
+  if (sharedCanvasContext === undefined) {
+    sharedCanvasContext = document.createElement('canvas').getContext('2d');
+  }
+  return sharedCanvasContext;
+}
 
-  declare fullText: string;
-  declare safetyPixels: number;
+class WidthAwareLabel extends HTMLElement {
+  static observedAttributes = ['full-text', 'safety-pixels'];
 
-  private resizeObserver?: ResizeObserver;
-  private canvasContext?: CanvasRenderingContext2D | null;
+  private resizeObserver: ResizeObserver | null = null;
+  private applyFrame: number | null = null;
+  private text = '';
+  private safety = 12;
 
-  constructor() {
-    super();
-    this.fullText = '';
-    this.safetyPixels = 12;
+  get fullText(): string {
+    return this.text;
   }
 
-  protected createRenderRoot(): HTMLElement | DocumentFragment {
-    return this;
+  set fullText(value: string | null | undefined) {
+    this.text = value ?? '';
+    this.scheduleApplyText();
+  }
+
+  get safetyPixels(): number {
+    return this.safety;
+  }
+
+  set safetyPixels(value: number | string | null | undefined) {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    this.safety = Number.isFinite(parsed) ? parsed : 12;
+    this.scheduleApplyText();
   }
 
   connectedCallback(): void {
-    super.connectedCallback();
-    this.resizeObserver = new ResizeObserver(() => this.applyText());
+    this.resizeObserver = new ResizeObserver(() => this.scheduleApplyText());
     this.resizeObserver.observe(this);
-    this.applyText();
+    this.scheduleApplyText();
   }
 
   disconnectedCallback(): void {
     this.resizeObserver?.disconnect();
-    this.resizeObserver = undefined;
-    super.disconnectedCallback();
+    this.resizeObserver = null;
+    if (this.applyFrame !== null) {
+      cancelAnimationFrame(this.applyFrame);
+      this.applyFrame = null;
+    }
   }
 
-  protected updated(): void {
-    this.applyText();
+  attributeChangedCallback(name: string, _oldValue: string | null, newValue: string | null): void {
+    if (name === 'full-text') {
+      this.fullText = newValue;
+      return;
+    }
+    if (name === 'safety-pixels') {
+      this.safetyPixels = newValue;
+    }
+  }
+
+  private scheduleApplyText(): void {
+    if (!this.isConnected || this.applyFrame !== null) {
+      return;
+    }
+    this.applyFrame = requestAnimationFrame(() => {
+      this.applyFrame = null;
+      this.applyText();
+    });
   }
 
   private applyText(): void {
-    const fullText = this.fullText ?? '';
+    const fullText = this.text;
     this.title = fullText;
     this.setAttribute('aria-label', fullText);
     this.dataset.fullText = fullText;
@@ -50,13 +80,13 @@ class WidthAwareLabel extends LitElement {
       return;
     }
 
-    const availableWidth = Math.max(0, this.clientWidth - Math.max(0, this.safetyPixels ?? 0));
+    const availableWidth = Math.max(0, this.clientWidth - Math.max(0, this.safety));
     if (availableWidth === 0) {
       this.textContent = fullText;
       return;
     }
 
-    const context = this.measureContext();
+    const context = measureContext();
     if (!context) {
       this.textContent = fullText;
       return;
@@ -95,13 +125,8 @@ class WidthAwareLabel extends LitElement {
 
     this.textContent = best;
   }
-
-  private measureContext(): CanvasRenderingContext2D | null {
-    if (this.canvasContext === undefined) {
-      this.canvasContext = document.createElement('canvas').getContext('2d');
-    }
-    return this.canvasContext;
-  }
 }
 
-customElements.define('width-aware-label', WidthAwareLabel);
+if (!customElements.get('width-aware-label')) {
+  customElements.define('width-aware-label', WidthAwareLabel);
+}

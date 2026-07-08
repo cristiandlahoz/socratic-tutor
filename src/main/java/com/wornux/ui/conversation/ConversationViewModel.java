@@ -108,6 +108,7 @@ public class ConversationViewModel implements Serializable {
         turnOrchestrator.detachActiveStream();
         state.responseInProgress().set(false);
         state.activity().set(ChatSessionActivity.IDLE);
+        state.clearPendingQuestionState();
 
         if (requestedThreadId == null) {
             startNewConversationDraft();
