@@ -94,7 +94,7 @@ public class ContextSelectionService {
         return switch (option.level()) {
             case PLATFORM -> "admin";
             case TENANT -> "tenant";
-            case GROUP_CLASS -> "chat";
+            case GROUP_CLASS -> "threads";
         };
     }
 

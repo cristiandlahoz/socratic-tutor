@@ -11,7 +11,7 @@ import java.util.Optional;
 import java.util.concurrent.Executor;
 
 import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.Location;
+import com.vaadin.flow.router.RouteParameters;
 import com.wornux.config.ChatProperties;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.identity.Account;
@@ -41,7 +41,7 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)).thenReturn(true);
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
-        when(event.getLocation()).thenReturn(new Location("chat"));
+        when(event.getRouteParameters()).thenReturn(RouteParameters.empty());
         when(viewModel.initializeFromRoute(null, false))
                 .thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 
@@ -72,7 +72,7 @@ class RouteAccessViewTest {
         when(workspaceRoutingService.canAccessWorkspace(account, WorkspaceDestination.STUDENT)).thenReturn(false);
         when(workspaceRoutingService.currentClassMembership(account, null))
                 .thenReturn(Optional.of(mock(GroupClassMember.class)));
-        when(event.getLocation()).thenReturn(new Location("chat"));
+        when(event.getRouteParameters()).thenReturn(RouteParameters.empty());
         when(viewModel.initializeFromRoute(null, false))
                 .thenReturn(ConversationViewModel.RouteInitialization.noReroute());
 

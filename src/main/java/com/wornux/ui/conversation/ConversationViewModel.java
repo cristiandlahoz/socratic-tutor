@@ -32,7 +32,7 @@ public class ConversationViewModel implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    static final String CONVERSATION_QUERY_PARAMETER = "c";
+    static final String THREAD_ID_PREFIX = "T-";
 
     private final transient ChatService chatService;
     private final transient ConversationService conversationService;
@@ -91,7 +91,7 @@ public class ConversationViewModel implements Serializable {
         themeOrchestrator.applyThemePreference(resolvedPreference);
     }
 
-    RouteInitialization initializeFromRoute(String requestedConversationParam, boolean refreshEvent) {
+    RouteInitialization initializeFromRoute(String requestedThreadId, boolean refreshEvent) {
         ensureThemePreferenceLoaded();
         themeOrchestrator.applyThemePreference(state.themePreference().peek());
         state.setupRequired().set(contextResolver.resolveCurrent().isEmpty());
@@ -104,12 +104,12 @@ public class ConversationViewModel implements Serializable {
         state.responseInProgress().set(false);
         state.activity().set(ChatSessionActivity.IDLE);
 
-        if (requestedConversationParam == null) {
+        if (requestedThreadId == null) {
             startNewConversationDraft();
             return RouteInitialization.noReroute();
         }
 
-        var requestedConversationId = parseUuid(requestedConversationParam).orElse(null);
+        var requestedConversationId = parsePublicThreadId(requestedThreadId).orElse(null);
         var resolvedConversation = conversationService.resolveActiveConversation(requestedConversationId);
 
         state.activeConversationId().set(resolvedConversation.activeConversationId());
@@ -118,9 +118,9 @@ public class ConversationViewModel implements Serializable {
         refreshConversationTokenUsage();
         refreshCompactionStatus();
 
-        if (requestedConversationParam != null
-                && (requestedConversationId == null
-                        || !Objects.equals(requestedConversationId, resolvedConversation.activeConversationId()))) {
+        if (requestedConversationId == null
+                || !Objects.equals(requestedConversationId, resolvedConversation.activeConversationId())
+                || !requestedThreadId.equals(toPublicThreadId(requestedConversationId))) {
             return new RouteInitialization(true, resolvedConversation.activeConversationId());
         }
 
@@ -133,7 +133,7 @@ public class ConversationViewModel implements Serializable {
                 || conversationId.equals(state.activeConversationId().peek())) {
             return;
         }
-        navigationOrchestrator.openConversation(CONVERSATION_QUERY_PARAMETER, conversationId);
+        navigationOrchestrator.openConversation(conversationId);
     }
 
     public void onStartNewConversation() {
@@ -235,18 +235,22 @@ public class ConversationViewModel implements Serializable {
         state.activeConversationId().set(conversation.id());
         state.clearUsage();
         state.clearCompactionStatus();
-        navigationOrchestrator.synchronizeAddressBar(CONVERSATION_QUERY_PARAMETER, state.activeConversationId().peek());
+        navigationOrchestrator.synchronizeAddressBar(state.activeConversationId().peek());
         refreshConversationHistory();
         return new EnsuredConversation(state.activeConversationId().peek(), true, conversation.title());
     }
 
-    private static Optional<UUID> parseUuid(String value) {
-        if (value == null || value.isBlank()) {
+    static String toPublicThreadId(UUID conversationId) {
+        return THREAD_ID_PREFIX + conversationId;
+    }
+
+    private static Optional<UUID> parsePublicThreadId(String value) {
+        if (value == null || !value.startsWith(THREAD_ID_PREFIX)) {
             return Optional.empty();
         }
 
         try {
-            return Optional.of(UUID.fromString(value));
+            return Optional.of(UUID.fromString(value.substring(THREAD_ID_PREFIX.length())));
         }
         catch (IllegalArgumentException _) {
             return Optional.empty();
