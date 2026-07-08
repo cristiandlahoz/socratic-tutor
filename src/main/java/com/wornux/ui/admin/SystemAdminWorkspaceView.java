@@ -1,18 +1,13 @@
 package com.wornux.ui.admin;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
@@ -28,6 +23,7 @@ import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.SystemAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
@@ -35,7 +31,7 @@ import jakarta.annotation.security.PermitAll;
 @PageTitle("Espacio de administración del sistema")
 @PermitAll
 @RequiresPermission(value = AppPermission.TENANT_VIEW, workspace = WorkspaceDestination.SYSTEM_ADMIN)
-public class SystemAdminWorkspaceView extends VerticalLayout {
+public class SystemAdminWorkspaceView extends WorkspaceViewShell {
 
     private enum AdminFilter {
         ALL("Todas"), WITHOUT_ADMIN("Sin administrador"), WITH_ADMIN("Con administrador activo");
@@ -60,27 +56,16 @@ public class SystemAdminWorkspaceView extends VerticalLayout {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.systemAdminWorkspaceService = systemAdminWorkspaceService;
 
-        UiCss.WORKSPACE_VIEW.addTo(this);
         configureGrid();
 
-        add(
-            createHeader(
-                "Espacio de administración del sistema",
-                "Gestiona las instituciones desde una sola tabla. Crea el espacio institucional y envía la invitación cuando ya tengas definida a la persona administradora."),
+        setWorkspaceContent(
+            "Espacio de administración del sistema",
+            "Gestiona las instituciones desde una sola tabla. Crea el espacio institucional y envía la invitación cuando ya tengas definida a la persona administradora.",
             createToolbar(),
             tenantGrid);
         refresh();
     }
 
-
-    private Div createHeader(String title, String description) {
-        var heading = new H1(title);
-        var copy = new Paragraph(description);
-        var header = new Div(heading, copy);
-        UiCss.WORKSPACE_HERO.addTo(header);
-        UiCss.WORKSPACE_HERO_PLAIN.addTo(header);
-        return header;
-    }
 
     private Component createToolbar() {
         UiCss.WORKSPACE_FIELD.addTo(searchField);
@@ -100,12 +85,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout {
         var createButton = primaryButton("Crear institución", this::openCreateTenantDialog);
         createButton.setIcon(new SvgIcon("/icons/IconBuildingPlus.svg"));
 
-        var toolbar = new HorizontalLayout(searchField, adminFilter, createButton);
-        UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
-        toolbar.setPadding(false);
-        toolbar.setMargin(false);
-        toolbar.setSpacing(false);
-        return toolbar;
+        return toolbar(searchField, adminFilter, createButton);
     }
 
     private void configureGrid() {
@@ -148,15 +128,6 @@ public class SystemAdminWorkspaceView extends VerticalLayout {
                 .setFlexGrow(0);
     }
 
-    private Button primaryButton(String label, Runnable action) {
-        var button = new Button(label, _ -> action.run());
-        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        return button;
-    }
-
-    private Button secondaryButton(String label, Runnable action) {
-        return new Button(label, _ -> action.run());
-    }
 
     private void openCreateTenantDialog() {
         var dialog = new Dialog();

@@ -1,4 +1,5 @@
 import '@vaadin/button';
+import { normalizeArrayProperty } from 'Frontend/shared/dom-utils.js';
 import { LitElement, html, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
 import { repeat } from 'lit/directives/repeat.js';
@@ -43,10 +44,7 @@ type TimelineGeometry = {
 };
 
 function normalizeConversations(value: unknown): ConversationHistoryItem[] {
-  if (typeof value === 'string') {
-    return JSON.parse(value) as ConversationHistoryItem[];
-  }
-  return Array.isArray(value) ? (value as ConversationHistoryItem[]) : [];
+  return normalizeArrayProperty<ConversationHistoryItem>(value);
 }
 
 class ConversationsHistory extends LitElement {

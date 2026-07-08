@@ -1,15 +1,13 @@
 package com.wornux.services.crunner;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.List;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.wornux.config.CProgramAnalysisProperties;
 import com.wornux.infrastructure.external.crunner.DockerGccCCompilerAdapter;
+import com.wornux.util.Sha256;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -32,7 +30,7 @@ public class CProgramAnalysisService {
 
     public CValidationResult validateSyntax(CSourceRequest request) {
         var normalizedRequest = request == null ? new CSourceRequest("", null, null) : request;
-        var sourceHash = hash(normalizedRequest.source());
+        var sourceHash = Sha256.hex(normalizedRequest.source());
         if (!SUPPORTED_STANDARD.equals(normalizedRequest.standard())) {
             return rejected(
                 sourceHash,
@@ -57,17 +55,6 @@ public class CProgramAnalysisService {
 
     private static CValidationResult rejected(String sourceHash, String message, String ruleId) {
         return new CValidationResult(false, List.of(CDiagnostic.error(message, ruleId)), "not-run", 0, sourceHash);
-    }
-
-    private static String hash(String source) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256");
-            var bytes = digest.digest(source.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(bytes);
-        }
-        catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is not available", exception);
-        }
     }
 
     private record CValidationCacheKey(String sourceHash, String standard, String filename, String compilerCacheKey) {}

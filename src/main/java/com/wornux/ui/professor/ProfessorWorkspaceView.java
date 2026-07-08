@@ -4,11 +4,8 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
@@ -23,6 +20,7 @@ import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.conversation.ConversationView;
+import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.training_activity.TrainingActivityView;
@@ -32,7 +30,7 @@ import jakarta.annotation.security.PermitAll;
 @PageTitle("Espacio del profesor")
 @PermitAll
 @RequiresPermission(value = AppPermission.GROUP_CLASS_MEMBER_VIEW, workspace = WorkspaceDestination.PROFESSOR)
-public class ProfessorWorkspaceView extends VerticalLayout implements AfterNavigationObserver {
+public class ProfessorWorkspaceView extends WorkspaceViewShell implements AfterNavigationObserver {
 
     private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final ProfessorWorkspaceService professorWorkspaceService;
@@ -47,13 +45,17 @@ public class ProfessorWorkspaceView extends VerticalLayout implements AfterNavig
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.professorWorkspaceService = professorWorkspaceService;
 
-        UiCss.WORKSPACE_VIEW.addTo(this);
         classSelector.setItemLabelGenerator(value -> "%s - %s".formatted(value.classCode(), value.className()));
+        UiCss.WORKSPACE_CONTEXT_SELECT.addTo(classSelector);
         classSelector.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 switchClass(event.getValue());
             }
         });
+        UiCss.WORKSPACE_GRID.addTo(studentsGrid);
+        UiCss.WORKSPACE_TENANT_GRID.addTo(studentsGrid);
+        studentsGrid.setWidthFull();
+        studentsGrid.setSelectionMode(Grid.SelectionMode.NONE);
         studentsGrid.addColumn(
             member -> "%s %s".formatted(
                 member.getTenantAccount().getAccount().getFirstName(),
@@ -63,15 +65,17 @@ public class ProfessorWorkspaceView extends VerticalLayout implements AfterNavig
         studentsGrid.addComponentColumn(member -> new Button("Deshabilitar", _ -> disableStudent(member.getId())))
                 .setHeader("Acciones");
 
-        add(
-            new H1("Espacio del profesor"),
-            classSelector,
-            new HorizontalLayout(
-                    new Button("Abrir conversación", _ -> UI.getCurrent().navigate(ConversationView.class)),
-                    new Button("Documentos", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
-                    new Button("Actividades formativas", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
-            new HorizontalLayout(studentEmailField,
-                    new Button("Enviar invitación", new SvgIcon("/icons/IconEnvelope.svg"), _ -> inviteStudent())),
+        UiCss.WORKSPACE_FIELD.addTo(studentEmailField);
+        setWorkspaceContent(
+            "Espacio del profesor",
+            "Mantén la clase activa en contexto, acompaña a tus estudiantes y abre los recursos de trabajo desde un solo lugar.",
+            toolbar(
+                classSelector,
+                new Button("Abrir conversación", _ -> UI.getCurrent().navigate(ConversationView.class)),
+                new Button("Documentos", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
+                new Button("Actividades formativas", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
+            toolbar(studentEmailField,
+                new Button("Enviar invitación", new SvgIcon("/icons/IconEnvelope.svg"), _ -> inviteStudent())),
             studentsGrid);
     }
 

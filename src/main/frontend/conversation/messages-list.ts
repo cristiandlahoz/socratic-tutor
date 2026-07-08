@@ -1,4 +1,5 @@
 import './message-item.js';
+import { normalizeArrayProperty } from 'Frontend/shared/dom-utils.js';
 import { haptic } from 'Frontend/shared/haptics.js';
 import { LitElement, html } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
@@ -18,11 +19,7 @@ type ScrollMode = 'auto' | 'force';
 type ChatActivity = 'idle' | 'generating' | 'compacting';
 
 function normalizeItems(items: unknown): MessageItemModel[] {
-  if (typeof items === 'string') {
-    return JSON.parse(items) as MessageItemModel[];
-  }
-
-  return Array.isArray(items) ? (items as MessageItemModel[]) : [];
+  return normalizeArrayProperty<MessageItemModel>(items);
 }
 
 function messageKey(item: MessageItemModel, index: number): string {

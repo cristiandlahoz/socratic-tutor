@@ -1,4 +1,5 @@
 import 'Frontend/shared/code/code-block-viewer.js';
+import { ensureDocumentStyle } from 'Frontend/shared/dom-utils.js';
 import DOMPurify from 'dompurify';
 import { LitElement, html, type PropertyValues } from 'lit';
 import { Marked, type HooksObject, type RendererObject, type Tokens } from 'marked';
@@ -20,13 +21,7 @@ type CodeBlockViewer = HTMLElement & {
 };
 
 function ensureMarkdownRendererStyles(): void {
-  if (document.getElementById(MARKDOWN_RENDERER_STYLE_ID)) {
-    return;
-  }
-
-  const style = document.createElement('style');
-  style.id = MARKDOWN_RENDERER_STYLE_ID;
-  style.textContent = `
+  ensureDocumentStyle(MARKDOWN_RENDERER_STYLE_ID, `
     markdown-renderer {
       --mk-font-family: var(
         --aura-font-family,
@@ -577,9 +572,7 @@ function ensureMarkdownRendererStyles(): void {
         animation-iteration-count: 1 !important;
       }
     }
-  `;
-
-  document.head.appendChild(style);
+  `);
 }
 
 function parseLanguage(info: string | undefined): string {

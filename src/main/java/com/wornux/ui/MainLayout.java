@@ -44,14 +44,14 @@ public class MainLayout extends AppLayout {
 
     private final ConversationState state;
     private final ConversationViewModel viewModel;
-    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final AuthenticationContext authenticationContext;
-    private final ActiveContextHolder activeContextHolder;
-    private final AuthorizationService authorizationService;
-    private final ContextDiscoveryService contextDiscoveryService;
-    private final ContextSelectionService contextSelectionService;
-    private final NavigationRegistry navigationRegistry;
-    private final WorkspaceRoutingService workspaceRoutingService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
+    private final transient AuthenticationContext authenticationContext;
+    private final transient ActiveContextHolder activeContextHolder;
+    private final transient AuthorizationService authorizationService;
+    private final transient ContextDiscoveryService contextDiscoveryService;
+    private final transient ContextSelectionService contextSelectionService;
+    private final transient NavigationRegistry navigationRegistry;
+    private final transient WorkspaceRoutingService workspaceRoutingService;
     private final Div drawerContent = new Div();
 
     public MainLayout(

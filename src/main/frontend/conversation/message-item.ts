@@ -1,5 +1,6 @@
 import './braille-spinner.js';
 import './markdown-renderer.js';
+import { ensureDocumentStyle } from 'Frontend/shared/dom-utils.js';
 import { LitElement, html } from 'lit';
 import type { BrailleSpinnerName } from './braille-spinners.js';
 
@@ -8,13 +9,7 @@ const MESSAGE_ITEM_STYLE_ID = 'message-item-styles';
 type MessageVariant = 'user' | 'assistant';
 
 function ensureMessageItemStyles(): void {
-  if (document.getElementById(MESSAGE_ITEM_STYLE_ID)) {
-    return;
-  }
-
-  const style = document.createElement('style');
-  style.id = MESSAGE_ITEM_STYLE_ID;
-  style.textContent = `
+  ensureDocumentStyle(MESSAGE_ITEM_STYLE_ID, `
     message-item {
       --message-item-font-size-base: var(--aura-font-size-m, 13px);
       --message-item-font-size: var(--message-font-size, var(--message-item-font-size-base));
@@ -123,8 +118,7 @@ function ensureMessageItemStyles(): void {
         max-inline-size: 100%;
       }
     }
-  `;
-  document.head.appendChild(style);
+  `);
 }
 
 class MessageItem extends LitElement {

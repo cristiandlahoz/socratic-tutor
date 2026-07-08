@@ -1,7 +1,6 @@
 package com.wornux.ui.components.ingestion;
 
 import java.io.Serial;
-import java.io.Serializable;
 import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;

@@ -2,15 +2,8 @@ package com.wornux.ui.student;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
@@ -24,9 +17,9 @@ import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
-import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.conversation.ConversationView;
+import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
@@ -34,10 +27,10 @@ import jakarta.annotation.security.PermitAll;
 @PageTitle("Espacio del estudiante")
 @PermitAll
 @RequiresPermission(value = AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, workspace = WorkspaceDestination.STUDENT)
-public class StudentWorkspaceView extends VerticalLayout implements AfterNavigationObserver {
+public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNavigationObserver {
 
-    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final StudentWorkspaceService studentWorkspaceService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
+    private final transient StudentWorkspaceService studentWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<TrainingActivityAssignment> assignmentsGrid =
             new Grid<>(TrainingActivityAssignment.class, false);
@@ -48,14 +41,12 @@ public class StudentWorkspaceView extends VerticalLayout implements AfterNavigat
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.studentWorkspaceService = studentWorkspaceService;
 
-        UiCss.WORKSPACE_VIEW.addTo(this);
         configureToolbarFields();
         configureGrid();
 
-        add(
-            createHeader(
-                "Espacio del estudiante",
-                "Mantén la clase activa en contexto, revisa las actividades asignadas y vuelve al tutor cuando necesites razonar con guía."),
+        setWorkspaceContent(
+            "Espacio del estudiante",
+            "Mantén la clase activa en contexto, revisa las actividades asignadas y vuelve al tutor cuando necesites razonar con guía.",
             createToolbar(),
             assignmentsGrid);
     }
@@ -65,14 +56,6 @@ public class StudentWorkspaceView extends VerticalLayout implements AfterNavigat
         refresh();
     }
 
-    private Div createHeader(String title, String description) {
-        var heading = new H1(title);
-        var copy = new Paragraph(description);
-        var header = new Div(heading, copy);
-        UiCss.WORKSPACE_HERO.addTo(header);
-        UiCss.WORKSPACE_HERO_PLAIN.addTo(header);
-        return header;
-    }
 
     private void configureToolbarFields() {
         classSelector.setItemLabelGenerator(value -> "%s - %s".formatted(value.classCode(), value.className()));
@@ -85,12 +68,7 @@ public class StudentWorkspaceView extends VerticalLayout implements AfterNavigat
     }
 
     private Component createToolbar() {
-        var toolbar = new HorizontalLayout(classSelector);
-        UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
-        toolbar.setPadding(false);
-        toolbar.setMargin(false);
-        toolbar.setSpacing(false);
-        return toolbar;
+        return toolbar(classSelector);
     }
 
     private void openConversation() {
