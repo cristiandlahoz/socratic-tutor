@@ -6,6 +6,9 @@ import java.util.List;
 import com.wornux.ai.prompt.PromptResources;
 import com.wornux.data.enums.GuardDecision;
 import com.wornux.dtos.chat.GuardCheck;
+
+import lombok.extern.slf4j.Slf4j;
+
 import com.wornux.config.ApplicationProperties;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -22,6 +25,7 @@ import org.springframework.util.Assert;
  * @author @github/cristiandlahoz
  */
 @Service
+@Slf4j
 public class GuardClassifierService {
 
     private final ChatModel chatModel;
@@ -67,6 +71,7 @@ public class GuardClassifierService {
             throw new IllegalStateException("Guard classifier returned an empty decision");
         }
 
+        log.info("Guard decision: {}", guardCheck.decision());
         return guardCheck.decision();
     }
 
