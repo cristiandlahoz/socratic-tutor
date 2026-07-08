@@ -9,7 +9,7 @@ import java.util.UUID;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.wornux.data.entities.authorization.Role;
-import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.authorization.AccountPlatformRoleRepository;
 import com.wornux.data.repositories.authorization.GroupClassMemberRoleRepository;
@@ -86,7 +86,7 @@ public class AccessSnapshotService {
     }
 
     private NamespaceVersion resolveNamespace(ActiveContext activeContext) {
-        if (activeContext.level() == ContextLevel.PLATFORM) {
+        if (activeContext.level() == ScopeLevel.PLATFORM) {
             var settings = platformSettingsRepository.findById(Boolean.TRUE)
                     .orElseThrow(() -> new IllegalStateException("Platform settings are not initialized"));
             return new NamespaceVersion(settings.getRoleNamespace().getId(),
@@ -98,7 +98,7 @@ public class AccessSnapshotService {
     }
 
     private UserAccessSnapshot loadSnapshot(UUID accountId, ActiveContext activeContext, long namespaceVersion) {
-        if (activeContext.level() == ContextLevel.PLATFORM) {
+        if (activeContext.level() == ScopeLevel.PLATFORM) {
             var roleCodes = new LinkedHashSet<String>();
             var permissionCodes = new LinkedHashSet<String>();
             accountPlatformRoleRepository.findByAccount_IdAndRole_ActiveTrue(accountId)
@@ -124,7 +124,7 @@ public class AccessSnapshotService {
         tenantAccountRoleRepository.findByTenantAccount_IdAndRole_ActiveTrue(tenantAccount.getId())
                 .forEach(assignment -> addRole(assignment.getRole(), roleCodes, permissionCodes));
 
-        if (activeContext.level() == ContextLevel.TENANT) {
+        if (activeContext.level() == ScopeLevel.TENANT) {
             return new UserAccessSnapshot(accountId,
                     activeContext,
                     activeContext.tenantId(),
@@ -170,6 +170,6 @@ public class AccessSnapshotService {
 
     private record NamespaceVersion(UUID id, long version) {}
 
-    private record SnapshotCacheKey(UUID accountId, ContextLevel contextLevel, UUID tenantId, UUID groupClassId,
+    private record SnapshotCacheKey(UUID accountId, ScopeLevel contextLevel, UUID tenantId, UUID groupClassId,
             UUID roleNamespaceId, long roleNamespaceVersion) {}
 }

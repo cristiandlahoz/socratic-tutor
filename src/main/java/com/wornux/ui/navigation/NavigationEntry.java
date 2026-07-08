@@ -3,7 +3,7 @@ package com.wornux.ui.navigation;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.RouterLink;
-import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.workspace.WorkspaceDestination;
 import java.util.Objects;
@@ -13,7 +13,7 @@ public record NavigationEntry(
     String label,
     RouteTarget routeTarget,
     Supplier<Component> iconFactory,
-    ContextLevel minimumContextLevel,
+    ScopeLevel minimumContextLevel,
     AppPermission requiredPermission,
     WorkspaceDestination workspaceDestination,
     int order) {
@@ -50,7 +50,7 @@ public record NavigationEntry(
       String label,
       Class<? extends Component> viewTarget,
       Supplier<Component> iconFactory,
-      ContextLevel minimumContextLevel,
+      ScopeLevel minimumContextLevel,
       AppPermission requiredPermission,
       int order) {
     this(
@@ -67,7 +67,7 @@ public record NavigationEntry(
       String label,
       Class<? extends Component> viewTarget,
       Supplier<Component> iconFactory,
-      ContextLevel minimumContextLevel,
+      ScopeLevel minimumContextLevel,
       AppPermission requiredPermission,
       WorkspaceDestination workspaceDestination,
       int order) {

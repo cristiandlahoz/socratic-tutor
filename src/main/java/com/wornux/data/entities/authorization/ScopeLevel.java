@@ -1,5 +1,5 @@
 package com.wornux.data.entities.authorization;
 
-public enum RoleAssignmentLevel {
+public enum ScopeLevel {
     PLATFORM, TENANT, GROUP_CLASS
 }

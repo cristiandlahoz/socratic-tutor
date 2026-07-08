@@ -3,6 +3,7 @@ package com.wornux.data.entities.identity;
 import java.time.Instant;
 
 import com.wornux.data.entities.academic.GroupClass;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -34,7 +35,7 @@ public class AccountContextPreference {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "context_level")
-    private ContextLevel contextLevel;
+    private ScopeLevel contextLevel;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id")
