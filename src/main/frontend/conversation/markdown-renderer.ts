@@ -81,23 +81,26 @@ function ensureMarkdownRendererStyles(): void {
       --mk-table-font-size: var(--mk-step-1);
 
       --mk-step--1: clamp(calc(var(--mk-font-size) * 0.88), 0.78rem, calc(var(--mk-font-size) * 0.95));
+      --mk-type-ratio: 1.15;
       --mk-step-0: var(--mk-font-size);
-      --mk-step-1: clamp(calc(var(--mk-font-size) * 1.08), 1.1vw, calc(var(--mk-font-size) * 1.18));
-      --mk-step-2: clamp(calc(var(--mk-font-size) * 1.22), 1.45vw, calc(var(--mk-font-size) * 1.42));
-      --mk-step-3: clamp(calc(var(--mk-font-size) * 1.48), 2vw, calc(var(--mk-font-size) * 1.78));
-      --mk-step-4: clamp(calc(var(--mk-font-size) * 1.86), 3vw, calc(var(--mk-font-size) * 2.42));
+      --mk-step-1: calc(var(--mk-step-0) * var(--mk-type-ratio));
+      --mk-step-2: calc(var(--mk-step-1) * var(--mk-type-ratio));
+      --mk-step-3: calc(var(--mk-step-2) * var(--mk-type-ratio));
+      --mk-step-4: calc(var(--mk-step-3) * var(--mk-type-ratio));
 
-      --mk-space-025: calc(var(--mk-font-size) * 0.25);
-      --mk-space-050: calc(var(--mk-font-size) * 0.5);
-      --mk-space-075: calc(var(--mk-font-size) * 0.75);
-      --mk-space-100: var(--mk-font-size);
-      --mk-space-150: calc(var(--mk-font-size) * 1.5);
-      --mk-space-200: calc(var(--mk-font-size) * 2);
-      --mk-space-300: calc(var(--mk-font-size) * 3);
+      --mk-space-unit: calc(var(--mk-font-size) * 0.25);
+      --mk-space-025: calc(var(--mk-space-unit) * 1);
+      --mk-space-050: calc(var(--mk-space-unit) * 2);
+      --mk-space-075: calc(var(--mk-space-unit) * 3);
+      --mk-space-100: calc(var(--mk-space-unit) * 4);
+      --mk-space-150: calc(var(--mk-space-unit) * 6);
+      --mk-space-200: calc(var(--mk-space-unit) * 8);
+      --mk-space-300: calc(var(--mk-space-unit) * 12);
 
+      --mk-radius-ratio: 1.5;
       --mk-radius-xs: calc(var(--mk-font-size) * 0.3);
-      --mk-radius-sm: calc(var(--mk-font-size) * 0.46);
-      --mk-radius-md: var(--vaadin-radius-m, calc(var(--mk-font-size) * 0.7));
+      --mk-radius-sm: calc(var(--mk-radius-xs) * var(--mk-radius-ratio));
+      --mk-radius-md: var(--vaadin-radius-m, calc(var(--mk-radius-sm) * var(--mk-radius-ratio)));
 
       display: block;
       width: 100%;
