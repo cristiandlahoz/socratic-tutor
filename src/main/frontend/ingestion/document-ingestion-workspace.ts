@@ -284,7 +284,7 @@ class DocumentIngestionWorkspaceElement extends LitElement {
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
-      grid-auto-rows: 16rem;
+      align-items: start;
       gap: var(--vaadin-gap-m);
       width: 100%;
     }
@@ -305,14 +305,15 @@ class DocumentIngestionWorkspaceElement extends LitElement {
       gap: var(--vaadin-gap-m);
       width: 100%;
       min-width: 0;
-      height: 100%;
-      min-height: 0;
-      overflow: hidden;
+      min-height: 14rem;
+      max-height: min(32rem, 70vh);
+      overflow: auto;
       padding: var(--vaadin-padding-m);
       border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary);
       border-radius: var(--vaadin-radius-l);
       background: var(--aura-surface-color);
       cursor: pointer;
+      scrollbar-gutter: stable;
       transition:
         background var(--motion-fast),
         border-color var(--motion-fast),
@@ -323,27 +324,14 @@ class DocumentIngestionWorkspaceElement extends LitElement {
       width: 100%;
       min-width: 0;
       max-width: none;
-      height: 12rem;
+      min-height: 10rem;
+      max-height: min(24rem, 50vh);
       gap: var(--vaadin-gap-s);
     }
 
     .card .muted,
     .card-title {
-      display: -webkit-box;
-      overflow: hidden;
-      -webkit-box-orient: vertical;
-    }
-
-    .card-title {
-      -webkit-line-clamp: 2;
-    }
-
-    .card .muted {
-      -webkit-line-clamp: 4;
-    }
-
-    .content-grid[detail] .card .muted {
-      -webkit-line-clamp: 3;
+      overflow-wrap: anywhere;
     }
 
     .card:hover {
@@ -368,10 +356,6 @@ class DocumentIngestionWorkspaceElement extends LitElement {
       justify-content: space-between;
       align-items: flex-start;
       gap: var(--vaadin-gap-s);
-    }
-
-    .card-title {
-      overflow-wrap: anywhere;
     }
 
     .chip {
