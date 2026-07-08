@@ -31,6 +31,7 @@ public final class MessageItem {
     @Getter
     private String text;
     transient String clientText;
+    transient boolean clientLoading;
     transient MessagesList host;
 
     public MessageItem(String text, Instant time, String userName, Variant variant, boolean loading) {
@@ -40,6 +41,7 @@ public final class MessageItem {
         this.userName = Objects.requireNonNull(userName, "userName cannot be null");
         this.variant = Objects.requireNonNull(variant, "variant cannot be null");
         this.loading = loading;
+        this.clientLoading = loading;
     }
 
     public String getVariant() {

@@ -3,6 +3,7 @@ package com.wornux.ui.conversation;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import com.vaadin.flow.signals.Signal;
@@ -143,6 +144,49 @@ public class ConversationState implements Serializable {
     public void replaceMessages(List<MessageState> nextMessages) {
         messages.clear();
         nextMessages.forEach(messages::insertLast);
+    }
+
+    public void applyMessagesSnapshot(List<MessageState> nextMessages) {
+        var currentMessages = messages.peek();
+        if (!canPatchMessages(currentMessages, nextMessages)) {
+            replaceMessages(nextMessages);
+            return;
+        }
+
+        for (var index = 0; index < currentMessages.size(); index += 1) {
+            var nextMessage = nextMessages.get(index);
+            var currentMessage = currentMessages.get(index);
+            if (!Objects.equals(currentMessage.peek(), nextMessage)) {
+                currentMessage.set(nextMessage);
+            }
+        }
+
+        for (var index = currentMessages.size(); index < nextMessages.size(); index += 1) {
+            messages.insertLast(nextMessages.get(index));
+        }
+    }
+
+    private boolean canPatchMessages(
+            List<ValueSignal<MessageState>> currentMessages,
+            List<MessageState> nextMessages) {
+        if (nextMessages.size() < currentMessages.size()) {
+            return false;
+        }
+
+        for (var index = 0; index < currentMessages.size(); index += 1) {
+            if (!sameMessageIdentity(currentMessages.get(index).peek(), nextMessages.get(index))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean sameMessageIdentity(MessageState currentMessage, MessageState nextMessage) {
+        return currentMessage != null
+                && nextMessage != null
+                && currentMessage.role() == nextMessage.role()
+                && Objects.equals(currentMessage.createdAt(), nextMessage.createdAt());
     }
 
     public void replaceConversationHistory(List<ConversationSummary> conversations) {

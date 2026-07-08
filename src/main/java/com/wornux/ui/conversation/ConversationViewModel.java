@@ -12,7 +12,6 @@ import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.wornux.data.enums.ThemePreference;
-import com.wornux.dtos.chat.StudentQuestionExchange;
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
 import com.wornux.services.chat.ChatService;
 import com.wornux.services.chat.ChatSessionActivity;
@@ -44,7 +43,6 @@ public class ConversationViewModel implements Serializable {
     private final transient ConversationThemeOrchestrator themeOrchestrator;
     private final transient ConversationTurnOrchestrator turnOrchestrator;
     private final ConversationState state;
-    private final StudentQuestionExchange questionExchange;
 
     public ConversationViewModel(
             ChatService chatService,
@@ -67,7 +65,6 @@ public class ConversationViewModel implements Serializable {
         this.themeOrchestrator = themeOrchestrator;
         this.turnOrchestrator = turnOrchestrator;
         this.state = state;
-        this.questionExchange = new StudentQuestionExchange(state);
     }
 
     public ConversationState state() {
@@ -76,6 +73,14 @@ public class ConversationViewModel implements Serializable {
 
     public void bindTurnUiAnchor(Component uiAnchor) {
         turnOrchestrator.bindUiAnchor(uiAnchor);
+    }
+
+    public void detachTurnStream() {
+        turnOrchestrator.detachActiveStream();
+    }
+
+    public void detachTurnStream(Component uiAnchor) {
+        turnOrchestrator.detachActiveStream(uiAnchor);
     }
 
     public void initializeShellState() {
@@ -100,7 +105,7 @@ public class ConversationViewModel implements Serializable {
             return RouteInitialization.noReroute();
         }
 
-        turnOrchestrator.abortActiveStream(questionExchange);
+        turnOrchestrator.detachActiveStream();
         state.responseInProgress().set(false);
         state.activity().set(ChatSessionActivity.IDLE);
 
@@ -117,6 +122,7 @@ public class ConversationViewModel implements Serializable {
         state.replaceConversationHistory(resolvedConversation.conversations());
         refreshConversationTokenUsage();
         refreshCompactionStatus();
+        attachToActiveConversationStream();
 
         if (requestedConversationId == null
                 || !Objects.equals(requestedConversationId, resolvedConversation.activeConversationId())
@@ -128,18 +134,13 @@ public class ConversationViewModel implements Serializable {
     }
 
     public void onOpenConversation(UUID conversationId) {
-        if (state.responseInProgress().peek()
-                || state.questionSubmissionInProgress().peek()
-                || conversationId.equals(state.activeConversationId().peek())) {
+        if (conversationId.equals(state.activeConversationId().peek())) {
             return;
         }
         navigationOrchestrator.openConversation(conversationId);
     }
 
     public void onStartNewConversation() {
-        if (state.responseInProgress().peek() || state.questionSubmissionInProgress().peek()) {
-            return;
-        }
         navigationOrchestrator.openNewConversation();
     }
 
@@ -169,7 +170,6 @@ public class ConversationViewModel implements Serializable {
             chatService,
             conversationService,
             conversationTitleService,
-            questionExchange,
             this::refreshConversationHistory,
             this::refreshConversationTokenUsage,
             this::refreshCompactionStatus);
@@ -205,7 +205,16 @@ public class ConversationViewModel implements Serializable {
         if (pendingQuestionSet == null) {
             return;
         }
-        questionExchange.submit(response);
+        turnOrchestrator.submitInteractiveQuestionResponse(state.activeConversationId().peek(), response);
+    }
+
+    private void attachToActiveConversationStream() {
+        turnOrchestrator.attachToConversation(
+            state.activeConversationId().peek(),
+            state,
+            this::refreshConversationHistory,
+            this::refreshConversationTokenUsage,
+            this::refreshCompactionStatus);
     }
 
     private void ensureThemePreferenceLoaded() {

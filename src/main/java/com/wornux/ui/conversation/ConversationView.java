@@ -77,6 +77,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         this.workspaceRoutingService = workspaceRoutingService;
         bindModelAvailability(state, modelAvailabilityService);
         this.viewModel.bindTurnUiAnchor(this);
+        getContent().addDetachListener(_ -> this.viewModel.detachTurnStream(this));
 
         Div emptyState = createEmptyState(state);
         emptyState.bindVisible(state.emptyStateVisible());

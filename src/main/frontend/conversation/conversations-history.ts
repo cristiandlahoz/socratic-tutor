@@ -51,12 +51,10 @@ class ConversationsHistory extends LitElement {
   static properties = {
     conversations: { type: Array },
     activeConversationId: { type: String, attribute: 'active-conversation-id' },
-    disabled: { type: Boolean, reflect: true },
   };
 
   declare conversations: ConversationHistoryItem[];
   declare activeConversationId: string | null;
-  declare disabled: boolean;
 
   private resizeObserver: ResizeObserver | null = null;
   private animationFrame: number | null = null;
@@ -71,7 +69,6 @@ class ConversationsHistory extends LitElement {
     super();
     this.conversations = [];
     this.activeConversationId = null;
-    this.disabled = false;
   }
 
   connectedCallback(): void {
@@ -96,10 +93,6 @@ class ConversationsHistory extends LitElement {
 
   setActiveConversationId(activeConversationId: string | null | undefined): void {
     this.activeConversationId = activeConversationId ?? null;
-  }
-
-  setDisabled(disabled: boolean): void {
-    this.disabled = disabled;
   }
 
   protected willUpdate(changedProperties: Map<string, unknown>): void {
@@ -444,7 +437,6 @@ class ConversationsHistory extends LitElement {
         title=${entry.conversation.title}
         aria-label=${entry.conversation.title}
         aria-current=${active ? 'page' : nothing}
-        ?disabled=${this.disabled}
         @click=${() => this.openConversation(entry.conversation.id)}
       >
         <div class=${classMap(rowClasses)}>
@@ -467,10 +459,6 @@ class ConversationsHistory extends LitElement {
   }
 
   private openConversation(conversationId: string): void {
-    if (this.disabled) {
-      return;
-    }
-
     this.dispatchEvent(new CustomEvent('conversation-open-requested', {
       detail: { conversationId },
       bubbles: true,

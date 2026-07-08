@@ -137,6 +137,17 @@ class MessagesList extends LitElement {
     this.updateItems(nextItems, 'auto');
   }
 
+  setItemLoading(loading: boolean | null | undefined, index: number): void {
+    if (!this.hasItemAt(index)) {
+      return;
+    }
+
+    const nextItems = [...this.items];
+    nextItems[index] = { ...nextItems[index], loading: Boolean(loading) };
+
+    this.updateItems(nextItems, 'auto');
+  }
+
   appendItemText(diff: string | null | undefined, index: number): void {
     if (!this.hasItemAt(index)) {
       return;

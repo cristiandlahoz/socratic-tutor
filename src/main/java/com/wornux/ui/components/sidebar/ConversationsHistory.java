@@ -39,10 +39,6 @@ public final class ConversationsHistory extends Component implements HasSize {
             activeConversationId == null ? null : activeConversationId.toString());
     }
 
-    public void setDisabled(boolean disabled) {
-        getElement().setProperty("disabled", disabled);
-    }
-
     public Registration addConversationOpenRequestedListener(
             ComponentEventListener<ConversationOpenRequestedEvent> listener) {
         return addListener(ConversationOpenRequestedEvent.class, listener);

@@ -117,7 +117,10 @@ public final class MessagesList extends Component implements HasSize {
     }
 
     private void handleFullUpdate() {
-        items.forEach(item -> item.clientText = item.getText());
+        items.forEach(item -> {
+            item.clientText = item.getText();
+            item.clientLoading = item.isLoading();
+        });
 
         var itemsJson = JacksonUtils.listToJson(items);
         getElement().executeJs("this.setItems($0)", itemsJson);
@@ -142,9 +145,12 @@ public final class MessagesList extends Component implements HasSize {
 
             previousItem.setHost(null);
             nextItem.clientText = previousItem.clientText;
+            nextItem.clientLoading = previousItem.clientLoading;
             nextItem.setHost(this);
 
-            textUpdateRequired = textUpdateRequired || !Objects.equals(nextItem.getText(), nextItem.clientText);
+            textUpdateRequired = textUpdateRequired
+                    || !Objects.equals(nextItem.getText(), nextItem.clientText)
+                    || nextItem.isLoading() != nextItem.clientLoading;
         }
 
         for (var index = sharedSize; index < nextItems.size(); index += 1) {
@@ -197,8 +203,7 @@ public final class MessagesList extends Component implements HasSize {
     private boolean sameClientIdentity(MessageItem left, MessageItem right) {
         return Objects.equals(left.getTime(), right.getTime())
                 && Objects.equals(left.getUserName(), right.getUserName())
-                && Objects.equals(left.getVariant(), right.getVariant())
-                && left.isLoading() == right.isLoading();
+                && Objects.equals(left.getVariant(), right.getVariant());
     }
 
     private void handleAddItemsUpdate() {
@@ -207,7 +212,10 @@ public final class MessagesList extends Component implements HasSize {
         }
 
         var newItems = items.subList(pendingAddItemsIndex, items.size());
-        newItems.forEach(item -> item.clientText = item.getText());
+        newItems.forEach(item -> {
+            item.clientText = item.getText();
+            item.clientLoading = item.isLoading();
+        });
 
         var itemsJson = JacksonUtils.listToJson(newItems);
         getElement().executeJs("this.addItems($0)", itemsJson);
@@ -219,6 +227,10 @@ public final class MessagesList extends Component implements HasSize {
             var textChanged = !Objects.equals(item.getText(), item.clientText);
 
             if (!textChanged) {
+                if (item.isLoading() != item.clientLoading) {
+                    getElement().executeJs("this.setItemLoading($0, $1)", item.isLoading(), index);
+                    item.clientLoading = item.isLoading();
+                }
                 continue;
             }
 
@@ -231,6 +243,10 @@ public final class MessagesList extends Component implements HasSize {
             }
 
             item.clientText = item.getText();
+            if (item.isLoading() != item.clientLoading) {
+                getElement().executeJs("this.setItemLoading($0, $1)", item.isLoading(), index);
+                item.clientLoading = item.isLoading();
+            }
         }
     }
 
