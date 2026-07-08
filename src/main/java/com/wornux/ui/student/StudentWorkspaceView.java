@@ -12,8 +12,8 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
@@ -26,7 +26,6 @@ import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.conversation.ConversationView;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
@@ -34,11 +33,10 @@ import jakarta.annotation.security.PermitAll;
 @Route(value = "student", layout = MainLayout.class)
 @PageTitle("Espacio del estudiante")
 @PermitAll
-@RequiresPermission(AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW)
-public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+@RequiresPermission(value = AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, workspace = WorkspaceDestination.STUDENT)
+public class StudentWorkspaceView extends VerticalLayout implements AfterNavigationObserver {
 
     private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final WorkspaceRoutingService workspaceRoutingService;
     private final StudentWorkspaceService studentWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<TrainingActivityAssignment> assignmentsGrid =
@@ -46,10 +44,8 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
 
     public StudentWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
-            WorkspaceRoutingService workspaceRoutingService,
             StudentWorkspaceService studentWorkspaceService) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
-        this.workspaceRoutingService = workspaceRoutingService;
         this.studentWorkspaceService = studentWorkspaceService;
 
         UiCss.WORKSPACE_VIEW.addTo(this);
@@ -65,12 +61,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     }
 
     @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedUserContextUtils.requireCurrentAccount();
-        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT)) {
-            event.forwardTo(NoAccessView.class);
-            return;
-        }
+    public void afterNavigation(AfterNavigationEvent event) {
         refresh();
     }
 

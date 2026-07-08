@@ -25,8 +25,8 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.academic.AcademicPeriod;
@@ -41,15 +41,14 @@ import com.wornux.services.workspace.TenantAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "tenant", layout = MainLayout.class)
 @PageTitle("Espacio de administración institucional")
 @PermitAll
-@RequiresPermission(AppPermission.GROUP_CLASS_CREATE)
-public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+@RequiresPermission(value = AppPermission.GROUP_CLASS_CREATE, workspace = WorkspaceDestination.TENANT_ADMIN)
+public class TenantAdminWorkspaceView extends VerticalLayout implements AfterNavigationObserver {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -85,12 +84,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     }
 
     @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedUserContextUtils.requireCurrentAccount();
-        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.TENANT_ADMIN)) {
-            event.forwardTo(NoAccessView.class);
-            return;
-        }
+    public void afterNavigation(AfterNavigationEvent event) {
         refresh();
     }
 

@@ -1,5 +1,6 @@
 package com.wornux.ui.conversation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -12,21 +13,16 @@ import java.util.concurrent.Executor;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Location;
 import com.wornux.config.ChatProperties;
-import com.wornux.config.DocumentIngestionProperties;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.identity.Account;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.chat.ModelAvailabilityService;
 import com.wornux.services.crunner.CExamplePreparationService;
 import com.wornux.services.crunner.CProgramDebugService;
-import com.wornux.services.document.DocumentIngestionService;
-import com.wornux.services.document.DocumentWorkspaceService;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
-import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
-import com.wornux.ui.auth.NoAccessView;
-import com.wornux.ui.ingestion.DocumentIngestionState;
-import com.wornux.ui.ingestion.DocumentIngestionUiController;
 import com.wornux.ui.ingestion.DocumentIngestionView;
 import com.wornux.ui.training_activity.TrainingActivityView;
 import org.junit.jupiter.api.Test;
@@ -51,7 +47,7 @@ class RouteAccessViewTest {
 
         var view = new ConversationView(new ConversationState(),
                 viewModel,
-                new ChatProperties(),
+                chatProperties(),
                 mock(CProgramDebugService.class),
                 mock(CExamplePreparationService.class),
                 mock(Executor.class),
@@ -82,7 +78,7 @@ class RouteAccessViewTest {
 
         var view = new ConversationView(new ConversationState(),
                 viewModel,
-                new ChatProperties(),
+                chatProperties(),
                 mock(CProgramDebugService.class),
                 mock(CExamplePreparationService.class),
                 mock(Executor.class),
@@ -96,42 +92,26 @@ class RouteAccessViewTest {
     }
 
     @Test
-    void documentsDenyStudentAccess() {
-        var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
-        var workspaceRoutingService = mock(WorkspaceRoutingService.class);
-        var ingestionService = mock(DocumentIngestionService.class);
-        var workspaceService = mock(DocumentWorkspaceService.class);
-        var event = mock(BeforeEnterEvent.class);
-        var account = mock(Account.class);
-        when(authenticatedUserContextUtils.requireCurrentAccount()).thenReturn(account);
-        when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
+    void documentsRequireProfessorWorkspaceAccess() {
+        var permission = DocumentIngestionView.class.getAnnotation(RequiresPermission.class);
 
-        var view = new DocumentIngestionView(ingestionService,
-                workspaceService,
-                new DocumentIngestionProperties(),
-                authenticatedUserContextUtils,
-                workspaceRoutingService);
-
-        view.beforeEnter(event);
-
-        verify(event).forwardTo(NoAccessView.class);
+        assertThat(permission).isNotNull();
+        assertThat(permission.value()).isEqualTo(AppPermission.COURSE_MATERIAL_VIEW);
+        assertThat(permission.workspace()).isEqualTo(WorkspaceDestination.PROFESSOR);
     }
 
     @Test
-    void trainingActivitiesDenyStudentAccess() {
-        var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
-        var workspaceRoutingService = mock(WorkspaceRoutingService.class);
-        var trainingActivityService = mock(TrainingActivityService.class);
-        var event = mock(BeforeEnterEvent.class);
-        var account = mock(Account.class);
-        when(authenticatedUserContextUtils.requireCurrentAccount()).thenReturn(account);
-        when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)).thenReturn(false);
+    void trainingActivitiesRequireProfessorWorkspaceAccess() {
+        var permission = TrainingActivityView.class.getAnnotation(RequiresPermission.class);
 
-        var view =
-                new TrainingActivityView(trainingActivityService, workspaceRoutingService, authenticatedUserContextUtils);
+        assertThat(permission).isNotNull();
+        assertThat(permission.value()).isEqualTo(AppPermission.TRAINING_ACTIVITY_CREATE);
+        assertThat(permission.workspace()).isEqualTo(WorkspaceDestination.PROFESSOR);
+    }
 
-        view.beforeEnter(event);
-
-        verify(event).forwardTo(NoAccessView.class);
+    private ChatProperties chatProperties() {
+        var properties = new ChatProperties();
+        properties.setContextWindowTokens(8192);
+        return properties;
     }
 }

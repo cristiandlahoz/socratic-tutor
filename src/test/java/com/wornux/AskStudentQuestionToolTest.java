@@ -1,17 +1,22 @@
 package com.wornux;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.tools.AskStudentQuestionTool;
 import com.wornux.ai.tools.ToolContextKeys;
+import com.wornux.data.enums.GuardDecision;
 import com.wornux.dtos.chat.questions.StudentQuestion;
 import com.wornux.dtos.chat.questions.StudentQuestionAnswer;
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
+import com.wornux.services.chat.ChatSessionActivityBus;
 import com.wornux.services.document.DocumentRetrievalService;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,6 +27,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.session.advisor.SessionMemoryAdvisor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
@@ -48,9 +54,19 @@ class AskStudentQuestionToolTest {
     @MockitoBean
     DocumentRetrievalService documentRetrievalService;
 
+    @MockitoBean
+    GuardClassifierService guardClassifierService;
+
+    @MockitoBean
+    ChatSessionActivityBus chatSessionActivityBus;
+
+    @MockitoBean
+    JdbcClient jdbcClient;
+
     @Test
     @Timeout(180)
     void chatClientConvertsModelToolCallToStudentQuestionSet() {
+        when(guardClassifierService.classify(anyList())).thenReturn(GuardDecision.SAFE);
         var capturedQuestionSet = new AtomicReference<StudentQuestionSet>();
         var groupClassMemberId = UUID.randomUUID();
         var conversationId = UUID.randomUUID();

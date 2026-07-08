@@ -139,7 +139,11 @@ public class MainLayout extends AppLayout {
             return true;
         }
         try {
-            return authorizationService.can(permission.value());
+            return authorizationService.can(permission.value())
+                    && (permission.workspace() == com.wornux.services.workspace.WorkspaceDestination.NO_ACCESS
+                            || workspaceRoutingService.canAccessWorkspace(
+                                    authenticatedUserContextUtils.requireCurrentAccount(),
+                                    permission.workspace()));
         }
         catch (RuntimeException _) {
             return false;

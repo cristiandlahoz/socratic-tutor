@@ -20,6 +20,8 @@ import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.AccountContextPreferenceRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
+import com.wornux.security.authorization.ActiveContext;
+import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WorkspaceRoutingService {
 
     private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
+    private final ActiveContextHolder activeContextHolder;
     private final AccountRepository accountRepository;
     private final TenantAccountRepository tenantAccountRepository;
     private final AccountContextPreferenceRepository accountContextPreferenceRepository;
@@ -38,6 +41,7 @@ public class WorkspaceRoutingService {
 
     public WorkspaceRoutingService(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
+            ActiveContextHolder activeContextHolder,
             AccountRepository accountRepository,
             TenantAccountRepository tenantAccountRepository,
             AccountContextPreferenceRepository accountContextPreferenceRepository,
@@ -45,6 +49,7 @@ public class WorkspaceRoutingService {
             TenantAccountRoleRepository tenantAccountRoleRepository,
             GroupClassMemberRepository groupClassMemberRepository) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
+        this.activeContextHolder = activeContextHolder;
         this.accountRepository = accountRepository;
         this.tenantAccountRepository = tenantAccountRepository;
         this.accountContextPreferenceRepository = accountContextPreferenceRepository;
@@ -107,7 +112,7 @@ public class WorkspaceRoutingService {
     @Transactional
     public boolean prepareWorkspaceAccess(Account account, WorkspaceDestination destination) {
         return switch (destination) {
-            case SYSTEM_ADMIN -> hasPlatformPermission(account, AppPermission.TENANT_VIEW);
+            case SYSTEM_ADMIN -> prepareSystemAdminAccess(account);
             case TENANT_ADMIN -> prepareTenantAdminAccess(account);
             case PROFESSOR -> prepareGroupClassAccess(account, GroupClassMemberKind.PROFESSOR);
             case STUDENT -> prepareGroupClassAccess(account, GroupClassMemberKind.STUDENT);
@@ -196,6 +201,14 @@ public class WorkspaceRoutingService {
                                         requiredKind));
     }
 
+    private boolean prepareSystemAdminAccess(Account account) {
+        if (!hasPlatformPermission(account, AppPermission.TENANT_VIEW)) {
+            return false;
+        }
+        setContext(account, ContextLevel.PLATFORM, null, null);
+        return true;
+    }
+
     private boolean prepareTenantAdminAccess(Account account) {
         var tenantAdminRoles = findTenantAdminRoles(account);
         if (tenantAdminRoles.isEmpty()) {
@@ -271,5 +284,14 @@ public class WorkspaceRoutingService {
         accountContextPreferenceRepository.save(preference);
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
+        activeContextHolder.set(activeContext(level, tenant, groupClass));
+    }
+
+    private ActiveContext activeContext(ContextLevel level, Tenant tenant, GroupClass groupClass) {
+        return switch (level) {
+            case PLATFORM -> ActiveContext.platform();
+            case TENANT -> ActiveContext.tenant(tenant.getId());
+            case GROUP_CLASS -> ActiveContext.groupClass(tenant.getId(), groupClass.getId());
+        };
     }
 }

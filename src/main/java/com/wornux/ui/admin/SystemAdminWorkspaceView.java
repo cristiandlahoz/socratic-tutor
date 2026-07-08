@@ -19,8 +19,6 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.identity.Tenant;
@@ -29,17 +27,15 @@ import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.SystemAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
-import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "admin", layout = MainLayout.class)
 @PageTitle("Espacio de administración del sistema")
 @PermitAll
-@RequiresPermission(AppPermission.TENANT_VIEW)
-public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+@RequiresPermission(value = AppPermission.TENANT_VIEW, workspace = WorkspaceDestination.SYSTEM_ADMIN)
+public class SystemAdminWorkspaceView extends VerticalLayout {
 
     private enum AdminFilter {
         ALL("Todas"), WITHOUT_ADMIN("Sin administrador"), WITH_ADMIN("Con administrador activo");
@@ -52,7 +48,6 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
     }
 
     private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final WorkspaceRoutingService workspaceRoutingService;
     private final SystemAdminWorkspaceService systemAdminWorkspaceService;
     private final Grid<Tenant> tenantGrid = new Grid<>(Tenant.class, false);
     private final TextField searchField = new TextField("Buscar institución");
@@ -61,10 +56,8 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     public SystemAdminWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
-            WorkspaceRoutingService workspaceRoutingService,
             SystemAdminWorkspaceService systemAdminWorkspaceService) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
-        this.workspaceRoutingService = workspaceRoutingService;
         this.systemAdminWorkspaceService = systemAdminWorkspaceService;
 
         UiCss.WORKSPACE_VIEW.addTo(this);
@@ -79,13 +72,6 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         refresh();
     }
 
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedUserContextUtils.requireCurrentAccount();
-        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.SYSTEM_ADMIN)) {
-            event.forwardTo(NoAccessView.class);
-        }
-    }
 
     private Div createHeader(String title, String description) {
         var heading = new H1(title);

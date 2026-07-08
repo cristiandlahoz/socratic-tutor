@@ -10,8 +10,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.academic.GroupClassMember;
@@ -21,9 +21,7 @@ import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
-import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.conversation.ConversationView;
 import com.wornux.ui.css.UiCss;
 import com.wornux.ui.ingestion.DocumentIngestionView;
@@ -33,11 +31,10 @@ import jakarta.annotation.security.PermitAll;
 @Route(value = "professor", layout = MainLayout.class)
 @PageTitle("Espacio del profesor")
 @PermitAll
-@RequiresPermission(AppPermission.GROUP_CLASS_MEMBER_VIEW)
-public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+@RequiresPermission(value = AppPermission.GROUP_CLASS_MEMBER_VIEW, workspace = WorkspaceDestination.PROFESSOR)
+public class ProfessorWorkspaceView extends VerticalLayout implements AfterNavigationObserver {
 
     private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final WorkspaceRoutingService workspaceRoutingService;
     private final ProfessorWorkspaceService professorWorkspaceService;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<com.wornux.data.entities.academic.GroupClassMember> studentsGrid =
@@ -46,10 +43,8 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
 
     public ProfessorWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
-            WorkspaceRoutingService workspaceRoutingService,
             ProfessorWorkspaceService professorWorkspaceService) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
-        this.workspaceRoutingService = workspaceRoutingService;
         this.professorWorkspaceService = professorWorkspaceService;
 
         UiCss.WORKSPACE_VIEW.addTo(this);
@@ -81,12 +76,7 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
     }
 
     @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedUserContextUtils.requireCurrentAccount();
-        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
-            event.forwardTo(NoAccessView.class);
-            return;
-        }
+    public void afterNavigation(AfterNavigationEvent event) {
         refresh();
     }
 

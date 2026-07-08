@@ -11,24 +11,21 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.UUID;
 
-import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.AfterNavigationEvent;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
-import com.wornux.services.workspace.WorkspaceDestination;
-import com.wornux.services.workspace.WorkspaceRoutingService;
 import org.junit.jupiter.api.Test;
 
 class StudentWorkspaceViewTest {
 
     @Test
-    void beforeEnterDoesNotReenterSwitchClassForProgrammaticSelection() {
+    void afterNavigationDoesNotReenterSwitchClassForProgrammaticSelection() {
         var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
-        var workspaceRoutingService = mock(WorkspaceRoutingService.class);
         var studentWorkspaceService = mock(StudentWorkspaceService.class);
-        var beforeEnterEvent = mock(BeforeEnterEvent.class);
+        var afterNavigationEvent = mock(AfterNavigationEvent.class);
         var account = new Account();
         var accessibleClass = new AccessibleClass(UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -39,16 +36,13 @@ class StudentWorkspaceViewTest {
                 GroupClassMemberKind.STUDENT);
 
         when(authenticatedUserContextUtils.requireCurrentAccount()).thenReturn(account);
-        when(workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT)).thenReturn(true);
         when(studentWorkspaceService.listStudentClasses(account)).thenReturn(List.of(accessibleClass));
         when(studentWorkspaceService.listAssignments(account)).thenReturn(List.of());
 
-        var view =
-                new StudentWorkspaceView(authenticatedUserContextUtils, workspaceRoutingService, studentWorkspaceService);
+        var view = new StudentWorkspaceView(authenticatedUserContextUtils, studentWorkspaceService);
 
-        assertDoesNotThrow(() -> view.beforeEnter(beforeEnterEvent));
+        assertDoesNotThrow(() -> view.afterNavigation(afterNavigationEvent));
 
         verify(studentWorkspaceService, never()).switchClass(eq(account), any());
-        verify(beforeEnterEvent, never()).forwardTo("no-access");
     }
 }

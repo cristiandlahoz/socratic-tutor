@@ -33,16 +33,13 @@ import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.context.SetupRequiredException;
-import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.workspace.WorkspaceDestination;
-import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.auth.NoAccessView;
 import com.wornux.ui.css.UiCss;
 
 @Route(value = "training-activities", layout = MainLayout.class)
-@RequiresPermission(AppPermission.TRAINING_ACTIVITY_CREATE)
+@RequiresPermission(value = AppPermission.TRAINING_ACTIVITY_CREATE, workspace = WorkspaceDestination.PROFESSOR)
 public class TrainingActivityView extends Composite<Div> implements BeforeEnterObserver, AfterNavigationObserver {
 
     private static final Locale SPANISH_LOCALE = Locale.of("es", "DO");
@@ -50,9 +47,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
             DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", SPANISH_LOCALE);
     public static final String OPEN_ACTIVITY_QUERY_PARAMETER = "trainingActivity";
 
-    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient TrainingActivityService trainingActivityService;
-    private final transient WorkspaceRoutingService workspaceRoutingService;
     private final TextField titleField = new TextField("Title");
     private final TextArea instructionField = new TextArea("Instructions");
     private final Button saveButton = new Button("Save draft");
@@ -62,13 +57,8 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     private UUID pendingDialogActivityId;
     private TrainingActivityDialog openDialog;
 
-    public TrainingActivityView(
-            TrainingActivityService trainingActivityService,
-            WorkspaceRoutingService workspaceRoutingService,
-            AuthenticatedUserContextUtils authenticatedUserContextUtils) {
+    public TrainingActivityView(TrainingActivityService trainingActivityService) {
         this.trainingActivityService = trainingActivityService;
-        this.workspaceRoutingService = workspaceRoutingService;
-        this.authenticatedUserContextUtils = authenticatedUserContextUtils;
 
         var content = getContent();
         UiCss.TRAINING_ACTIVITY_VIEW.addTo(content);
@@ -183,11 +173,6 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedUserContextUtils.requireCurrentAccount();
-        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
-            event.forwardTo(NoAccessView.class);
-            return;
-        }
         pendingDialogActivityId = event.getLocation()
                 .getQueryParameters()
                 .getSingleParameter(OPEN_ACTIVITY_QUERY_PARAMETER)

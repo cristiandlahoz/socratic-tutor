@@ -5,6 +5,7 @@ import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.RouterLink;
 import com.wornux.data.entities.identity.ContextLevel;
 import com.wornux.security.permission.AppPermission;
+import com.wornux.services.workspace.WorkspaceDestination;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -14,6 +15,7 @@ public record NavigationEntry(
     Supplier<Component> iconFactory,
     ContextLevel minimumContextLevel,
     AppPermission requiredPermission,
+    WorkspaceDestination workspaceDestination,
     int order) {
 
   public record RouteTarget(Class<? extends Component> viewTarget, QueryParameters parameters) {
@@ -57,6 +59,25 @@ public record NavigationEntry(
         iconFactory,
         minimumContextLevel,
         requiredPermission,
+        null,
+        order);
+  }
+
+  public NavigationEntry(
+      String label,
+      Class<? extends Component> viewTarget,
+      Supplier<Component> iconFactory,
+      ContextLevel minimumContextLevel,
+      AppPermission requiredPermission,
+      WorkspaceDestination workspaceDestination,
+      int order) {
+    this(
+        label,
+        new RouteTarget(viewTarget),
+        iconFactory,
+        minimumContextLevel,
+        requiredPermission,
+        workspaceDestination,
         order);
   }
 

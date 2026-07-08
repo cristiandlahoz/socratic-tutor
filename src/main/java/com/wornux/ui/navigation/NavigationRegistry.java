@@ -7,6 +7,7 @@ import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.wornux.data.entities.identity.ContextLevel;
 import com.wornux.security.permission.AppPermission;
+import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.ui.admin.SystemAdminWorkspaceView;
 import com.wornux.ui.conversation.ConversationView;
 import com.wornux.ui.ingestion.DocumentIngestionView;
@@ -21,8 +22,8 @@ import org.springframework.stereotype.Component;
 public class NavigationRegistry {
     private final List<NavigationEntry> entries = List.of(
             new NavigationEntry("Administración", SystemAdminWorkspaceView.class, () -> new Icon(VaadinIcon.HOME), ContextLevel.PLATFORM, AppPermission.TENANT_VIEW, 10),
-            new NavigationEntry("Panel profesoral", ProfessorWorkspaceView.class, () -> new SvgIcon("/icons/panels.svg"), ContextLevel.GROUP_CLASS, AppPermission.GROUP_CLASS_MEMBER_VIEW, 11),
-            new NavigationEntry("Panel estudiantil", StudentWorkspaceView.class, () -> new SvgIcon("/icons/panels.svg"), ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, 12),
+            new NavigationEntry("Panel profesoral", ProfessorWorkspaceView.class, () -> new SvgIcon("/icons/panels.svg"), ContextLevel.GROUP_CLASS, AppPermission.GROUP_CLASS_MEMBER_VIEW, WorkspaceDestination.PROFESSOR, 11),
+            new NavigationEntry("Panel estudiantil", StudentWorkspaceView.class, () -> new SvgIcon("/icons/panels.svg"), ContextLevel.GROUP_CLASS, AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, WorkspaceDestination.STUDENT, 12),
             new NavigationEntry("Institución", TenantAdminWorkspaceView.class, () -> new Icon(VaadinIcon.INSTITUTION), ContextLevel.TENANT, AppPermission.GROUP_CLASS_CREATE, 20),
             new NavigationEntry("Roles y permisos", RoleMatrixView.class, () -> new SvgIcon("/icons/role.svg"), ContextLevel.PLATFORM, AppPermission.ROLE_VIEW, 22),
             new NavigationEntry("Conversación", ConversationView.class, () -> new SvgIcon("/icons/pencil.svg"), ContextLevel.GROUP_CLASS, AppPermission.CONVERSATION_VIEW, 30),
