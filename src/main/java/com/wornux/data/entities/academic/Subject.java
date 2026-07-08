@@ -33,6 +33,9 @@ public class Subject {
     @Column(nullable = false)
     private String name;
 
+    @Column(columnDefinition = "text")
+    private String syllabus;
+
     @Column(nullable = false)
     private boolean active;
 

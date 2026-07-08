@@ -107,7 +107,7 @@ public class TenantAdminWorkspaceService {
     }
 
     @Transactional
-    public Subject createSubject(Account account, String code, String name) {
+    public Subject createSubject(Account account, String code, String name, String syllabus) {
         var tenantAccount = requireActiveTenantAccountEntity(account);
         if (subjectRepository.findByTenant_IdAndCode(tenantAccount.getTenant().getId(), code.trim()).isPresent()) {
             throw new IllegalArgumentException("A subject with that code already exists in this tenant.");
@@ -117,6 +117,7 @@ public class TenantAdminWorkspaceService {
         subject.setTenant(tenantAccount.getTenant());
         subject.setCode(code.trim());
         subject.setName(name.trim());
+        subject.setSyllabus(normalizeSyllabus(syllabus));
         subject.setActive(true);
         subject.setCreatedAt(Instant.now());
         subject.setUpdatedAt(Instant.now());
@@ -168,5 +169,12 @@ public class TenantAdminWorkspaceService {
             account,
             tenantAccount,
             null);
+    }
+
+    private String normalizeSyllabus(String syllabus) {
+        if (syllabus == null || syllabus.isBlank()) {
+            return null;
+        }
+        return syllabus.trim();
     }
 }

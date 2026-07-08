@@ -1,10 +1,13 @@
 package com.wornux.ui.tenant;
 
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.List;
 import java.util.Objects;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -14,16 +17,20 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.streams.UploadHandler;
 import com.wornux.data.entities.academic.AcademicPeriod;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.Subject;
@@ -32,6 +39,7 @@ import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleTenant;
+import com.wornux.services.workspace.SubjectSyllabusGenerationService;
 import com.wornux.services.workspace.TenantAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
@@ -39,6 +47,7 @@ import com.wornux.ui.MainLayout;
 import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @Route(value = "tenant", layout = MainLayout.class)
 @PageTitle("Espacio de administración institucional")
@@ -51,6 +60,8 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
     private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient WorkspaceRoutingService workspaceRoutingService;
     private final transient TenantAdminWorkspaceService tenantAdminWorkspaceService;
+    private final transient SubjectSyllabusGenerationService syllabusGenerationService;
+    private final transient Executor documentIngestionExecutor;
     private final ComboBox<AccessibleTenant> tenantSelector = new ComboBox<>("Contexto institucional");
     private final TextField searchField = new TextField("Buscar");
     private final Select<AcademicPeriod> periodFilter = new Select<>();
@@ -62,10 +73,14 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
     public TenantAdminWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
-            TenantAdminWorkspaceService tenantAdminWorkspaceService) {
+            TenantAdminWorkspaceService tenantAdminWorkspaceService,
+            SubjectSyllabusGenerationService syllabusGenerationService,
+            @Qualifier("documentIngestionExecutor") Executor documentIngestionExecutor) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.tenantAdminWorkspaceService = tenantAdminWorkspaceService;
+        this.syllabusGenerationService = syllabusGenerationService;
+        this.documentIngestionExecutor = documentIngestionExecutor;
 
         configureToolbarFields();
         configureGrid();
@@ -222,14 +237,51 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
         code.setPlaceholder("ICC-101");
         var name = new TextField("Nombre");
         name.setPlaceholder("Introducción a la algoritmia");
-        addWorkspaceFieldClasses(code, name);
+        var syllabus = new TextArea("Syllabus / contexto para el tutor");
+        syllabus.setPlaceholder(
+            "Describe competencias, alcance del curso y stack tecnológico. También puedes subir un PDF de syllabus para generar este contexto.");
+        syllabus.setMaxLength(1200);
+        syllabus.setWidthFull();
+        var uploadStatus = new Paragraph("Opcional: sube un PDF de syllabus para generar un contexto compacto.");
+        UiCss.WORKSPACE_DIALOG_COPY.addTo(uploadStatus);
+        var syllabusUpload = syllabusUpload(code, name, syllabus, uploadStatus);
+        addWorkspaceFieldClasses(code, name, syllabus);
 
         openCreateCatalogDialog(
             "Crear asignatura",
-            "Crea la asignatura una vez y reutilízala al abrir nuevas clases en distintos períodos.",
-            formRow(code, name),
-            dialog -> onCreateSubject(dialog, code, name),
+            "Crea la asignatura una vez. El contexto se inyecta en el tutor para mantenerlo dentro del alcance, competencias y stack del curso.",
+            new VerticalLayout(formRow(code, name), syllabus, uploadStatus, syllabusUpload),
+            dialog -> onCreateSubject(dialog, code, name, syllabus),
             code::focus);
+    }
+
+    private Upload syllabusUpload(TextField code, TextField name, TextArea syllabus, Paragraph uploadStatus) {
+        var upload = new Upload(UploadHandler.inMemory((metadata, data) -> {
+            var ui = UI.getCurrent();
+            runUi(ui, () -> uploadStatus.setText("Transformando PDF con Docling y construyendo contexto..."));
+            CompletableFuture
+                    .supplyAsync(
+                        () -> syllabusGenerationService.generateFromPdf(
+                            code.getValue(),
+                            name.getValue(),
+                            metadata.fileName(),
+                            data),
+                        documentIngestionExecutor)
+                    .whenComplete((generated, exception) -> runUi(ui, () -> {
+                        if (exception != null) {
+                            uploadStatus.setText(message(exception));
+                            showError(message(exception));
+                            return;
+                        }
+                        syllabus.setValue(generated);
+                        uploadStatus.setText("Contexto generado. Revísalo antes de crear la asignatura.");
+                    }));
+        }));
+        upload.setAcceptedFileTypes("application/pdf", ".pdf");
+        upload.setMaxFiles(1);
+        upload.setDropAllowed(true);
+        upload.setWidthFull();
+        return upload;
     }
 
     private void openCreateCatalogDialog(
@@ -369,12 +421,13 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
         }
     }
 
-    private void onCreateSubject(Dialog dialog, TextField code, TextField name) {
+    private void onCreateSubject(Dialog dialog, TextField code, TextField name, TextArea syllabus) {
         try {
             tenantAdminWorkspaceService.createSubject(
                 authenticatedUserContextUtils.requireCurrentAccount(),
                 code.getValue(),
-                name.getValue());
+                name.getValue(),
+                syllabus.getValue());
             dialog.close();
             refresh();
             Notification.show("Asignatura creada.");
@@ -462,5 +515,27 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
     private String periodRange(GroupClass groupClass) {
         var period = groupClass.getAcademicPeriod();
         return "%s — %s".formatted(DATE_FORMAT.format(period.getStartsAt()), DATE_FORMAT.format(period.getEndsAt()));
+    }
+
+    private void runUi(UI ui, Runnable callback) {
+        if (ui != null && ui.isAttached()) {
+            ui.access(callback::run);
+            return;
+        }
+        callback.run();
+    }
+
+    private String message(Throwable exception) {
+        var cause = exception instanceof java.util.concurrent.CompletionException && exception.getCause() != null
+                ? exception.getCause()
+                : exception;
+        return cause.getMessage() == null || cause.getMessage().isBlank()
+                ? "No se pudo generar el contexto desde el PDF."
+                : cause.getMessage();
+    }
+
+    private void showError(String message) {
+        var notification = Notification.show(message, 4_000, Notification.Position.MIDDLE);
+        notification.addThemeVariants(NotificationVariant.ERROR);
     }
 }

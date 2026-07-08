@@ -30,6 +30,9 @@ public class PromptResources {
     private static final String DOCUMENT_SPECIFICITY_SYSTEM =
             "classpath:/prompt/document/specificity-classifier-system.st";
     private static final String DOCUMENT_SPECIFICITY_USER = "classpath:/prompt/document/specificity-classifier-user.st";
+    private static final String SUBJECT_SYLLABUS_BUILDER_SYSTEM =
+            "classpath:/prompt/subject/syllabus-builder-system.st";
+    private static final String SUBJECT_SYLLABUS_BUILDER_USER = "classpath:/prompt/subject/syllabus-builder-user.st";
 
     private final ResourceLoader resourceLoader;
     private final Map<String, String> cache = new ConcurrentHashMap<>();
@@ -96,6 +99,14 @@ public class PromptResources {
 
     public String documentSpecificityUser() {
         return load(DOCUMENT_SPECIFICITY_USER);
+    }
+
+    public String subjectSyllabusBuilderSystem() {
+        return load(SUBJECT_SYLLABUS_BUILDER_SYSTEM);
+    }
+
+    public String subjectSyllabusBuilderUser() {
+        return load(SUBJECT_SYLLABUS_BUILDER_USER);
     }
 
     private String load(String location) {
