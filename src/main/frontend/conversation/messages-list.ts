@@ -168,6 +168,7 @@ class MessagesList extends LitElement {
     return html`
       <div role="list" class="messages-list__items">
         ${repeat(this.items, messageKey, (item: MessageItemModel) => this.renderMessage(item))}
+        ${this.renderCompactionMessage()}
       </div>
     `;
   }
@@ -298,7 +299,7 @@ class MessagesList extends LitElement {
   }
 
   private notifyBusyState(): void {
-    const busy = this.items.some(item => Boolean(item.loading));
+    const busy = this.items.some(item => Boolean(item.loading)) || this.activity === 'compacting';
 
     if (busy === this.busy) {
       return;
@@ -532,6 +533,22 @@ class MessagesList extends LitElement {
         .userName=${item.loading ? '' : item.userName ?? ''}
         .variant=${variant}
         .loading=${Boolean(item.loading)}
+        .thinkingSpinner=${this.thinkingSpinner}
+        .loadingLabel=${this.loadingLabel()}
+      ></message-item>
+    `;
+  }
+
+  private renderCompactionMessage() {
+    if (this.activity !== 'compacting' || this.items.some(item => Boolean(item.loading))) {
+      return null;
+    }
+
+    return html`
+      <message-item
+        role="listitem"
+        .variant=${'assistant'}
+        .loading=${true}
         .thinkingSpinner=${this.thinkingSpinner}
         .loadingLabel=${this.loadingLabel()}
       ></message-item>

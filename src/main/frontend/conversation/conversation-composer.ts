@@ -195,15 +195,19 @@ class ConversationComposer extends LitElement {
   }
 
   private canSubmit(): boolean {
-    return this.composerEnabled && !this.responseBusy && this.sendAvailable && this.value.trim().length > 0;
+    return this.composerEnabled && !this.busy() && this.sendAvailable && this.value.trim().length > 0;
   }
 
   private inputDisabled(): boolean {
-    return !this.composerEnabled && !this.responseBusy;
+    return !this.composerEnabled && !this.busy();
+  }
+
+  private busy(): boolean {
+    return this.responseBusy || this.activity === 'compacting';
   }
 
   private renderSendControl() {
-    if (this.responseBusy) {
+    if (this.busy()) {
       return html`
         <span
           class="conversation-composer__send-spinner"

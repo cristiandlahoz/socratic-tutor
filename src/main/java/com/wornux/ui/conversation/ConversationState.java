@@ -48,7 +48,9 @@ public class ConversationState implements Serializable {
     private final Signal<Boolean> emptyStateVisible = Signal.computed(() -> messages.get().isEmpty());
     private final Signal<Boolean> questionPanelVisible = Signal.computed(() -> pendingQuestionSet.get() != null);
     private final Signal<Boolean> composerEnabled = Signal.computed(
-        () -> !responseInProgress.get() && pendingQuestionSet.get() == null && !questionSubmissionInProgress.get());
+        () -> (!responseInProgress.get() || activity.get() != ChatSessionActivity.IDLE)
+                && pendingQuestionSet.get() == null
+                && !questionSubmissionInProgress.get());
     private final Signal<Boolean> composerSubmitAllowed = Signal.computed(
         () -> !responseInProgress.get()
                 && pendingQuestionSet.get() == null
