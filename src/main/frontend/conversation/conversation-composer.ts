@@ -1,7 +1,6 @@
 import '@vaadin/button';
 import '@vaadin/icon';
 import '@vaadin/icons';
-import '@vaadin/text-area';
 import './braille-spinner.js';
 import { haptic } from 'Frontend/shared/haptics.js';
 import { LitElement, html } from 'lit';
@@ -15,7 +14,7 @@ class ConversationComposer extends LitElement {
 
   private readonly handleBottomStateChanged = (event: Event): void => {
     const detail = (event as CustomEvent<{ atBottom?: boolean }>).detail;
-    this.scrollToBottomVisible = !Boolean(detail?.atBottom);
+    this.scrollToBottomVisible = !detail?.atBottom;
   };
 
   private readonly handleBusyChanged = (event: Event): void => {
@@ -23,7 +22,7 @@ class ConversationComposer extends LitElement {
     this.responseBusy = Boolean(detail?.busy);
   };
 
-  static properties = {
+  static readonly properties = {
     value: { type: String },
     promptLimit: { type: Number, attribute: 'prompt-limit' },
     composerEnabled: { type: Boolean, attribute: 'composer-enabled' },
@@ -81,17 +80,20 @@ class ConversationComposer extends LitElement {
   protected render() {
     return html`
       ${this.renderScrollToBottomButton()}
-      <vaadin-text-area
-        class="conversation-composer__input"
-        .value=${this.value}
-        ?disabled=${this.inputDisabled()}
-        maxlength=${this.promptLimit}
-        helper-text=${this.helperText()}
-        placeholder=""
-        aria-label="Escribe tu mensaje aquí"
-        @value-changed=${this.handleValueChanged}
-        @keydown=${this.handleKeyDown}
-      ></vaadin-text-area>
+      <div class="conversation-composer__input">
+        <textarea
+          class="conversation-composer__native-input"
+          .value=${this.value}
+          ?disabled=${this.inputDisabled()}
+          maxlength=${this.promptLimit}
+          placeholder=""
+          aria-label="Escribe tu mensaje aquí"
+          rows="1"
+          @input=${this.handleInput}
+          @keydown=${this.handleKeyDown}
+        ></textarea>
+      </div>
+      <span class="conversation-composer__helper" aria-live="polite">${this.helperText()}</span>
       <span class=${this.modelStatusClass()} aria-live="polite">${this.modelStatusLabel()}</span>
       ${this.renderUsage()}
       <span class="conversation-composer__prompt-prefix" aria-hidden="true">~</span>
@@ -100,12 +102,18 @@ class ConversationComposer extends LitElement {
     `;
   }
 
-  private handleValueChanged(event: CustomEvent<{ value?: string }>): void {
-    this.value = event.detail.value ?? '';
+  protected updated(): void {
+    this.resizeInput();
+  }
+
+  private handleInput(event: Event): void {
+    const textarea = event.currentTarget as HTMLTextAreaElement;
+    this.value = textarea.value;
+    this.resizeInput(textarea);
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
-    if (event.key !== 'Enter' || event.shiftKey || !this.canSubmit()) {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing || !this.canSubmit()) {
       return;
     }
     event.preventDefault();
@@ -127,6 +135,21 @@ class ConversationComposer extends LitElement {
       bubbles: true,
       composed: true,
     }));
+  }
+
+  private resizeInput(textarea = this.querySelector<HTMLTextAreaElement>('.conversation-composer__native-input')): void {
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = 'auto';
+    const maxHeight = Number.parseFloat(getComputedStyle(textarea).maxHeight);
+    const nextHeight = Number.isFinite(maxHeight)
+      ? Math.min(textarea.scrollHeight, maxHeight)
+      : textarea.scrollHeight;
+
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = Number.isFinite(maxHeight) && textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }
 
   private scrollToBottom(): void {

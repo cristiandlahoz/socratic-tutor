@@ -34,14 +34,12 @@ vaadin-button.conversation-composer__scroll-bottom-button:focus-within::part(but
   color: var(--vaadin-text-color);
 }
 
-vaadin-text-area.conversation-composer__input {
+.conversation-composer__input {
+  box-sizing: border-box;
   position: relative;
   display: block;
+  min-height: calc(var(--composer-header-height) + 7.5rem);
   overflow: hidden;
-  --vaadin-input-field-helper-color: var(--composer-helper-color);
-  --vaadin-input-field-helper-font-size: var(--composer-helper-font-size);
-  --vaadin-input-field-helper-font-weight: var(--composer-helper-font-weight);
-  --vaadin-input-field-helper-line-height: var(--composer-helper-line-height);
   border-radius: var(--vaadin-radius-m);
   background: var(--composer-surface);
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
@@ -50,7 +48,7 @@ vaadin-text-area.conversation-composer__input {
     box-shadow var(--motion-fast);
 }
 
-vaadin-text-area.conversation-composer__input::before {
+.conversation-composer__input::before {
   content: "";
   position: absolute;
   top: var(--composer-header-height);
@@ -61,66 +59,68 @@ vaadin-text-area.conversation-composer__input::before {
   pointer-events: none;
 }
 
-vaadin-text-area.conversation-composer__input:hover,
-vaadin-text-area.conversation-composer__input[focused],
-vaadin-text-area.conversation-composer__input:focus-within {
+.conversation-composer__input:hover,
+.conversation-composer__input:focus-within {
   border-color: var(--composer-border-hover);
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
 }
 
-vaadin-text-area.conversation-composer__input::part(input-field) {
+.conversation-composer__native-input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
   min-height: 7.5rem;
   max-height: 30vh;
-  margin-top: var(--composer-header-height);
-  padding-left: calc(var(--vaadin-padding-m) + 1.35rem);
-  scrollbar-width: none;
-  background: transparent;
+  margin: var(--composer-header-height) 0 0;
+  padding: var(--vaadin-padding-s) clamp(4.6rem, 16vw, 5.6rem) var(--vaadin-padding-m) calc(var(--vaadin-padding-m) + 1.35rem);
+  overflow: hidden;
+  resize: none;
   border: 0;
-  border-radius: 0;
-  box-shadow: none;
+  background: transparent;
+  color: var(--composer-input-text-color);
+  caret-color: var(--composer-input-text-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-m);
+  font-weight: var(--composer-input-font-weight);
+  line-height: var(--code-line-height);
   outline: none;
-  backdrop-filter: none;
+  scrollbar-width: none;
+  white-space: pre-wrap;
 }
 
-vaadin-text-area.conversation-composer__input[has-helper]::part(helper-text),
-vaadin-text-area.conversation-composer__input[has-error-message]::part(error-message) {
+.conversation-composer__native-input::placeholder {
+  color: var(--composer-placeholder-color);
+}
+
+.conversation-composer__native-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.conversation-composer__helper {
   box-sizing: border-box;
   position: absolute;
   top: 0;
   right: var(--vaadin-padding-m);
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
   width: auto;
   max-width: min(46%, 18rem);
   height: var(--composer-header-height);
   margin: 0;
   padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
+  overflow: hidden;
+  color: var(--composer-helper-color);
   font-family: var(--aura-font-family);
   font-size: var(--composer-helper-font-size);
   font-weight: var(--composer-helper-font-weight);
   line-height: 1;
-}
-
-vaadin-text-area.conversation-composer__input[has-helper]::part(helper-text) {
-  color: var(--composer-helper-color);
-  text-align: right;
-}
-
-vaadin-text-area.conversation-composer__input[has-helper] > [slot="helper"] {
-  color: var(--composer-helper-color);
   letter-spacing: -0.01em;
-}
-
-vaadin-text-area.conversation-composer__input[invalid] {
-  border-color: var(--aura-red-text);
-}
-
-vaadin-text-area.conversation-composer__input[has-error-message]::part(error-message),
-vaadin-text-area.conversation-composer__input[has-error-message] > [slot="error-message"] {
-  color: var(--aura-red-text);
-  font-weight: var(--aura-font-weight-semibold);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .conversation-composer__model-status {
@@ -235,18 +235,6 @@ vaadin-text-area.conversation-composer__input[has-error-message] > [slot="error-
   line-height: var(--code-line-height);
   pointer-events: none;
   user-select: none;
-}
-
-vaadin-text-area.conversation-composer__input>textarea {
-  color: var(--composer-text-color, var(--vaadin-text-color));
-  font-family: var(--aura-font-family);
-  font-size: var(--code-text-size);
-  font-weight: var(--aura-font-weight-regular);
-  line-height: var(--code-line-height);
-}
-
-vaadin-text-area.conversation-composer__input>textarea::placeholder {
-  color: var(--composer-placeholder-color);
 }
 
 vaadin-button.conversation-composer__send-button {
