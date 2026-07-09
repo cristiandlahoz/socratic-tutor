@@ -1,55 +1,26 @@
 import 'Frontend/shared/code/code-block-viewer.js';
-import { ensureDocumentStyle } from 'Frontend/shared/dom-utils.js';
 import DOMPurify from 'dompurify';
 import { LitElement, html, type PropertyValues } from 'lit';
-import { Marked, type HooksObject, type RendererObject, type TokenizerAndRendererExtension, type Tokens } from 'marked';
 import { estimateMarkdownBlockSize } from './markdown-layout-estimate.js';
+import {
+  bindSanitizedMarkdownRender,
+  isCodeBlockViewerPlaceholderAttribute,
+  isCodeBlockViewerPlaceholderTag,
+  renderSanitizedMarkdownRender,
+} from './markdown-render-pipeline.js';
 
 const MARKDOWN_RENDERER_STYLE_ID = 'markdown-renderer-styles';
 const MARKDOWN_CONTENT_SELECTOR = '[data-markdown-content]';
 const MIN_PENDING_RENDER_BLOCK_SIZE_PX = 96;
 
-type CodeBlock = {
-  code: string;
-  lang: string;
-};
-
-type CodeBlockViewer = HTMLElement & {
-  value: string;
-  lang: string;
-  debuggable: boolean;
-};
-
-const markExtension: TokenizerAndRendererExtension = {
-  name: 'mark',
-  level: 'inline',
-  start(src: string): number | void {
-    return src.indexOf('==');
-  },
-  tokenizer(src: string): Tokens.Generic | undefined {
-    const match = /^==(?=\S)([\s\S]*?\S)==(?![=])/.exec(src);
-
-    if (!match) {
-      return undefined;
-    }
-
-    return {
-      type: 'mark',
-      raw: match[0],
-      text: match[1],
-      tokens: this.lexer.inlineTokens(match[1]),
-    };
-  },
-  renderer(token: Tokens.Generic): string {
-    const tokens = Array.isArray(token.tokens) ? token.tokens : [];
-
-    return `<mark>${this.parser.parseInline(tokens)}</mark>`;
-  },
-  childTokens: ['tokens'],
-};
-
 function ensureMarkdownRendererStyles(): void {
-  ensureDocumentStyle(MARKDOWN_RENDERER_STYLE_ID, `
+  if (document.getElementById(MARKDOWN_RENDERER_STYLE_ID)) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = MARKDOWN_RENDERER_STYLE_ID;
+  style.textContent = `
     markdown-renderer {
       --mk-font-family: var(
         --aura-font-family,
@@ -94,13 +65,8 @@ function ensureMarkdownRendererStyles(): void {
       --mk-inline-code-bg: light-dark(#c4c4bd, #2b2b2b);
       --mk-inline-code-text: var(--aura-code-text-color, #eb5757);
       --mk-block-code-bg: var(--vaadin-background-container);
-      --mk-highlight-accent: oklab(81.11% 0.071 0.102); /* #FFAB70 */
-      --mk-highlight-bg: light-dark(
-        oklab(94% 0.029 0.068),
-        color-mix(in oklab, var(--mk-highlight-accent) 34%, transparent)
-      );
-      --mk-highlight-text: light-dark(oklab(43% 0.088 0.102), oklab(88% 0.052 0.088));
-      --mk-highlight-border: light-dark(oklab(84% 0.063 0.102), oklab(73% 0.078 0.102));
+      --mk-highlight-bg: color-mix(in srgb, var(--aura-yellow, var(--mk-primary)) 20%, transparent);
+      --mk-highlight-text: var(--mk-text-strong);
       --mk-selection-bg: var(--selection-background, color-mix(in srgb, var(--mk-primary) 26%, transparent));
 
       --mk-table-bg: transparent;
@@ -114,26 +80,23 @@ function ensureMarkdownRendererStyles(): void {
       --mk-table-font-size: var(--mk-step-1);
 
       --mk-step--1: clamp(calc(var(--mk-font-size) * 0.88), 0.78rem, calc(var(--mk-font-size) * 0.95));
-      --mk-type-ratio: 1.15;
       --mk-step-0: var(--mk-font-size);
-      --mk-step-1: calc(var(--mk-step-0) * var(--mk-type-ratio));
-      --mk-step-2: calc(var(--mk-step-1) * var(--mk-type-ratio));
-      --mk-step-3: calc(var(--mk-step-2) * var(--mk-type-ratio));
-      --mk-step-4: calc(var(--mk-step-3) * var(--mk-type-ratio));
+      --mk-step-1: clamp(calc(var(--mk-font-size) * 1.08), 1.1vw, calc(var(--mk-font-size) * 1.18));
+      --mk-step-2: clamp(calc(var(--mk-font-size) * 1.22), 1.45vw, calc(var(--mk-font-size) * 1.42));
+      --mk-step-3: clamp(calc(var(--mk-font-size) * 1.48), 2vw, calc(var(--mk-font-size) * 1.78));
+      --mk-step-4: clamp(calc(var(--mk-font-size) * 1.86), 3vw, calc(var(--mk-font-size) * 2.42));
 
-      --mk-space-unit: calc(var(--mk-font-size) * 0.25);
-      --mk-space-025: calc(var(--mk-space-unit) * 1);
-      --mk-space-050: calc(var(--mk-space-unit) * 2);
-      --mk-space-075: calc(var(--mk-space-unit) * 3);
-      --mk-space-100: calc(var(--mk-space-unit) * 4);
-      --mk-space-150: calc(var(--mk-space-unit) * 6);
-      --mk-space-200: calc(var(--mk-space-unit) * 8);
-      --mk-space-300: calc(var(--mk-space-unit) * 12);
+      --mk-space-025: calc(var(--mk-font-size) * 0.25);
+      --mk-space-050: calc(var(--mk-font-size) * 0.5);
+      --mk-space-075: calc(var(--mk-font-size) * 0.75);
+      --mk-space-100: var(--mk-font-size);
+      --mk-space-150: calc(var(--mk-font-size) * 1.5);
+      --mk-space-200: calc(var(--mk-font-size) * 2);
+      --mk-space-300: calc(var(--mk-font-size) * 3);
 
-      --mk-radius-ratio: 1.5;
       --mk-radius-xs: calc(var(--mk-font-size) * 0.3);
-      --mk-radius-sm: calc(var(--mk-radius-xs) * var(--mk-radius-ratio));
-      --mk-radius-md: var(--vaadin-radius-m, calc(var(--mk-radius-sm) * var(--mk-radius-ratio)));
+      --mk-radius-sm: calc(var(--mk-font-size) * 0.46);
+      --mk-radius-md: var(--vaadin-radius-m, calc(var(--mk-font-size) * 0.7));
 
       display: block;
       width: 100%;
@@ -269,10 +232,8 @@ function ensureMarkdownRendererStyles(): void {
     markdown-renderer mark {
       color: var(--mk-highlight-text);
       background: var(--mk-highlight-bg);
-      border: 1px solid color-mix(in oklab, var(--mk-highlight-border) 72%, transparent);
       border-radius: var(--mk-radius-xs);
-      font-weight: 650;
-      padding: 0.04em 0.3em;
+      padding: 0.05em 0.28em;
     }
 
     markdown-renderer del {
@@ -610,48 +571,19 @@ function ensureMarkdownRendererStyles(): void {
         animation-iteration-count: 1 !important;
       }
     }
-  `);
-}
+  `;
 
-function parseLanguage(info: string | undefined): string {
-  return info?.trim().split(/\s+/)[0] ?? '';
+  document.head.appendChild(style);
 }
 
 function sanitizeMarkdownHtml(html: string): string {
   return DOMPurify.sanitize(html, {
     ADD_ATTR: ['data-code-block-index'],
     CUSTOM_ELEMENT_HANDLING: {
-      tagNameCheck: (tagName) => tagName === 'code-block-viewer',
-      attributeNameCheck: (attributeName) => attributeName === 'data-code-block-index',
+      tagNameCheck: isCodeBlockViewerPlaceholderTag,
+      attributeNameCheck: isCodeBlockViewerPlaceholderAttribute,
     },
   }).replace(/\r?\n$/, '');
-}
-
-function createMarkdown(blocks: CodeBlock[]): Marked {
-  const renderer: RendererObject = {
-    code(token: Tokens.Code): string {
-      const index = blocks.length;
-
-      blocks.push({
-        code: token.text,
-        lang: parseLanguage(token.lang),
-      });
-
-      return `<code-block-viewer data-code-block-index="${index}"></code-block-viewer>`;
-    },
-  };
-
-  const hooks: HooksObject = {
-    postprocess: sanitizeMarkdownHtml,
-  };
-
-  return new Marked({
-    gfm: true,
-    breaks: true,
-    extensions: [markExtension],
-    renderer,
-    hooks,
-  });
 }
 
 type SynchronizableChildNode = Node & ChildNode;
@@ -823,14 +755,13 @@ class MarkdownRenderer extends LitElement {
       return;
     }
 
-    const blocks: CodeBlock[] = [];
-    const marked = createMarkdown(blocks);
     const template = document.createElement('template');
 
-    template.innerHTML = marked.parse(this.content || '') as string;
+    const rendered = renderSanitizedMarkdownRender(this.content || '', sanitizeMarkdownHtml);
+    template.innerHTML = rendered.html;
 
     synchronizeNodes(target, template.content);
-    this.bindCodeBlocks(target, blocks);
+    bindSanitizedMarkdownRender(target, rendered, this.debuggableCodeBlocks);
 
     this.renderedContent = this.content;
     this.renderedDebuggableCodeBlocks = this.debuggableCodeBlocks;
@@ -883,21 +814,6 @@ class MarkdownRenderer extends LitElement {
   private clearPendingRenderSpace(): void {
     this.style.removeProperty('min-block-size');
     this.removeAttribute('data-pending-render');
-  }
-
-  private bindCodeBlocks(target: HTMLElement, blocks: CodeBlock[]): void {
-    target.querySelectorAll<CodeBlockViewer>('code-block-viewer[data-code-block-index]').forEach((viewer) => {
-      const index = Number(viewer.dataset.codeBlockIndex);
-      const block = blocks[index];
-
-      if (!block) {
-        return;
-      }
-
-      viewer.value = block.code;
-      viewer.lang = block.lang;
-      viewer.debuggable = this.debuggableCodeBlocks;
-    });
   }
 }
 

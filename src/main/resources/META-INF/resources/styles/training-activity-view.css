@@ -1,95 +1,571 @@
+/* =========================
+   Training Activity Page
+   ========================= */
+
 .training-activity-view {
-  width: min(100%, 96rem);
-  margin: 0 auto;
-  padding: var(--vaadin-padding-xl) clamp(1.25rem, 3vw, 2.5rem);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding-block: var(--vaadin-padding-l, 1.5rem);
+  padding-inline: clamp(2rem, 4vw, 4rem);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.training-activity-view > div {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.training-activity-content {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.training-activity-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-xs, 0.25rem);
+}
+
+.training-activity-header h2 {
+  margin: 0;
+}
+
+.training-activity-description {
+  opacity: 0.72;
+  font-size: var(--aura-font-size-xs, 0.875rem);
+  line-height: 1.35;
+}
+
+
+/* =========================
+   Cards
+   ========================= */
+
+.training-activity-form-card,
+.training-activity-grid-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  gap: var(--vaadin-padding-s, 0.75rem);
+  background: var(--vaadin-background-container-strong);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-s, 8px);
+  padding: var(--vaadin-padding-m, 1rem);
+  box-shadow: var(--aura-shadow-xs);
   box-sizing: border-box;
 }
+
+.training-activity-form-card {
+  flex: 0 0 auto;
+}
+
+.training-activity-grid-card {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.training-activity-main-grid {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.training-activity-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vaadin-gap-xs, 0.25rem);
+}
+
+.training-activity-form-card vaadin-button[theme~="primary"],
+.training-activity-actions-row vaadin-button[theme~="primary"],
+.training-activity-overlay-footer vaadin-button[theme~="primary"],
+.training-activity-report-footer vaadin-button[theme~="primary"] {
+  --training-activity-action-color: light-dark(#082c42, #ffdf72);
+  --training-activity-action-background: light-dark(
+    color-mix(in srgb, white 88%, #d7e0e2),
+    color-mix(in srgb, #ffdf72 10%, var(--vaadin-background-container))
+  );
+  --training-activity-action-border: light-dark(
+    color-mix(in srgb, #082c42 24%, #d7e0e2),
+    color-mix(in srgb, #ffdf72 48%, var(--vaadin-border-color))
+  );
+  --vaadin-button-background: var(--training-activity-action-background);
+  --vaadin-button-text-color: var(--training-activity-action-color);
+  --vaadin-focus-ring-color: color-mix(in srgb, var(--training-activity-action-color) 48%, transparent);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--training-activity-action-border);
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  box-shadow: light-dark(0 1px 2px color-mix(in srgb, #082c42 12%, transparent), none);
+}
+
+.training-activity-form-card vaadin-button[theme~="primary"]:hover,
+.training-activity-actions-row vaadin-button[theme~="primary"]:hover,
+.training-activity-overlay-footer vaadin-button[theme~="primary"]:hover,
+.training-activity-report-footer vaadin-button[theme~="primary"]:hover {
+  --vaadin-button-background: light-dark(
+    color-mix(in srgb, white 82%, #c9d6da),
+    color-mix(in srgb, #ffdf72 16%, var(--vaadin-background-container))
+  );
+  border-color: light-dark(
+    color-mix(in srgb, #082c42 34%, #d7e0e2),
+    color-mix(in srgb, #ffdf72 68%, var(--vaadin-border-color))
+  );
+}
+
+.training-activity-actions-row vaadin-button[theme~="error"],
+.training-activity-overlay-footer vaadin-button[theme~="error"],
+.training-activity-report-footer vaadin-button[theme~="error"] {
+  --training-activity-danger-color: light-dark(#b3261e, #ff8d82);
+  --training-activity-danger-background: light-dark(
+    color-mix(in srgb, white 88%, #f5dddd),
+    color-mix(in srgb, #ff8d82 8%, var(--vaadin-background-container))
+  );
+  --training-activity-danger-border: light-dark(
+    color-mix(in srgb, #b3261e 28%, #d7e0e2),
+    color-mix(in srgb, #ff8d82 38%, var(--vaadin-border-color))
+  );
+  --vaadin-button-background: var(--training-activity-danger-background);
+  --vaadin-button-text-color: var(--training-activity-danger-color);
+  --vaadin-focus-ring-color: color-mix(in srgb, var(--training-activity-danger-color) 42%, transparent);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--training-activity-danger-border);
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  box-shadow: light-dark(0 1px 2px color-mix(in srgb, #b3261e 10%, transparent), none);
+}
+
+.training-activity-actions-row vaadin-button[theme~="error"]:hover,
+.training-activity-overlay-footer vaadin-button[theme~="error"]:hover,
+.training-activity-report-footer vaadin-button[theme~="error"]:hover {
+  --vaadin-button-background: light-dark(
+    color-mix(in srgb, white 82%, #efd0d0),
+    color-mix(in srgb, #ff8d82 14%, var(--vaadin-background-container))
+  );
+  border-color: light-dark(
+    color-mix(in srgb, #b3261e 38%, #d7e0e2),
+    color-mix(in srgb, #ff8d82 58%, var(--vaadin-border-color))
+  );
+}
+
+.training-activity-overlay-panel vaadin-button:not([theme]) {
+  --training-activity-neutral-color: light-dark(#082c42, #e7eef0);
+  --training-activity-neutral-background: light-dark(
+    color-mix(in srgb, white 88%, #d7e0e2),
+    color-mix(in srgb, var(--vaadin-text-color) 7%, var(--vaadin-background-container))
+  );
+  --training-activity-neutral-border: light-dark(
+    color-mix(in srgb, #082c42 18%, #d7e0e2),
+    color-mix(in srgb, var(--vaadin-text-color) 24%, var(--vaadin-border-color))
+  );
+  --vaadin-button-background: var(--training-activity-neutral-background);
+  --vaadin-button-text-color: var(--training-activity-neutral-color);
+  --vaadin-focus-ring-color: color-mix(in srgb, var(--training-activity-neutral-color) 42%, transparent);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--training-activity-neutral-border);
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  box-shadow: light-dark(0 1px 2px color-mix(in srgb, #082c42 10%, transparent), none);
+}
+
+.training-activity-overlay-panel vaadin-button:not([theme]):hover {
+  --vaadin-button-background: light-dark(
+    color-mix(in srgb, white 82%, #c9d6da),
+    color-mix(in srgb, var(--vaadin-text-color) 11%, var(--vaadin-background-container))
+  );
+  border-color: light-dark(
+    color-mix(in srgb, #082c42 28%, #d7e0e2),
+    color-mix(in srgb, var(--vaadin-text-color) 32%, var(--vaadin-border-color))
+  );
+}
+
+.training-activity-form-card vaadin-button[disabled],
+.training-activity-actions-row vaadin-button[disabled],
+.training-activity-overlay-footer vaadin-button[disabled],
+.training-activity-report-footer vaadin-button[disabled] {
+  --vaadin-button-background: color-mix(in srgb, var(--vaadin-text-color) 4%, var(--vaadin-background-container));
+  --vaadin-button-text-color: color-mix(in srgb, var(--vaadin-text-color) 38%, transparent);
+  border-color: color-mix(in srgb, var(--vaadin-text-color) 18%, var(--vaadin-border-color));
+  opacity: 1;
+}
+
+.safe-browser-entry {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vaadin-gap-m, 1rem);
+  margin: var(--vaadin-padding-m, 1rem);
+  padding: var(--vaadin-padding-m, 1rem);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: var(--vaadin-radius-s, 8px);
+  background: var(--vaadin-background-container-strong);
+}
+
+.safe-browser-entry p {
+  margin: 0;
+}
+
+.training-activity-safe-browser-empty,
+.training-activity-safe-browser-alert {
+  display: block;
+  padding: var(--vaadin-padding-s, 0.75rem);
+  border-radius: var(--vaadin-radius-s, 8px);
+  background: var(--vaadin-background-container);
+}
+
+.training-activity-safe-browser-alert {
+  color: var(--vaadin-text-color);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+}
+
+
+/* =========================
+   Overlay
+   ========================= */
 
 .training-activity-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--vaadin-padding-xl);
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--vaadin-padding-xl, 2rem);
   box-sizing: border-box;
 }
 
 .training-activity-overlay-backdrop {
   position: absolute;
   inset: 0;
-  background: var(--vaadin-overlay-backdrop-background);
+  background: rgba(0, 0, 0, 0.42);
 }
 
 .training-activity-overlay-panel {
   position: relative;
   z-index: 1;
-  width: min(48rem, 100%);
-  max-height: calc(100vh - 4rem);
-  overflow: auto;
-  background: var(--vaadin-background-container-strong);
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
-  border-radius: var(--vaadin-radius-s);
-  box-shadow: var(--aura-shadow-xs);
-  padding: var(--vaadin-padding-l);
+  display: flex;
+  flex-direction: column;
+  width: min(56rem, calc(100% - 4rem));
+  max-height: calc(100% - 4rem);
+  min-width: 0;
+  overflow: hidden;
+  background: var(--aura-app-background);
+  color: var(--vaadin-text-color, #111);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: var(--vaadin-radius-l, 16px);
+  box-shadow: var(--aura-shadow-xs, 0 24px 60px rgba(0, 0, 0, 0.28));
+  padding: var(--vaadin-padding-l, 1.5rem);
+  box-sizing: border-box;
 }
 
-.training-activity-overlay-footer {
-  justify-content: flex-end;
+.training-activity-overlay-panel,
+.training-activity-overlay-panel * {
+  box-sizing: border-box;
 }
 
-.training-activity-view > vaadin-vertical-layout {
+.training-activity-overlay-panel--activity,
+.training-activity-overlay-panel--report {
+  display: flex;
+  flex-direction: column;
+}
+
+.training-activity-overlay-body {
+  flex: 1 1 auto;
   width: 100%;
-  max-width: none;
-  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.training-activity-form-card {
+.training-activity-overlay-body instruction-linter-editor {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--vaadin-padding-m, 1rem);
+}
+
+.training-activity-overlay-body vaadin-checkbox {
+  margin-top: var(--vaadin-padding-s, 0.75rem);
+}
+
+.training-activity-readonly-instructions {
+  width: 100%;
+  min-height: 7rem;
+  padding: var(--vaadin-padding-m, 1rem);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  background: var(--vaadin-background-container);
+  color: var(--vaadin-text-color);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.training-activity-overlay-footer,
+.training-activity-report-footer {
+  display: flex;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+
+/* =========================
+   Report Mode
+   ========================= */
+
+.training-activity-report-header {
+  flex: 0 0 auto;
+  padding-bottom: var(--vaadin-padding-m, 1rem);
+  border-bottom: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+}
+
+.training-activity-report-header h3,
+.training-activity-report-header p {
+  margin: 0;
+}
+
+.training-activity-report-content {
   display: flex;
   flex-direction: column;
-  gap: var(--vaadin-padding-m);
-  background: var(--vaadin-background-container-strong);
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
-  border-radius: var(--vaadin-radius-s);
-  padding: var(--vaadin-padding-l);
-  box-shadow: var(--aura-shadow-xs);
+  gap: var(--vaadin-padding-l, 1.5rem);
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-block: var(--vaadin-padding-m, 1rem);
+  font-family: var(--aura-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace);
 }
 
-.training-activity-grid-card {
+.training-activity-report-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--vaadin-gap-xs, 0.25rem) var(--vaadin-gap-m, 1rem);
+  margin-top: var(--vaadin-padding-xs, 0.5rem);
+  color: var(--vaadin-secondary-text-color, color-mix(in srgb, var(--vaadin-text-color) 72%, transparent));
+  font-size: var(--aura-font-size-xs, 0.875rem);
+}
+
+.training-activity-report-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 1.35rem;
+  padding: 0.125rem 0.5rem;
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--vaadin-primary-color, #007b92) 32%, var(--vaadin-border-color));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vaadin-primary-color, #007b92) 9%, var(--vaadin-background-container));
+  color: var(--vaadin-primary-text-color, var(--vaadin-text-color));
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.training-activity-conversation-card {
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: var(--vaadin-radius-m, 12px);
+  background: color-mix(in srgb, var(--vaadin-background-container-strong) 84%, var(--aura-app-background));
+  box-shadow: var(--aura-shadow-xs, 0 10px 30px rgba(0, 0, 0, 0.08));
+}
+
+.training-activity-conversation-author {
+  color: var(--vaadin-tertiary-text-color, color-mix(in srgb, var(--vaadin-text-color) 58%, transparent));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.training-activity-report-title {
+  margin: 0;
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-l, 1.125rem);
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+}
+
+.training-activity-transcript-section {
   display: flex;
   flex-direction: column;
-  gap: var(--vaadin-padding-m);
-  background: var(--vaadin-background-container-strong);
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
-  border-radius: var(--vaadin-radius-s);
-  padding: var(--vaadin-padding-l);
-  box-shadow: var(--aura-shadow-xs);
+  gap: var(--vaadin-padding-m, 1rem);
+  width: 100%;
+  min-width: 0;
 }
 
-.training-activity-view vaadin-text-field,
-.training-activity-view vaadin-text-area {
-  --vaadin-input-field-border-radius: var(--vaadin-radius-s);
-}
-
-.training-activity-view vaadin-button {
-  border-radius: var(--vaadin-radius-s);
-}
-
-.training-activity-actions-row {
+training-activity-report-cards {
   display: flex;
-  gap: var(--vaadin-gap-xs);
+  flex-direction: column;
+  gap: var(--vaadin-padding-m, 1rem);
 }
 
-.training-activity-description {
-  color: var(--vaadin-text-color-secondary);
-  font-size: var(--aura-font-size-xs);
-  margin-top: var(--vaadin-gap-xs);
+.training-activity-transcript-title {
+  margin: 0;
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-m, 1rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
+
+.training-activity-conversation-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.training-activity-conversation-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vaadin-text-color) 4%, transparent), transparent 42%);
+}
+
+.training-activity-conversation-card-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vaadin-gap-m, 1rem);
+  padding: var(--vaadin-padding-s, 0.75rem) var(--vaadin-padding-m, 1rem);
+  border-bottom: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+}
+
+.training-activity-conversation-title {
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-s, 0.875rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.training-activity-conversation-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 1.35rem;
+  padding: 0.125rem 0.5rem;
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 34%, var(--vaadin-border-color));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 8%, transparent);
+  color: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 82%, var(--vaadin-text-color));
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.training-activity-conversation-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-padding-m, 1rem);
+  padding: var(--vaadin-padding-m, 1rem);
+}
+
+.training-activity-conversation-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-xs, 0.25rem);
+  width: min(78%, 42rem);
+  min-width: 0;
+}
+
+.training-activity-conversation-row--student {
+  align-self: flex-end;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.training-activity-conversation-row--tutor {
+  align-self: flex-start;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.training-activity-conversation-message {
+  width: 100%;
+  margin: 0;
+  padding: var(--vaadin-padding-s, 0.75rem) var(--vaadin-padding-m, 1rem);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary, var(--vaadin-border-color));
+  border-radius: var(--vaadin-radius-s, 8px);
+  background: var(--vaadin-background-container);
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-s, 0.875rem);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.training-activity-conversation-message--student {
+  color: color-mix(in srgb, var(--vaadin-text-color) 88%, var(--aura-accent-text-color, var(--vaadin-primary-color)));
+}
+
+.training-activity-conversation-message--tutor {
+  border-color: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 20%, var(--vaadin-border-color));
+  background: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 5%, var(--vaadin-background-container));
+}
+
+.training-activity-report-footer {
+  padding-top: var(--vaadin-padding-m, 1rem);
+  border-top: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+}
+
+
+/* =========================
+   Mobile
+   ========================= */
 
 @media (max-width: 960px) {
   .training-activity-view {
+    height: auto;
+    min-height: 100dvh;
+    overflow: auto;
+    padding-inline: var(--vaadin-padding-m, 1rem);
+  }
+
+  .training-activity-content {
+    height: auto;
+  }
+
+  .training-activity-overlay {
+    padding: var(--vaadin-padding-m, 1rem);
+  }
+
+  .training-activity-overlay-panel {
     width: 100%;
-    padding-inline: var(--vaadin-padding-m);
+    max-height: calc(100dvh - 2rem);
+    padding: var(--vaadin-padding-m, 1rem);
+  }
+
+  .training-activity-conversation-row {
+    width: min(88%, 42rem);
+  }
+}
+
+@media (max-width: 560px) {
+  .training-activity-conversation-row {
+    width: 100%;
   }
 }

@@ -89,6 +89,16 @@ app:
       timeout: ${AI_MODEL_AVAILABILITY_TIMEOUT:2s}
       probe-interval-ms: ${AI_MODEL_AVAILABILITY_PROBE_INTERVAL_MS:10000}
       initial-delay-ms: ${AI_MODEL_AVAILABILITY_INITIAL_DELAY_MS:1000}
+    adaptive-tutor:
+      model: ${ADAPTIVE_TUTOR_MODEL:${spring.ai.openai.chat.model}}
+      allow-local-fallback: ${ADAPTIVE_TUTOR_ALLOW_LOCAL_FALLBACK:false}
+    instruction-review:
+      model: ${INSTRUCTION_REVIEW_MODEL:${app.ai.switzerland-knife.model}}
+      max-tokens: ${INSTRUCTION_REVIEW_MAX_TOKENS:192}
+      temperature: ${INSTRUCTION_REVIEW_TEMPERATURE:0.0}
+    tool-audit:
+      capture-tool-returns: ${TOOL_AUDIT_CAPTURE_TOOL_RETURNS:false}
+      preview-max-chars: ${TOOL_AUDIT_PREVIEW_MAX_CHARS:96}
   document-ingest:
     max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:20971520}
     retrieval-top-k: ${DOCUMENT_RETRIEVAL_TOP_K:4}

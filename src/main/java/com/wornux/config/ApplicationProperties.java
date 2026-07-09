@@ -41,6 +41,7 @@ public class ApplicationProperties implements InitializingBean {
     private Conversation conversation = new Conversation();
     private SwitzerlandKnife switzerlandKnife = new SwitzerlandKnife();
     private ModelAvailability modelAvailability = new ModelAvailability();
+    private ToolAudit toolAudit = new ToolAudit();
 
     @Getter
     @Setter
@@ -130,6 +131,22 @@ public class ApplicationProperties implements InitializingBean {
       private Duration timeout;
       private Long probeIntervalMs;
       private Long initialDelayMs;
+    }
+
+    @Getter
+    @Setter
+    public static class ToolAudit {
+
+      private Boolean captureToolReturns = false;
+      private Integer previewMaxChars = 96;
+
+      public boolean isCaptureToolReturns() {
+        return Boolean.TRUE.equals(captureToolReturns);
+      }
+
+      public int previewMaxChars() {
+        return previewMaxChars == null || previewMaxChars < 16 ? 16 : previewMaxChars;
+      }
     }
   }
 

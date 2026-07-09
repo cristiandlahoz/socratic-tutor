@@ -14,6 +14,8 @@ type MessageItemModel = {
   variant?: MessageVariant;
   loading?: boolean;
   steered?: boolean;
+  loadingLabel?: string;
+  debuggableCodeBlocks?: boolean;
 };
 
 type ScrollMode = 'auto' | 'force';
@@ -535,8 +537,9 @@ class MessagesList extends LitElement {
         .variant=${variant}
         .loading=${Boolean(item.loading)}
         .steered=${Boolean(item.steered)}
+        .loadingLabel=${item.loadingLabel ?? this.loadingLabel()}
+        .debuggableCodeBlocks=${Boolean(item.debuggableCodeBlocks)}
         .thinkingSpinner=${this.thinkingSpinner}
-        .loadingLabel=${this.loadingLabel()}
       ></message-item>
     `;
   }

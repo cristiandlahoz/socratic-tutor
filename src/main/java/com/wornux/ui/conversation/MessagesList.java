@@ -206,7 +206,9 @@ public final class MessagesList extends Component implements HasSize {
     private boolean sameClientIdentity(MessageItem left, MessageItem right) {
         return Objects.equals(left.getTime(), right.getTime())
                 && Objects.equals(left.getUserName(), right.getUserName())
-                && Objects.equals(left.getVariant(), right.getVariant());
+                && Objects.equals(left.getVariant(), right.getVariant())
+                && Objects.equals(left.getLoadingLabel(), right.getLoadingLabel())
+                && left.isLoading() == right.isLoading();
     }
 
     private void handleAddItemsUpdate() {

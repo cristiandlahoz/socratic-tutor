@@ -34,6 +34,7 @@ class ConversationComposer extends LitElement {
     scrollToBottomVisible: { type: Boolean, attribute: 'scroll-to-bottom-visible' },
     responseBusy: { type: Boolean, attribute: 'response-busy' },
     activity: { type: String },
+    allowEmptySubmit: { type: Boolean, attribute: 'allow-empty-submit' },
   };
 
   declare value: string;
@@ -47,6 +48,7 @@ class ConversationComposer extends LitElement {
   declare scrollToBottomVisible: boolean;
   declare responseBusy: boolean;
   declare activity: ChatActivity;
+  declare allowEmptySubmit: boolean;
 
   constructor() {
     super();
@@ -61,6 +63,7 @@ class ConversationComposer extends LitElement {
     this.scrollToBottomVisible = false;
     this.responseBusy = false;
     this.activity = 'idle';
+    this.allowEmptySubmit = false;
   }
 
   connectedCallback(): void {
@@ -195,7 +198,10 @@ class ConversationComposer extends LitElement {
   }
 
   private canSubmit(): boolean {
-    return this.composerEnabled && !this.busy() && this.sendAvailable && this.value.trim().length > 0;
+    return this.composerEnabled
+      && !this.busy()
+      && this.sendAvailable
+      && (this.allowEmptySubmit || this.value.trim().length > 0);
   }
 
   private inputDisabled(): boolean {

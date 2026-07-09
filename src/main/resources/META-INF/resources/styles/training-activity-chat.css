@@ -9,6 +9,21 @@
   backdrop-filter: blur(24px);
 }
 
+.training-activity-assignment-thread {
+  width: min(100%, 64rem);
+  margin: 0 auto;
+}
+
+.training-activity-composer {
+  display: flex;
+}
+
+.training-activity-run-instructions {
+  color: var(--vaadin-text-color-secondary);
+  font-size: var(--aura-font-size-s);
+  margin: var(--vaadin-gap-xs) 0 0;
+}
+
 .training-activity-run-title {
   color: var(--vaadin-text-color);
   font-family: var(--aura-font-family);
@@ -25,11 +40,18 @@
 
 .training-activity-message {
   box-sizing: border-box;
+  max-width: min(50rem, 100%);
+  font-size: var(--chat-message-font-size);
+  line-height: var(--chat-message-line-height);
+}
+
+.training-activity-message p {
+  margin: 0;
 }
 
 .training-activity-message--evaluator {
   padding: 0;
-  color: var(--vaadin-text-color);
+  color: var(--chat-message-assistant-text-color);
   font-family: var(--aura-font-family);
   line-height: var(--message-assistant-line-height);
 }
@@ -44,16 +66,14 @@
 
 .training-activity-message--student {
   background: var(--aura-surface-color);
+  background: var(--chat-message-user-surface, var(--aura-surface-color));
   color: var(--vaadin-text-color);
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--chat-message-user-border, var(--vaadin-border-color));
   border-radius: var(--vaadin-radius-m);
-  box-shadow: var(--aura-shadow-s);
-  backdrop-filter: blur(18px);
+  box-shadow: var(--chat-message-user-shadow, var(--aura-shadow-s));
+  backdrop-filter: blur(18px) saturate(1.05);
   padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
-  max-width: min(50rem, 100%);
   margin-left: auto;
-  margin-top: var(--vaadin-gap-s);
-  margin-bottom: var(--vaadin-gap-s);
 }
 
 .training-activity-message--student .training-activity-message__sender {
@@ -86,7 +106,10 @@
 
 .training-activity-loading-spinner {
   flex-shrink: 0;
-  --thinking-spinner-size: 1.1rem;
+  --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
+  --thinking-spinner-weight: 400;
+  --thinking-spinner-color: var(--aura-accent-text-color);
+  --thinking-spinner-accent-color: var(--aura-red);
 }
 
 .training-activity-loading-label {

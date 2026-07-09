@@ -301,12 +301,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private MessageItem toMessageListItem(MessageState message) {
         var isUserMessage = message.role() == MessageType.USER;
-        return new MessageItem(message.content(),
-                message.createdAt(),
-                isUserMessage ? "Tú" : "Tutor Socrático",
-                isUserMessage ? MessageItem.Variant.USER : MessageItem.Variant.ASSISTANT,
-                message.loading(),
-                message.steered());
+        return MessageItem.conversationMessage(message, isUserMessage ? "Tú" : "Tutor Socrático");
     }
 
     private void rerouteToResolvedConversation(BeforeEnterEvent event, UUID resolvedConversationId) {

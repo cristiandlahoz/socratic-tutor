@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.identity.TenantAccount;
+import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -54,6 +55,50 @@ public class TrainingActivity {
 
     @Column(name = "closes_at")
     private Instant closesAt;
+
+    @Column(name = "safe_browser_enabled", nullable = false)
+    private boolean safeBrowserEnabled;
+
+    @Column(name = "instruction_review_instructions_hash")
+    private String instructionReviewInstructionsHash;
+
+    @Column(name = "instruction_review_hash")
+    private String instructionReviewHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "instruction_review_status")
+    private InstructionReviewStatus instructionReviewStatus;
+
+    @Column(name = "instruction_review_message")
+    private String instructionReviewMessage;
+
+    @Column(name = "instruction_review_valid_instruction")
+    private Boolean instructionReviewValidInstruction;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "instruction_review_quality_status")
+    private InstructionQualityStatus instructionReviewQualityStatus;
+
+    @Column(name = "instruction_review_summary")
+    private String instructionReviewSummary;
+
+    @Column(name = "instruction_review_issues_json")
+    private String instructionReviewIssuesJson;
+
+    @Column(name = "instruction_review_improved_instructions")
+    private String instructionReviewImprovedInstructions;
+
+    @Column(name = "instruction_review_model_name")
+    private String instructionReviewModelName;
+
+    @Column(name = "instruction_review_rubric_version")
+    private String instructionReviewRubricVersion;
+
+    @Column(name = "instruction_review_prompt_version")
+    private String instructionReviewPromptVersion;
+
+    @Column(name = "instruction_reviewed_at")
+    private Instant instructionReviewedAt;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

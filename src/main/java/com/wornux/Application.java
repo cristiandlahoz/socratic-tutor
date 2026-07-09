@@ -9,6 +9,8 @@ import com.vaadin.flow.server.AppShellSettings;
 import com.vaadin.flow.theme.aura.Aura;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Push
@@ -16,6 +18,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @StyleSheet(Aura.STYLESHEET)
 @StyleSheet("styles.css")
 @JsModule("./ui-tuner.ts")
+@ConfigurationPropertiesScan
+@EnableAsync
 @EnableScheduling
 @SpringBootApplication
 public class Application implements AppShellConfigurator {

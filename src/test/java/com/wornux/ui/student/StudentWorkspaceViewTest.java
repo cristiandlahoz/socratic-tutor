@@ -15,6 +15,7 @@ import com.vaadin.flow.router.AfterNavigationEvent;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
+import com.wornux.services.training_activity.TrainingActivityLaunchedBus;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ class StudentWorkspaceViewTest {
     void afterNavigationDoesNotReenterSwitchClassForProgrammaticSelection() {
         var authenticatedUserContextUtils = mock(AuthenticatedUserContextUtils.class);
         var studentWorkspaceService = mock(StudentWorkspaceService.class);
+        var activityLaunchedBus = mock(TrainingActivityLaunchedBus.class);
         var afterNavigationEvent = mock(AfterNavigationEvent.class);
         var account = new Account();
         var accessibleClass = new AccessibleClass(UUID.randomUUID(),
@@ -39,7 +41,7 @@ class StudentWorkspaceViewTest {
         when(studentWorkspaceService.listStudentClasses(account)).thenReturn(List.of(accessibleClass));
         when(studentWorkspaceService.listAssignments(account)).thenReturn(List.of());
 
-        var view = new StudentWorkspaceView(authenticatedUserContextUtils, studentWorkspaceService);
+        var view = new StudentWorkspaceView(authenticatedUserContextUtils, studentWorkspaceService, activityLaunchedBus);
 
         assertDoesNotThrow(() -> view.afterNavigation(afterNavigationEvent));
 

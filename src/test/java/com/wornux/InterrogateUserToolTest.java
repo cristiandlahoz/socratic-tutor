@@ -1,98 +1,65 @@
 package com.wornux;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.tools.InterrogateUserTool;
-import com.wornux.ai.tools.ToolContextKeys;
-import com.wornux.data.enums.GuardAction;
-import com.wornux.data.enums.GuardDecision;
-import com.wornux.dtos.chat.GuardCheck;
 import com.wornux.dtos.chat.questions.StudentQuestion;
 import com.wornux.dtos.chat.questions.StudentQuestionAnswer;
+import com.wornux.dtos.chat.questions.StudentQuestionOption;
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
-import com.wornux.services.chat.ChatSessionActivityBus;
-import com.wornux.services.document.DocumentRetrievalService;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.session.advisor.SessionMemoryAdvisor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
+import org.springframework.ai.model.tool.ToolCallingManager;
+import org.springframework.ai.support.ToolCallbacks;
 
-/**
- * @author github/cristiandlahoz
- */
-@Tag("integration")
-@SpringBootTest(classes = AiConfigToolTestSupport.class,
-        properties = {
-                "spring.ai.model.chat=openai",
-                "spring.ai.openai.api-key=${OPENAI_API_KEY:dummy}",
-                "spring.ai.openai.base-url=${OPENAI_BASE_URL:http://127.0.0.1:8080/v1}",
-                "spring.ai.openai.chat.model=${CHAT_MODEL:AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL}",
-                "spring.ai.tools.throw-exception-on-error=true",
-                "app.ai.conversation.config.context-window-tokens=8192",
-                "app.ai.conversation.config.compaction-threshold-ratio=0.30",
-                "test.openai.transcript-name=interrogate-user-tool-test" })
 class InterrogateUserToolTest {
 
-    private static final Logger log = LoggerFactory.getLogger(InterrogateUserToolTest.class);
-
-    @Autowired
-    ChatClient chatClient;
-
-    @MockitoBean
-    DocumentRetrievalService documentRetrievalService;
-
-    @MockitoBean
-    GuardClassifierService guardClassifierService;
-
-    @MockitoBean
-    ChatSessionActivityBus chatSessionActivityBus;
-
-    @MockitoBean
-    JdbcClient jdbcClient;
-
     @Test
-    @Timeout(180)
-    void chatClientConvertsModelToolCallToStudentQuestionSet() {
-        when(guardClassifierService.classify(anyList())).thenReturn(new GuardCheck(GuardDecision.SAFE, GuardAction.ALLOW));
-        when(guardClassifierService.classify(anyList(), anyString()))
-                .thenReturn(new GuardCheck(GuardDecision.SAFE, GuardAction.ALLOW));
+    @Timeout(10)
+    void toolCallingManagerConvertsModelToolCallToStudentQuestionSet() {
+        var expectedQuestionSet = expectedQuestionSet();
         var capturedQuestionSet = new AtomicReference<StudentQuestionSet>();
-        var groupClassMemberId = UUID.randomUUID();
-        var conversationId = UUID.randomUUID();
-        var response = chatClient.prompt()
-                .advisors(
-                    advisorSpec -> advisorSpec
-                            .param(SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY, conversationId.toString())
-                            .param(SessionMemoryAdvisor.USER_ID_CONTEXT_KEY, groupClassMemberId.toString())
-                            .param(ToolContextKeys.GROUP_CLASS_MEMBER_ID, groupClassMemberId))
-                .tools(new InterrogateUserTool(questionHandler(capturedQuestionSet)))
-                .user("""
-                      necesito ayuda para resolver un ejercicio de cajero
-                      """)
-                .call()
-                .content();
+        var options = ToolCallingChatOptions.builder()
+                .toolCallbacks(ToolCallbacks.from(new InterrogateUserTool(questionHandler(capturedQuestionSet))))
+                .build();
+        var prompt = new Prompt("""
+                necesito ayuda para resolver un ejercicio de cajero
+                """, options);
 
-        log.info("Converted StudentQuestionSet:\n{}", capturedQuestionSet.get());
-        log.info("Interrogate user final model content:\n{}", response);
+        var toolExecutionResult = ToolCallingManager.builder()
+                .build()
+                .executeToolCalls(prompt, toolCallResponse(expectedQuestionSetJson()));
 
+        assertThat(capturedQuestionSet.get()).isEqualTo(expectedQuestionSet);
         assertQuestionSetSchema(capturedQuestionSet.get());
-        assertThat(response).isNotNull();
+        assertThat(toolExecutionResult.conversationHistory()).extracting(Message::getMessageType)
+                .containsExactly(MessageType.USER, MessageType.ASSISTANT, MessageType.TOOL);
+
+        var toolResponseMessage = toolExecutionResult.conversationHistory().stream()
+                .filter(ToolResponseMessage.class::isInstance)
+                .map(ToolResponseMessage.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertThat(toolResponseMessage.getResponses()).singleElement().satisfies(toolResponse -> {
+            assertThat(toolResponse.name()).isEqualTo(InterrogateUserTool.INTERROGATE_USER);
+            assertThat(toolResponse.responseData()).contains("schema accepted");
+        });
+
+        var followUpPrompt = new Prompt(toolExecutionResult.conversationHistory(), options);
+        assertThat(followUpPrompt.getInstructions()).extracting(Message::getMessageType)
+                .containsExactly(MessageType.USER, MessageType.ASSISTANT, MessageType.TOOL);
     }
 
     private InterrogateUserTool.QuestionHandler questionHandler(
@@ -120,4 +87,32 @@ class InterrogateUserToolTest {
         });
     }
 
+    private StudentQuestionSet expectedQuestionSet() {
+        return new StudentQuestionSet(List.of(new StudentQuestion(
+                "¿Qué parte del ejercicio de cajero te está frenando ahora?",
+                List.of(
+                        new StudentQuestionOption(
+                                "No entiendo el enunciado",
+                                "Todavía no tengo claro qué me pide exactamente el ejercicio."),
+                        new StudentQuestionOption(
+                                "Me trabé en la lógica",
+                                "Entiendo el objetivo general, pero no sé cómo organizar los pasos.")))));
+    }
+
+    private String expectedQuestionSetJson() {
+        return """
+                {"questionSet":{"questions":[{"question":"¿Qué parte del ejercicio de cajero te está frenando ahora?","options":[{"label":"No entiendo el enunciado","description":"Todavía no tengo claro qué me pide exactamente el ejercicio."},{"label":"Me trabé en la lógica","description":"Entiendo el objetivo general, pero no sé cómo organizar los pasos."}]}]}}
+                """;
+    }
+
+    private ChatResponse toolCallResponse(String arguments) {
+        return new ChatResponse(List.of(new Generation(AssistantMessage.builder()
+                .content("")
+                .toolCalls(List.of(new AssistantMessage.ToolCall(
+                        "call-1",
+                        "function",
+                        InterrogateUserTool.INTERROGATE_USER,
+                        arguments)))
+                .build())));
+    }
 }

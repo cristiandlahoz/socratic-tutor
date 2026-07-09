@@ -1,6 +1,8 @@
 package com.wornux.ui.student;
 
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
@@ -9,16 +11,17 @@ import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
+import com.wornux.services.training_activity.TrainingActivityLaunchedBus;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.conversation.ConversationView;
 import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
@@ -31,15 +34,19 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
 
     private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
     private final transient StudentWorkspaceService studentWorkspaceService;
+    private final transient TrainingActivityLaunchedBus activityLaunchedBus;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<TrainingActivityAssignment> assignmentsGrid =
             new Grid<>(TrainingActivityAssignment.class, false);
+    private AutoCloseable activityLaunchedSubscription;
 
     public StudentWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
-            StudentWorkspaceService studentWorkspaceService) {
+            StudentWorkspaceService studentWorkspaceService,
+            TrainingActivityLaunchedBus activityLaunchedBus) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.studentWorkspaceService = studentWorkspaceService;
+        this.activityLaunchedBus = activityLaunchedBus;
 
         configureToolbarFields();
         configureGrid();
@@ -52,8 +59,45 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
     }
 
     @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        subscribeToAssignmentLaunches(attachEvent.getUI());
+        refresh();
+    }
+
+    @Override
     public void afterNavigation(AfterNavigationEvent event) {
         refresh();
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        unsubscribeFromAssignmentLaunches();
+        super.onDetach(detachEvent);
+    }
+
+    private void subscribeToAssignmentLaunches(UI ui) {
+        unsubscribeFromAssignmentLaunches();
+        activityLaunchedSubscription = activityLaunchedBus.subscribe(notification -> ui.access(() -> {
+            var selectedClass = classSelector.getValue();
+            if (selectedClass == null || !notification.affectsGroupClassMember(selectedClass.groupClassMemberId())) {
+                return;
+            }
+            refreshAssignments();
+        }));
+    }
+
+    private void unsubscribeFromAssignmentLaunches() {
+        if (activityLaunchedSubscription == null) {
+            return;
+        }
+        try {
+            activityLaunchedSubscription.close();
+        }
+        catch (Exception _) {
+            // Best effort: UI listeners are removed during detach.
+        }
+        activityLaunchedSubscription = null;
     }
 
 
@@ -69,10 +113,6 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
 
     private Component createToolbar() {
         return toolbar(classSelector);
-    }
-
-    private void openConversation() {
-        UI.getCurrent().navigate(ConversationView.class);
     }
 
     private void configureGrid() {
@@ -116,13 +156,13 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
                     LitRenderer
                             .<TrainingActivityAssignment>of(
                                 """
-                                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${openTutor}" aria-label="Abrir tutor para ${item.title}">
-                                        <vaadin-icon src="/icons/IconConvo.svg" slot="prefix" aria-hidden="true"></vaadin-icon>
-                                        Abrir tutor
+                                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${openEvaluation}" aria-label="Abrir evaluación para ${item.title}">
+                                        <vaadin-icon icon="vaadin:comments" slot="prefix"></vaadin-icon>
+                                        Abrir evaluación
                                     </vaadin-button>
                                 """)
                             .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
-                            .withFunction("openTutor", _ -> openConversation()))
+                            .withFunction("openEvaluation", this::openEvaluation))
                 .setHeader("Opciones")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -146,6 +186,10 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
         };
     }
 
+    private void openEvaluation(TrainingActivityAssignment assignment) {
+        UI.getCurrent().navigate("training-activity/assignments/%s".formatted(assignment.getId()));
+    }
+
     private void refresh() {
         var account = authenticatedUserContextUtils.requireCurrentAccount();
         var classes = studentWorkspaceService.listStudentClasses(account);
@@ -153,6 +197,14 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
         if (!classes.isEmpty() && classSelector.getValue() == null) {
             classSelector.setValue(classes.getFirst());
         }
+        refreshAssignments(account);
+    }
+
+    private void refreshAssignments() {
+        refreshAssignments(authenticatedUserContextUtils.requireCurrentAccount());
+    }
+
+    private void refreshAssignments(Account account) {
         assignmentsGrid.setItems(studentWorkspaceService.listAssignments(account));
     }
 

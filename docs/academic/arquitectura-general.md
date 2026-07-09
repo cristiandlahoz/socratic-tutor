@@ -35,7 +35,7 @@ Interfaz de aplicación
         │       ├── contexto activo
         │       └── permisos efectivos
         │
-        ├── Guardrails 
+        ├── Guardrails
         │       ├── clasificación de intención
         │       ├── saneamiento pedagógico
         │       └── respuesta de bloqueo

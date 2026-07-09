@@ -43,7 +43,7 @@ public final class ConversationComposer extends Component implements HasSize {
     }
 
     public void setPromptLimit(int promptLimit) {
-        getElement().setProperty("promptLimit", promptLimit);
+        getElement().setProperty("promptLimit", Math.max(1, promptLimit));
     }
 
     public void setComposerEnabled(boolean composerEnabled) {
@@ -52,6 +52,10 @@ public final class ConversationComposer extends Component implements HasSize {
 
     public void setSendAvailable(boolean sendAvailable) {
         getElement().setProperty("sendAvailable", sendAvailable);
+    }
+
+    public void setAllowEmptySubmit(boolean allowEmptySubmit) {
+        getElement().setProperty("allowEmptySubmit", allowEmptySubmit);
     }
 
     public void setModelStatus(ModelAvailabilityStatus status) {

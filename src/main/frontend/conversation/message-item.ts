@@ -3,6 +3,7 @@ import './markdown-renderer.js';
 import { ensureDocumentStyle } from 'Frontend/shared/dom-utils.js';
 import { LitElement, html } from 'lit';
 import type { BrailleSpinnerName } from './braille-spinners.js';
+import { resolveLoadingLabel } from './message-item-loading-label.js';
 
 const MESSAGE_ITEM_STYLE_ID = 'message-item-styles';
 
@@ -168,6 +169,7 @@ class MessageItem extends LitElement {
     steered: { type: Boolean, reflect: true },
     thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
     loadingLabel: { type: String, attribute: 'loading-label' },
+    debuggableCodeBlocks: { type: Boolean, attribute: 'debuggable-code-blocks' },
   };
 
   declare text: string;
@@ -178,6 +180,7 @@ class MessageItem extends LitElement {
   declare steered: boolean;
   declare thinkingSpinner: BrailleSpinnerName;
   declare loadingLabel: string;
+  declare debuggableCodeBlocks: boolean;
 
   constructor() {
     super();
@@ -187,6 +190,7 @@ class MessageItem extends LitElement {
     this.variant = 'assistant';
     this.loading = false;
     this.steered = false;
+    this.debuggableCodeBlocks = false;
     this.thinkingSpinner = 'braille';
     this.loadingLabel = 'Generando respuesta';
   }
@@ -209,20 +213,20 @@ class MessageItem extends LitElement {
       return html`
         <span class="message-item__loading">
           <braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>
-          <span class="message-item__loading-label">${this.loadingLabel}</span>
+          <span class="message-item__loading-label">${resolveLoadingLabel(this.loadingLabel)}</span>
         </span>
       `;
     }
 
-    return html`<markdown-renderer
-      .content=${this.text ?? ''}
-      .debuggableCodeBlocks=${this.variant === 'assistant'}
-    ></markdown-renderer>`;
+      return html`<markdown-renderer
+        .content=${this.text ?? ''}
+        .debuggableCodeBlocks=${this.debuggableCodeBlocks}
+      ></markdown-renderer>`;
   }
 
   private accessibleLabel(): string {
     if (this.loading) {
-      return this.loadingLabel;
+      return resolveLoadingLabel(this.loadingLabel);
     }
 
     const author = this.userName?.trim() || 'Mensaje';

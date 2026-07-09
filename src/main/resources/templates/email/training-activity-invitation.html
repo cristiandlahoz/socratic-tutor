@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body style="margin:0;padding:0;background:#ffffff;color:#151515;font-family:Menlo,Monaco,'Lucida Console','Liberation Mono','DejaVu Sans Mono','Bitstream Vera Sans Mono','Courier New',monospace;font-size:15px;line-height:1.4;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;background:#ffffff;">
+    <tr>
+      <td align="left" style="padding:24px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;max-width:640px;">
+          <tr>
+            <td style="padding:0 0 16px 0;">
+              <p style="margin:0 0 8px 0;color:#727578;">Socratic Tutor</p>
+              <h1 style="margin:0;color:#151515;font-family:Menlo,Monaco,'Lucida Console','Liberation Mono','DejaVu Sans Mono','Bitstream Vera Sans Mono','Courier New',monospace;font-size:15px;line-height:1.4;font-weight:700;" th:text="${headline}">Complete formative activity</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 0 16px 0;">
+              <p style="margin:0;" th:text="${intro}">A new formative activity is available in Socratic Tutor.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 0 16px 0;">
+              <p style="margin:0 0 8px 0;color:#727578;">Activity</p>
+              <p style="margin:0;font-weight:700;" th:text="${activityTitle}">Activity title</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 0 18px 0;">
+              <p style="margin:0 0 8px 0;color:#727578;">Instructions</p>
+              <p style="margin:0;white-space:pre-line;" th:text="${instructions}">Activity instructions</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 0 18px 0;">
+              <a th:href="${activityUrl}" style="display:inline-block;border:1px solid #151515;padding:10px 14px;color:#151515;text-decoration:none;font-weight:700;">Open activity</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 0 18px 0;">
+              <p style="margin:0 0 8px 0;color:#727578;">If the button does not work, copy and paste this link into your browser:</p>
+              <p style="margin:0;word-break:break-all;"><a th:href="${activityUrl}" th:text="${activityUrl}" style="color:#1a95e0;text-decoration:underline;">https://example.com/student</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="border-top:1px solid #e8eff2;padding:16px 0 0 0;color:#727578;">
+              <p style="margin:0;">If you were not expecting this activity, you can ignore this email.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

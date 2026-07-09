@@ -27,6 +27,11 @@ public class ApplicationPropertiesConfiguration {
     }
 
     @Bean
+    ApplicationProperties.Ai.ToolAudit toolAuditProperties(ApplicationProperties properties) {
+        return properties.getAi().getToolAudit();
+    }
+
+    @Bean
     ApplicationProperties.DocumentIngest documentIngestProperties(ApplicationProperties properties) {
         return properties.getDocumentIngest();
     }

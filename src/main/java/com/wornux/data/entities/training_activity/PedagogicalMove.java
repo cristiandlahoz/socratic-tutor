@@ -1,0 +1,15 @@
+package com.wornux.data.entities.training_activity;
+
+public enum PedagogicalMove {
+    REFOCUS,
+    REPHRASE,
+    ASK_FOR_CLARITY,
+    ASK_FOR_EXAMPLE,
+    ASK_FOR_JUSTIFICATION,
+    PROBE_MISCONCEPTION,
+    INCREASE_DIFFICULTY,
+    MOVE_TO_NEXT_ASPECT,
+    TRANSFER_TO_NEW_CASE,
+    COMPLETE_SUCCESSFULLY,
+    COMPLETE_WITH_INSUFFICIENT_EVIDENCE
+}

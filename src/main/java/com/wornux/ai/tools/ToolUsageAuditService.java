@@ -1,5 +1,10 @@
 package com.wornux.ai.tools;
 
+import com.wornux.config.ApplicationProperties;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -25,15 +30,18 @@ public class ToolUsageAuditService {
     private final MeterRegistry meterRegistry;
     private final ObservationRegistry observationRegistry;
     private final ObjectMapper objectMapper;
+    private final ApplicationProperties.Ai.ToolAudit toolAuditProperties;
     private final ConcurrentHashMap<UUID, List<ToolExecutionAudit>> auditsByTurnId = new ConcurrentHashMap<>();
 
     public ToolUsageAuditService(
             MeterRegistry meterRegistry,
             ObservationRegistry observationRegistry,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            ApplicationProperties.Ai.ToolAudit toolAuditProperties) {
         this.meterRegistry = meterRegistry;
         this.observationRegistry = observationRegistry;
         this.objectMapper = objectMapper;
+        this.toolAuditProperties = toolAuditProperties;
     }
 
     public <T> T audit(
@@ -151,6 +159,9 @@ public class ToolUsageAuditService {
     }
 
     private CapturedToolReturn captureToolReturn(@Nullable Object value) {
+        if (!toolAuditProperties.isCaptureToolReturns()) {
+            return new CapturedToolReturn(false, null, null);
+        }
         try {
             if (value == null) {
                 return new CapturedToolReturn(true, null, null);
@@ -161,7 +172,7 @@ public class ToolUsageAuditService {
         catch (JacksonException ex) {
             return new CapturedToolReturn(true,
                     null,
-                    "serialization_error=%s".formatted(ex.getClass().getSimpleName()));
+                    cap("tool_return_redacted(serialization_error=%s)".formatted(ex.getClass().getSimpleName())));
         }
     }
 
@@ -170,7 +181,27 @@ public class ToolUsageAuditService {
     }
 
     private String preview(String json) {
-        return json.replaceAll("\\s+", " ");
+        var normalized = json.replaceAll("\\s+", " ").trim();
+        return cap("tool_return_redacted(chars=%d,sha256=%s)"
+                .formatted(normalized.length(), sha256(normalized).substring(0, 12)));
+    }
+
+    private String cap(String value) {
+        var maxChars = toolAuditProperties.previewMaxChars();
+        if (value.length() <= maxChars) {
+            return value;
+        }
+        return value.substring(0, maxChars - 1) + "…";
+    }
+
+    private String sha256(String value) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+        }
+        catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is required for tool audit previews", exception);
+        }
     }
 
     private ToolInvocationIds ids(ToolContext toolContext) {
