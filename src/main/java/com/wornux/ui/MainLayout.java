@@ -26,7 +26,6 @@ import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.sidebar.ConversationHistoryDrawer;
-import com.wornux.ui.components.sidebar.SidebarDividerLine;
 import com.wornux.ui.components.sidebar.WorkspaceDrawerNavigation;
 import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.conversation.ConversationViewModel;
@@ -93,7 +92,6 @@ public class MainLayout extends AppLayout {
 
     private void refreshDrawerContent() {
         drawerContent.removeAll();
-        drawerContent.add(new SidebarDividerLine());
         drawerContent.add(createBrandSection());
 
         var currentAccount = authenticatedUserContextUtils.currentAccount();

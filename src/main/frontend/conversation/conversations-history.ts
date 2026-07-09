@@ -143,12 +143,12 @@ class ConversationsHistory extends LitElement {
           --trail-line-active-color: var(--vaadin-text-color);
           --trail-line-width: 3px;
           --trail-node-active-color: var(--vaadin-text-color);
+          --history-optical-inline-start: var(--sidebar-optical-inline-start, 0.55rem);
         }
 
         .conversation-history__header {
           min-width: 0;
-          margin-left: var(--sidebar-divider-line-gutter);
-          padding: 0.32rem var(--sidebar-section-inline-end) 0.38rem 0;
+          padding: 0.32rem var(--sidebar-section-inline-end) 0.38rem var(--history-optical-inline-start);
         }
 
         .conversations-history-title-row {
@@ -177,7 +177,6 @@ class ConversationsHistory extends LitElement {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          margin-left: var(--sidebar-divider-line-gutter);
         }
 
         .conversations-history-body {
@@ -189,7 +188,7 @@ class ConversationsHistory extends LitElement {
         }
 
         .conversations-history-empty {
-          margin: 0.32rem var(--sidebar-section-inline-end) 0.58rem 0;
+          margin: 0.32rem var(--sidebar-section-inline-end) 0.58rem var(--history-optical-inline-start);
           display: flex;
           flex-direction: column;
           gap: var(--vaadin-gap-xs);
@@ -218,7 +217,7 @@ class ConversationsHistory extends LitElement {
           overflow: auto;
           scrollbar-width: none;
           -ms-overflow-style: none;
-          padding: 0.2rem 0.45rem 0.7rem 0.2rem;
+          padding: 0.2rem 0.45rem 0.7rem var(--history-optical-inline-start);
         }
 
         .conversations-history-timeline-edges,
@@ -359,6 +358,7 @@ class ConversationsHistory extends LitElement {
           display: block;
           white-space: nowrap;
           overflow: hidden;
+          text-overflow: ellipsis;
           color: var(--vaadin-text-color-secondary);
           font-family: var(--aura-font-family);
           font-size: var(--aura-font-size-m);
@@ -380,11 +380,11 @@ class ConversationsHistory extends LitElement {
 
         @media (max-width: 640px) {
           .conversations-history-empty {
-            margin: 0.4rem var(--sidebar-section-inline-end) 0.7rem 0;
+            margin: 0.4rem var(--sidebar-section-inline-end) 0.7rem var(--history-optical-inline-start);
           }
 
           .conversations-history-timeline {
-            padding: 0.18rem 0.4rem 0.72rem;
+            padding: 0.18rem 0.4rem 0.72rem var(--history-optical-inline-start);
           }
 
           .conversations-history-entry-row {

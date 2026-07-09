@@ -61,7 +61,6 @@
   --ui-toggle-color: var(--drawer-foreground);
   --ui-toggle-hover-color: var(--drawer-foreground-strong);
 
-  --sidebar-divider-line-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
   --sidebar-divider-line-width: 16px;
   --sidebar-divider-line-border-width: 0.35px;
   --sidebar-divider-opacity: 1;
