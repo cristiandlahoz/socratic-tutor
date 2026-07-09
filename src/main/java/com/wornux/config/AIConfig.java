@@ -65,15 +65,15 @@ public class AIConfig {
         var dynamicContextManagementAdvisor =
                 new DynamicContextManagementAdvisor(sessionMemoryAdvisor.getOrder() + 1, jdbcClient);
         var tutorGuardAdvisor =
-                new TutorGuardAdvisor(sessionMemoryAdvisor.getOrder() + 2, guardClassifierService, promptResources);
+                new TutorGuardAdvisor(sessionMemoryAdvisor.getOrder() - 2, guardClassifierService, jdbcClient);
 
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
                 .defaultOptions(OpenAiChatOptions.builder().temperature(0.6).topP(0.95).topK(20))
                 .defaultAdvisors(
+                    tutorGuardAdvisor,
                     usageBasedCompactionAdvisor,
                     sessionMemoryAdvisor,
-                    dynamicContextManagementAdvisor,
-                    tutorGuardAdvisor)
+                    dynamicContextManagementAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();
     }

@@ -19,6 +19,7 @@ public class PromptResources {
     private static final String GUARD_IMPERSONATION = "classpath:/prompt/tutor/guardrail/guard-impersonation.st";
     private static final String GUARD_OUT_OF_SCOPE = "classpath:/prompt/tutor/guardrail/guard-out-of-scope.st";
     private static final String GUARD_CLASSIFIER = "classpath:/prompt/tutor/guardrail/guard-classifier.st";
+    private static final String GUARD_SANITIZER = "classpath:/prompt/tutor/guardrail/guard-sanitizer.st";
     private static final String COMPACTION_SYSTEM = "classpath:/prompt/compaction/system.st";
     private static final String COMPACTION_USER = "classpath:/prompt/compaction/user.st";
     private static final String ADAPTIVE_PROMPT = "classpath:/prompt/training_activity/adaptive-prompt.st";
@@ -59,6 +60,10 @@ public class PromptResources {
 
     public String guardClassifier() {
         return load(GUARD_CLASSIFIER);
+    }
+
+    public String guardSanitizer() {
+        return load(GUARD_SANITIZER);
     }
 
     public String compactionSystem() {

@@ -2,6 +2,7 @@ package com.wornux;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -11,7 +12,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.tools.InterrogateUserTool;
 import com.wornux.ai.tools.ToolContextKeys;
+import com.wornux.data.enums.GuardAction;
 import com.wornux.data.enums.GuardDecision;
+import com.wornux.dtos.chat.GuardCheck;
 import com.wornux.dtos.chat.questions.StudentQuestion;
 import com.wornux.dtos.chat.questions.StudentQuestionAnswer;
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
@@ -66,7 +69,9 @@ class InterrogateUserToolTest {
     @Test
     @Timeout(180)
     void chatClientConvertsModelToolCallToStudentQuestionSet() {
-        when(guardClassifierService.classify(anyList())).thenReturn(GuardDecision.SAFE);
+        when(guardClassifierService.classify(anyList())).thenReturn(new GuardCheck(GuardDecision.SAFE, GuardAction.ALLOW));
+        when(guardClassifierService.classify(anyList(), anyString()))
+                .thenReturn(new GuardCheck(GuardDecision.SAFE, GuardAction.ALLOW));
         var capturedQuestionSet = new AtomicReference<StudentQuestionSet>();
         var groupClassMemberId = UUID.randomUUID();
         var conversationId = UUID.randomUUID();
