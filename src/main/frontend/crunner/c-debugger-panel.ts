@@ -137,7 +137,7 @@ class CDebuggerPanel extends LitElement {
       <div class="c-runner-scroll-shell">
         <div class="c-runner-panel">
           <div class="c-runner-header">
-            <button class="c-runner-panel-toggle" type="button" title="Ocultar depurador" aria-label="Ocultar depurador" @click=${this.closePanel}>
+            <button class="ui-icon-toggle c-runner-panel-toggle" type="button" title="Ocultar depurador" aria-label="Ocultar depurador" @click=${this.closePanel}>
               <vaadin-icon src="/icons/IconSidebarOpen.svg" aria-hidden="true"></vaadin-icon>
             </button>
             <h2 class="c-runner-title">Depurador Visual</h2>

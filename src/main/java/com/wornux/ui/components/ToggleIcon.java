@@ -10,6 +10,6 @@ import com.vaadin.flow.component.icon.SvgIcon;
 public final class ToggleIcon extends SvgIcon {
 
     public ToggleIcon() {
-        super("/icons/toggle.svg");
+        super("/icons/IconSidebarLeftOpen.svg");
     }
 }

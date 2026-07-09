@@ -174,37 +174,6 @@ vaadin-button.conversation-view__debugger-toggle svg {
 
 button.c-runner-panel-toggle {
   flex: 0 0 auto;
-  width: 1.9rem;
-  min-width: 1.9rem;
-  height: 1.9rem;
-  display: inline-grid;
-  place-items: center;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--vaadin-radius-s);
-  background: transparent;
-  color: var(--ui-toggle-color);
-  box-shadow: none;
-  cursor: pointer;
-}
-
-button.c-runner-panel-toggle:hover,
-button.c-runner-panel-toggle:focus-visible {
-  background: color-mix(in srgb, var(--ui-toggle-hover-color) 10%, transparent);
-  color: var(--ui-toggle-hover-color);
-}
-
-button.c-runner-panel-toggle:focus-visible {
-  outline: var(--vaadin-focus-ring-width, 2px) solid var(--aura-accent-border-color);
-  outline-offset: 2px;
-}
-
-button.c-runner-panel-toggle vaadin-icon {
-  width: 1.1rem;
-  height: 1.1rem;
-  color: currentColor;
-  --vaadin-icon-color: currentColor;
 }
 
 .c-runner-title {
