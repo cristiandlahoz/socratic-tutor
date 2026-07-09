@@ -2,7 +2,7 @@ import 'Frontend/shared/code/code-block-viewer.js';
 import { ensureDocumentStyle } from 'Frontend/shared/dom-utils.js';
 import DOMPurify from 'dompurify';
 import { LitElement, html, type PropertyValues } from 'lit';
-import { Marked, type HooksObject, type RendererObject, type Tokens } from 'marked';
+import { Marked, type HooksObject, type RendererObject, type TokenizerAndRendererExtension, type Tokens } from 'marked';
 import { estimateMarkdownBlockSize } from './markdown-layout-estimate.js';
 
 const MARKDOWN_RENDERER_STYLE_ID = 'markdown-renderer-styles';
@@ -18,6 +18,34 @@ type CodeBlockViewer = HTMLElement & {
   value: string;
   lang: string;
   debuggable: boolean;
+};
+
+const markExtension: TokenizerAndRendererExtension = {
+  name: 'mark',
+  level: 'inline',
+  start(src: string): number | void {
+    return src.indexOf('==');
+  },
+  tokenizer(src: string): Tokens.Generic | undefined {
+    const match = /^==(?=\S)([\s\S]*?\S)==(?![=])/.exec(src);
+
+    if (!match) {
+      return undefined;
+    }
+
+    return {
+      type: 'mark',
+      raw: match[0],
+      text: match[1],
+      tokens: this.lexer.inlineTokens(match[1]),
+    };
+  },
+  renderer(token: Tokens.Generic): string {
+    const tokens = Array.isArray(token.tokens) ? token.tokens : [];
+
+    return `<mark>${this.parser.parseInline(tokens)}</mark>`;
+  },
+  childTokens: ['tokens'],
 };
 
 function ensureMarkdownRendererStyles(): void {
@@ -66,8 +94,13 @@ function ensureMarkdownRendererStyles(): void {
       --mk-inline-code-bg: light-dark(#c4c4bd, #2b2b2b);
       --mk-inline-code-text: var(--aura-code-text-color, #eb5757);
       --mk-block-code-bg: var(--vaadin-background-container);
-      --mk-highlight-bg: color-mix(in srgb, var(--aura-yellow, var(--mk-primary)) 20%, transparent);
-      --mk-highlight-text: var(--mk-text-strong);
+      --mk-highlight-accent: oklab(81.11% 0.071 0.102); /* #FFAB70 */
+      --mk-highlight-bg: light-dark(
+        oklab(94% 0.029 0.068),
+        color-mix(in oklab, var(--mk-highlight-accent) 34%, transparent)
+      );
+      --mk-highlight-text: light-dark(oklab(43% 0.088 0.102), oklab(88% 0.052 0.088));
+      --mk-highlight-border: light-dark(oklab(84% 0.063 0.102), oklab(73% 0.078 0.102));
       --mk-selection-bg: var(--selection-background, color-mix(in srgb, var(--mk-primary) 26%, transparent));
 
       --mk-table-bg: transparent;
@@ -236,8 +269,10 @@ function ensureMarkdownRendererStyles(): void {
     markdown-renderer mark {
       color: var(--mk-highlight-text);
       background: var(--mk-highlight-bg);
+      border: 1px solid color-mix(in oklab, var(--mk-highlight-border) 72%, transparent);
       border-radius: var(--mk-radius-xs);
-      padding: 0.05em 0.28em;
+      font-weight: 650;
+      padding: 0.04em 0.3em;
     }
 
     markdown-renderer del {
@@ -613,6 +648,7 @@ function createMarkdown(blocks: CodeBlock[]): Marked {
   return new Marked({
     gfm: true,
     breaks: true,
+    extensions: [markExtension],
     renderer,
     hooks,
   });
