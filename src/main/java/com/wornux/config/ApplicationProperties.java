@@ -153,6 +153,7 @@ public class ApplicationProperties implements InitializingBean {
       public static class Hybrid {
 
         private Integer maxTokens;
+        private String tokenizer;
         private Boolean mergePeers;
         private Boolean useMarkdownTables;
         private Boolean includeRawText;
@@ -262,6 +263,10 @@ public class ApplicationProperties implements InitializingBean {
         missing,
         documentIngest.chunking.hybrid.maxTokens,
         "app.document-ingest.chunking.hybrid.max-tokens");
+    require(
+        missing,
+        documentIngest.chunking.hybrid.tokenizer,
+        "app.document-ingest.chunking.hybrid.tokenizer");
     require(
         missing,
         documentIngest.chunking.hybrid.mergePeers,

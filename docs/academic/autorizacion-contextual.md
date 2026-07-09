@@ -78,6 +78,55 @@ El sistema distingue entre identidad académica y permisos RBAC. La identidad de
 
 En términos conceptuales, la membresía responde “qué lugar ocupa el usuario en la clase”, mientras que el rol responde “qué acciones adicionales puede ejecutar”.
 
+## Prioridad administrativa de roles
+
+Además de permisos, los roles tienen una prioridad administrativa. Esta prioridad no concede acceso funcional por sí misma; su propósito es impedir escalamiento de privilegios en la administración de roles.
+
+La regla central es que un usuario solo puede crear, modificar, asignar o retirar roles con prioridad estrictamente menor que la prioridad más alta que ya posee en el contexto correspondiente. Un administrador no puede gestionar roles de su mismo nivel ni roles superiores.
+
+Por ejemplo, un administrador de institución puede delegar capacidades a roles inferiores, pero no puede crear otro rol con la misma autoridad administrativa ni elevar a otro usuario por encima de su propio límite. De manera similar, un profesor con permisos de gestión de roles puede administrar roles inferiores dentro del aula, pero no puede modificar el rol profesoral si este tiene la misma prioridad.
+
+Esta regla complementa los permisos. Para administrar roles, el usuario necesita tanto el permiso correspondiente —por ejemplo, asignar o actualizar roles— como una prioridad superior a la del rol objetivo.
+
+## Plantillas de roles y asignación inicial
+
+Los roles base del sistema se definen mediante plantillas controladas por código. Estas plantillas describen los roles institucionales iniciales, sus permisos, su ámbito de asignación y su prioridad administrativa.
+
+| Plantilla | Ámbito | Propósito |
+|---|---|---|
+| `SYSTEM_ADMIN` | Plataforma | Administración global y creación de instituciones |
+| `TENANT_ADMIN` | Institución | Configuración académica de una institución |
+| `PROFESSOR` | Clase | Gestión académica dentro de una clase concreta |
+| `STUDENT` | Clase | Participación estudiantil dentro de una clase concreta |
+
+Las plantillas no son la asignación final del usuario. Primero se materializan como filas de rol dentro de un espacio de roles. Existe un espacio de roles para la plataforma y un espacio separado para cada institución. Por eso, cada institución recibe sus propias versiones de `TENANT_ADMIN`, `PROFESSOR` y `STUDENT`.
+
+El flujo conceptual es el siguiente:
+
+```text
+Creación de institución
+        │
+        ▼
+Creación del espacio de roles de esa institución
+        │
+        ▼
+Materialización de plantillas base
+TENANT_ADMIN / PROFESSOR / STUDENT
+        │
+        ▼
+Invitación académica
+        │
+        ▼
+Aceptación por el usuario invitado
+        │
+        ▼
+Asignación del rol correspondiente
+```
+
+La selección de plantilla depende del flujo de negocio, no de la prioridad. Una invitación de administrador institucional asigna el rol `TENANT_ADMIN` al miembro de la institución. Una invitación de profesor crea o reutiliza una membresía de clase con identidad académica de profesor y asigna el rol `PROFESSOR`. Una invitación de estudiante crea o reutiliza una membresía de clase con identidad académica de estudiante y asigna el rol `STUDENT`.
+
+En consecuencia, el sistema mantiene dos decisiones separadas: la plantilla de rol define permisos y límites administrativos; la membresía académica define la identidad del usuario dentro de una clase.
+
 ## Comparación de alternativas
 
 | Alternativa | Ventajas | Desventajas |

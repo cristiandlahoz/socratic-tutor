@@ -29,19 +29,24 @@ public final class MessageItem {
     @Getter
     private final boolean loading;
     @Getter
+    private final boolean steered;
+    @Getter
     private String text;
     transient String clientText;
     transient boolean clientLoading;
+    transient boolean clientSteered;
     transient MessagesList host;
 
-    public MessageItem(String text, Instant time, String userName, Variant variant, boolean loading) {
+    public MessageItem(String text, Instant time, String userName, Variant variant, boolean loading, boolean steered) {
         this.text = text != null ? text : "";
         this.clientText = this.text;
         this.time = time != null ? time.toString() : "";
         this.userName = Objects.requireNonNull(userName, "userName cannot be null");
         this.variant = Objects.requireNonNull(variant, "variant cannot be null");
         this.loading = loading;
+        this.steered = steered;
         this.clientLoading = loading;
+        this.clientSteered = steered;
     }
 
     public String getVariant() {

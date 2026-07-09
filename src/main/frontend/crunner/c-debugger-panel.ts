@@ -30,6 +30,7 @@ type DebugSourceViewerElement = HTMLElement & {
   lang: string;
   diagnostics: CompilerDiagnostic[] | string;
   activeLine: number;
+  cursorLine: number;
   editable: boolean;
 };
 
@@ -68,8 +69,10 @@ class CDebuggerPanel extends LitElement {
   static readonly properties = {
     activeLine: { type: Number, attribute: 'active-line' },
     controlsEnabled: { type: Boolean, attribute: 'controls-enabled' },
+    cursorLine: { type: Number, attribute: 'cursor-line' },
     diagnostics: { type: Array },
     editable: { type: Boolean },
+    executableLines: { type: Array, attribute: 'executable-lines' },
     lang: { type: String },
     locals: { type: Array },
     source: { type: String },
@@ -80,8 +83,10 @@ class CDebuggerPanel extends LitElement {
 
   declare activeLine: number;
   declare controlsEnabled: boolean;
+  declare cursorLine: number;
   declare diagnostics: CompilerDiagnostic[];
   declare editable: boolean;
+  declare executableLines: number[];
   declare lang: string;
   declare locals: DebugVariable[];
   declare source: string;
@@ -93,8 +98,10 @@ class CDebuggerPanel extends LitElement {
     super();
     this.activeLine = 0;
     this.controlsEnabled = true;
+    this.cursorLine = 0;
     this.diagnostics = [];
     this.editable = true;
+    this.executableLines = [];
     this.lang = 'c';
     this.locals = [];
     this.source = '';
@@ -119,12 +126,18 @@ class CDebuggerPanel extends LitElement {
     this.locals = normalizeVariables(value);
   }
 
+  setExecutableLines(value: unknown): void {
+    this.executableLines = Array.isArray(value)
+      ? value.map(Number).filter((line) => Number.isInteger(line) && line > 0)
+      : [];
+  }
+
   protected render() {
     return html`
       <div class="c-runner-scroll-shell">
         <div class="c-runner-panel">
           <div class="c-runner-header">
-            <button class="c-runner-panel-toggle" type="button" title="Ocultar depurador" aria-label="Ocultar depurador" @click=${this.closePanel}>
+            <button class="ui-icon-toggle c-runner-panel-toggle" type="button" title="Ocultar depurador" aria-label="Ocultar depurador" @click=${this.closePanel}>
               <vaadin-icon src="/icons/IconSidebarOpen.svg" aria-hidden="true"></vaadin-icon>
             </button>
             <h2 class="c-runner-title">Depurador Visual</h2>
@@ -140,6 +153,7 @@ class CDebuggerPanel extends LitElement {
                 .diagnostics=${this.diagnostics}
                 .activeLine=${this.activeLine}
                 .editable=${this.editable}
+                @cursor-line-changed=${this.handleCursorLineChanged}
                 @value-changed=${this.handleSourceChanged}
               ></c-debug-source-viewer>
             </div>
@@ -208,22 +222,35 @@ class CDebuggerPanel extends LitElement {
   }
 
   private renderControls() {
+    const canMoveToCursorLine = this.controlsEnabled && this.executableLines.includes(this.cursorLine);
+    const cursorButtonLabel = this.cursorLine > 0
+      ? `Ir a la linea ${this.cursorLine}`
+      : 'Ir a la linea del cursor';
     return html`
       <div class="c-runner-controls">
         ${this.renderControlButton('/icons/IconDebuggerRun.svg', 'Ejecutar depuracion', 'c-runner-validate-button', this.validateDebug)}
         ${this.renderControlButton('/icons/IconDebuggerStep.svg', 'Paso siguiente', 'c-runner-step-button', this.stepDebug)}
+        ${canMoveToCursorLine
+          ? this.renderControlButton('/icons/IconCursor.svg', cursorButtonLabel, 'c-runner-cursor-button', this.moveToCursorLine)
+          : nothing}
         ${this.renderControlButton('/icons/IconDebuggerReload.svg', 'Reiniciar', 'c-runner-reset-button', this.resetDebug)}
       </div>
     `;
   }
 
-  private renderControlButton(icon: string, label: string, extraClass: string, listener: () => void) {
+  private renderControlButton(
+    icon: string,
+    label: string,
+    extraClass: string,
+    listener: () => void,
+    disabled = !this.controlsEnabled,
+  ) {
     return html`
       <vaadin-button
         class="c-runner-control-button ${extraClass}"
         aria-label=${label}
         title=${label}
-        ?disabled=${!this.controlsEnabled}
+        ?disabled=${disabled}
         @click=${listener}
       >
         <vaadin-icon src=${icon} aria-hidden="true"></vaadin-icon>
@@ -247,9 +274,7 @@ class CDebuggerPanel extends LitElement {
           ></vaadin-text-area>
           <div class="c-runner-stdout-block">
             <span class="c-runner-terminal-label">stdout</span>
-            <pre class="c-runner-stdout" data-empty=${stdoutEmpty ? 'true' : 'false'}>
-              ${stdoutEmpty ? 'No hay salida' : this.stdout}
-            </pre>
+            <pre class="c-runner-stdout" data-empty=${stdoutEmpty ? 'true' : 'false'}>${stdoutEmpty ? 'No hay salida' : this.stdout}</pre>
           </div>
         </div>
       </div>
@@ -260,6 +285,16 @@ class CDebuggerPanel extends LitElement {
     this.dispatchEvent(new CustomEvent('close-panel-requested', { bubbles: true, composed: true }));
   };
 
+  private isAtFinalSnapshot(): boolean {
+    const match = /^Snapshot\s+(\d+)\/(\d+)/.exec(this.statusText.trim());
+    if (!match) {
+      return false;
+    }
+    const current = Number(match[1]);
+    const total = Number(match[2]);
+    return total > 0 && current >= total;
+  }
+
   private validateDebug = (): void => {
     this.dispatchEvent(new CustomEvent('validate-debug-requested', {
       detail: { source: this.source, stdin: this.stdin },
@@ -269,11 +304,22 @@ class CDebuggerPanel extends LitElement {
   };
 
   private stepDebug = (): void => {
-    this.dispatchEvent(new CustomEvent('step-debug-requested', { bubbles: true, composed: true }));
+    this.dispatchEvent(new CustomEvent(this.isAtFinalSnapshot() ? 'reset-debug-requested' : 'step-debug-requested', {
+      bubbles: true,
+      composed: true,
+    }));
   };
 
   private resetDebug = (): void => {
     this.dispatchEvent(new CustomEvent('reset-debug-requested', { bubbles: true, composed: true }));
+  };
+
+  private moveToCursorLine = (): void => {
+    this.dispatchEvent(new CustomEvent('move-to-cursor-line-requested', {
+      detail: { line: this.cursorLine },
+      bubbles: true,
+      composed: true,
+    }));
   };
 
   private handleSourceChanged = (event: CustomEvent<{ value?: string }>): void => {
@@ -284,6 +330,11 @@ class CDebuggerPanel extends LitElement {
       bubbles: true,
       composed: true,
     }));
+  };
+
+  private handleCursorLineChanged = (event: CustomEvent<{ line?: number }>): void => {
+    const viewer = event.currentTarget as DebugSourceViewerElement;
+    this.cursorLine = event.detail.line ?? viewer.cursorLine ?? 0;
   };
 
   private handleStdinChanged = (event: CustomEvent<{ value?: string }>): void => {

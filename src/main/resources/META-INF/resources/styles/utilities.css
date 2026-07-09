@@ -1,3 +1,54 @@
 .u-margin-none {
   margin: 0;
 }
+
+button.ui-icon-toggle,
+vaadin-drawer-toggle.ui-icon-toggle,
+vaadin-drawer-toggle.ui-icon-toggle::part(button) {
+  flex: 0 0 auto;
+  width: 1.9rem;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  display: inline-grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vaadin-radius-s);
+  background: transparent;
+  color: var(--ui-toggle-color);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+button.ui-icon-toggle:hover,
+button.ui-icon-toggle:focus-visible,
+vaadin-drawer-toggle.ui-icon-toggle:hover,
+vaadin-drawer-toggle.ui-icon-toggle:focus-within,
+vaadin-drawer-toggle.ui-icon-toggle:hover::part(button),
+vaadin-drawer-toggle.ui-icon-toggle:focus-within::part(button) {
+  background: color-mix(in srgb, var(--ui-toggle-hover-color) 10%, transparent);
+  color: var(--ui-toggle-hover-color);
+}
+
+button.ui-icon-toggle:focus-visible,
+vaadin-drawer-toggle.ui-icon-toggle:focus-within,
+vaadin-drawer-toggle.ui-icon-toggle:focus-within::part(button) {
+  outline: var(--vaadin-focus-ring-width, 2px) solid var(--aura-accent-border-color);
+  outline-offset: 2px;
+}
+
+.ui-icon-toggle vaadin-icon,
+.ui-icon-toggle svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: currentColor;
+  fill: currentColor;
+  stroke: none;
+  --vaadin-icon-color: currentColor;
+}
+
+.ui-icon-toggle svg path {
+  fill: currentColor;
+  stroke: none;
+}

@@ -182,6 +182,11 @@ public class ConversationTurnOrchestrator {
     }
 
     private void runUiSideEffect(Component anchor, UI ui, VaadinSession vaadinSession, Runnable callback) {
+        var currentUi = UI.getCurrent();
+        if (currentUi != null && currentUi == ui) {
+            callback.run();
+            return;
+        }
         if (anchor != null && anchor.getUI().isPresent()) {
             anchor.getUI().get().access(callback::run);
             return;

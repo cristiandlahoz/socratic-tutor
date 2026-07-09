@@ -305,7 +305,8 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 message.createdAt(),
                 isUserMessage ? "Tú" : "Tutor Socrático",
                 isUserMessage ? MessageItem.Variant.USER : MessageItem.Variant.ASSISTANT,
-                message.loading());
+                message.loading(),
+                message.steered());
     }
 
     private void rerouteToResolvedConversation(BeforeEnterEvent event, UUID resolvedConversationId) {

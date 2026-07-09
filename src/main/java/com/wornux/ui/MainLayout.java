@@ -170,6 +170,7 @@ public class MainLayout extends AppLayout {
         var toggle = new DrawerToggle();
         toggle.setIcon(new ToggleIcon());
         toggle.addThemeVariants(ButtonVariant.TERTIARY);
+        UiCss.UI_ICON_TOGGLE.addTo(toggle);
         className.addTo(toggle);
         toggle.setAriaLabel(ariaLabel);
         return toggle;

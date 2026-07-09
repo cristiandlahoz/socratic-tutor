@@ -156,6 +156,56 @@ role
 
 Do not infer assignment tables from role names. The source of truth is `role.assignment_level`.
 
+### Role priority
+
+Role priority is a role-management boundary, not a feature permission.
+
+Higher numbers represent stronger administrative authority. An actor's effective management priority is the highest priority among their active roles in the current role namespace. The actor may create, update, assign, or remove only roles whose priority is strictly lower than that value.
+
+Equal priority is intentionally blocked. This prevents an administrator from creating a peer role, editing a peer role, or using assignment to grant someone else the same administrative level.
+
+Examples:
+
+| Actor highest priority | Allowed target priorities | Blocked target priorities |
+| ---: | --- | --- |
+| 100 | 0-99 | 100 and above |
+| 80 | 0-79 | 80 and above |
+| 60 | 0-59 | 60 and above |
+| 40 | 0-39 | 40 and above |
+
+Priority does not imply permissions. A role with priority `80` can perform `role:update` only if its permission list includes `role:update`. RBAC mutations therefore require both conditions: the actor must have the required permission, and the target role must be below the actor's priority boundary.
+
+### Role templates and seeded roles
+
+Built-in roles are defined as code-owned templates in `RoleTemplate`:
+
+| Template | Assignment level | Priority | Assignable | Purpose |
+| --- | --- | ---: | --- | --- |
+| `SYSTEM_ADMIN` | `PLATFORM` | 100 | no | Bootstrap platform administration |
+| `TENANT_ADMIN` | `TENANT` | 80 | yes | Institution-level academic administration |
+| `PROFESSOR` | `GROUP_CLASS` | 60 | yes | Professor capabilities inside a class |
+| `STUDENT` | `GROUP_CLASS` | 40 | yes | Student capabilities inside a class |
+
+Templates are not assigned directly. `RoleTemplateSeeder.ensureRole(namespace, template)` first looks for a role with the template code in the target namespace. If it exists, that existing database role is reused. If it does not exist, a new role row is created from the template fields.
+
+This makes templates a safe bootstrap mechanism:
+
+- production migrations create the platform namespace, `SYSTEM_ADMIN`, and the first system admin assignment;
+- tenant creation creates a tenant-specific role namespace and seeds `TENANT_ADMIN`, `PROFESSOR`, and `STUDENT` into that namespace;
+- invitation acceptance calls `ensureRole` again before assignment, so missing default roles can be recreated safely;
+- existing roles are not silently rewritten by `ensureRole`; template changes that must affect existing databases require migrations or explicit sync logic.
+
+Template selection is deterministic and comes from business flow, not from priority:
+
+| Flow | Template selected | Assignment created |
+| --- | --- | --- |
+| System admin bootstrap | `SYSTEM_ADMIN` | `account_platform_role` |
+| Tenant admin invitation accepted | `TENANT_ADMIN` | `tenant_account_role` |
+| Professor invitation accepted | `PROFESSOR` | `group_class_member_role` |
+| Student invitation accepted | `STUDENT` | `group_class_member_role` |
+
+For professor and student invitations, RBAC assignment is paired with classroom membership creation or reuse. The `RoleTemplate` grants permissions; `group_class_member.member_kind` records academic identity.
+
 ### Classroom identity
 
 `group_class_member.member_kind` stores classroom identity:
