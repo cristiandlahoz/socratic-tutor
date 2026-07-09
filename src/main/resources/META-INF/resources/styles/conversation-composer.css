@@ -78,7 +78,8 @@ vaadin-button.conversation-composer__scroll-bottom-button:focus-within::part(but
   border: 0;
   background: transparent;
   color: var(--composer-input-text-color);
-  caret-color: var(--composer-input-text-color);
+  caret-color: #ebdcb3;
+  caret-color: oklab(89.635% -0.00032 0.05624);
   font-family: var(--aura-font-family);
   font-size: var(--aura-font-size-m);
   font-weight: var(--composer-input-font-weight);
