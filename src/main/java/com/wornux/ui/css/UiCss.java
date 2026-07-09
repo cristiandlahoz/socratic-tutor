@@ -218,6 +218,8 @@ public final class UiCss {
     public static final CssClass ONBOARDING_TERMINAL_CARD = css("onboarding-terminal-card");
     public static final CssClass ONBOARDING_VIEW = css("onboarding-view");
     public static final CssClass PROFESSOR_ACTION_BAR = css("professor-action-bar");
+    public static final CssClass TERMINAL_CARD = css("terminal-card");
+    public static final CssClass TERMINAL_CARD_BODY = css("terminal-card-body");
     public static final CssClass TERMINAL_DIALOG = css("terminal-dialog");
     public static final CssClass TERMINAL_DIALOG_ACTIONS = css("terminal-dialog-actions");
     public static final CssClass TERMINAL_DIALOG_CARD = css("terminal-dialog-card");

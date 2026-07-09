@@ -272,6 +272,7 @@
 .terminal-dialog::part(backdrop) {
   position: fixed;
   z-index: 2147483645;
+  background: oklab(0.155891 -0.00437056 0.00303265 / 0.9);
 }
 
 .terminal-dialog::part(overlay) {
@@ -295,15 +296,29 @@
   padding: 0;
 }
 
-.terminal-dialog-card {
-  width: 100%;
+.terminal-card {
+  box-sizing: border-box;
+  width: min(100%, 42rem);
   display: flex;
   flex-direction: column;
   align-self: center;
   gap: var(--vaadin-gap-m);
+  padding: clamp(var(--vaadin-padding-l), 4vw, var(--vaadin-padding-xl));
+  border: 1px solid var(--vaadin-text-color);
+  border-radius: var(--vaadin-radius-s);
+  background: var(--aura-surface-color);
+  box-shadow: 0.55rem 0.55rem 0 color-mix(in srgb, var(--vaadin-text-color) 12%, transparent);
 }
 
-.terminal-dialog-card::before {
+.terminal-dialog-card {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.terminal-card::before {
   content: attr(data-terminal-label);
   display: inline-flex;
   align-items: center;
@@ -318,48 +333,60 @@
   line-height: 1;
 }
 
-.terminal-dialog-card vaadin-combo-box,
-.terminal-dialog-card vaadin-date-picker,
-.terminal-dialog-card vaadin-email-field,
-.terminal-dialog-card vaadin-form-layout,
-.terminal-dialog-card vaadin-horizontal-layout,
-.terminal-dialog-card vaadin-integer-field,
-.terminal-dialog-card vaadin-text-area,
-.terminal-dialog-card vaadin-text-field,
-.terminal-dialog-card vaadin-upload {
+.terminal-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-gap-m);
+}
+
+.terminal-card vaadin-combo-box,
+.terminal-card vaadin-date-picker,
+.terminal-card vaadin-email-field,
+.terminal-card vaadin-form-layout,
+.terminal-card vaadin-horizontal-layout,
+.terminal-card vaadin-integer-field,
+.terminal-card vaadin-password-field,
+.terminal-card vaadin-text-area,
+.terminal-card vaadin-text-field,
+.terminal-card vaadin-upload {
   width: 100%;
 }
 
-.terminal-dialog-card vaadin-combo-box::part(input-field),
-.terminal-dialog-card vaadin-date-picker::part(input-field),
-.terminal-dialog-card vaadin-email-field::part(input-field),
-.terminal-dialog-card vaadin-integer-field::part(input-field),
-.terminal-dialog-card vaadin-text-area::part(input-field),
-.terminal-dialog-card vaadin-text-field::part(input-field) {
+.terminal-card vaadin-combo-box::part(input-field),
+.terminal-card vaadin-date-picker::part(input-field),
+.terminal-card vaadin-email-field::part(input-field),
+.terminal-card vaadin-integer-field::part(input-field),
+.terminal-card vaadin-password-field::part(input-field),
+.terminal-card vaadin-text-area::part(input-field),
+.terminal-card vaadin-text-field::part(input-field) {
+  border: 1px solid var(--vaadin-text-color);
   border-radius: var(--vaadin-radius-s);
+  background: var(--vaadin-input-field-background);
+  color: var(--vaadin-text-color);
+  box-shadow: none;
 }
 
-.terminal-dialog-card vaadin-vertical-layout {
+.terminal-card vaadin-vertical-layout {
   padding: 0;
   gap: var(--vaadin-gap-s);
 }
 
-.terminal-dialog-card .workspace-form-row {
+.terminal-card .workspace-form-row {
   align-items: stretch;
   flex-direction: column;
 }
 
-.terminal-dialog-card .workspace-form-row > * {
+.terminal-card .workspace-form-row > * {
   width: 100%;
   flex-basis: auto;
 }
 
-.terminal-dialog-card h2,
-.terminal-dialog-card p {
+.terminal-card h2,
+.terminal-card p {
   margin: 0;
 }
 
-.terminal-dialog-card h2 {
+.terminal-card h2 {
   color: var(--vaadin-text-color);
   font-size: var(--aura-font-size-l);
   font-weight: var(--font-weight-heading);
@@ -367,12 +394,12 @@
   text-wrap: balance;
 }
 
-.terminal-dialog-card h2::before {
+.terminal-card h2::before {
   content: "> ";
   color: var(--aura-accent-text-color);
 }
 
-.terminal-dialog-card p {
+.terminal-card p {
   max-width: 68ch;
   color: var(--vaadin-secondary-text-color);
   font-size: var(--aura-font-size-xs);

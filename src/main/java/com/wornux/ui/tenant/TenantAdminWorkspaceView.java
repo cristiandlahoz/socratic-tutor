@@ -14,7 +14,6 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -326,25 +325,21 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
     }
 
     private void openInviteProfessorDialog(GroupClass groupClass) {
-        var dialog = new Dialog();
-        UiCss.WORKSPACE_DIALOG.addTo(dialog);
-        dialog.setHeaderTitle("Invitar profesor");
-
-        var className = new Span("%s · %s".formatted(groupClass.getCode(), groupClass.getName()));
-        UiCss.WORKSPACE_DIALOG_CONTEXT.addTo(className);
-        var help = new Paragraph("Escribe el correo de la persona que tendrá acceso docente a esta clase.");
-        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         var email = new EmailField("Correo del profesor");
         email.setPlaceholder("profesor@institucion.edu");
-        email.setRequiredIndicatorVisible(true);
         email.setErrorMessage("Escribe un correo válido.");
         email.setWidthFull();
         UiCss.WORKSPACE_FIELD.addTo(email);
 
+        var dialog = new TerminalDialog(
+            "professor.invitation",
+            "Invitar profesor",
+            "Escribe el correo de la persona que tendrá acceso docente a %s · %s."
+                    .formatted(groupClass.getCode(), groupClass.getName()),
+            email);
         var send = primaryButton("Enviar invitación", () -> onInviteProfessor(dialog, groupClass, email));
         send.setIcon(new SvgIcon("/icons/IconEnvelope.svg"));
-        dialog.add(new VerticalLayout(className, help, email));
-        dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), send);
+        dialog.addActions(secondaryButton("Cancelar", dialog::close), send);
         dialog.open();
         email.focus();
     }

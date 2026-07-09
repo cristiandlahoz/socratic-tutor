@@ -2,8 +2,6 @@ package com.wornux.ui.auth;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -20,6 +18,7 @@ import com.wornux.services.onboarding.InvitationStateException;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.ui.admin.SystemAdminWorkspaceView;
+import com.wornux.ui.components.TerminalCard;
 import com.wornux.ui.css.UiCss;
 import com.wornux.ui.professor.ProfessorWorkspaceView;
 import com.wornux.ui.student.StudentWorkspaceView;
@@ -37,7 +36,10 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
     private final TextField lastNameField = new TextField("Last name");
     private final PasswordField passwordField = new PasswordField("Password");
     private final PasswordField confirmPasswordField = new PasswordField("Confirm password");
-    private final Div content = new Div();
+    private final TerminalCard content = new TerminalCard(
+            "invitation.session",
+            "Preparing invitation",
+            "Validating your invitation before continuing.");
 
     public InvitationAcceptView(
             InvitationService invitationService,
@@ -56,7 +58,6 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
         lastNameField.setWidthFull();
         passwordField.setWidthFull();
         confirmPasswordField.setWidthFull();
-        UiCss.ONBOARDING_TERMINAL_CARD.addTo(content);
         add(content);
     }
 
@@ -83,8 +84,7 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
             render(onboarding.accountAlreadyExists());
         }
         catch (InvitationStateException exception) {
-            content.removeAll();
-            content.add(new H2("Invitation unavailable"), new Paragraph(exception.getMessage()));
+            content.setContent("invitation.error", "Invitation unavailable", exception.getMessage());
         }
     }
 
@@ -99,54 +99,59 @@ public class InvitationAcceptView extends VerticalLayout implements BeforeEnterO
     }
 
     private void renderAuthenticatedMismatch(String currentEmail, boolean accountAlreadyExists) {
-        content.removeAll();
-
-        var title = new H2("Invitation ready for a different account");
         var mismatch = new Paragraph("This invitation is for %s, but you are signed in as %s."
                 .formatted(emailField.getValue(), currentEmail));
-        content.add(title, mismatch);
+        content.setContent(
+            "invitation.mismatch",
+            "Invitation ready for a different account",
+            mismatch.getText());
 
         if (accountAlreadyExists) {
             var loginButton =
                     new Button("Continue to login", _ -> getUI().ifPresent(ui -> ui.navigate(LoginView.class)));
             loginButton.addThemeVariants(ButtonVariant.PRIMARY);
-            content.add(
-                new Paragraph("Sign in with the invited email address to continue accepting this invitation."),
-                loginButton);
+            content.setContent(
+                "invitation.login",
+                "Invitation ready for a different account",
+                mismatch.getText(),
+                new Paragraph("Sign in with the invited email address to continue accepting this invitation."));
+            content.addActions(loginButton);
             return;
         }
 
-        content.add(
-            new Paragraph(
-                    "Sign out or open this invitation in a private window to create the invited account safely."));
+        content.setContent(
+            "invitation.mismatch",
+            "Invitation ready for a different account",
+            mismatch.getText(),
+            new Paragraph("Sign out or open this invitation in a private window to create the invited account safely."));
     }
 
     private void render(boolean accountAlreadyExists) {
-        content.removeAll();
         if (accountAlreadyExists) {
             var loginButton =
                     new Button("Continue to login", _ -> getUI().ifPresent(ui -> ui.navigate(LoginView.class)));
             loginButton.addThemeVariants(ButtonVariant.PRIMARY);
-            content.add(
-                new H2("Sign in to accept your invitation"),
-                new Paragraph(
-                        "This invited email already belongs to an account. Sign in with the same email address to continue."),
-                emailField,
-                loginButton);
+            content.setContent(
+                "invitation.login",
+                "Sign in to accept your invitation",
+                "This invited email already belongs to an account. Sign in with the same email address to continue.",
+                emailField);
+            content.addActions(loginButton);
             return;
         }
 
         var registerButton = new Button("Create account", _ -> onRegister());
         registerButton.addThemeVariants(ButtonVariant.PRIMARY);
-        content.add(
-            new H2("Complete your invited registration"),
-            new Paragraph("Your invitation email becomes your account email. Create your password to continue."),
+        content.setContent(
+            "invitation.register",
+            "Complete your invited registration",
+            "Your invitation email becomes your account email. Create your password to continue.",
             emailField,
             firstNameField,
             lastNameField,
             passwordField,
-            confirmPasswordField,
-            registerButton);
+            confirmPasswordField);
+        content.addActions(registerButton);
     }
 
     private void onRegister() {
