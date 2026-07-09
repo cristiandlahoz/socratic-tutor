@@ -55,6 +55,7 @@ import com.wornux.security.authorization.RoleAdministrationService.UpdateRoleCom
 import com.wornux.security.permission.AppPermission;
 import com.wornux.security.permission.AppResource;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.components.TerminalDialog;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
@@ -686,13 +687,14 @@ public class RoleMatrixView extends VerticalLayout {
     }
 
     private void openCreateDialog() {
-        var dialog = new Dialog();
-        dialog.setHeaderTitle("Crear rol");
-
         var name = new TextField("Nombre");
         var description = new TextArea("Descripción");
         var level = new ComboBox<ScopeLevel>("Nivel");
         var priority = new IntegerField("Prioridad");
+        UiCss.WORKSPACE_FIELD.addTo(name);
+        UiCss.WORKSPACE_FIELD.addTo(description);
+        UiCss.WORKSPACE_FIELD.addTo(level);
+        UiCss.WORKSPACE_FIELD.addTo(priority);
         name.setRequiredIndicatorVisible(true);
         level.setItems(levelOptions());
         level.setItemLabelGenerator(this::levelLabel);
@@ -700,9 +702,18 @@ public class RoleMatrixView extends VerticalLayout {
         priority.setValue(10);
 
         var form = new FormLayout(name, description, level, priority);
-        dialog.add(form);
-        dialog.getFooter().add(new Button("Cancelar", _ -> dialog.close()), createDialogSaveButton(dialog, name, description, level, priority));
+        form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
+
+        var dialog = new TerminalDialog(
+            "role.create",
+            "Crear rol",
+            "Define un rol reutilizable con su alcance y prioridad. Después podrás asignarle permisos y miembros.",
+            form);
+        dialog.addActions(
+            new Button("Cancelar", _ -> dialog.close()),
+            createDialogSaveButton(dialog, name, description, level, priority));
         dialog.open();
+        name.focus();
     }
 
     private Button createDialogSaveButton(

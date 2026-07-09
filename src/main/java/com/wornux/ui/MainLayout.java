@@ -153,15 +153,7 @@ public class MainLayout extends AppLayout {
         UiCss.APP_SIDEBAR_BRAND_TITLE.addTo(appTitle);
         appTitle.getElement().setAttribute("aria-label", "Tutor Socrático");
 
-        var appDescription = "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia "
-                + "con conversaciones guiadas.";
-        var appInfo = new Button(new SvgIcon("/icons/IconInfo.svg"));
-        appInfo.addThemeVariants(ButtonVariant.TERTIARY);
-        UiCss.APP_SIDEBAR_BRAND_INFO.addTo(appInfo);
-        appInfo.setAriaLabel("Acerca de Tutor Socrático");
-        appInfo.setTooltipText(appDescription);
-
-        var appTitleGroup = new Div(appTitle, appInfo);
+        var appTitleGroup = new Div(appTitle);
         UiCss.APP_SIDEBAR_BRAND_TITLE_GROUP.addTo(appTitleGroup);
 
         var drawerToggle = createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE_INSIDE, "Cerrar menú");

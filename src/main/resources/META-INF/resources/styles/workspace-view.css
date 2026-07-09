@@ -259,6 +259,136 @@
   font-weight: var(--aura-font-weight-semibold);
 }
 
+.professor-action-bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.terminal-dialog {
+  --vaadin-overlay-z-index: 2147483647;
+  z-index: 2147483647;
+}
+
+.terminal-dialog::part(backdrop) {
+  position: fixed;
+  z-index: 2147483645;
+}
+
+.terminal-dialog::part(overlay) {
+  box-sizing: border-box;
+  width: 42rem;
+  max-width: calc(100vw - var(--vaadin-padding-xl));
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2147483646;
+  overflow: visible;
+  padding: clamp(var(--vaadin-padding-l), 4vw, var(--vaadin-padding-xl));
+  border: 1px solid var(--vaadin-text-color);
+  border-radius: var(--vaadin-radius-s);
+  background: var(--aura-surface-color);
+  box-shadow: 0.55rem 0.55rem 0 color-mix(in srgb, var(--vaadin-text-color) 12%, transparent);
+}
+
+.terminal-dialog::part(content) {
+  overflow: visible;
+  padding: 0;
+}
+
+.terminal-dialog-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  gap: var(--vaadin-gap-m);
+}
+
+.terminal-dialog-card::before {
+  content: attr(data-terminal-label);
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  width: max-content;
+  margin-top: calc(var(--vaadin-padding-m) + var(--vaadin-padding-xs));
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--vaadin-border-color);
+  background: var(--vaadin-contrast-5pct);
+  color: var(--vaadin-secondary-text-color);
+  font-size: var(--aura-font-size-xs);
+  line-height: 1;
+}
+
+.terminal-dialog-card vaadin-combo-box,
+.terminal-dialog-card vaadin-date-picker,
+.terminal-dialog-card vaadin-email-field,
+.terminal-dialog-card vaadin-form-layout,
+.terminal-dialog-card vaadin-horizontal-layout,
+.terminal-dialog-card vaadin-integer-field,
+.terminal-dialog-card vaadin-text-area,
+.terminal-dialog-card vaadin-text-field,
+.terminal-dialog-card vaadin-upload {
+  width: 100%;
+}
+
+.terminal-dialog-card vaadin-combo-box::part(input-field),
+.terminal-dialog-card vaadin-date-picker::part(input-field),
+.terminal-dialog-card vaadin-email-field::part(input-field),
+.terminal-dialog-card vaadin-integer-field::part(input-field),
+.terminal-dialog-card vaadin-text-area::part(input-field),
+.terminal-dialog-card vaadin-text-field::part(input-field) {
+  border-radius: var(--vaadin-radius-s);
+}
+
+.terminal-dialog-card vaadin-vertical-layout {
+  padding: 0;
+  gap: var(--vaadin-gap-s);
+}
+
+.terminal-dialog-card .workspace-form-row {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.terminal-dialog-card .workspace-form-row > * {
+  width: 100%;
+  flex-basis: auto;
+}
+
+.terminal-dialog-card h2,
+.terminal-dialog-card p {
+  margin: 0;
+}
+
+.terminal-dialog-card h2 {
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-l);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--aura-line-height-l);
+  text-wrap: balance;
+}
+
+.terminal-dialog-card h2::before {
+  content: "> ";
+  color: var(--aura-accent-text-color);
+}
+
+.terminal-dialog-card p {
+  max-width: 68ch;
+  color: var(--vaadin-secondary-text-color);
+  font-size: var(--aura-font-size-xs);
+  line-height: var(--aura-line-height-s);
+  text-wrap: pretty;
+}
+
+.terminal-dialog-actions {
+  justify-content: flex-end;
+  gap: var(--vaadin-gap-s);
+}
+
+.terminal-dialog-actions vaadin-button::part(button) {
+  min-height: 2.75rem;
+}
+
 .workspace-view vaadin-grid::part(table) {
   background: var(--aura-surface-color);
 }

@@ -44,6 +44,7 @@ import com.wornux.services.workspace.TenantAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.components.TerminalDialog;
 import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
@@ -225,6 +226,7 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
         addWorkspaceFieldClasses(code, name, startsAt, endsAt);
 
         openCreateCatalogDialog(
+            "academic.period",
             "Crear período académico",
             "Los períodos ordenan las clases y ayudan a encontrar rápido la oferta activa de la institución.",
             new VerticalLayout(formRow(code, name), formRow(startsAt, endsAt)),
@@ -248,6 +250,7 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
         addWorkspaceFieldClasses(code, name, syllabus);
 
         openCreateCatalogDialog(
+            "academic.subject",
             "Crear asignatura",
             "Crea la asignatura una vez. El contexto se inyecta en el tutor para mantenerlo dentro del alcance, competencias y stack del curso.",
             new VerticalLayout(formRow(code, name), syllabus, uploadStatus, syllabusUpload),
@@ -285,27 +288,19 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
     }
 
     private void openCreateCatalogDialog(
+            String label,
             String title,
             String helpText,
             Component fields,
             java.util.function.Consumer<Dialog> createAction,
             Runnable focusAction) {
-        var dialog = new Dialog();
-        UiCss.WORKSPACE_DIALOG.addTo(dialog);
-        dialog.setHeaderTitle(title);
-        var help = new Paragraph(helpText);
-        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
-        dialog.add(new VerticalLayout(help, fields));
-        dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), primaryButton("Crear", () -> createAction.accept(dialog)));
+        var dialog = new TerminalDialog(label, title, helpText, fields);
+        dialog.addActions(secondaryButton("Cancelar", dialog::close), primaryButton("Crear", () -> createAction.accept(dialog)));
         dialog.open();
         focusAction.run();
     }
 
     private void openCreateClassDialog() {
-        var dialog = new Dialog();
-        UiCss.WORKSPACE_DIALOG.addTo(dialog);
-        dialog.setHeaderTitle("Crear clase");
-
         var subject = new ComboBox<Subject>("Asignatura");
         subject.setItems(activeSubjects);
         subject.setItemLabelGenerator(value -> "%s · %s".formatted(value.getCode(), value.getName()));
@@ -318,14 +313,14 @@ public class TenantAdminWorkspaceView extends WorkspaceViewShell implements Afte
         name.setPlaceholder("Algoritmia · Sección A");
         addWorkspaceFieldClasses(subject, period, code, name);
 
-        var help = new Paragraph(
-                "La clase conecta una asignatura con un período. Después podrás invitar al profesor desde la fila creada.");
-        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
-        dialog.add(new VerticalLayout(help, formRow(subject, period), formRow(code, name)));
-        dialog.getFooter()
-                .add(
-                    secondaryButton("Cancelar", dialog::close),
-                    primaryButton("Crear", () -> onCreateClass(dialog, subject, period, code, name)));
+        var dialog = new TerminalDialog(
+            "group.class",
+            "Crear clase",
+            "La clase conecta una asignatura con un período. Después podrás invitar al profesor desde la fila creada.",
+            new VerticalLayout(formRow(subject, period), formRow(code, name)));
+        dialog.addActions(
+            secondaryButton("Cancelar", dialog::close),
+            primaryButton("Crear", () -> onCreateClass(dialog, subject, period, code, name)));
         dialog.open();
         subject.focus();
     }

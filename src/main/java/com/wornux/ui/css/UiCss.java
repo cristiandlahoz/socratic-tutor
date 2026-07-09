@@ -13,7 +13,6 @@ public final class UiCss {
 
     public static final CssClass APP_SIDEBAR = css("app-sidebar");
     public static final CssClass APP_SIDEBAR_BRAND = css("app-sidebar__brand");
-    public static final CssClass APP_SIDEBAR_BRAND_INFO = css("app-sidebar__brand-info");
     public static final CssClass APP_SIDEBAR_BRAND_ROW = css("app-sidebar__brand-row");
     public static final CssClass APP_SIDEBAR_BRAND_TITLE = css("app-sidebar__brand-title");
     public static final CssClass APP_SIDEBAR_BRAND_TITLE_GROUP = css("app-sidebar__brand-title-group");
@@ -218,6 +217,10 @@ public final class UiCss {
     public static final CssClass LOGIN_VIEW_WORK_PREVIEW = css("login-view__work-preview");
     public static final CssClass ONBOARDING_TERMINAL_CARD = css("onboarding-terminal-card");
     public static final CssClass ONBOARDING_VIEW = css("onboarding-view");
+    public static final CssClass PROFESSOR_ACTION_BAR = css("professor-action-bar");
+    public static final CssClass TERMINAL_DIALOG = css("terminal-dialog");
+    public static final CssClass TERMINAL_DIALOG_ACTIONS = css("terminal-dialog-actions");
+    public static final CssClass TERMINAL_DIALOG_CARD = css("terminal-dialog-card");
     public static final CssClass WIDTH_AWARE_LABEL = css("width-aware-label");
     public static final CssClass WORKSPACE_CONTEXT_SELECT = css("workspace-context-select");
     public static final CssClass WORKSPACE_DIALOG = css("workspace-dialog");
