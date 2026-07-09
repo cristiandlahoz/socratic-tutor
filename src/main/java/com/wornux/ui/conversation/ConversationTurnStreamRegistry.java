@@ -89,7 +89,14 @@ class ConversationTurnStreamRegistry {
 
         var firstTokenReceived = new AtomicBoolean(false);
         activeTurn.stream = chatService
-                .chatStream(context.turnId(), context.prompt(), context.conversationId(), activeTurn::ask)
+                .chatStream(
+                    context.turnId(),
+                    context.prompt(),
+                    context.conversationId(),
+                    activeTurn::ask,
+                    sanitized -> replaceUserMessage(activeTurn, userMessage.createdAt(), sanitized))
+                .subscribeOn(Schedulers.boundedElastic())
+                .contextCapture()
                 .subscribe(
                     token -> appendAssistantToken(activeTurn, firstTokenReceived, responseMessage.createdAt(), token),
                     exception -> handleStreamFailure(activeTurn, userMessage.createdAt(), responseMessage.createdAt(), exception),
@@ -226,6 +233,13 @@ class ConversationTurnStreamRegistry {
                 return;
             }
         }
+    }
+
+    private void replaceUserMessage(ActiveTurn activeTurn, Instant createdAt, String sanitized) {
+        synchronized (activeTurn) {
+            replaceMessage(activeTurn, createdAt, message -> message.withSteeredContent(sanitized));
+        }
+        activeTurn.broadcast(false, null);
     }
 
     private void logStreamFailure(ActiveTurn activeTurn, Throwable exception) {
