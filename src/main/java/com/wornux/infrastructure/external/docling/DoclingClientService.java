@@ -52,10 +52,11 @@ public class DoclingClientService {
         var hybrid = properties.getChunking().getHybrid();
         log.info(
             """
-            docling_chunking_config provider=arconia max_tokens={} merge_peers={}\
+            docling_chunking_config provider=arconia max_tokens={} tokenizer={} merge_peers={}\
              use_markdown_tables={} include_raw_text={}\
             """,
             hybrid.getMaxTokens(),
+            hybrid.getTokenizer(),
             hybrid.getMergePeers(),
             hybrid.isUseMarkdownTables(),
             hybrid.isIncludeRawText());
@@ -65,6 +66,7 @@ public class DoclingClientService {
         try {
             List<org.springframework.ai.document.Document> chunkDocuments = readChunks(filename, content);
             List<DoclingSegmentDraft> segments = mapChunkDocuments(chunkDocuments);
+            logChunkStats(filename, segments);
             String convertMarkdown =
                     markdown(doclingServeApi.convertSource(buildConvertMarkdownRequest(filename, content)));
             boolean convertMarkdownPresent = !convertMarkdown.isBlank();
@@ -86,6 +88,11 @@ public class DoclingClientService {
             throw ex;
         }
         catch (RuntimeException ex) {
+            log.error(
+                "docling_pdf_chunk_conversion_failed filename={} content_bytes={}",
+                filename,
+                content == null ? 0 : content.length,
+                ex);
             throw new DocumentIngestionException(
                     "Docling no pudo crear segmentos para este PDF. Revisa que Docling Serve este disponible e intenta de nuevo.",
                     ex);
@@ -108,6 +115,11 @@ public class DoclingClientService {
             throw ex;
         }
         catch (RuntimeException ex) {
+            log.error(
+                "docling_pdf_markdown_conversion_failed filename={} content_bytes={}",
+                filename,
+                content == null ? 0 : content.length,
+                ex);
             throw new DocumentIngestionException(
                     "Docling no pudo convertir este PDF a markdown. Revisa que Docling Serve este disponible e intenta de nuevo.",
                     ex);
@@ -129,6 +141,7 @@ public class DoclingClientService {
         var hybrid = properties.getChunking().getHybrid();
         return HybridChunkerOptions.builder()
                 .maxTokens(hybrid.getMaxTokens())
+                .tokenizer(hybrid.getTokenizer())
                 .mergePeers(hybrid.getMergePeers())
                 .useMarkdownTables(hybrid.isUseMarkdownTables())
                 .includeRawText(hybrid.isIncludeRawText())
@@ -184,6 +197,35 @@ public class DoclingClientService {
             return List.of();
         }
         return documents.stream().filter(Objects::nonNull).map(DoclingClientService::toSegmentDraft).toList();
+    }
+
+    private void logChunkStats(String filename, List<DoclingSegmentDraft> segments) {
+        if (segments.isEmpty()) {
+            return;
+        }
+        int maxConfiguredTokens = properties.getChunking().getHybrid().getMaxTokens();
+        int maxReturnedTokens = segments.stream()
+                .map(DoclingSegmentDraft::tokenCount)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(0);
+        int maxChars = segments.stream()
+                .map(DoclingSegmentDraft::content)
+                .filter(Objects::nonNull)
+                .map(String::length)
+                .max(Comparator.naturalOrder())
+                .orElse(0);
+        String eventName = maxReturnedTokens > maxConfiguredTokens
+                ? "docling_chunk_stats_over_configured_limit"
+                : "docling_chunk_stats";
+        log.info(
+            "{} filename={} chunks_count={} configured_max_tokens={} returned_max_tokens={} returned_max_chars={}",
+            eventName,
+            filename,
+            segments.size(),
+            maxConfiguredTokens,
+            maxReturnedTokens,
+            maxChars);
     }
 
     private static DoclingSegmentDraft toSegmentDraft(org.springframework.ai.document.Document document) {

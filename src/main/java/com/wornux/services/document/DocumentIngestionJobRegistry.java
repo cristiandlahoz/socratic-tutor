@@ -88,6 +88,7 @@ public class DocumentIngestionJobRegistry {
                 .supplyAsync(() -> ingestionService.startIngestion(command, context), documentIngestionExecutor)
                 .whenComplete((review, exception) -> {
                     if (exception != null) {
+                        logJobFailure("document_ingestion_failed", exception);
                         workspace.finishJobFailure(userMessage(exception));
                         return;
                     }
@@ -121,6 +122,7 @@ public class DocumentIngestionJobRegistry {
                     documentIngestionExecutor)
                 .whenComplete((catalog, exception) -> {
                     if (exception != null) {
+                        logJobFailure("document_catalog_generation_failed", exception);
                         workspace.finishJobFailure(userMessage(exception));
                         return;
                     }
@@ -144,6 +146,7 @@ public class DocumentIngestionJobRegistry {
                 .supplyAsync(() -> ingestionService.approve(command, context), documentIngestionExecutor)
                 .whenComplete((review, exception) -> {
                     if (exception != null) {
+                        logJobFailure("document_indexing_failed", exception);
                         workspace.finishJobFailure(userMessage(exception));
                         return;
                     }
@@ -160,6 +163,7 @@ public class DocumentIngestionJobRegistry {
                 .supplyAsync(() -> workspaceService.reindex(detail, context), documentIngestionExecutor)
                 .whenComplete((updated, exception) -> {
                     if (exception != null) {
+                        logJobFailure("document_reindexing_failed", exception);
                         workspace.finishJobFailure(userMessage(exception));
                         return;
                     }
@@ -205,13 +209,27 @@ public class DocumentIngestionJobRegistry {
     }
 
     private static String userMessage(Throwable exception) {
-        var cause = exception;
-        if (cause instanceof CompletionException && cause.getCause() != null) {
-            cause = cause.getCause();
-        }
+        var cause = unwrapCompletionException(exception);
         return cause.getMessage() == null || cause.getMessage().isBlank()
                 ? "Ocurrió un error inesperado."
                 : cause.getMessage();
+    }
+
+    private static void logJobFailure(String eventName, Throwable exception) {
+        var cause = unwrapCompletionException(exception);
+        log.error(
+            "{} failure_type={} failure_message={}",
+            eventName,
+            cause.getClass().getName(),
+            cause.getMessage(),
+            cause);
+    }
+
+    private static Throwable unwrapCompletionException(Throwable exception) {
+        if (exception instanceof CompletionException && exception.getCause() != null) {
+            return exception.getCause();
+        }
+        return exception;
     }
 
     public record DocumentJobSnapshot(
