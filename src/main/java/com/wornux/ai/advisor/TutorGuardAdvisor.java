@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.tools.ToolContextKeys;
@@ -31,7 +32,10 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
     private static final Logger log = LoggerFactory.getLogger(TutorGuardAdvisor.class);
 
+    public static final String STEERED_USER_MESSAGE_CALLBACK_CONTEXT_KEY = "tutor.guard.steeredUserMessageCallback";
+
     private static final int GUARD_MESSAGE_WINDOW = 4;
+    private static final String GUARD_CHECKED_CONTEXT_KEY = "tutor.guard.checked";
 
     private static final String SUBJECT_CONTEXT_QUERY =
             """
@@ -56,6 +60,9 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
     @Override
     public ChatClientResponse adviseCall(ChatClientRequest request, @NonNull CallAdvisorChain chain) {
+        if (guardAlreadyChecked(request)) {
+            return chain.nextCall(request);
+        }
         var subjectContext = subjectContext(request);
         var userMessages = lastUserMessages(request.prompt());
         var guardCheck = guardCheckFor(userMessages, subjectContext);
@@ -67,6 +74,9 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
     @Override
     public Flux<ChatClientResponse> adviseStream(ChatClientRequest request, @NonNull StreamAdvisorChain chain) {
+        if (guardAlreadyChecked(request)) {
+            return chain.nextStream(request);
+        }
         var subjectContext = subjectContext(request);
         var userMessages = lastUserMessages(request.prompt());
         var guardCheck = guardCheckFor(userMessages, subjectContext);
@@ -104,7 +114,7 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
     ChatClientRequest applyGuardAction(ChatClientRequest request, GuardCheck guardCheck, String subjectContext) {
         return switch (guardCheck.action()) {
-            case ALLOW -> request;
+            case ALLOW -> markGuardChecked(request);
             case STEER -> sanitizeUserMessage(request, subjectContext);
             case SHORT_CIRCUIT -> throw new IllegalStateException("SHORT_CIRCUIT must be handled before chain.next");
         };
@@ -129,18 +139,41 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     private ChatClientRequest sanitizeUserMessage(ChatClientRequest request, String subjectContext) {
         try {
             var sanitized = guardClassifierService.sanitize(request.prompt().getUserMessage(), subjectContext);
+            notifySteeredUserMessage(request, sanitized);
             Prompt sanitizedPrompt = request.prompt()
                     .augmentUserMessage(user -> user.mutate().text(sanitized).build());
-            return request.mutate().prompt(sanitizedPrompt).build();
+            return markGuardChecked(request.mutate().prompt(sanitizedPrompt).build());
         }
         catch (RuntimeException ex) {
             log.warn("Guard sanitizer failed, replacing the user message with a safe learning request", ex);
+            var sanitized = "Necesito ayuda de aprendizaje sin recibir la solución completa. Dame una orientación breve y pídeme un intento concreto.";
+            notifySteeredUserMessage(request, sanitized);
             Prompt sanitizedPrompt = request.prompt()
-                    .augmentUserMessage(user -> user.mutate()
-                            .text("Necesito ayuda de aprendizaje sin recibir la solución completa. Dame una orientación breve y pídeme un intento concreto.")
-                            .build());
-            return request.mutate().prompt(sanitizedPrompt).build();
+                    .augmentUserMessage(user -> user.mutate().text(sanitized).build());
+            return markGuardChecked(request.mutate().prompt(sanitizedPrompt).build());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void notifySteeredUserMessage(ChatClientRequest request, String sanitized) {
+        Object callback = request.context().get(STEERED_USER_MESSAGE_CALLBACK_CONTEXT_KEY);
+        if (!(callback instanceof Consumer<?> consumer)) {
+            return;
+        }
+        try {
+            ((Consumer<String>) consumer).accept(sanitized);
+        }
+        catch (RuntimeException ex) {
+            log.debug("Guard steered-message callback failed", ex);
+        }
+    }
+
+    private boolean guardAlreadyChecked(ChatClientRequest request) {
+        return Boolean.TRUE.equals(request.context().get(GUARD_CHECKED_CONTEXT_KEY));
+    }
+
+    private ChatClientRequest markGuardChecked(ChatClientRequest request) {
+        return request.mutate().context(GUARD_CHECKED_CONTEXT_KEY, true).build();
     }
 
 

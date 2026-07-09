@@ -29,6 +29,8 @@ public final class MessageItem {
     @Getter
     private final boolean loading;
     @Getter
+    private final boolean steered;
+    @Getter
     private final String loadingLabel;
     @Getter
     private final boolean debuggableCodeBlocks;
@@ -36,6 +38,7 @@ public final class MessageItem {
     private String text;
     transient String clientText;
     transient boolean clientLoading;
+    transient boolean clientSteered;
     transient MessagesList host;
 
     public MessageItem(String text, Instant time, String userName, Variant variant, boolean loading) {
@@ -46,8 +49,7 @@ public final class MessageItem {
         this(text, time, userName, variant, loading, debuggableCodeBlocks, null);
     }
 
-    public MessageItem(String text, Instant time, String userName, Variant variant, boolean loading,
-            boolean debuggableCodeBlocks, String loadingLabel) {
+    public MessageItem(String text, Instant time, String userName, Variant variant, boolean loading, boolean steered) {
         this.text = text != null ? text : "";
         this.clientText = this.text;
         this.time = time != null ? time.toString() : "";
@@ -56,7 +58,9 @@ public final class MessageItem {
         this.loading = loading;
         this.loadingLabel = loadingLabel == null || loadingLabel.isBlank() ? null : loadingLabel;
         this.debuggableCodeBlocks = debuggableCodeBlocks;
+        this.steered = steered;
         this.clientLoading = loading;
+        this.clientSteered = steered;
     }
 
     public String getVariant() {

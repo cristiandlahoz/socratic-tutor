@@ -215,7 +215,7 @@ public class DocumentIngestionUiController implements Serializable {
         if (throwable == null || throwable.getMessage() == null || throwable.getMessage().isBlank()) {
             return "Ocurrió un error inesperado.";
         }
-        log.error(throwable.getMessage());
+        log.error("document_ingestion_ui_action_failed", throwable);
         return throwable.getMessage();
     }
 

@@ -13,6 +13,7 @@ type MessageItemModel = {
   userName?: string;
   variant?: MessageVariant;
   loading?: boolean;
+  steered?: boolean;
   loadingLabel?: string;
   debuggableCodeBlocks?: boolean;
 };
@@ -128,13 +129,13 @@ class MessagesList extends LitElement {
     this.updateItems([...this.items, ...normalizeItems(items)], 'auto');
   }
 
-  setItemText(text: string | null | undefined, index: number): void {
+  setItemText(text: string | null | undefined, index: number, steered = false): void {
     if (!this.hasItemAt(index)) {
       return;
     }
 
     const nextItems = [...this.items];
-    nextItems[index] = { ...nextItems[index], text: text ?? '' };
+    nextItems[index] = { ...nextItems[index], text: text ?? '', steered };
 
     this.updateItems(nextItems, 'auto');
   }
@@ -535,6 +536,7 @@ class MessagesList extends LitElement {
         .userName=${item.loading ? '' : item.userName ?? ''}
         .variant=${variant}
         .loading=${Boolean(item.loading)}
+        .steered=${Boolean(item.steered)}
         .loadingLabel=${item.loadingLabel ?? this.loadingLabel()}
         .debuggableCodeBlocks=${Boolean(item.debuggableCodeBlocks)}
         .thinkingSpinner=${this.thinkingSpinner}

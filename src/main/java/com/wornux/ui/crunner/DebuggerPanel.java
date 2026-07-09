@@ -64,6 +64,7 @@ public final class DebuggerPanel extends Component implements HasSize {
             debugCurrentSourceAsync();
         });
         addStepDebugRequestedListener(_ -> stepActiveLine());
+        addMoveToCursorLineRequestedListener(event -> moveToCursorLine(event.getLine()));
         addResetDebugRequestedListener(_ -> resetActiveLine());
     }
 
@@ -126,6 +127,28 @@ public final class DebuggerPanel extends Component implements HasSize {
         renderSnapshot(snapshots.getFirst());
     }
 
+    void moveToCursorLine(int cursorLine) {
+        if (cursorLine < 1) {
+            setStatusText("Coloca el cursor en una linea ejecutable.");
+            return;
+        }
+        if (snapshots.isEmpty()) {
+            setStatusText("Ejecuta primero");
+            return;
+        }
+
+        for (var index = 0; index < snapshots.size(); index++) {
+            var line = snapshots.get(index).line();
+            if (line != null && line == cursorLine) {
+                snapshotIndex = index;
+                renderSnapshot(snapshots.get(index));
+                return;
+            }
+        }
+
+        setStatusText("La linea %d no se ejecuto en esta corrida.".formatted(cursorLine));
+    }
+
     void debugCurrentSource() {
         debugCurrentSourceAsync();
     }
@@ -153,6 +176,7 @@ public final class DebuggerPanel extends Component implements HasSize {
     private void initializeClientState() {
         setSource("");
         setDiagnostics(List.of());
+        setExecutableLines(List.of());
         setLocals(List.of());
         renderStdout("");
         setControlsEnabled(true);
@@ -169,6 +193,7 @@ public final class DebuggerPanel extends Component implements HasSize {
         snapshotIndex = 0;
         activeLine = 0;
         setDiagnostics(List.of());
+        setExecutableLines(List.of());
         setActiveLine(0);
         renderLocals(List.of());
         renderStdout("");
@@ -246,6 +271,7 @@ public final class DebuggerPanel extends Component implements HasSize {
         currentDebugElapsedMs = 0;
         activeLine = 0;
         renderLocals(List.of());
+        setExecutableLines(List.of());
         setActiveLine(0);
         currentStdin = "";
         getElement().setProperty("stdin", "");
@@ -261,6 +287,7 @@ public final class DebuggerPanel extends Component implements HasSize {
         currentDebugger = "";
         currentDebugElapsedMs = 0;
         setDiagnostics(List.of());
+        setExecutableLines(List.of());
         setActiveLine(0);
         renderLocals(List.of());
         renderStdout("");
@@ -283,6 +310,10 @@ public final class DebuggerPanel extends Component implements HasSize {
         getElement().setPropertyJson("diagnostics", JacksonUtils.listToJson(safeDiagnostics));
     }
 
+    private void setExecutableLines(List<Integer> lines) {
+        getElement().setPropertyJson("executableLines", JacksonUtils.listToJson(lines));
+    }
+
     private void setActiveLine(int activeLine) {
         this.activeLine = activeLine;
         getElement().setProperty("activeLine", activeLine);
@@ -296,6 +327,7 @@ public final class DebuggerPanel extends Component implements HasSize {
         snapshotIndex = 0;
         currentDebugger = result.compiler();
         currentDebugElapsedMs = result.elapsedMs();
+        setExecutableLines(executableLinesFrom(snapshots));
 
         if (!result.valid() || snapshots.isEmpty()) {
             var errors = result.diagnostics()
@@ -310,6 +342,17 @@ public final class DebuggerPanel extends Component implements HasSize {
         }
 
         renderSnapshot(snapshots.getFirst());
+    }
+
+    private List<Integer> executableLinesFrom(List<CDebugSnapshot> snapshots) {
+        var lines = new ArrayList<Integer>();
+        for (var snapshot : snapshots) {
+            var line = snapshot.line();
+            if (line != null && line > 0 && !lines.contains(line)) {
+                lines.add(line);
+            }
+        }
+        return lines;
     }
 
     private void renderSnapshot(CDebugSnapshot snapshot) {
@@ -364,6 +407,11 @@ public final class DebuggerPanel extends Component implements HasSize {
 
     private Registration addStepDebugRequestedListener(ComponentEventListener<StepDebugRequestedEvent> listener) {
         return addListener(StepDebugRequestedEvent.class, listener);
+    }
+
+    private Registration addMoveToCursorLineRequestedListener(
+            ComponentEventListener<MoveToCursorLineRequestedEvent> listener) {
+        return addListener(MoveToCursorLineRequestedEvent.class, listener);
     }
 
     private Registration addResetDebugRequestedListener(ComponentEventListener<ResetDebugRequestedEvent> listener) {
@@ -444,6 +492,24 @@ public final class DebuggerPanel extends Component implements HasSize {
 
         public StepDebugRequestedEvent(DebuggerPanel source, boolean fromClient) {
             super(source, fromClient);
+        }
+    }
+
+    @DomEvent("move-to-cursor-line-requested")
+    public static final class MoveToCursorLineRequestedEvent extends ComponentEvent<DebuggerPanel> {
+
+        private final int line;
+
+        public MoveToCursorLineRequestedEvent(
+                DebuggerPanel source,
+                boolean fromClient,
+                @EventData("event.detail.line") int line) {
+            super(source, fromClient);
+            this.line = line;
+        }
+
+        public int getLine() {
+            return line;
         }
     }
 

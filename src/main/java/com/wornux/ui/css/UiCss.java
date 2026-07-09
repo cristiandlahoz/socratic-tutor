@@ -4,6 +4,7 @@ public final class UiCss {
 
     public static final CssClass ACTIVE = css("is-active");
     public static final CssClass EXPANDED = css("is-expanded");
+    public static final CssClass UI_ICON_TOGGLE = css("ui-icon-toggle");
     public static final CssClass UTILITY_MARGIN_NONE = css("u-margin-none");
 
     public static final CssClass SHELL_DRAWER_CONTENT = css("shell-drawer-content");

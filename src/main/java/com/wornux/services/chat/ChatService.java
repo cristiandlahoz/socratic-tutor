@@ -4,8 +4,10 @@ import java.io.InterruptedIOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import com.openai.errors.OpenAIIoException;
+import com.wornux.ai.advisor.TutorGuardAdvisor;
 import com.wornux.ai.tools.InterrogateUserTool;
 import com.wornux.ai.tools.ToolContextKeys;
 import com.wornux.ai.tools.ToolUsageAuditService;
@@ -44,20 +46,27 @@ public class ChatService {
             UUID turnId,
             String userInput,
             UUID conversationId,
-            InterrogateUserTool.QuestionHandler questionHandler) {
+            InterrogateUserTool.QuestionHandler questionHandler,
+            Consumer<String> steeredUserMessageHandler) {
         var academicCtx = contextResolver.requireCurrent();
         conversationService.requireOwnedConversation(conversationId);
         var sessionContext = buildSessionContext(academicCtx, conversationId);
         var clientRequestSpec = chatClient.prompt()
                 .advisors(
-                    advisorSpec -> advisorSpec
-                            .param(
+                    advisorSpec -> {
+                        advisorSpec.param(
                                 SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY,
                                 sessionContext.get(SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY))
-                            .param(
+                                .param(
                                 SessionMemoryAdvisor.USER_ID_CONTEXT_KEY,
                                 sessionContext.get(SessionMemoryAdvisor.USER_ID_CONTEXT_KEY))
-                            .param(ToolContextKeys.GROUP_CLASS_ID, academicCtx.groupClassId().toString()))
+                                .param(ToolContextKeys.GROUP_CLASS_ID, academicCtx.groupClassId().toString());
+                        if (steeredUserMessageHandler != null) {
+                            advisorSpec.param(
+                                TutorGuardAdvisor.STEERED_USER_MESSAGE_CALLBACK_CONTEXT_KEY,
+                                steeredUserMessageHandler);
+                        }
+                    })
                 .toolContext(buildToolContext(Optional.of(academicCtx), conversationId, turnId))
                 .user(userInput);
         if (questionHandler != null) {

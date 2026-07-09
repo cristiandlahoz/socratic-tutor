@@ -69,6 +69,7 @@ arconia:
   dev:
     services:
       docling:
+        image-name: ghcr.io/docling-project/docling-serve-cpu:v1.18.0
         startup-timeout: 3m
 
 app:
@@ -104,7 +105,8 @@ app:
     retrieval-similarity-threshold: ${DOCUMENT_RETRIEVAL_SIMILARITY_THRESHOLD:0.55}
     chunking:
       hybrid:
-        max-tokens: ${DOCUMENT_CHUNK_MAX_TOKENS:512}
+        max-tokens: ${DOCUMENT_CHUNK_MAX_TOKENS:1024}
+        tokenizer: ${DOCUMENT_CHUNK_TOKENIZER:Qwen/Qwen3-Embedding-0.6B}
         merge-peers: ${DOCUMENT_CHUNK_MERGE_PEERS:true}
         use-markdown-tables: ${DOCUMENT_CHUNK_USE_MARKDOWN_TABLES:true}
         include-raw-text: ${DOCUMENT_CHUNK_INCLUDE_RAW_TEXT:true}

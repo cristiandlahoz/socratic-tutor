@@ -8,6 +8,7 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 - If a `.jj` directory is present, use Jujutsu (`jj`) instead of Git for status, diff, commit, history, and push operations.
 - Never stop or restart a running local app/debugger instance unless explicitly requested. Assume the app is already running with Java hotswap and Vaadin/Vite hot reload enabled. Java and TypeScript changes should reflect automatically on `${PORT:-3321}`.
+- If Java hotswap produces runtime linkage errors such as `NoSuchMethodError` for synthetic lambda methods after a code change, do not reshape otherwise-correct code to work around the debug environment. Tell the user the running server needs a restart to pick up the changed bytecode cleanly.
 - Before running compile/build commands, check whether the app is already running with `lsof -i :${PORT:-3321}`. If the app is running, do not run compile/build commands such as `mvn compile`; they can trigger a massive reload, destabilize the JVM, and exhaust local memory. Prefer browser/runtime verification against the running app, focused source inspection, or ask before compiling when a running instance is detected.
 
 ## Runtime logs

@@ -26,7 +26,7 @@ public class Application implements AppShellConfigurator {
 
     @Override
     public void configurePage(AppShellSettings settings) {
-        settings.addFavIcon("icon", "icons/toggle.svg", "any");
+        settings.addFavIcon("icon", "icons/tutor-socratico-crow-vector.svg", "any");
     }
 
     static void main(String... args) {

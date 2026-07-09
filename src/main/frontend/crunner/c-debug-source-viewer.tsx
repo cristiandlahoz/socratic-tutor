@@ -29,6 +29,7 @@ interface CDebugSourceEditorProps {
   systemThemeMatches: boolean;
   themePreference: string;
   value: string;
+  onCursorLineChange: (line: number) => void;
   onValueChange: (value: string) => void;
 }
 
@@ -109,6 +110,126 @@ const debuggerScrollTheme = EditorView.theme({
   },
 });
 
+const debuggerEditorTheme: Extension = EditorView.theme({
+  '&.cm-editor': {
+    border: '0',
+    height: '100%',
+    minHeight: '0',
+    background: 'var(--c-runner-editor-background, transparent)',
+    color: 'var(--c-runner-editor-text, inherit)',
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--c-runner-editor-font-size, 14px)',
+    lineHeight: 'var(--c-runner-editor-line-height, 1.55)',
+  },
+
+  '&.cm-editor .cm-scroller': {
+    height: '100%',
+    minHeight: '0',
+    background: 'transparent',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+  },
+
+  '&.cm-editor .cm-content': {
+    minHeight: '100%',
+    padding: '0.78rem 0.88rem 0.82rem 0.2rem',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+  },
+
+  '&.cm-editor .cm-gutters': {
+    border: '0',
+    background: 'var(--c-runner-editor-background, transparent)',
+    color: 'var(--c-runner-editor-gutter, var(--vaadin-text-color-secondary))',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+  },
+
+  '&.cm-editor .cm-lineNumbers': {
+    background: 'var(--c-runner-editor-background, transparent)',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+  },
+
+  '&.cm-editor .cm-lineNumbers .cm-gutterElement': {
+    background: 'var(--c-runner-editor-background, transparent)',
+    minWidth: '2.6rem',
+    paddingInline: '0.85rem 0.55rem',
+  },
+
+  '&.cm-editor .cm-line': {
+    position: 'relative',
+    paddingInline: '1.05rem 0.45rem',
+  },
+
+  '&.cm-editor .cm-activeLine': {
+    background: 'transparent',
+  },
+
+  '&.cm-editor .cm-activeLineGutter': {
+    background: 'transparent',
+  },
+
+  '&.cm-editor .cm-debug-active-line': {
+    borderRadius: 'var(--vaadin-radius-xs, 3px)',
+    background:
+      'var(--c-runner-active-line-background, color-mix(in srgb, var(--aura-accent-text-color) 16%, transparent))',
+    color: 'var(--c-runner-active-line-foreground, inherit)',
+    marginInlineEnd: '0.2rem',
+    boxShadow: 'none',
+  },
+
+  '&.cm-editor .cm-debug-active-line *': {
+    color: 'var(--c-runner-active-line-foreground, inherit)',
+  },
+
+  '&.cm-editor .cm-debug-active-line::before': {
+    content: 'var(--c-runner-active-line-marker, "->")',
+    position: 'absolute',
+    insetInlineStart: '-1.05rem',
+    color: 'var(--c-runner-active-line-marker-color, var(--aura-accent-text-color))',
+  },
+
+  '&.cm-editor .cm-lintRange-error': {
+    backgroundImage:
+      'linear-gradient(45deg, transparent 65%, color-mix(in srgb, var(--lumo-error-color, var(--aura-red)) 86%, transparent) 80%, transparent 92%)',
+  },
+
+  '&.cm-editor .cm-lintRange-warning': {
+    backgroundImage:
+      'linear-gradient(45deg, transparent 65%, color-mix(in srgb, var(--lumo-warning-color, var(--aura-yellow)) 86%, transparent) 80%, transparent 92%)',
+  },
+
+  '&.cm-editor .cm-tooltip.cm-tooltip-lint': {
+    maxWidth: 'min(42rem, calc(100vw - 2rem))',
+    maxHeight: 'min(22rem, 60vh)',
+    overflow: 'auto',
+    border: '1px solid var(--c-runner-card-border, var(--vaadin-border-color))',
+    borderRadius: '8px',
+    background:
+      'color-mix(in srgb, var(--vaadin-background-container) 94%, var(--color-black))',
+    boxShadow: 'var(--aura-shadow-m)',
+    color: 'var(--vaadin-text-color)',
+    fontFamily: 'var(--font-mono, monospace)',
+    fontSize: '12px',
+    lineHeight: '1.45',
+    whiteSpace: 'pre-wrap',
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
+  },
+
+  '&.cm-editor .cm-tooltip.cm-tooltip-lint ul, &.cm-editor .cm-tooltip.cm-tooltip-lint li': {
+    maxWidth: '100%',
+    whiteSpace: 'inherit',
+    overflowWrap: 'inherit',
+    wordBreak: 'inherit',
+  },
+});
+
 function scrollActiveLineIntoView(view: EditorView, activeLine: number): void {
   if (!activeLine || activeLine < 1 || activeLine > view.state.doc.lines) {
     return;
@@ -133,9 +254,11 @@ function CDebugSourceEditor({
   systemThemeMatches,
   themePreference,
   value,
+  onCursorLineChange,
   onValueChange,
 }: CDebugSourceEditorProps) {
   const editorView = useRef<EditorView | null>(null);
+  const cursorLine = useRef(0);
 
   useEffect(() => {
     const view = editorView.current;
@@ -155,10 +278,22 @@ function CDebugSourceEditor({
       theme={resolveCodeMirrorTheme(themePreference, systemThemeMatches)}
       extensions={[
         debuggerScrollTheme,
+        debuggerEditorTheme,
         ...codeMirrorLanguageExtensions(lang),
         lintGutter(),
         linter((view) => toCodeMirrorDiagnostics(diagnostics, view.state.doc), {
           delay: 0,
+        }),
+        EditorView.updateListener.of((update) => {
+          if (!update.selectionSet && !update.docChanged) {
+            return;
+          }
+          const nextCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+          if (nextCursorLine === cursorLine.current) {
+            return;
+          }
+          cursorLine.current = nextCursorLine;
+          onCursorLineChange(nextCursorLine);
         }),
         ...activeLineExtension(activeLine),
       ]}
@@ -167,6 +302,9 @@ function CDebugSourceEditor({
       readOnly={!editable}
       onCreateEditor={(view) => {
         editorView.current = view;
+        const nextCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
+        cursorLine.current = nextCursorLine;
+        onCursorLineChange(nextCursorLine);
       }}
       onChange={onValueChange}
       basicSetup={{
@@ -188,6 +326,7 @@ class CDebugSourceViewerElement extends HTMLElement {
   private internalLang = 'c';
   private internalDiagnostics: CompilerDiagnostic[] = [];
   private internalActiveLine = 0;
+  private internalCursorLine = 0;
   private internalEditable = false;
   private currentThemePreference = 'system';
   private themePreferenceObserver: MutationObserver | null = null;
@@ -261,6 +400,10 @@ class CDebugSourceViewerElement extends HTMLElement {
     return this.internalActiveLine;
   }
 
+  get cursorLine(): number {
+    return this.internalCursorLine;
+  }
+
   set editable(value: boolean) {
     this.internalEditable = Boolean(value);
     this.renderEditor();
@@ -294,127 +437,6 @@ class CDebugSourceViewerElement extends HTMLElement {
             height: 100%;
             min-height: 0;
           }
-
-          .cm-editor {
-            border: 0;
-            height: 100%;
-            min-height: 0;
-            background: var(--c-runner-editor-background, transparent) !important;
-            color: var(--c-runner-editor-text, inherit);
-            font-family: var(--font-mono);
-            font-size: var(--c-runner-editor-font-size, 14px);
-            line-height: var(--c-runner-editor-line-height, 1.55);
-          }
-
-          .cm-editor,
-          .cm-scroller {
-            height: 100%;
-          }
-
-          .cm-scroller {
-            min-height: 0;
-          }
-
-          .cm-scroller,
-          .cm-content,
-          .cm-gutters,
-          .cm-lineNumbers {
-            font-family: inherit;
-            font-size: inherit;
-            line-height: inherit;
-          }
-
-          .cm-scroller,
-          .cm-gutters,
-          .cm-activeLine,
-          .cm-activeLineGutter {
-            background: transparent !important;
-          }
-
-          .cm-gutters {
-            border: 0;
-            color: var(--c-runner-editor-gutter, var(--vaadin-text-color-secondary));
-          }
-
-          .cm-lineNumbers .cm-gutterElement {
-            min-width: 2.6rem;
-            padding-inline: 0.85rem 0.55rem;
-          }
-
-          .cm-content {
-            min-height: 100%;
-            padding: 0.78rem 0.88rem 0.82rem 0.2rem;
-          }
-
-          .cm-line {
-            position: relative;
-            padding-inline: 1.05rem 0.45rem;
-          }
-
-          .cm-debug-active-line {
-            border-radius: var(--vaadin-radius-xs, 3px);
-            background: var(
-              --c-runner-active-line-background,
-              color-mix(in srgb, var(--aura-accent-text-color) 16%, transparent)
-            );
-            color: var(--c-runner-active-line-foreground, inherit) !important;
-            margin-inline-end: 0.2rem;
-            box-shadow: none;
-          }
-
-          .cm-debug-active-line * {
-            color: var(--c-runner-active-line-foreground, inherit) !important;
-          }
-
-          .cm-debug-active-line::before {
-            content: var(--c-runner-active-line-marker, "->");
-            position: absolute;
-            inset-inline-start: -1.05rem;
-            color: var(--c-runner-active-line-marker-color, var(--aura-accent-text-color));
-          }
-
-          .cm-lintRange-error {
-            background-image: linear-gradient(
-              45deg,
-              transparent 65%,
-              color-mix(in srgb, var(--lumo-error-color, var(--aura-red)) 86%, transparent) 80%,
-              transparent 92%
-            );
-          }
-
-          .cm-lintRange-warning {
-            background-image: linear-gradient(
-              45deg,
-              transparent 65%,
-              color-mix(in srgb, var(--lumo-warning-color, var(--aura-yellow)) 86%, transparent) 80%,
-              transparent 92%
-            );
-          }
-
-          .cm-tooltip.cm-tooltip-lint {
-            max-width: min(42rem, calc(100vw - 2rem));
-            max-height: min(22rem, 60vh);
-            overflow: auto;
-            border: 1px solid var(--c-runner-card-border, var(--vaadin-border-color));
-            border-radius: 8px;
-            background: color-mix(in srgb, var(--vaadin-background-container) 94%, var(--color-black));
-            box-shadow: var(--aura-shadow-m);
-            color: var(--vaadin-text-color);
-            font-family: var(--font-mono, monospace);
-            font-size: 12px;
-            line-height: 1.45;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-          }
-
-          .cm-tooltip.cm-tooltip-lint ul,
-          .cm-tooltip.cm-tooltip-lint li {
-            max-width: 100%;
-            white-space: inherit;
-            overflow-wrap: inherit;
-            word-break: inherit;
-          }
         `}</style>
         <CDebugSourceEditor
           activeLine={this.internalActiveLine}
@@ -425,6 +447,16 @@ class CDebugSourceViewerElement extends HTMLElement {
           systemThemeMatches={this.systemThemeQuery.matches}
           themePreference={this.currentThemePreference}
           value={this.internalValue}
+          onCursorLineChange={(line) => {
+            this.internalCursorLine = line;
+            this.dispatchEvent(
+              new CustomEvent('cursor-line-changed', {
+                detail: { line },
+                bubbles: true,
+                composed: true,
+              }),
+            );
+          }}
           onValueChange={(value) => {
             this.internalValue = value;
             this.dispatchEvent(

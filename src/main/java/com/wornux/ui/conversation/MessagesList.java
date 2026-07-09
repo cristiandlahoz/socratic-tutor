@@ -120,6 +120,7 @@ public final class MessagesList extends Component implements HasSize {
         items.forEach(item -> {
             item.clientText = item.getText();
             item.clientLoading = item.isLoading();
+            item.clientSteered = item.isSteered();
         });
 
         var itemsJson = JacksonUtils.listToJson(items);
@@ -146,11 +147,13 @@ public final class MessagesList extends Component implements HasSize {
             previousItem.setHost(null);
             nextItem.clientText = previousItem.clientText;
             nextItem.clientLoading = previousItem.clientLoading;
+            nextItem.clientSteered = previousItem.clientSteered;
             nextItem.setHost(this);
 
             textUpdateRequired = textUpdateRequired
                     || !Objects.equals(nextItem.getText(), nextItem.clientText)
-                    || nextItem.isLoading() != nextItem.clientLoading;
+                    || nextItem.isLoading() != nextItem.clientLoading
+                    || nextItem.isSteered() != nextItem.clientSteered;
         }
 
         for (var index = sharedSize; index < nextItems.size(); index += 1) {
@@ -217,6 +220,7 @@ public final class MessagesList extends Component implements HasSize {
         newItems.forEach(item -> {
             item.clientText = item.getText();
             item.clientLoading = item.isLoading();
+            item.clientSteered = item.isSteered();
         });
 
         var itemsJson = JacksonUtils.listToJson(newItems);
@@ -227,8 +231,9 @@ public final class MessagesList extends Component implements HasSize {
         for (var index = 0; index < items.size(); index += 1) {
             var item = items.get(index);
             var textChanged = !Objects.equals(item.getText(), item.clientText);
+            var steeredChanged = item.isSteered() != item.clientSteered;
 
-            if (!textChanged) {
+            if (!textChanged && !steeredChanged) {
                 if (item.isLoading() != item.clientLoading) {
                     getElement().executeJs("this.setItemLoading($0, $1)", item.isLoading(), index);
                     item.clientLoading = item.isLoading();
@@ -236,15 +241,16 @@ public final class MessagesList extends Component implements HasSize {
                 continue;
             }
 
-            if (item.getText() != null && item.clientText != null && item.getText().startsWith(item.clientText)) {
+            if (!steeredChanged && item.getText() != null && item.clientText != null && item.getText().startsWith(item.clientText)) {
                 var diff = item.getText().substring(item.clientText.length());
                 getElement().executeJs("this.appendItemText($0, $1)", diff, index);
             }
             else {
-                getElement().executeJs("this.setItemText($0, $1)", item.getText(), index);
+                getElement().executeJs("this.setItemText($0, $1, $2)", item.getText(), index, item.isSteered());
             }
 
             item.clientText = item.getText();
+            item.clientSteered = item.isSteered();
             if (item.isLoading() != item.clientLoading) {
                 getElement().executeJs("this.setItemLoading($0, $1)", item.isLoading(), index);
                 item.clientLoading = item.isLoading();

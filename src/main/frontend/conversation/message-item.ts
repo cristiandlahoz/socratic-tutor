@@ -51,6 +51,14 @@ function ensureMessageItemStyles(): void {
       backdrop-filter: blur(18px) saturate(1.05);
     }
 
+    message-item[variant="user"][steered] {
+      animation: message-item-steered-swap 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    message-item[variant="user"][steered] markdown-renderer {
+      animation: message-item-steered-content 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
     message-item[variant="user"] markdown-renderer {
       --markdown-renderer-text-color: var(--vaadin-text-color);
       inline-size: fit-content;
@@ -119,6 +127,35 @@ function ensureMessageItemStyles(): void {
         max-inline-size: 100%;
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      message-item[variant="user"][steered],
+      message-item[variant="user"][steered] markdown-renderer {
+        animation: none;
+      }
+    }
+
+    @keyframes message-item-steered-swap {
+      0% {
+        background: color-mix(in srgb, var(--aura-accent-color) 12%, var(--message-item-user-background));
+        transform: translateY(0.125rem);
+      }
+      100% {
+        background: var(--message-item-user-background);
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes message-item-steered-content {
+      0% {
+        opacity: 0;
+        filter: blur(2px);
+      }
+      100% {
+        opacity: 1;
+        filter: blur(0);
+      }
+    }
   `);
 }
 
@@ -129,9 +166,10 @@ class MessageItem extends LitElement {
     userName: { type: String, attribute: 'user-name' },
     variant: { type: String, reflect: true },
     loading: { type: Boolean, reflect: true },
+    steered: { type: Boolean, reflect: true },
+    thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
     loadingLabel: { type: String, attribute: 'loading-label' },
     debuggableCodeBlocks: { type: Boolean, attribute: 'debuggable-code-blocks' },
-    thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
   };
 
   declare text: string;
@@ -139,9 +177,10 @@ class MessageItem extends LitElement {
   declare userName: string;
   declare variant: MessageVariant;
   declare loading: boolean;
+  declare steered: boolean;
+  declare thinkingSpinner: BrailleSpinnerName;
   declare loadingLabel: string;
   declare debuggableCodeBlocks: boolean;
-  declare thinkingSpinner: BrailleSpinnerName;
 
   constructor() {
     super();
@@ -150,7 +189,7 @@ class MessageItem extends LitElement {
     this.userName = '';
     this.variant = 'assistant';
     this.loading = false;
-    this.loadingLabel = '';
+    this.steered = false;
     this.debuggableCodeBlocks = false;
     this.thinkingSpinner = 'braille';
     this.loadingLabel = 'Generando respuesta';
