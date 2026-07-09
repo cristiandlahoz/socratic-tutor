@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.wornux.config.CProgramAnalysisProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.services.crunner.CDiagnostic;
 import com.wornux.services.crunner.CDiagnosticSeverity;
 import com.wornux.services.crunner.CSourceRequest;
@@ -18,13 +18,13 @@ public class DockerGccCCompilerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(DockerGccCCompilerAdapter.class);
 
-    private final CProgramAnalysisProperties properties;
+    private final ApplicationProperties.CRunner properties;
     private final SarifDiagnosticParser sarifDiagnosticParser;
     private final CWorkspaceFactory workspaceFactory;
     private final CCompilerRunner compilerRunner;
 
     public DockerGccCCompilerAdapter(
-            CProgramAnalysisProperties properties,
+            ApplicationProperties.CRunner properties,
             SarifDiagnosticParser sarifDiagnosticParser,
             CWorkspaceFactory workspaceFactory,
             CCompilerRunner compilerRunner) {

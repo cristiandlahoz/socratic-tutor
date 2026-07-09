@@ -3,6 +3,7 @@ import '@vaadin/icon';
 import '@vaadin/icons';
 import '@vaadin/popover';
 import '@vaadin/text-area';
+import type { TextArea } from '@vaadin/text-area';
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { renderConversationDisclaimer } from './conversation-disclaimer.js';
@@ -100,6 +101,7 @@ class StudentQuestionPanelElement extends LitElement {
 
   private activeQuestionIndex = 0;
   private answerDrafts = new Map<string, AnswerDraft>();
+  private questionSetSignature: string | null = null;
 
   constructor() {
     super();
@@ -113,19 +115,34 @@ class StudentQuestionPanelElement extends LitElement {
 
   setQuestionSet(value: unknown): void {
     this.questionSet = normalizeQuestionSet(value);
-    this.resetAnswers();
+    this.reconcileQuestionSet();
   }
 
   protected willUpdate(changedProperties: Map<PropertyKey, unknown>): void {
     if (changedProperties.has('questionSet')) {
-      this.resetAnswers();
+      this.reconcileQuestionSet();
     }
+  }
+
+  private reconcileQuestionSet(): void {
+    const signature = this.signatureForQuestionSet(this.questionSet);
+    if (signature === this.questionSetSignature) {
+      this.ensureDrafts();
+      return;
+    }
+
+    this.questionSetSignature = signature;
+    this.resetAnswers();
   }
 
   private resetAnswers(): void {
     this.activeQuestionIndex = 0;
     this.answerDrafts = new Map();
     this.ensureDrafts();
+  }
+
+  private signatureForQuestionSet(questionSet: StudentQuestionSet | null): string | null {
+    return questionSet == null ? null : JSON.stringify(questionSet);
   }
 
   setSubmitting(value: boolean): void {
@@ -200,7 +217,7 @@ class StudentQuestionPanelElement extends LitElement {
             aria-label=${`Ver detalle de ${option.label}`}
             ?disabled=${this.submitting}
           >
-            <vaadin-icon icon="vaadin:info-circle-o"></vaadin-icon>
+            <vaadin-icon src="/icons/IconInfo.svg" aria-hidden="true"></vaadin-icon>
           </vaadin-button>
           <vaadin-popover class="conversation-question__option-popover" for=${this.infoButtonId(currentQuestionKey, index)}>
             <p class="conversation-question__option-description conversation-question__option-description--popover">
@@ -225,7 +242,7 @@ class StudentQuestionPanelElement extends LitElement {
           ?disabled=${this.submitting}
           placeholder=${openQuestion ? 'Escribe tu respuesta...' : 'Agrega contexto extra si quieres...'}
           aria-label=${openQuestion ? 'Respuesta a la pregunta' : 'Respuesta complementaria'}
-          @value-changed=${(event: CustomEvent<{ value?: string }>) => this.updateCustomText(currentQuestionKey, event)}
+          @input=${(event: Event) => this.updateCustomTextFromTextArea(currentQuestionKey, event)}
         ></vaadin-text-area>
         <div class="conversation-question__composer-actions">
           ${this.renderPreviousButton()}
@@ -247,7 +264,7 @@ class StudentQuestionPanelElement extends LitElement {
             ?disabled=${this.submitting}
             @click=${this.showPreviousQuestion}
           >
-            <vaadin-icon icon="vaadin:arrow-left"></vaadin-icon>
+            <vaadin-icon src="/icons/IconArrowLeftBar.svg" aria-hidden="true"></vaadin-icon>
           </vaadin-button>
         `
       : nothing;
@@ -265,7 +282,7 @@ class StudentQuestionPanelElement extends LitElement {
             ?disabled=${this.submitting}
             @click=${this.showNextQuestion}
           >
-            <vaadin-icon icon="vaadin:arrow-right"></vaadin-icon>
+            <vaadin-icon src="/icons/IconArrowRight.svg" aria-hidden="true"></vaadin-icon>
           </vaadin-button>
         `
       : nothing;
@@ -318,17 +335,31 @@ class StudentQuestionPanelElement extends LitElement {
     this.requestUpdate();
   }
 
-  private updateCustomText(questionId: string, event: CustomEvent<{ value?: string }>): void {
-    this.draftFor(questionId).customText = event.detail.value ?? '';
+  private updateCustomTextFromTextArea(questionId: string, event: Event): void {
+    const textArea = event.currentTarget as TextArea | null;
+    this.updateCustomText(questionId, textArea?.value ?? '');
+  }
+
+  private updateCustomText(questionId: string, value: string): void {
+    this.draftFor(questionId).customText = value;
     this.requestUpdate();
   }
 
+  private syncActiveCustomText(): void {
+    const textArea = this.querySelector('vaadin-text-area.conversation-question__custom-text') as TextArea | null;
+    if (typeof textArea?.value === 'string') {
+      this.draftFor(questionKey(this.activeQuestionIndex)).customText = textArea.value;
+    }
+  }
+
   private showPreviousQuestion = (): void => {
+    this.syncActiveCustomText();
     this.activeQuestionIndex = Math.max(0, this.activeQuestionIndex - 1);
     this.requestUpdate();
   };
 
   private showNextQuestion = (): void => {
+    this.syncActiveCustomText();
     const total = this.questionSet?.questions.length ?? 0;
     this.activeQuestionIndex = Math.min(total - 1, this.activeQuestionIndex + 1);
     this.requestUpdate();
@@ -343,6 +374,7 @@ class StudentQuestionPanelElement extends LitElement {
   }
 
   private submitAnswers = (): void => {
+    this.syncActiveCustomText();
     if (!this.canSubmit() || !this.questionSet) {
       return;
     }

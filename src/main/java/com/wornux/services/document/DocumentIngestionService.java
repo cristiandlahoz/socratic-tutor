@@ -3,7 +3,7 @@ package com.wornux.services.document;
 import java.util.List;
 import java.util.UUID;
 
-import com.wornux.config.DocumentIngestionProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.enums.DocumentStatus;
 import com.wornux.dtos.document.DoclingSegmentDraft;
@@ -22,14 +22,14 @@ public class DocumentIngestionService {
     private final DoclingClientService doclingClientService;
     private final DocumentVectorIndexingService indexingService;
     private final DocumentCatalogGenerationService catalogGenerationService;
-    private final DocumentIngestionProperties properties;
+    private final ApplicationProperties.DocumentIngest properties;
     private final ActiveAcademicContextResolver contextResolver;
 
     public DocumentIngestionService(
             DoclingClientService doclingClientService,
             DocumentVectorIndexingService indexingService,
             DocumentCatalogGenerationService catalogGenerationService,
-            DocumentIngestionProperties properties,
+            ApplicationProperties.DocumentIngest properties,
             ActiveAcademicContextResolver contextResolver) {
         this.doclingClientService = doclingClientService;
         this.indexingService = indexingService;
@@ -41,6 +41,18 @@ public class DocumentIngestionService {
     public DocumentReviewViewModel startIngestion(StartIngestionCommand command) {
         validateUpload(command);
         requireProfessorContext();
+
+        return startIngestionAfterValidation(command);
+    }
+
+    public DocumentReviewViewModel startIngestion(StartIngestionCommand command, ActiveAcademicContext context) {
+        validateUpload(command);
+        requireProfessorContext(context);
+
+        return startIngestionAfterValidation(command);
+    }
+
+    private DocumentReviewViewModel startIngestionAfterValidation(StartIngestionCommand command) {
 
         var conversion =
                 doclingClientService.convertPdfToMarkdownAndChunks(command.originalFilename(), command.content());
@@ -63,6 +75,11 @@ public class DocumentIngestionService {
 
     public DocumentReviewViewModel approve(ApproveDocumentCommand command) {
         var context = requireProfessorContext();
+        return approve(command, context);
+    }
+
+    public DocumentReviewViewModel approve(ApproveDocumentCommand command, ActiveAcademicContext context) {
+        requireProfessorContext(context);
         validateReview(command);
         UUID ingestionId = parseIngestionId(command.ingestionId());
         List<String> vectorIds = indexingService.index(
@@ -91,6 +108,15 @@ public class DocumentIngestionService {
         return catalogGenerationService.generate(title, catalogUseWhen, segments);
     }
 
+    public CourseMaterialCatalog generateCatalog(
+            String title,
+            String catalogUseWhen,
+            List<EditableSegmentViewModel> segments,
+            ActiveAcademicContext context) {
+        requireProfessorContext(context);
+        return catalogGenerationService.generate(title, catalogUseWhen, segments);
+    }
+
     public void delete(List<String> vectorIds) {
         requireProfessorContext();
         indexingService.delete(vectorIds);
@@ -115,10 +141,14 @@ public class DocumentIngestionService {
 
     private ActiveAcademicContext requireProfessorContext() {
         var context = contextResolver.requireCurrent();
+        requireProfessorContext(context);
+        return context;
+    }
+
+    private void requireProfessorContext(ActiveAcademicContext context) {
         if (context.groupClassKind() != GroupClassMemberKind.PROFESSOR) {
             throw new SetupRequiredException("An active professor class context is required for grounding uploads.");
         }
-        return context;
     }
 
     private UUID parseIngestionId(String value) {

@@ -1,5 +1,6 @@
 package com.wornux;
 
+import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.BodySize;
@@ -9,13 +10,16 @@ import com.vaadin.flow.theme.aura.Aura;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Push
 @BodySize(height = "100vh", width = "100vw")
 @StyleSheet(Aura.STYLESHEET)
 @StyleSheet("styles.css")
+@JsModule("./ui-tuner.ts")
 @ConfigurationPropertiesScan
+@EnableAsync
 @EnableScheduling
 @SpringBootApplication
 public class Application implements AppShellConfigurator {

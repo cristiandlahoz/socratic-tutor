@@ -121,7 +121,7 @@ src/main/java/com/wornux/
   ├── config/
   │   ├── SecurityConfig.java
   │   ├── AiConfig.java
-  │   ├── ChatProperties.java
+  │   ├── ApplicationProperties.java
   │   ├── GroundingProperties.java
   │   └── ...
   ├── security/
@@ -526,7 +526,7 @@ spring.datasource
 spring.flyway
 spring.jpa
 spring.ai / model provider settings
-app.chat or tutor.chat settings
+app.ai.conversation settings
 grounding/vector store settings
 security/session settings
 document processing settings

@@ -3,10 +3,10 @@ package com.wornux.services.context;
 import java.util.Objects;
 import java.util.UUID;
 
-import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.security.authorization.ActiveContext;
 
-public record AvailableContextOption(ContextLevel level, UUID tenantId, UUID classId, String label, String subtitle,
+public record AvailableContextOption(ScopeLevel level, UUID tenantId, UUID classId, String label, String subtitle,
         String identityLabel) {
 
     public ActiveContext toActiveContext() {

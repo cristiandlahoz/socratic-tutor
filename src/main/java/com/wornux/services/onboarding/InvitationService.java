@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import com.wornux.config.SocraticEmailProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
@@ -27,6 +27,7 @@ import com.wornux.data.repositories.identity.TenantRepository;
 import com.wornux.data.repositories.onboarding.InvitationRepository;
 import com.wornux.services.email.EmailSendException;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
+import com.wornux.services.security.RoleAssignmentUtils;
 import com.wornux.services.security.RoleNamespaceService;
 import com.wornux.services.security.RoleTemplate;
 import com.wornux.services.security.RoleTemplateSeeder;
@@ -39,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InvitationService {
 
-    private final SocraticEmailProperties emailProperties;
+    private final ApplicationProperties.Email emailProperties;
     private final InvitationRepository invitationRepository;
     private final AccountRepository accountRepository;
     private final TenantRepository tenantRepository;
@@ -58,7 +59,7 @@ public class InvitationService {
     private final RoleTemplateSeeder roleTemplateSeeder;
 
     public InvitationService(
-            SocraticEmailProperties emailProperties,
+            ApplicationProperties.Email emailProperties,
             InvitationRepository invitationRepository,
             AccountRepository accountRepository,
             TenantRepository tenantRepository,
@@ -287,21 +288,22 @@ public class InvitationService {
             RoleTemplate template,
             TenantAccount assignedBy) {
         var role = roleTemplateSeeder.ensureRole(tenantAccount.getTenant().getRoleNamespace(), template);
-        if (tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(tenantAccount.getId(), template.code())
-                .isPresent()) {
-            return;
-        }
-        var tenantAccountRole = new TenantAccountRole();
-        var id = new TenantAccountRoleId();
-        id.setTenantAccountId(tenantAccount.getId());
-        id.setRoleId(role.getId());
-        tenantAccountRole.setId(id);
-        tenantAccountRole.setTenantAccount(tenantAccount);
-        tenantAccountRole.setRole(role);
-        tenantAccountRole.setAssignedByTenantAccount(assignedBy);
-        tenantAccountRole.setAssignedAt(Instant.now());
-        tenantAccountRoleRepository.save(tenantAccountRole);
-        roleNamespaceService.recordRbacChange(role.getRoleNamespace().getId());
+        RoleAssignmentUtils.createIfMissing(
+            role,
+            () -> tenantAccountRoleRepository.findByTenantAccount_IdAndRole_Code(tenantAccount.getId(), template.code()),
+            () -> {
+                var tenantAccountRole = new TenantAccountRole();
+                var id = new TenantAccountRoleId();
+                id.setTenantAccountId(tenantAccount.getId());
+                id.setRoleId(role.getId());
+                tenantAccountRole.setId(id);
+                tenantAccountRole.setTenantAccount(tenantAccount);
+                tenantAccountRole.setRole(role);
+                tenantAccountRole.setAssignedByTenantAccount(assignedBy);
+                tenantAccountRole.setAssignedAt(Instant.now());
+                tenantAccountRoleRepository.save(tenantAccountRole);
+            },
+            roleNamespaceService);
     }
 
     private void assignGroupClassRoleIfNeeded(
@@ -311,22 +313,24 @@ public class InvitationService {
         var role = roleTemplateSeeder.ensureRole(
             groupClassMember.getTenantAccount().getTenant().getRoleNamespace(),
             template);
-        if (groupClassMemberRoleRepository
-                .findByGroupClassMember_IdAndRole_Code(groupClassMember.getId(), template.code())
-                .isPresent()) {
-            return;
-        }
-        var groupClassMemberRole = new GroupClassMemberRole();
-        var id = new GroupClassMemberRoleId();
-        id.setGroupClassMemberId(groupClassMember.getId());
-        id.setRoleId(role.getId());
-        groupClassMemberRole.setId(id);
-        groupClassMemberRole.setGroupClassMember(groupClassMember);
-        groupClassMemberRole.setRole(role);
-        groupClassMemberRole.setAssignedByGroupClassMember(assignedBy);
-        groupClassMemberRole.setAssignedAt(Instant.now());
-        groupClassMemberRoleRepository.save(groupClassMemberRole);
-        roleNamespaceService.recordRbacChange(role.getRoleNamespace().getId());
+        RoleAssignmentUtils.createIfMissing(
+            role,
+            () -> groupClassMemberRoleRepository.findByGroupClassMember_IdAndRole_Code(
+                groupClassMember.getId(),
+                template.code()),
+            () -> {
+                var groupClassMemberRole = new GroupClassMemberRole();
+                var id = new GroupClassMemberRoleId();
+                id.setGroupClassMemberId(groupClassMember.getId());
+                id.setRoleId(role.getId());
+                groupClassMemberRole.setId(id);
+                groupClassMemberRole.setGroupClassMember(groupClassMember);
+                groupClassMemberRole.setRole(role);
+                groupClassMemberRole.setAssignedByGroupClassMember(assignedBy);
+                groupClassMemberRole.setAssignedAt(Instant.now());
+                groupClassMemberRoleRepository.save(groupClassMemberRole);
+            },
+            roleNamespaceService);
     }
 
     private RoleTemplate groupClassTemplate(InvitationTargetRole targetRole) {

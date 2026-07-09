@@ -5,7 +5,6 @@ import static com.vaadin.flow.spring.security.VaadinSecurityConfigurer.vaadin;
 import java.util.Arrays;
 
 import com.wornux.ui.auth.LoginView;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -23,8 +22,9 @@ public class SecurityConfig {
     SecurityFilterChain vaadinSecurityFilterChain(
             HttpSecurity http,
             Environment environment,
-            @Value("${app.security.disable-for-local-development:false}") boolean disableSecurity) throws Exception {
+            ApplicationProperties.Security securityProperties) throws Exception {
 
+        boolean disableSecurity = securityProperties.getDisableForLocalDevelopment();
         boolean isProduction = Arrays.asList(environment.getActiveProfiles()).contains("prod");
 
         if (isProduction && disableSecurity) {

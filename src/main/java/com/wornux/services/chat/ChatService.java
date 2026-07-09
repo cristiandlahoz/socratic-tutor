@@ -4,11 +4,9 @@ import java.io.InterruptedIOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.openai.errors.OpenAIIoException;
-import com.wornux.ai.tools.AskStudentQuestionTool;
+import com.wornux.ai.tools.InterrogateUserTool;
 import com.wornux.ai.tools.ToolContextKeys;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.dtos.chat.*;
@@ -28,20 +26,16 @@ public class ChatService {
 
     private final ChatClient chatClient;
     private final ConversationService conversationService;
-    private final ChatUsageService chatUsageService;
     private final ToolUsageAuditService toolUsageAuditService;
     private final ActiveAcademicContextResolver contextResolver;
-    private final Map<UUID, Integer> turnPromptTokens = new ConcurrentHashMap<>();
 
     public ChatService(
             ChatClient chatClient,
             ConversationService conversationService,
-            ChatUsageService chatUsageService,
             ToolUsageAuditService toolUsageAuditService,
             ActiveAcademicContextResolver contextResolver) {
         this.chatClient = chatClient;
         this.conversationService = conversationService;
-        this.chatUsageService = chatUsageService;
         this.toolUsageAuditService = toolUsageAuditService;
         this.contextResolver = contextResolver;
     }
@@ -50,8 +44,7 @@ public class ChatService {
             UUID turnId,
             String userInput,
             UUID conversationId,
-            AskStudentQuestionTool.QuestionHandler questionHandler) {
-        var promptTokens = new AtomicReference<Integer>();
+            InterrogateUserTool.QuestionHandler questionHandler) {
         var academicCtx = contextResolver.requireCurrent();
         conversationService.requireOwnedConversation(conversationId);
         var sessionContext = buildSessionContext(academicCtx, conversationId);
@@ -68,49 +61,24 @@ public class ChatService {
                 .toolContext(buildToolContext(Optional.of(academicCtx), conversationId, turnId))
                 .user(userInput);
         if (questionHandler != null) {
-            clientRequestSpec = clientRequestSpec.tools(new AskStudentQuestionTool(questionHandler));
+            clientRequestSpec = clientRequestSpec.tools(new InterrogateUserTool(questionHandler));
         }
 
         return clientRequestSpec.stream()
                 .chatResponse()
-                .doOnNext(response -> capturePromptTokens(response, promptTokens))
                 .map(this::extractContentChunk)
                 .filter(token -> !token.isEmpty())
-                .doOnComplete(() -> storePromptTokens(turnId, promptTokens.get()))
                 .doOnCancel(() -> clearTurnState(turnId))
                 .doOnError(_ -> clearTurnState(turnId))
                 .onErrorMap(this::wrapStreamException);
     }
 
     public void finalizeTurn(UUID turnId, UUID conversationId) {
-        try {
-            chatUsageService.updateConversationInputTokens(conversationId, turnPromptTokens.remove(turnId));
-        }
-        finally {
-            clearTurnState(turnId);
-        }
-    }
-
-    private void storePromptTokens(UUID turnId, Integer promptTokens) {
-        if (promptTokens != null) {
-            turnPromptTokens.put(turnId, promptTokens);
-        }
+        clearTurnState(turnId);
     }
 
     private void clearTurnState(UUID turnId) {
-        turnPromptTokens.remove(turnId);
         toolUsageAuditService.drainTurnAudits(turnId);
-    }
-
-    private void capturePromptTokens(ChatResponse response, AtomicReference<Integer> promptTokens) {
-        if (response == null || response.getMetadata() == null || response.getMetadata().getUsage() == null) {
-            return;
-        }
-
-        Integer value = response.getMetadata().getUsage().getPromptTokens();
-        if (value != null) {
-            promptTokens.set(value);
-        }
     }
 
     private String extractContentChunk(ChatResponse response) {

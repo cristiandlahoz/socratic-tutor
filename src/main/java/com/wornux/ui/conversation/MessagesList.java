@@ -16,6 +16,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.shared.Registration;
+import com.wornux.services.chat.ChatSessionActivity;
 
 @Tag("messages-list")
 @JsModule("./conversation/messages-list.ts")
@@ -66,6 +67,11 @@ public final class MessagesList extends Component implements HasSize {
         getElement().setProperty("thinkingSpinner", thinkingSpinner.trim());
     }
 
+    public void setActivity(ChatSessionActivity activity) {
+        var resolvedActivity = activity == null ? ChatSessionActivity.IDLE : activity;
+        getElement().setProperty("activity", resolvedActivity.name().toLowerCase(java.util.Locale.ROOT));
+    }
+
     public Registration addDebugCodeRequestListener(ComponentEventListener<DebugCodeRequestEvent> listener) {
         return addListener(DebugCodeRequestEvent.class, listener);
     }
@@ -111,7 +117,10 @@ public final class MessagesList extends Component implements HasSize {
     }
 
     private void handleFullUpdate() {
-        items.forEach(item -> item.clientText = item.getText());
+        items.forEach(item -> {
+            item.clientText = item.getText();
+            item.clientLoading = item.isLoading();
+        });
 
         var itemsJson = JacksonUtils.listToJson(items);
         getElement().executeJs("this.setItems($0)", itemsJson);
@@ -136,9 +145,12 @@ public final class MessagesList extends Component implements HasSize {
 
             previousItem.setHost(null);
             nextItem.clientText = previousItem.clientText;
+            nextItem.clientLoading = previousItem.clientLoading;
             nextItem.setHost(this);
 
-            textUpdateRequired = textUpdateRequired || !Objects.equals(nextItem.getText(), nextItem.clientText);
+            textUpdateRequired = textUpdateRequired
+                    || !Objects.equals(nextItem.getText(), nextItem.clientText)
+                    || nextItem.isLoading() != nextItem.clientLoading;
         }
 
         for (var index = sharedSize; index < nextItems.size(); index += 1) {
@@ -192,6 +204,7 @@ public final class MessagesList extends Component implements HasSize {
         return Objects.equals(left.getTime(), right.getTime())
                 && Objects.equals(left.getUserName(), right.getUserName())
                 && Objects.equals(left.getVariant(), right.getVariant())
+                && Objects.equals(left.getLoadingLabel(), right.getLoadingLabel())
                 && left.isLoading() == right.isLoading();
     }
 
@@ -201,7 +214,10 @@ public final class MessagesList extends Component implements HasSize {
         }
 
         var newItems = items.subList(pendingAddItemsIndex, items.size());
-        newItems.forEach(item -> item.clientText = item.getText());
+        newItems.forEach(item -> {
+            item.clientText = item.getText();
+            item.clientLoading = item.isLoading();
+        });
 
         var itemsJson = JacksonUtils.listToJson(newItems);
         getElement().executeJs("this.addItems($0)", itemsJson);
@@ -213,6 +229,10 @@ public final class MessagesList extends Component implements HasSize {
             var textChanged = !Objects.equals(item.getText(), item.clientText);
 
             if (!textChanged) {
+                if (item.isLoading() != item.clientLoading) {
+                    getElement().executeJs("this.setItemLoading($0, $1)", item.isLoading(), index);
+                    item.clientLoading = item.isLoading();
+                }
                 continue;
             }
 
@@ -225,6 +245,10 @@ public final class MessagesList extends Component implements HasSize {
             }
 
             item.clientText = item.getText();
+            if (item.isLoading() != item.clientLoading) {
+                getElement().executeJs("this.setItemLoading($0, $1)", item.isLoading(), index);
+                item.clientLoading = item.isLoading();
+            }
         }
     }
 

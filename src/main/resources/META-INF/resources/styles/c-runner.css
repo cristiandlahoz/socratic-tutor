@@ -167,46 +167,44 @@ vaadin-button.conversation-view__debugger-toggle svg {
   flex: 0 0 auto;
   min-width: 0;
   min-height: calc(2.8rem + (var(--vaadin-gap-xs) * 2));
+  display: flex;
   align-items: center;
   gap: var(--vaadin-gap-s);
 }
 
-vaadin-icon.c-runner-panel-toggle {
+button.c-runner-panel-toggle {
   flex: 0 0 auto;
-  width: 1.35rem;
-  min-width: 1.35rem;
-  height: 1.35rem;
+  width: 1.9rem;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  display: inline-grid;
+  place-items: center;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--vaadin-radius-s);
   background: transparent;
   color: var(--ui-toggle-color);
   box-shadow: none;
   cursor: pointer;
 }
 
-vaadin-icon.c-runner-panel-toggle:hover,
-vaadin-icon.c-runner-panel-toggle:focus-visible {
+button.c-runner-panel-toggle:hover,
+button.c-runner-panel-toggle:focus-visible {
+  background: color-mix(in srgb, var(--ui-toggle-hover-color) 10%, transparent);
   color: var(--ui-toggle-hover-color);
 }
 
-vaadin-icon.c-runner-panel-toggle:focus-visible {
+button.c-runner-panel-toggle:focus-visible {
   outline: var(--vaadin-focus-ring-width, 2px) solid var(--aura-accent-border-color);
   outline-offset: 2px;
 }
 
-vaadin-icon.c-runner-panel-toggle vaadin-icon,
-vaadin-icon.c-runner-panel-toggle svg {
-  width: 18px;
-  height: 18px;
+button.c-runner-panel-toggle vaadin-icon {
+  width: 1.1rem;
+  height: 1.1rem;
   color: currentColor;
-  stroke: currentColor;
-  transform: scaleX(-1);
-}
-
-vaadin-icon.c-runner-panel-toggle svg path {
-  stroke: currentColor;
+  --vaadin-icon-color: currentColor;
 }
 
 .c-runner-title {
@@ -421,12 +419,27 @@ vaadin-button.c-runner-control-button:last-child {
 }
 
 vaadin-button.c-runner-control-button vaadin-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  color: currentColor;
+  --vaadin-icon-color: currentColor;
 }
 
 vaadin-button.c-runner-validate-button {
-  color: var(--c-runner-accent);
+  color: var(--color-olive-300);
+}
+
+vaadin-button.c-runner-step-button {
+  color: color-mix(in srgb, var(--color-olive-300) 74%, var(--color-neutral-900));
+}
+
+vaadin-button.c-runner-reset-button {
+  color: color-mix(in srgb, var(--color-olive-300) 78%, var(--color-orange-400));
+}
+
+vaadin-button.c-runner-control-button:hover,
+vaadin-button.c-runner-control-button:focus-within {
+  color: var(--color-mist-100);
 }
 
 .c-runner-status-text {

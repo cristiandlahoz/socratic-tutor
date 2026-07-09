@@ -2,13 +2,13 @@ package com.wornux.services.chat;
 
 import java.util.Objects;
 
+import com.wornux.config.ApplicationProperties;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -32,12 +32,13 @@ public class ConversationTitleService {
     private final ChatModel chatModel;
     private final BeanOutputConverter<GeneratedConversationTitle> outputConverter =
             new BeanOutputConverter<>(GeneratedConversationTitle.class);
+    private final String titleModel;
 
-    @Value("${app.ai.title.model}")
-    private String titleModel;
-
-    public ConversationTitleService(ChatModel chatModel) {
+    public ConversationTitleService(
+            ChatModel chatModel,
+            ApplicationProperties.Ai.SwitzerlandKnife switzerlandKnifeProperties) {
         this.chatModel = chatModel;
+        this.titleModel = switzerlandKnifeProperties.getModel();
     }
 
     public Mono<String> generateTitle(String userPrompt) {

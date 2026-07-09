@@ -260,7 +260,7 @@
   min-width: 0;
   overflow: hidden;
   background: var(--aura-app-background);
-  color: var(--vaadin-text-color, var(--lumo-body-text-color, #111));
+  color: var(--vaadin-text-color, #111);
   border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
   border-radius: var(--vaadin-radius-l, 16px);
   box-shadow: var(--aura-shadow-xs, 0 24px 60px rgba(0, 0, 0, 0.28));
@@ -286,6 +286,28 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.training-activity-overlay-body instruction-linter-editor {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--vaadin-padding-m, 1rem);
+}
+
+.training-activity-overlay-body vaadin-checkbox {
+  margin-top: var(--vaadin-padding-s, 0.75rem);
+}
+
+.training-activity-readonly-instructions {
+  width: 100%;
+  min-height: 7rem;
+  padding: var(--vaadin-padding-m, 1rem);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  background: var(--vaadin-background-container);
+  color: var(--vaadin-text-color);
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .training-activity-overlay-footer,
@@ -388,6 +410,12 @@
   gap: var(--vaadin-padding-m, 1rem);
   width: 100%;
   min-width: 0;
+}
+
+training-activity-report-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vaadin-padding-m, 1rem);
 }
 
 .training-activity-transcript-title {

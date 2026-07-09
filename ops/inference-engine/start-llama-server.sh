@@ -14,7 +14,9 @@ set -euo pipefail
 # Optional:
 #   MIN_FREE_VRAM_MB=4096
 #   LLAMA_SERVER_BIN=llama-server
-#   LLAMA_CONTEXT=8192
+#   LLAMA_CONTEXT=20000
+#   GEMMA_CONTEXT=20000
+#   ORNITH_CONTEXT=20000
 #   LLAMA_CACHE=$HOME/.cache/llama.cpp
 #   LLAMA_PARALLEL=1
 #   LLAMA_BATCH_SIZE=1024
@@ -29,7 +31,7 @@ set -euo pipefail
 MODEL="${MODEL:-${1:-}}"
 PORT="${PORT:-${2:-}}"
 MIN_FREE_VRAM_MB="${MIN_FREE_VRAM_MB:-${3:-4096}}"
-LLAMA_CONTEXT="${LLAMA_CONTEXT:-${4:-8192}}"
+REQUESTED_CONTEXT="${LLAMA_CONTEXT:-${4:-}}"
 
 if [[ -z "$MODEL" || -z "$PORT" ]]; then
   echo "usage: MODEL=<model> PORT=<port> $0" >&2
@@ -40,11 +42,15 @@ fi
 case "$MODEL" in
   gemma|gemma3|gemma-4)
     MODEL="${GEMMA_MODEL:-unsloth/gemma-4-E4B-it-GGUF:IQ4_XS}"
+    REQUESTED_CONTEXT="${REQUESTED_CONTEXT:-${GEMMA_CONTEXT:-20000}}"
     ;;
   ornith)
     MODEL="${ORNITH_MODEL:-AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL}"
+    REQUESTED_CONTEXT="${REQUESTED_CONTEXT:-${ORNITH_CONTEXT:-20000}}"
     ;;
 esac
+
+LLAMA_CONTEXT="${REQUESTED_CONTEXT:-20000}"
 
 if [[ "$MODEL" != */* ]]; then
   echo "error: MODEL must be a Hugging Face repo reference like repo/model[:quant], or a known alias such as gemma/ornith" >&2

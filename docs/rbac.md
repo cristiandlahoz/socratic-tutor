@@ -25,22 +25,37 @@ Ownership columns -> which conversations, activities, documents, etc. are visibl
 
 A tenant admin may manage classes through tenant authority without being a professor or student in any class. Conversely, a professor or student receives classroom identity from `group_class_member.member_kind`, not from RBAC role names.
 
+The same account may have several valid work contexts at the same time. For example, one person can be a tenant admin through `tenant_account_role`, a professor through one `group_class_member` row, and a student through another `group_class_member` row. The selected `ActiveContext` decides which tenant or class they are currently operating in.
+
 ```mermaid
 flowchart LR
-    Auth[Spring Security Authentication\nWho is logged in]
-    Context[ActiveContext\nWhere they are acting]
-    Snapshot[UserAccessSnapshot\nEffective roles + permissions]
-    Services[Domain services\nOwnership and business rules]
-    UI[Vaadin routes and navigation]
+    subgraph Identity[Identity]
+        Auth[Spring Security authentication\nlogged-in account]
+        Membership[group_class_member.member_kind\nPROFESSOR / STUDENT / ASSISTANT]
+    end
 
-    Auth --> Context
-    Context --> Snapshot
-    Snapshot --> UI
+    subgraph Context[Selected work context]
+        Active[ActiveContext\nPLATFORM | TENANT | GROUP_CLASS]
+        Preference[account_context_preference\nlast selected context]
+    end
+
+    subgraph Authorization[Authorization result]
+        Snapshot[UserAccessSnapshot\neffective role codes + permission codes]
+    end
+
+    subgraph Enforcement[Runtime enforcement]
+        Routes[Vaadin routes and navigation\n@RequiresPermission]
+        Services[Domain services\ntenant/class/ownership rules]
+        Records[Allowed records and mutations]
+    end
+
+    Auth --> Active
+    Preference -. restored at login .-> Active
+    Active --> Snapshot
+    Membership --> Services
+    Snapshot --> Routes
     Snapshot --> Services
-    Services --> Records[Allowed records / mutations]
-
-    Membership[group_class_member.member_kind\nAcademic identity] --> Services
-    Ownership[Ownership columns\ncreated_by / assigned_to / tenant scope] --> Services
+    Services --> Records
 ```
 
 ## Data model
@@ -70,25 +85,31 @@ The database stores permissions directly in `role.permissions text[]`.
 
 ```mermaid
 erDiagram
+    ACCOUNT ||--o| ACCOUNT_CONTEXT_PREFERENCE : stores_last_context
+
     ROLE_NAMESPACE ||--o{ ROLE : contains
-    ROLE_NAMESPACE ||--o| PLATFORM_SETTINGS : configures
-    ROLE_NAMESPACE ||--o| TENANT : scopes
+    ROLE_NAMESPACE ||--o| PLATFORM_SETTINGS : platform_namespace
+    ROLE_NAMESPACE ||--o| TENANT : tenant_namespace
 
-    ACCOUNT ||--o{ ACCOUNT_PLATFORM_ROLE : has
-    ROLE ||--o{ ACCOUNT_PLATFORM_ROLE : assigned_as
+    ACCOUNT ||--o{ ACCOUNT_PLATFORM_ROLE : receives_platform_role
+    ROLE ||--o{ ACCOUNT_PLATFORM_ROLE : assigned_platform
 
-    TENANT ||--o{ TENANT_ACCOUNT : has_member
     ACCOUNT ||--o{ TENANT_ACCOUNT : joins
-    TENANT_ACCOUNT ||--o{ TENANT_ACCOUNT_ROLE : has
-    ROLE ||--o{ TENANT_ACCOUNT_ROLE : assigned_as
+    TENANT ||--o{ TENANT_ACCOUNT : has_member
+    TENANT_ACCOUNT ||--o{ TENANT_ACCOUNT_ROLE : receives_tenant_role
+    ROLE ||--o{ TENANT_ACCOUNT_ROLE : assigned_tenant
 
+    TENANT ||--o{ SUBJECT : offers
+    TENANT ||--o{ ACADEMIC_PERIOD : defines
     TENANT ||--o{ GROUP_CLASS : owns
-    GROUP_CLASS ||--o{ GROUP_CLASS_MEMBER : has_member
-    TENANT_ACCOUNT ||--o{ GROUP_CLASS_MEMBER : participates_as
-    GROUP_CLASS_MEMBER ||--o{ GROUP_CLASS_MEMBER_ROLE : has
-    ROLE ||--o{ GROUP_CLASS_MEMBER_ROLE : assigned_as
+    SUBJECT ||--o{ GROUP_CLASS : categorizes
+    ACADEMIC_PERIOD ||--o{ GROUP_CLASS : schedules
 
-    ACCOUNT ||--o| ACCOUNT_CONTEXT_PREFERENCE : stores
+    GROUP_CLASS ||--o{ GROUP_CLASS_MEMBER : has_member
+    TENANT_ACCOUNT ||--o{ GROUP_CLASS_MEMBER : participates_as_professor_student_or_assistant
+    GROUP_CLASS_MEMBER ||--o{ GROUP_CLASS_MEMBER_ROLE : receives_class_role
+    ROLE ||--o{ GROUP_CLASS_MEMBER_ROLE : assigned_class
+
     TENANT ||--o{ ACCOUNT_CONTEXT_PREFERENCE : preferred_tenant
     GROUP_CLASS ||--o{ ACCOUNT_CONTEXT_PREFERENCE : preferred_class
 ```
@@ -145,6 +166,8 @@ PROFESSOR | STUDENT | ASSISTANT
 
 RBAC role assignment does not change `member_kind`. Assigning a `GROUP_CLASS` role can change permissions, but it must not convert a student into a professor or vice versa.
 
+An account participates in a tenant through `tenant_account`. Tenant authority is assigned to that tenant account through `tenant_account_role`. Classroom identity is assigned separately through `group_class_member`, which links that same tenant account to a group class as `PROFESSOR`, `STUDENT`, or `ASSISTANT`. This lets one account operate as a tenant administrator for the institution while also having professor or student identities in concrete classes.
+
 ## Login and context lifecycle
 
 Login does not route by role name. It resolves available contexts first.
@@ -162,8 +185,8 @@ Main classes:
 
 | Context | How it is discovered |
 | --- | --- |
-| `PLATFORM` | account has an active platform role assignment |
-| `TENANT` | account has an active tenant role assignment |
+| `PLATFORM` | account has an active platform role assignment with platform administration permissions |
+| `TENANT` | account has an unlocked tenant account with an active tenant role that grants tenant administration reach |
 | `GROUP_CLASS` | account has an unlocked `group_class_member` row |
 
 Tenant-admin reach does not create class context options. Class options come only from real class membership rows.
@@ -193,33 +216,40 @@ Default routes:
 ```mermaid
 sequenceDiagram
     actor User
-    participant Login as LoginView
+    participant Landing as LandingView
     participant Discovery as ContextDiscoveryService
     participant Selection as ContextSelectionService
-    participant Holder as ActiveContextHolder
     participant Pref as account_context_preference
+    participant Holder as ActiveContextHolder
     participant Snapshot as AccessSnapshotService
     participant Router as Vaadin Router
 
-    User->>Login: submit credentials
-    Login->>Selection: resolveLoginContext(account)
+    User->>Landing: authenticated navigation
+    Landing->>Selection: resolveLoginContext(account)
     Selection->>Discovery: discover(account)
     Discovery-->>Selection: available contexts
+    Selection->>Pref: read saved context
 
     alt no context
         Selection->>Holder: clear()
-        Selection-->>Login: NoAccess
-        Login->>Router: /no-access
-    else one or valid preferred context
+        Selection-->>Landing: NoAccess
+        Landing->>Router: /no-access
+    else saved context is still available
         Selection->>Pref: persist selected context
         Selection->>Holder: set(ActiveContext)
         Selection->>Snapshot: invalidateAccount(accountId)
-        Selection-->>Login: Selected(context)
-        Login->>Router: default route
+        Selection-->>Landing: Selected(saved context)
+        Landing->>Router: default route
+    else exactly one context is available
+        Selection->>Pref: persist selected context
+        Selection->>Holder: set(ActiveContext)
+        Selection->>Snapshot: invalidateAccount(accountId)
+        Selection-->>Landing: Selected(only context)
+        Landing->>Router: default route
     else multiple contexts
         Selection->>Holder: clear()
-        Selection-->>Login: SelectionRequired(options)
-        Login->>Router: /select-context
+        Selection-->>Landing: SelectionRequired(options)
+        Landing->>Router: /select-context
     end
 ```
 
@@ -267,27 +297,35 @@ Snapshot loading depends on context:
 
 For group-class context, tenant-admin class reach is represented by tenant permissions. If the actor has no real class membership, `groupClassMemberId` is `null` and `memberKind` is `null`.
 
+Effective permissions are intentionally context-sensitive. Switching from `TENANT` to `GROUP_CLASS` keeps the account inside the same tenant namespace, then adds class-member roles for the active class membership when present. Domain services use `tenantId`, `tenantAccountId`, `groupClassId`, `groupClassMemberId`, and `memberKind` from the snapshot to apply record-level rules.
+
 ### Snapshot construction
 
 ```mermaid
 flowchart TD
-    A[AuthorizationService.snapshot] --> B{ActiveContext level}
+    Start[AuthorizationService.snapshot(account, ActiveContext)] --> Level{ActiveContext level}
 
-    B -->|PLATFORM| P[Load account_platform_role]
-    P --> PR[Collect active platform roles]
-    PR --> PS[UserAccessSnapshot\ntenantId=null\ngroupClassId=null]
+    Level -->|PLATFORM| PlatformNamespace[Resolve platform role namespace]
+    PlatformNamespace --> PlatformRoles[Load account_platform_role]
+    PlatformRoles --> PlatformSnapshot[UserAccessSnapshot\nroleCodes + permissionCodes\ntenantId=null\ngroupClassId=null]
 
-    B -->|TENANT| T[Resolve tenant_account]
-    T --> TR[Load tenant_account_role]
-    TR --> TS[UserAccessSnapshot\ntenantAccountId set\ngroupClassMemberId=null]
+    Level -->|TENANT| TenantNamespace[Resolve tenant role namespace]
+    TenantNamespace --> TenantAccount[Resolve tenant_account]
+    TenantAccount --> TenantRoles[Load tenant_account_role]
+    TenantRoles --> TenantSnapshot[UserAccessSnapshot\ntenantId + tenantAccountId\ngroupClassId=null]
 
-    B -->|GROUP_CLASS| G[Resolve tenant_account]
-    G --> GTR[Load tenant_account_role]
-    GTR --> M{Unlocked class membership exists?}
-    M -->|yes| GCR[Load group_class_member_role]
-    M -->|no| GA[Use tenant reach only]
-    GCR --> GS[UserAccessSnapshot\ngroupClassMemberId + memberKind set]
-    GA --> GSN[UserAccessSnapshot\ngroupClassMemberId=null\nmemberKind=null]
+    Level -->|GROUP_CLASS| ClassNamespace[Resolve tenant role namespace]
+    ClassNamespace --> ClassTenantAccount[Resolve tenant_account]
+    ClassTenantAccount --> ClassTenantRoles[Load tenant_account_role]
+    ClassTenantRoles --> Member{Unlocked group_class_member?}
+    Member -->|yes| ClassRoles[Load group_class_member_role]
+    ClassRoles --> ClassSnapshot[UserAccessSnapshot\ntenant roles + class roles\ngroupClassMemberId + memberKind]
+    Member -->|no| TenantReachSnapshot[UserAccessSnapshot\ntenant roles only\ngroupClassMemberId=null]
+
+    PlatformSnapshot --> CacheKey[Cache key includes\naccount + context + namespace + rbac_version]
+    TenantSnapshot --> CacheKey
+    ClassSnapshot --> CacheKey
+    TenantReachSnapshot --> CacheKey
 ```
 
 ### Snapshot caching
@@ -347,17 +385,17 @@ This means adding a new protected Vaadin view requires both:
 
 ```mermaid
 flowchart TD
-    Nav[Vaadin navigation request] --> Anon{Route has @AnonymousAllowed?}
-    Anon -->|yes| Allow[Allow]
-    Anon -->|no| Auth{Authenticated principal?}
-    Auth -->|no| DenyAuth[Deny: authentication required]
-    Auth -->|yes| Perm{Route has @RequiresPermission?}
-    Perm -->|yes| Check[AuthorizationService.can(permission)]
+    Nav[Vaadin navigation request] --> Public{Public route?\n@AnonymousAllowed or permitted auth view}
+    Public -->|yes| Allow[Allow navigation]
+    Public -->|no| Auth{Authenticated account?}
+    Auth -->|no| DenyAuth[Deny\nauthentication required]
+    Auth -->|yes| Annotation{Route declares\n@RequiresPermission?}
+    Annotation -->|no| DenyStrict[Deny\nprotected routes must declare a permission]
+    Annotation -->|yes| Context[Ensure ActiveContext\nrestore login context if needed]
+    Context --> Workspace[Prepare required workspace\nSYSTEM_ADMIN / TENANT_ADMIN / PROFESSOR / STUDENT]
+    Workspace --> Check[AuthorizationService.can(permission)]
     Check -->|true| Allow
-    Check -->|false| DenyPerm[Deny: missing permission]
-    Perm -->|no| AuthPkg{Auth package + @PermitAll?}
-    AuthPkg -->|yes| Allow
-    AuthPkg -->|no| DenyStrict[Deny: protected routes require @RequiresPermission]
+    Check -->|false| DenyPerm[Deny\nmissing permission]
 ```
 
 Navigation menu visibility is not security. It only controls what links are shown.
@@ -469,6 +507,7 @@ Important rules:
 
 - assignment level cannot be changed after creation,
 - actor cannot manage roles at or above actor priority,
+- requested priority must also remain below the actor's highest role priority in that namespace,
 - actor cannot add permissions outside their snapshot,
 - tenant context cannot edit system-defined roles.
 
@@ -536,6 +575,7 @@ sequenceDiagram
     Broadcaster->>Registry: affectedBy(namespaceId)
     Registry-->>Broadcaster: registered UIs
     Broadcaster->>UI: ui.access(refreshAction)
+    UI->>Cache: next permission check loads fresh snapshot
 ```
 
 ## Seed and lifecycle scenarios

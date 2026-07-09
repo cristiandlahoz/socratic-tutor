@@ -1,19 +1,20 @@
 import '@vaadin/button';
 import '@vaadin/icon';
 import '@vaadin/icons';
-import '@vaadin/text-area';
 import './braille-spinner.js';
+import { haptic } from 'Frontend/shared/haptics.js';
 import { LitElement, html } from 'lit';
 import { renderConversationDisclaimer } from './conversation-disclaimer.js';
 
 type ModelStatus = 'connected' | 'offline' | 'checking';
+type ChatActivity = 'idle' | 'generating' | 'compacting';
 
 class ConversationComposer extends LitElement {
   private scrollPane: HTMLElement | null = null;
 
   private readonly handleBottomStateChanged = (event: Event): void => {
     const detail = (event as CustomEvent<{ atBottom?: boolean }>).detail;
-    this.scrollToBottomVisible = !Boolean(detail?.atBottom);
+    this.scrollToBottomVisible = !detail?.atBottom;
   };
 
   private readonly handleBusyChanged = (event: Event): void => {
@@ -21,7 +22,7 @@ class ConversationComposer extends LitElement {
     this.responseBusy = Boolean(detail?.busy);
   };
 
-  static properties = {
+  static readonly properties = {
     value: { type: String },
     promptLimit: { type: Number, attribute: 'prompt-limit' },
     composerEnabled: { type: Boolean, attribute: 'composer-enabled' },
@@ -32,6 +33,8 @@ class ConversationComposer extends LitElement {
     conversationCompacted: { type: Boolean, attribute: 'conversation-compacted' },
     scrollToBottomVisible: { type: Boolean, attribute: 'scroll-to-bottom-visible' },
     responseBusy: { type: Boolean, attribute: 'response-busy' },
+    activity: { type: String },
+    allowEmptySubmit: { type: Boolean, attribute: 'allow-empty-submit' },
   };
 
   declare value: string;
@@ -44,6 +47,8 @@ class ConversationComposer extends LitElement {
   declare conversationCompacted: boolean;
   declare scrollToBottomVisible: boolean;
   declare responseBusy: boolean;
+  declare activity: ChatActivity;
+  declare allowEmptySubmit: boolean;
 
   constructor() {
     super();
@@ -57,6 +62,8 @@ class ConversationComposer extends LitElement {
     this.conversationCompacted = false;
     this.scrollToBottomVisible = false;
     this.responseBusy = false;
+    this.activity = 'idle';
+    this.allowEmptySubmit = false;
   }
 
   connectedCallback(): void {
@@ -76,17 +83,20 @@ class ConversationComposer extends LitElement {
   protected render() {
     return html`
       ${this.renderScrollToBottomButton()}
-      <vaadin-text-area
-        class="conversation-composer__input"
-        .value=${this.value}
-        ?disabled=${this.inputDisabled()}
-        maxlength=${this.promptLimit}
-        helper-text=${this.helperText()}
-        placeholder=""
-        aria-label="Escribe tu mensaje aquí"
-        @value-changed=${this.handleValueChanged}
-        @keydown=${this.handleKeyDown}
-      ></vaadin-text-area>
+      <div class="conversation-composer__input">
+        <textarea
+          class="conversation-composer__native-input"
+          .value=${this.value}
+          ?disabled=${this.inputDisabled()}
+          maxlength=${this.promptLimit}
+          placeholder=""
+          aria-label="Escribe tu mensaje aquí"
+          rows="1"
+          @input=${this.handleInput}
+          @keydown=${this.handleKeyDown}
+        ></textarea>
+      </div>
+      <span class="conversation-composer__helper" aria-live="polite">${this.helperText()}</span>
       <span class=${this.modelStatusClass()} aria-live="polite">${this.modelStatusLabel()}</span>
       ${this.renderUsage()}
       <span class="conversation-composer__prompt-prefix" aria-hidden="true">~</span>
@@ -95,12 +105,18 @@ class ConversationComposer extends LitElement {
     `;
   }
 
-  private handleValueChanged(event: CustomEvent<{ value?: string }>): void {
-    this.value = event.detail.value ?? '';
+  protected updated(): void {
+    this.resizeInput();
+  }
+
+  private handleInput(event: Event): void {
+    const textarea = event.currentTarget as HTMLTextAreaElement;
+    this.value = textarea.value;
+    this.resizeInput(textarea);
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
-    if (event.key !== 'Enter' || event.shiftKey || !this.canSubmit()) {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing || !this.canSubmit()) {
       return;
     }
     event.preventDefault();
@@ -115,12 +131,28 @@ class ConversationComposer extends LitElement {
 
     const prompt = this.value.trim();
     this.value = '';
+    haptic('messageSent');
 
     this.dispatchEvent(new CustomEvent('submit-prompt', {
       detail: { prompt },
       bubbles: true,
       composed: true,
     }));
+  }
+
+  private resizeInput(textarea = this.querySelector<HTMLTextAreaElement>('.conversation-composer__native-input')): void {
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = 'auto';
+    const maxHeight = Number.parseFloat(getComputedStyle(textarea).maxHeight);
+    const nextHeight = Number.isFinite(maxHeight)
+      ? Math.min(textarea.scrollHeight, maxHeight)
+      : textarea.scrollHeight;
+
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = Number.isFinite(maxHeight) && textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }
 
   private scrollToBottom(): void {
@@ -159,26 +191,33 @@ class ConversationComposer extends LitElement {
         aria-label="Bajar al final de la conversación"
         @click=${this.scrollToBottom}
       >
-        <vaadin-icon icon="vaadin:angle-down"></vaadin-icon>
+        <vaadin-icon src="/icons/IconChevron.svg" aria-hidden="true"></vaadin-icon>
         <span>Bajar al final</span>
       </vaadin-button>
     `;
   }
 
   private canSubmit(): boolean {
-    return this.composerEnabled && !this.responseBusy && this.sendAvailable && this.value.trim().length > 0;
+    return this.composerEnabled
+      && !this.busy()
+      && this.sendAvailable
+      && (this.allowEmptySubmit || this.value.trim().length > 0);
   }
 
   private inputDisabled(): boolean {
-    return !this.composerEnabled && !this.responseBusy;
+    return !this.composerEnabled && !this.busy();
+  }
+
+  private busy(): boolean {
+    return this.responseBusy || this.activity === 'compacting';
   }
 
   private renderSendControl() {
-    if (this.responseBusy) {
+    if (this.busy()) {
       return html`
         <span
           class="conversation-composer__send-spinner"
-          aria-label="Generando respuesta"
+          aria-label=${this.busyLabel()}
           aria-live="polite"
           role="status"
         >
@@ -194,9 +233,16 @@ class ConversationComposer extends LitElement {
         ?disabled=${!this.canSubmit()}
         @click=${this.submit}
       >
-        <vaadin-icon icon="vaadin:arrow-up"></vaadin-icon>
+        <vaadin-icon src="/icons/IconArrowRightShort.svg" style="transform: rotate(-90deg);" aria-hidden="true"></vaadin-icon>
       </vaadin-button>
     `;
+  }
+
+  private busyLabel(): string {
+    if (this.activity === 'compacting') {
+      return 'Compactando el contexto…';
+    }
+    return 'Generando respuesta…';
   }
 
   private helperText(): string {

@@ -7,6 +7,7 @@
 
 *.iml
 .DS_Store
+hs_err_pid*.log
 
 # The following files are generated/updated by vaadin-maven-plugin
 node_modules/

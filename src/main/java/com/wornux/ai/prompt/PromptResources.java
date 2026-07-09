@@ -19,8 +19,10 @@ public class PromptResources {
     private static final String GUARD_IMPERSONATION = "classpath:/prompt/tutor/guardrail/guard-impersonation.st";
     private static final String GUARD_OUT_OF_SCOPE = "classpath:/prompt/tutor/guardrail/guard-out-of-scope.st";
     private static final String GUARD_CLASSIFIER = "classpath:/prompt/tutor/guardrail/guard-classifier.st";
+    private static final String GUARD_SANITIZER = "classpath:/prompt/tutor/guardrail/guard-sanitizer.st";
     private static final String COMPACTION_SYSTEM = "classpath:/prompt/compaction/system.st";
     private static final String COMPACTION_USER = "classpath:/prompt/compaction/user.st";
+    private static final String ADAPTIVE_TUTOR_SYSTEM = "classpath:/prompt/training_activity/adaptive-tutor-system.st";
     private static final String ADAPTIVE_PROMPT = "classpath:/prompt/training_activity/adaptive-prompt.st";
     private static final String FALLBACK_QUESTION = "classpath:/prompt/training_activity/fallback-question.st";
     private static final String REPORT_PROMPT = "classpath:/prompt/training_activity/report-prompt.st";
@@ -30,6 +32,9 @@ public class PromptResources {
     private static final String DOCUMENT_SPECIFICITY_SYSTEM =
             "classpath:/prompt/document/specificity-classifier-system.st";
     private static final String DOCUMENT_SPECIFICITY_USER = "classpath:/prompt/document/specificity-classifier-user.st";
+    private static final String SUBJECT_SYLLABUS_BUILDER_SYSTEM =
+            "classpath:/prompt/subject/syllabus-builder-system.st";
+    private static final String SUBJECT_SYLLABUS_BUILDER_USER = "classpath:/prompt/subject/syllabus-builder-user.st";
 
     private final ResourceLoader resourceLoader;
     private final Map<String, String> cache = new ConcurrentHashMap<>();
@@ -58,12 +63,20 @@ public class PromptResources {
         return load(GUARD_CLASSIFIER);
     }
 
+    public String guardSanitizer() {
+        return load(GUARD_SANITIZER);
+    }
+
     public String compactionSystem() {
         return load(COMPACTION_SYSTEM);
     }
 
     public String compactionUser() {
         return load(COMPACTION_USER);
+    }
+
+    public String adaptiveTutorSystem() {
+        return load(ADAPTIVE_TUTOR_SYSTEM);
     }
 
     public String adaptivePrompt() {
@@ -96,6 +109,14 @@ public class PromptResources {
 
     public String documentSpecificityUser() {
         return load(DOCUMENT_SPECIFICITY_USER);
+    }
+
+    public String subjectSyllabusBuilderSystem() {
+        return load(SUBJECT_SYLLABUS_BUILDER_SYSTEM);
+    }
+
+    public String subjectSyllabusBuilderUser() {
+        return load(SUBJECT_SYLLABUS_BUILDER_USER);
     }
 
     private String load(String location) {

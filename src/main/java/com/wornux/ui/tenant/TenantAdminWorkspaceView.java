@@ -1,35 +1,35 @@
 package com.wornux.ui.tenant;
 
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.List;
 import java.util.Objects;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.streams.UploadHandler;
 import com.wornux.data.entities.academic.AcademicPeriod;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.Subject;
@@ -38,60 +38,62 @@ import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.AccessibleTenant;
+import com.wornux.services.workspace.SubjectSyllabusGenerationService;
 import com.wornux.services.workspace.TenantAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.auth.NoAccessView;
+import com.wornux.ui.components.TerminalDialog;
+import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @Route(value = "tenant", layout = MainLayout.class)
 @PageTitle("Espacio de administración institucional")
 @PermitAll
-@RequiresPermission(AppPermission.GROUP_CLASS_CREATE)
-public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+@RequiresPermission(value = AppPermission.GROUP_CLASS_CREATE, workspace = WorkspaceDestination.TENANT_ADMIN)
+public class TenantAdminWorkspaceView extends WorkspaceViewShell implements AfterNavigationObserver {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final WorkspaceRoutingService workspaceRoutingService;
-    private final TenantAdminWorkspaceService tenantAdminWorkspaceService;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
+    private final transient WorkspaceRoutingService workspaceRoutingService;
+    private final transient TenantAdminWorkspaceService tenantAdminWorkspaceService;
+    private final transient SubjectSyllabusGenerationService syllabusGenerationService;
+    private final transient Executor documentIngestionExecutor;
     private final ComboBox<AccessibleTenant> tenantSelector = new ComboBox<>("Contexto institucional");
     private final TextField searchField = new TextField("Buscar");
     private final Select<AcademicPeriod> periodFilter = new Select<>();
     private final Grid<GroupClass> groupClassGrid = new Grid<>(GroupClass.class, false);
     private GridListDataView<GroupClass> groupClassDataView;
-    private List<Subject> activeSubjects = List.of();
-    private List<AcademicPeriod> activePeriods = List.of();
+    private transient List<Subject> activeSubjects = List.of();
+    private transient List<AcademicPeriod> activePeriods = List.of();
 
     public TenantAdminWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
             WorkspaceRoutingService workspaceRoutingService,
-            TenantAdminWorkspaceService tenantAdminWorkspaceService) {
+            TenantAdminWorkspaceService tenantAdminWorkspaceService,
+            SubjectSyllabusGenerationService syllabusGenerationService,
+            @Qualifier("documentIngestionExecutor") Executor documentIngestionExecutor) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
         this.workspaceRoutingService = workspaceRoutingService;
         this.tenantAdminWorkspaceService = tenantAdminWorkspaceService;
+        this.syllabusGenerationService = syllabusGenerationService;
+        this.documentIngestionExecutor = documentIngestionExecutor;
 
-        UiCss.WORKSPACE_VIEW.addTo(this);
         configureToolbarFields();
         configureGrid();
 
-        add(
-            createHeader(
-                "Espacio de administración institucional",
-                "Encuentra clases, períodos y asignaturas desde una sola superficie. Cambia de institución, filtra rápido y crea lo que falte sin perder el contexto."),
+        setWorkspaceContent(
+            "Espacio de administración institucional",
+            "Encuentra clases, períodos y asignaturas desde una sola superficie. Cambia de institución, filtra rápido y crea lo que falte sin perder el contexto.",
             createToolbar(),
             groupClassGrid);
     }
 
     @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedUserContextUtils.requireCurrentAccount();
-        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.TENANT_ADMIN)) {
-            event.forwardTo(NoAccessView.class);
-            return;
-        }
+    public void afterNavigation(AfterNavigationEvent event) {
         refresh();
     }
 
@@ -107,7 +109,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         UiCss.WORKSPACE_FIELD.addTo(searchField);
         searchField.setPlaceholder("Clase, código, asignatura o período");
         searchField.setClearButtonVisible(true);
-        searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        searchField.setPrefixComponent(new SvgIcon("/icons/IconSearch.svg"));
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(_ -> applyFilters());
 
@@ -189,7 +191,7 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
                             .<GroupClass>of(
                                 """
                                     <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${inviteProfessor}" aria-label="Invitar profesor a ${item.name}">
-                                        <vaadin-icon icon="vaadin:paperplane" slot="prefix"></vaadin-icon>
+                                        <vaadin-icon src="/icons/IconEnvelope.svg" slot="prefix" aria-hidden="true"></vaadin-icon>
                                         Invitar profesor
                                     </vaadin-button>
                                 """)
@@ -200,52 +202,20 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
                 .setFlexGrow(0);
     }
 
-    private Div createHeader(String title, String description) {
-        var heading = new H1(title);
-        var copy = new Paragraph(description);
-        var header = new Div(heading, copy);
-        UiCss.WORKSPACE_HERO.addTo(header);
-        UiCss.WORKSPACE_HERO_PLAIN.addTo(header);
-        return header;
-    }
-
     private Component createToolbar() {
         var createPeriod = secondaryButton("Crear período", this::openCreatePeriodDialog);
-        createPeriod.setIcon(new Icon(VaadinIcon.CALENDAR));
+        createPeriod.setIcon(new SvgIcon("/icons/IconCalendar.svg"));
         var createSubject = secondaryButton("Crear asignatura", this::openCreateSubjectDialog);
-        createSubject.setIcon(new Icon(VaadinIcon.BOOK));
+        createSubject.setIcon(new SvgIcon("/icons/IconBook.svg"));
         var createClass = primaryButton("Crear clase", this::openCreateClassDialog);
-        createClass.setIcon(new Icon(VaadinIcon.PLUS));
+        createClass.setIcon(new SvgIcon("/icons/IconPlus.svg"));
 
-        var toolbar = new HorizontalLayout(tenantSelector,
-                searchField,
-                periodFilter,
-                createPeriod,
-                createSubject,
-                createClass);
-        UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
+        var toolbar = toolbar(tenantSelector, searchField, periodFilter, createPeriod, createSubject, createClass);
         UiCss.WORKSPACE_TENANT_ADMIN_TOOLBAR.addTo(toolbar);
-        toolbar.setPadding(false);
-        toolbar.setMargin(false);
-        toolbar.setSpacing(false);
         return toolbar;
     }
 
-    private Button primaryButton(String label, Runnable action) {
-        var button = new Button(label, _ -> action.run());
-        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        return button;
-    }
-
-    private Button secondaryButton(String label, Runnable action) {
-        return new Button(label, _ -> action.run());
-    }
-
     private void openCreatePeriodDialog() {
-        var dialog = new Dialog();
-        UiCss.WORKSPACE_DIALOG.addTo(dialog);
-        dialog.setHeaderTitle("Crear período académico");
-
         var code = new TextField("Código");
         code.setPlaceholder("2026-1");
         var name = new TextField("Nombre");
@@ -254,46 +224,82 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         var endsAt = new DatePicker("Fecha de cierre");
         addWorkspaceFieldClasses(code, name, startsAt, endsAt);
 
-        var help = new Paragraph(
-                "Los períodos ordenan las clases y ayudan a encontrar rápido la oferta activa de la institución.");
-        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
-        dialog.add(new VerticalLayout(help, formRow(code, name), formRow(startsAt, endsAt)));
-        dialog.getFooter()
-                .add(
-                    secondaryButton("Cancelar", dialog::close),
-                    primaryButton("Crear", () -> onCreatePeriod(dialog, code, name, startsAt, endsAt)));
-        dialog.open();
-        code.focus();
+        openCreateCatalogDialog(
+            "academic.period",
+            "Crear período académico",
+            "Los períodos ordenan las clases y ayudan a encontrar rápido la oferta activa de la institución.",
+            new VerticalLayout(formRow(code, name), formRow(startsAt, endsAt)),
+            dialog -> onCreatePeriod(dialog, code, name, startsAt, endsAt),
+            code::focus);
     }
 
     private void openCreateSubjectDialog() {
-        var dialog = new Dialog();
-        UiCss.WORKSPACE_DIALOG.addTo(dialog);
-        dialog.setHeaderTitle("Crear asignatura");
-
         var code = new TextField("Código");
         code.setPlaceholder("ICC-101");
         var name = new TextField("Nombre");
         name.setPlaceholder("Introducción a la algoritmia");
-        addWorkspaceFieldClasses(code, name);
+        var syllabus = new TextArea("Syllabus / contexto para el tutor");
+        syllabus.setPlaceholder(
+            "Describe competencias, alcance del curso y stack tecnológico. También puedes subir un PDF de syllabus para generar este contexto.");
+        syllabus.setMaxLength(1200);
+        syllabus.setWidthFull();
+        var uploadStatus = new Paragraph("Opcional: sube un PDF de syllabus para generar un contexto compacto.");
+        UiCss.WORKSPACE_DIALOG_COPY.addTo(uploadStatus);
+        var syllabusUpload = syllabusUpload(code, name, syllabus, uploadStatus);
+        addWorkspaceFieldClasses(code, name, syllabus);
 
-        var help =
-                new Paragraph("Crea la asignatura una vez y reutilízala al abrir nuevas clases en distintos períodos.");
-        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
-        dialog.add(new VerticalLayout(help, formRow(code, name)));
-        dialog.getFooter()
-                .add(
-                    secondaryButton("Cancelar", dialog::close),
-                    primaryButton("Crear", () -> onCreateSubject(dialog, code, name)));
+        openCreateCatalogDialog(
+            "academic.subject",
+            "Crear asignatura",
+            "Crea la asignatura una vez. El contexto se inyecta en el tutor para mantenerlo dentro del alcance, competencias y stack del curso.",
+            new VerticalLayout(formRow(code, name), syllabus, uploadStatus, syllabusUpload),
+            dialog -> onCreateSubject(dialog, code, name, syllabus),
+            code::focus);
+    }
+
+    private Upload syllabusUpload(TextField code, TextField name, TextArea syllabus, Paragraph uploadStatus) {
+        var upload = new Upload(UploadHandler.inMemory((metadata, data) -> {
+            var ui = UI.getCurrent();
+            runUi(ui, () -> uploadStatus.setText("Transformando PDF con Docling y construyendo contexto..."));
+            CompletableFuture
+                    .supplyAsync(
+                        () -> syllabusGenerationService.generateFromPdf(
+                            code.getValue(),
+                            name.getValue(),
+                            metadata.fileName(),
+                            data),
+                        documentIngestionExecutor)
+                    .whenComplete((generated, exception) -> runUi(ui, () -> {
+                        if (exception != null) {
+                            uploadStatus.setText(message(exception));
+                            showError(message(exception));
+                            return;
+                        }
+                        syllabus.setValue(generated);
+                        uploadStatus.setText("Contexto generado. Revísalo antes de crear la asignatura.");
+                    }));
+        }));
+        upload.setAcceptedFileTypes("application/pdf", ".pdf");
+        upload.setMaxFiles(1);
+        upload.setDropAllowed(true);
+        upload.setWidthFull();
+        return upload;
+    }
+
+    private void openCreateCatalogDialog(
+            String label,
+            String title,
+            String helpText,
+            Component fields,
+            java.util.function.Consumer<Dialog> createAction,
+            Runnable focusAction) {
+        var dialog = new TerminalDialog(label, title, helpText, fields);
+        dialog.addActions(secondaryButton("Cancelar", dialog::close), primaryButton("Crear", () -> createAction.accept(dialog)));
         dialog.open();
-        code.focus();
+        focusAction.run();
     }
 
     private void openCreateClassDialog() {
-        var dialog = new Dialog();
-        UiCss.WORKSPACE_DIALOG.addTo(dialog);
-        dialog.setHeaderTitle("Crear clase");
-
         var subject = new ComboBox<Subject>("Asignatura");
         subject.setItems(activeSubjects);
         subject.setItemLabelGenerator(value -> "%s · %s".formatted(value.getCode(), value.getName()));
@@ -306,56 +312,38 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         name.setPlaceholder("Algoritmia · Sección A");
         addWorkspaceFieldClasses(subject, period, code, name);
 
-        var help = new Paragraph(
-                "La clase conecta una asignatura con un período. Después podrás invitar al profesor desde la fila creada.");
-        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
-        dialog.add(new VerticalLayout(help, formRow(subject, period), formRow(code, name)));
-        dialog.getFooter()
-                .add(
-                    secondaryButton("Cancelar", dialog::close),
-                    primaryButton("Crear", () -> onCreateClass(dialog, subject, period, code, name)));
+        var dialog = new TerminalDialog(
+            "group.class",
+            "Crear clase",
+            "La clase conecta una asignatura con un período. Después podrás invitar al profesor desde la fila creada.",
+            new VerticalLayout(formRow(subject, period), formRow(code, name)));
+        dialog.addActions(
+            secondaryButton("Cancelar", dialog::close),
+            primaryButton("Crear", () -> onCreateClass(dialog, subject, period, code, name)));
         dialog.open();
         subject.focus();
     }
 
     private void openInviteProfessorDialog(GroupClass groupClass) {
-        var dialog = new Dialog();
-        UiCss.WORKSPACE_DIALOG.addTo(dialog);
-        dialog.setHeaderTitle("Invitar profesor");
-
-        var className = new Span("%s · %s".formatted(groupClass.getCode(), groupClass.getName()));
-        UiCss.WORKSPACE_DIALOG_CONTEXT.addTo(className);
-        var help = new Paragraph("Escribe el correo de la persona que tendrá acceso docente a esta clase.");
-        UiCss.WORKSPACE_DIALOG_COPY.addTo(help);
         var email = new EmailField("Correo del profesor");
         email.setPlaceholder("profesor@institucion.edu");
-        email.setRequiredIndicatorVisible(true);
         email.setErrorMessage("Escribe un correo válido.");
         email.setWidthFull();
         UiCss.WORKSPACE_FIELD.addTo(email);
 
+        var dialog = new TerminalDialog(
+            "professor.invitation",
+            "Invitar profesor",
+            "Escribe el correo de la persona que tendrá acceso docente a %s · %s."
+                    .formatted(groupClass.getCode(), groupClass.getName()),
+            email);
         var send = primaryButton("Enviar invitación", () -> onInviteProfessor(dialog, groupClass, email));
-        send.setIcon(new Icon(VaadinIcon.PAPERPLANE));
-        dialog.add(new VerticalLayout(className, help, email));
-        dialog.getFooter().add(secondaryButton("Cancelar", dialog::close), send);
+        send.setIcon(new SvgIcon("/icons/IconEnvelope.svg"));
+        dialog.addActions(secondaryButton("Cancelar", dialog::close), send);
         dialog.open();
         email.focus();
     }
 
-    private HorizontalLayout formRow(Component... children) {
-        var row = new HorizontalLayout(children);
-        UiCss.WORKSPACE_FORM_ROW.addTo(row);
-        row.setPadding(false);
-        row.setMargin(false);
-        row.setSpacing(false);
-        return row;
-    }
-
-    private void addWorkspaceFieldClasses(Component... fields) {
-        for (var field : fields) {
-            UiCss.WORKSPACE_FIELD.addTo(field);
-        }
-    }
 
     private void refresh() {
         var account = authenticatedUserContextUtils.requireCurrentAccount();
@@ -423,12 +411,13 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
         }
     }
 
-    private void onCreateSubject(Dialog dialog, TextField code, TextField name) {
+    private void onCreateSubject(Dialog dialog, TextField code, TextField name, TextArea syllabus) {
         try {
             tenantAdminWorkspaceService.createSubject(
                 authenticatedUserContextUtils.requireCurrentAccount(),
                 code.getValue(),
-                name.getValue());
+                name.getValue(),
+                syllabus.getValue());
             dialog.close();
             refresh();
             Notification.show("Asignatura creada.");
@@ -516,5 +505,27 @@ public class TenantAdminWorkspaceView extends VerticalLayout implements BeforeEn
     private String periodRange(GroupClass groupClass) {
         var period = groupClass.getAcademicPeriod();
         return "%s — %s".formatted(DATE_FORMAT.format(period.getStartsAt()), DATE_FORMAT.format(period.getEndsAt()));
+    }
+
+    private void runUi(UI ui, Runnable callback) {
+        if (ui != null && ui.isAttached()) {
+            ui.access(callback::run);
+            return;
+        }
+        callback.run();
+    }
+
+    private String message(Throwable exception) {
+        var cause = exception instanceof java.util.concurrent.CompletionException && exception.getCause() != null
+                ? exception.getCause()
+                : exception;
+        return cause.getMessage() == null || cause.getMessage().isBlank()
+                ? "No se pudo generar el contexto desde el PDF."
+                : cause.getMessage();
+    }
+
+    private void showError(String message) {
+        var notification = Notification.show(message, 4_000, Notification.Position.MIDDLE);
+        notification.addThemeVariants(NotificationVariant.ERROR);
     }
 }

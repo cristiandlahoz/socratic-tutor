@@ -1,6 +1,4 @@
 import '@vaadin/button';
-import '@vaadin/icon';
-import '@vaadin/icons';
 import '@vaadin/text-area';
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
@@ -112,7 +110,7 @@ class DocumentSegmentEditorListElement extends LitElement {
             aria-label=${`Eliminar segmento ${segment.ordinal}`}
             @click=${() => this.deleteSegment(segment.id)}
           >
-            <vaadin-icon icon="vaadin:trash" slot="prefix"></vaadin-icon>
+            <span class="document-ingest-trash-icon" aria-hidden="true" slot="prefix"></span>
             Eliminar
           </vaadin-button>
         </div>

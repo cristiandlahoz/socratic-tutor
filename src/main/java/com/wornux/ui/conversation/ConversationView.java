@@ -17,11 +17,11 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
-import com.wornux.config.ChatProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
@@ -41,10 +41,14 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-@Route(value = "chat", layout = MainLayout.class)
+@Route(value = ConversationView.ROUTE_TEMPLATE, layout = MainLayout.class)
 @PermitAll
 @RequiresPermission(AppPermission.CONVERSATION_VIEW)
 public class ConversationView extends Composite<Div> implements BeforeEnterObserver {
+
+    static final String ROUTE = "threads";
+    static final String THREAD_ROUTE_PARAMETER = "threadId";
+    static final String ROUTE_TEMPLATE = ROUTE + "/:" + THREAD_ROUTE_PARAMETER + "?";
 
     private final ConversationViewModel viewModel;
     private final MessagesList messageList;
@@ -61,7 +65,7 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
     public ConversationView(
             @RouteScopeOwner(MainLayout.class) ConversationState state,
             @RouteScopeOwner(MainLayout.class) ConversationViewModel viewModel,
-            ChatProperties chatProperties,
+            ApplicationProperties.Ai.Conversation chatProperties,
             CProgramDebugService cProgramDebugService,
             CExamplePreparationService cExamplePreparationService,
             @Qualifier("cRunnerExecutor") Executor cRunnerExecutor,
@@ -73,12 +77,14 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
         this.workspaceRoutingService = workspaceRoutingService;
         bindModelAvailability(state, modelAvailabilityService);
         this.viewModel.bindTurnUiAnchor(this);
+        getContent().addDetachListener(_ -> this.viewModel.detachTurnStream(this));
 
         Div emptyState = createEmptyState(state);
         emptyState.bindVisible(state.emptyStateVisible());
 
         messageList = new MessagesList();
         messageList.setThinkingSpinner(chatProperties.getUi().getThinkingSpinner());
+        Signal.effect(messageList, () -> messageList.setActivity(state.activity().get()));
         messageList.addDebugCodeRequestListener(event -> handleDebugCodeRequest(event.getCode(), event.getLang()));
         messageList.setWidthFull();
         Signal.effect(
@@ -165,12 +171,9 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
                 workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT);
             }
         }
-        var requestedConversationParam = event.getLocation()
-                .getQueryParameters()
-                .getSingleParameter(ConversationViewModel.CONVERSATION_QUERY_PARAMETER)
-                .orElse(null);
+        var requestedThreadId = event.getRouteParameters().get(THREAD_ROUTE_PARAMETER).orElse(null);
 
-        var initialization = viewModel.initializeFromRoute(requestedConversationParam, event.isRefreshEvent());
+        var initialization = viewModel.initializeFromRoute(requestedThreadId, event.isRefreshEvent());
         if (initialization.rerouteRequired()) {
             rerouteToResolvedConversation(event, initialization.rerouteConversationId());
         }
@@ -307,12 +310,12 @@ public class ConversationView extends Composite<Div> implements BeforeEnterObser
 
     private void rerouteToResolvedConversation(BeforeEnterEvent event, UUID resolvedConversationId) {
         if (resolvedConversationId == null) {
-            event.rerouteTo(ConversationView.class, QueryParameters.empty());
+            event.rerouteTo(ConversationView.class, RouteParameters.empty());
             return;
         }
         event.rerouteTo(
             ConversationView.class,
-            QueryParameters.of(ConversationViewModel.CONVERSATION_QUERY_PARAMETER, resolvedConversationId.toString()));
+            new RouteParameters(THREAD_ROUTE_PARAMETER, ConversationViewModel.toPublicThreadId(resolvedConversationId)));
     }
 
 }

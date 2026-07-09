@@ -1,4 +1,6 @@
 import './message-item.js';
+import { normalizeArrayProperty } from 'Frontend/shared/dom-utils.js';
+import { haptic } from 'Frontend/shared/haptics.js';
 import { LitElement, html } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import type { BrailleSpinnerName } from './braille-spinners.js';
@@ -11,16 +13,15 @@ type MessageItemModel = {
   userName?: string;
   variant?: MessageVariant;
   loading?: boolean;
+  loadingLabel?: string;
+  debuggableCodeBlocks?: boolean;
 };
 
 type ScrollMode = 'auto' | 'force';
+type ChatActivity = 'idle' | 'generating' | 'compacting';
 
 function normalizeItems(items: unknown): MessageItemModel[] {
-  if (typeof items === 'string') {
-    return JSON.parse(items) as MessageItemModel[];
-  }
-
-  return Array.isArray(items) ? (items as MessageItemModel[]) : [];
+  return normalizeArrayProperty<MessageItemModel>(items);
 }
 
 function messageKey(item: MessageItemModel, index: number): string {
@@ -31,10 +32,12 @@ class MessagesList extends LitElement {
   static readonly properties = {
     items: { type: Array },
     thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
+    activity: { type: String },
   };
 
   declare items: MessageItemModel[];
   declare thinkingSpinner: BrailleSpinnerName;
+  declare activity: ChatActivity;
 
   private readonly bottomThresholdPx = 72;
   private readonly bottomThresholdRatio = 0.12;
@@ -74,6 +77,7 @@ class MessagesList extends LitElement {
     super();
     this.items = [];
     this.thinkingSpinner = 'braille';
+    this.activity = 'idle';
   }
 
   connectedCallback(): void {
@@ -135,6 +139,17 @@ class MessagesList extends LitElement {
     this.updateItems(nextItems, 'auto');
   }
 
+  setItemLoading(loading: boolean | null | undefined, index: number): void {
+    if (!this.hasItemAt(index)) {
+      return;
+    }
+
+    const nextItems = [...this.items];
+    nextItems[index] = { ...nextItems[index], loading: Boolean(loading) };
+
+    this.updateItems(nextItems, 'auto');
+  }
+
   appendItemText(diff: string | null | undefined, index: number): void {
     if (!this.hasItemAt(index)) {
       return;
@@ -155,6 +170,7 @@ class MessagesList extends LitElement {
     return html`
       <div role="list" class="messages-list__items">
         ${repeat(this.items, messageKey, (item: MessageItemModel) => this.renderMessage(item))}
+        ${this.renderCompactionMessage()}
       </div>
     `;
   }
@@ -285,13 +301,19 @@ class MessagesList extends LitElement {
   }
 
   private notifyBusyState(): void {
-    const busy = this.items.some(item => Boolean(item.loading));
+    const busy = this.items.some(item => Boolean(item.loading)) || this.activity === 'compacting';
 
     if (busy === this.busy) {
       return;
     }
 
+    const wasBusy = this.busy;
     this.busy = busy;
+
+    if (wasBusy && !busy) {
+      haptic('done');
+    }
+
     this.dispatchEvent(new CustomEvent('conversation-busy-changed', {
       detail: { busy },
       bubbles: true,
@@ -513,9 +535,34 @@ class MessagesList extends LitElement {
         .userName=${item.loading ? '' : item.userName ?? ''}
         .variant=${variant}
         .loading=${Boolean(item.loading)}
+        .loadingLabel=${item.loadingLabel ?? this.loadingLabel()}
+        .debuggableCodeBlocks=${Boolean(item.debuggableCodeBlocks)}
         .thinkingSpinner=${this.thinkingSpinner}
       ></message-item>
     `;
+  }
+
+  private renderCompactionMessage() {
+    if (this.activity !== 'compacting' || this.items.some(item => Boolean(item.loading))) {
+      return null;
+    }
+
+    return html`
+      <message-item
+        role="listitem"
+        .variant=${'assistant'}
+        .loading=${true}
+        .thinkingSpinner=${this.thinkingSpinner}
+        .loadingLabel=${this.loadingLabel()}
+      ></message-item>
+    `;
+  }
+
+  private loadingLabel(): string {
+    if (this.activity === 'compacting') {
+      return 'Compactando el contexto…';
+    }
+    return 'Generando respuesta…';
   }
 }
 

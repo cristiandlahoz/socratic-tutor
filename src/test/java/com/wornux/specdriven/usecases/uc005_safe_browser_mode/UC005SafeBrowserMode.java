@@ -34,6 +34,7 @@ import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
+import com.wornux.services.training_activity.TrainingAssignmentDecisionPersistenceService;
 import com.wornux.services.training_activity.TrainingAssignmentEvaluationService;
 import com.wornux.services.training_activity.TrainingAssignmentTutorService;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,11 @@ class UC005SafeBrowserMode {
         assertThat(locked.getSafeBrowserLockReason()).isEqualTo(SafeBrowserEventType.TAB_HIDDEN.name());
         assertThat(fixture.otherAssignment.isSafeBrowserLocked()).isFalse();
         assertThat(notifications).extracting(SafeBrowserAssignmentStateBus.Notification::locked).contains(true);
+        assertThat(notifications).singleElement().satisfies(notification -> {
+            assertThat(notification.trainingActivityId()).isEqualTo(fixture.activity.getId());
+            assertThat(notification.affectsTrainingActivity(fixture.activity.getId())).isTrue();
+            assertThat(notification.affectsTrainingActivity(UUID.randomUUID())).isFalse();
+        });
         verify(fixture.alertRepository).save(any(SafeBrowserAlert.class));
 
         when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.professorContext);
@@ -65,6 +71,9 @@ class UC005SafeBrowserMode {
 
         assertThat(unlocked.isSafeBrowserLocked()).isFalse();
         assertThat(notifications).extracting(SafeBrowserAssignmentStateBus.Notification::locked).contains(false);
+        assertThat(notifications)
+                .extracting(SafeBrowserAssignmentStateBus.Notification::trainingActivityId)
+                .containsOnly(fixture.activity.getId());
         verify(fixture.eventRepository, times(3)).save(any(SafeBrowserEvent.class));
     }
 
@@ -199,7 +208,17 @@ class UC005SafeBrowserMode {
                 contextResolver,
                 assignmentStateBus);
         var evaluationService = new TrainingAssignmentEvaluationService(
-                assignmentRepository, activityRepository, contextResolver, new TrainingAssignmentTutorService(), new JsonMapper());
+                assignmentRepository,
+                contextResolver,
+                mock(TrainingAssignmentTutorService.class),
+                new JsonMapper(),
+                new TrainingAssignmentDecisionPersistenceService(
+                        assignmentRepository,
+                        activityRepository,
+                        mock(TrainingAssignmentTutorService.class),
+                        assignmentStateBus,
+                        new JsonMapper())
+        );
 
         return new Fixture(
                 safeBrowserModeService,
@@ -226,7 +245,7 @@ class UC005SafeBrowserMode {
         assignment.setStatus(TrainingActivityAssignmentStatus.STARTED);
         assignment.setAssignedAt(Instant.now());
         assignment.setStartedAt(Instant.now());
-        assignment.setCurrentQuestion("What is your initial understanding?");
+        assignment.setCurrentQuestion("¿Qué entiendes hasta ahora de la actividad?");
         assignment.setQuestionCount(1);
         assignment.setEvaluationTranscript("[]");
         assignment.setUpdatedAt(Instant.now());

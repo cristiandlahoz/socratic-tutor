@@ -8,7 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.wornux.data.entities.academic.GroupClassMemberKind;
-import com.wornux.data.entities.authorization.RoleAssignmentLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.authorization.RoleRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
@@ -109,11 +109,11 @@ class UC004RoleMatrixAndAssignmentUi {
         var role = roleAdministrationService.createRole(
             new CreateRoleCommand("Activity Reviewer",
                     "Can review training activities inside a class.",
-                    RoleAssignmentLevel.GROUP_CLASS,
+                    ScopeLevel.GROUP_CLASS,
                     10,
                     Set.of("training-activity:view")));
 
-        assertThat(role.getAssignmentLevel()).isEqualTo(RoleAssignmentLevel.GROUP_CLASS);
+        assertThat(role.getAssignmentLevel()).isEqualTo(ScopeLevel.GROUP_CLASS);
         assertThat(role.getPermissions()).containsExactly("training-activity:view");
         assertThat(roleRepository.findByRoleNamespace_IdAndCode(role.getRoleNamespace().getId(), "activity-reviewer"))
                 .isPresent();
@@ -129,7 +129,7 @@ class UC004RoleMatrixAndAssignmentUi {
             () -> roleAdministrationService.createRole(
                 new CreateRoleCommand("Unknown Permission Role",
                         null,
-                        RoleAssignmentLevel.GROUP_CLASS,
+                        ScopeLevel.GROUP_CLASS,
                         10,
                         Set.of("unknown:permission"))))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -145,7 +145,7 @@ class UC004RoleMatrixAndAssignmentUi {
             () -> roleAdministrationService.createRole(
                 new CreateRoleCommand("Conversation Creator",
                         null,
-                        RoleAssignmentLevel.GROUP_CLASS,
+                        ScopeLevel.GROUP_CLASS,
                         10,
                         Set.of("conversation:create"))))
                 .isInstanceOf(AccessDeniedException.class)
@@ -161,7 +161,7 @@ class UC004RoleMatrixAndAssignmentUi {
             () -> roleAdministrationService.createRole(
                 new CreateRoleCommand("Professor Managed Role",
                         null,
-                        RoleAssignmentLevel.GROUP_CLASS,
+                        ScopeLevel.GROUP_CLASS,
                         10,
                         Set.of("training-activity:view"))))
                 .isInstanceOf(AccessDeniedException.class)
@@ -175,7 +175,7 @@ class UC004RoleMatrixAndAssignmentUi {
         var role = roleAdministrationService.createRole(
             new CreateRoleCommand("Student Activity Creator",
                     null,
-                    RoleAssignmentLevel.GROUP_CLASS,
+                    ScopeLevel.GROUP_CLASS,
                     10,
                     Set.of("training-activity:create")));
         var memberKindBefore = groupClassMemberRepository.findById(STUDENT_MEMBER_ID).orElseThrow().getMemberKind();
@@ -201,7 +201,7 @@ class UC004RoleMatrixAndAssignmentUi {
         roleAdministrationService.createRole(
             new CreateRoleCommand("Version Bump Role",
                     null,
-                    RoleAssignmentLevel.GROUP_CLASS,
+                    ScopeLevel.GROUP_CLASS,
                     10,
                     Set.of("training-activity:view")));
 

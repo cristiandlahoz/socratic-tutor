@@ -44,8 +44,7 @@ import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.authorization.Role;
-import com.wornux.data.entities.authorization.RoleAssignmentLevel;
-import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.security.authorization.AuthorizationService;
@@ -56,6 +55,7 @@ import com.wornux.security.authorization.RoleAdministrationService.UpdateRoleCom
 import com.wornux.security.permission.AppPermission;
 import com.wornux.security.permission.AppResource;
 import com.wornux.ui.MainLayout;
+import com.wornux.ui.components.TerminalDialog;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
@@ -95,7 +95,7 @@ public class RoleMatrixView extends VerticalLayout {
     private final ActiveContextHolder activeContextHolder;
     private final AuthorizationService authorizationService;
     private final TextField roleSearch = new TextField();
-    private final ComboBox<RoleAssignmentLevel> levelSelector = new ComboBox<>();
+    private final ComboBox<ScopeLevel> levelSelector = new ComboBox<>();
     private final Grid<Role> roleGrid = new Grid<>(Role.class, false);
     private final VerticalLayout roleHeader = new VerticalLayout();
     private final Div tabContent = new Div();
@@ -215,7 +215,7 @@ public class RoleMatrixView extends VerticalLayout {
         return LitRenderer.<Role>of("""
                     <span class="role-management-role-count" aria-label="${item.count} miembros">
                         <span>${item.count}</span>
-                        <vaadin-icon icon="vaadin:user" aria-hidden="true"></vaadin-icon>
+                        <vaadin-icon src="/icons/IconPeople.svg" aria-hidden="true"></vaadin-icon>
                     </span>
                 """)
                 .withProperty("count", role -> roleMemberCounts.getOrDefault(role.getId(), 0L));
@@ -243,31 +243,31 @@ public class RoleMatrixView extends VerticalLayout {
         UiCss.ROLE_MANAGEMENT_TABS.addTo(tabs);
     }
 
-    private List<RoleAssignmentLevel> levelOptions() {
+    private List<ScopeLevel> levelOptions() {
         return switch (currentContextLevel()) {
-            case PLATFORM -> List.of(RoleAssignmentLevel.PLATFORM);
-            case TENANT -> List.of(RoleAssignmentLevel.TENANT, RoleAssignmentLevel.GROUP_CLASS);
-            case GROUP_CLASS -> List.of(RoleAssignmentLevel.GROUP_CLASS);
+            case PLATFORM -> List.of(ScopeLevel.PLATFORM);
+            case TENANT -> List.of(ScopeLevel.TENANT, ScopeLevel.GROUP_CLASS);
+            case GROUP_CLASS -> List.of(ScopeLevel.GROUP_CLASS);
         };
     }
 
-    private RoleAssignmentLevel defaultLevel() {
+    private ScopeLevel defaultLevel() {
         return switch (currentContextLevel()) {
-            case PLATFORM -> RoleAssignmentLevel.PLATFORM;
-            case TENANT -> RoleAssignmentLevel.TENANT;
-            case GROUP_CLASS -> RoleAssignmentLevel.GROUP_CLASS;
+            case PLATFORM -> ScopeLevel.PLATFORM;
+            case TENANT -> ScopeLevel.TENANT;
+            case GROUP_CLASS -> ScopeLevel.GROUP_CLASS;
         };
     }
 
-    private ContextLevel currentContextLevel() {
-        return activeContextHolder.current().map(context -> context.level()).orElse(ContextLevel.TENANT);
+    private ScopeLevel currentContextLevel() {
+        return activeContextHolder.current().map(context -> context.level()).orElse(ScopeLevel.TENANT);
     }
 
     private boolean isTenantContext() {
-        return currentContextLevel() == ContextLevel.TENANT;
+        return currentContextLevel() == ScopeLevel.TENANT;
     }
 
-    private String levelLabel(RoleAssignmentLevel level) {
+    private String levelLabel(ScopeLevel level) {
         return switch (level) {
             case PLATFORM -> "Plataforma";
             case TENANT -> "Institución";
@@ -293,7 +293,7 @@ public class RoleMatrixView extends VerticalLayout {
                 .toList();
     }
 
-    private RoleAssignmentLevel selectedLevel() {
+    private ScopeLevel selectedLevel() {
         return Objects.requireNonNullElse(levelSelector.getValue(), defaultLevel());
     }
 
@@ -559,8 +559,8 @@ public class RoleMatrixView extends VerticalLayout {
         var matrix = roleAdministrationService.tenantAssignments();
         var assignedMemberIds = roleAdministrationService.tenantAccountIdsAssignedToRole(role.getId());
         var grid = new Grid<>(TenantAccount.class, false);
-        grid.addColumn(this::tenantMemberName).setHeader("Miembro").setAutoWidth(true);
-        grid.addComponentColumn(member -> tenantRoleCheckbox(member, role, assignedMemberIds)).setHeader(role.getName()).setAutoWidth(true);
+        grid.addColumn(this::tenantMemberName).setHeader("Miembro").setFlexGrow(1);
+        grid.addComponentColumn(member -> tenantRoleCheckbox(member, role, assignedMemberIds)).setHeader(role.getName()).setAutoWidth(true).setFlexGrow(0);
         grid.setItems(matrix.members());
         grid.setWidthFull();
         UiCss.ROLE_MANAGEMENT_MEMBERS_GRID.addTo(grid);
@@ -598,6 +598,7 @@ public class RoleMatrixView extends VerticalLayout {
     private Component createClassMembersTab(Role role) {
         var classSelector = new ComboBox<GroupClass>("Clase");
         var gridHolder = new Div();
+        gridHolder.setWidthFull();
         var classes = classesAssignableInCurrentContext();
         classSelector.setItems(classes);
         classSelector.setItemLabelGenerator(this::classLabel);
@@ -625,9 +626,9 @@ public class RoleMatrixView extends VerticalLayout {
         var matrix = roleAdministrationService.groupClassAssignments(groupClass.getId());
         var assignedMemberIds = roleAdministrationService.groupClassMemberIdsAssignedToRole(groupClass.getId(), role.getId());
         var grid = new Grid<>(GroupClassMember.class, false);
-        grid.addColumn(this::classMemberName).setHeader("Miembro").setAutoWidth(true);
-        grid.addColumn(member -> member.getMemberKind().name()).setHeader("Tipo").setAutoWidth(true);
-        grid.addComponentColumn(member -> classRoleCheckbox(member, role, assignedMemberIds)).setHeader(role.getName()).setAutoWidth(true);
+        grid.addColumn(this::classMemberName).setHeader("Miembro").setFlexGrow(1);
+        grid.addColumn(member -> member.getMemberKind().name()).setHeader("Tipo").setAutoWidth(true).setFlexGrow(0);
+        grid.addComponentColumn(member -> classRoleCheckbox(member, role, assignedMemberIds)).setHeader(role.getName()).setAutoWidth(true).setFlexGrow(0);
         grid.setItems(matrix.members());
         grid.setWidthFull();
         UiCss.ROLE_MANAGEMENT_MEMBERS_GRID.addTo(grid);
@@ -645,7 +646,7 @@ public class RoleMatrixView extends VerticalLayout {
 
     private Optional<UUID> currentGroupClassId() {
         return activeContextHolder.current()
-                .filter(context -> context.level() == ContextLevel.GROUP_CLASS)
+                .filter(context -> context.level() == ScopeLevel.GROUP_CLASS)
                 .map(context -> context.groupClassId());
     }
 
@@ -686,13 +687,14 @@ public class RoleMatrixView extends VerticalLayout {
     }
 
     private void openCreateDialog() {
-        var dialog = new Dialog();
-        dialog.setHeaderTitle("Crear rol");
-
         var name = new TextField("Nombre");
         var description = new TextArea("Descripción");
-        var level = new ComboBox<RoleAssignmentLevel>("Nivel");
+        var level = new ComboBox<ScopeLevel>("Nivel");
         var priority = new IntegerField("Prioridad");
+        UiCss.WORKSPACE_FIELD.addTo(name);
+        UiCss.WORKSPACE_FIELD.addTo(description);
+        UiCss.WORKSPACE_FIELD.addTo(level);
+        UiCss.WORKSPACE_FIELD.addTo(priority);
         name.setRequiredIndicatorVisible(true);
         level.setItems(levelOptions());
         level.setItemLabelGenerator(this::levelLabel);
@@ -700,16 +702,25 @@ public class RoleMatrixView extends VerticalLayout {
         priority.setValue(10);
 
         var form = new FormLayout(name, description, level, priority);
-        dialog.add(form);
-        dialog.getFooter().add(new Button("Cancelar", _ -> dialog.close()), createDialogSaveButton(dialog, name, description, level, priority));
+        form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1));
+
+        var dialog = new TerminalDialog(
+            "role.create",
+            "Crear rol",
+            "Define un rol reutilizable con su alcance y prioridad. Después podrás asignarle permisos y miembros.",
+            form);
+        dialog.addActions(
+            new Button("Cancelar", _ -> dialog.close()),
+            createDialogSaveButton(dialog, name, description, level, priority));
         dialog.open();
+        name.focus();
     }
 
     private Button createDialogSaveButton(
             Dialog dialog,
             TextField name,
             TextArea description,
-            ComboBox<RoleAssignmentLevel> level,
+            ComboBox<ScopeLevel> level,
             IntegerField priority) {
         var save = new Button("Crear", _ -> createRole(dialog, name, description, level, priority));
         save.addThemeVariants(ButtonVariant.PRIMARY);
@@ -720,7 +731,7 @@ public class RoleMatrixView extends VerticalLayout {
             Dialog dialog,
             TextField name,
             TextArea description,
-            ComboBox<RoleAssignmentLevel> level,
+            ComboBox<ScopeLevel> level,
             IntegerField priority) {
         try {
             var saved = roleAdministrationService.createRole(new CreateRoleCommand(
@@ -788,7 +799,7 @@ public class RoleMatrixView extends VerticalLayout {
     }
 
     private boolean canCreateRoles() {
-        return currentContextLevel() != ContextLevel.GROUP_CLASS && can(AppPermission.ROLE_CREATE);
+        return currentContextLevel() != ScopeLevel.GROUP_CLASS && can(AppPermission.ROLE_CREATE);
     }
 
     private boolean canUpdateRoles() {

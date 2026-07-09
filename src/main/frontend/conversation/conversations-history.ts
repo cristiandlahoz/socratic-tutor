@@ -1,4 +1,6 @@
 import '@vaadin/button';
+import 'Frontend/shell/width-aware-label.js';
+import { normalizeArrayProperty } from 'Frontend/shared/dom-utils.js';
 import { LitElement, html, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
 import { repeat } from 'lit/directives/repeat.js';
@@ -43,22 +45,17 @@ type TimelineGeometry = {
 };
 
 function normalizeConversations(value: unknown): ConversationHistoryItem[] {
-  if (typeof value === 'string') {
-    return JSON.parse(value) as ConversationHistoryItem[];
-  }
-  return Array.isArray(value) ? (value as ConversationHistoryItem[]) : [];
+  return normalizeArrayProperty<ConversationHistoryItem>(value);
 }
 
 class ConversationsHistory extends LitElement {
   static properties = {
     conversations: { type: Array },
     activeConversationId: { type: String, attribute: 'active-conversation-id' },
-    disabled: { type: Boolean, reflect: true },
   };
 
   declare conversations: ConversationHistoryItem[];
   declare activeConversationId: string | null;
-  declare disabled: boolean;
 
   private resizeObserver: ResizeObserver | null = null;
   private animationFrame: number | null = null;
@@ -73,7 +70,6 @@ class ConversationsHistory extends LitElement {
     super();
     this.conversations = [];
     this.activeConversationId = null;
-    this.disabled = false;
   }
 
   connectedCallback(): void {
@@ -98,10 +94,6 @@ class ConversationsHistory extends LitElement {
 
   setActiveConversationId(activeConversationId: string | null | undefined): void {
     this.activeConversationId = activeConversationId ?? null;
-  }
-
-  setDisabled(disabled: boolean): void {
-    this.disabled = disabled;
   }
 
   protected willUpdate(changedProperties: Map<string, unknown>): void {
@@ -151,12 +143,12 @@ class ConversationsHistory extends LitElement {
           --trail-line-active-color: var(--vaadin-text-color);
           --trail-line-width: 3px;
           --trail-node-active-color: var(--vaadin-text-color);
+          --history-optical-inline-start: var(--sidebar-optical-inline-start, 0.55rem);
         }
 
         .conversation-history__header {
           min-width: 0;
-          margin-left: var(--sidebar-divider-line-gutter);
-          padding: 0.32rem var(--sidebar-section-inline-end) 0.38rem 0;
+          padding: 0.32rem var(--sidebar-section-inline-end) 0.38rem var(--history-optical-inline-start);
         }
 
         .conversations-history-title-row {
@@ -185,7 +177,6 @@ class ConversationsHistory extends LitElement {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          margin-left: var(--sidebar-divider-line-gutter);
         }
 
         .conversations-history-body {
@@ -197,7 +188,7 @@ class ConversationsHistory extends LitElement {
         }
 
         .conversations-history-empty {
-          margin: 0.32rem var(--sidebar-section-inline-end) 0.58rem 0;
+          margin: 0.32rem var(--sidebar-section-inline-end) 0.58rem var(--history-optical-inline-start);
           display: flex;
           flex-direction: column;
           gap: var(--vaadin-gap-xs);
@@ -226,7 +217,7 @@ class ConversationsHistory extends LitElement {
           overflow: auto;
           scrollbar-width: none;
           -ms-overflow-style: none;
-          padding: 0.2rem 0.45rem 0.7rem 0.2rem;
+          padding: 0.2rem 0.45rem 0.7rem var(--history-optical-inline-start);
         }
 
         .conversations-history-timeline-edges,
@@ -362,11 +353,12 @@ class ConversationsHistory extends LitElement {
         }
 
         .conversations-history-item-title,
-        .width-aware-label.conversations-history-item-title {
+        width-aware-label.conversations-history-item-title {
           min-width: 0;
           display: block;
           white-space: nowrap;
           overflow: hidden;
+          text-overflow: ellipsis;
           color: var(--vaadin-text-color-secondary);
           font-family: var(--aura-font-family);
           font-size: var(--aura-font-size-m);
@@ -388,11 +380,11 @@ class ConversationsHistory extends LitElement {
 
         @media (max-width: 640px) {
           .conversations-history-empty {
-            margin: 0.4rem var(--sidebar-section-inline-end) 0.7rem 0;
+            margin: 0.4rem var(--sidebar-section-inline-end) 0.7rem var(--history-optical-inline-start);
           }
 
           .conversations-history-timeline {
-            padding: 0.18rem 0.4rem 0.72rem;
+            padding: 0.18rem 0.4rem 0.72rem var(--history-optical-inline-start);
           }
 
           .conversations-history-entry-row {
@@ -446,12 +438,14 @@ class ConversationsHistory extends LitElement {
         title=${entry.conversation.title}
         aria-label=${entry.conversation.title}
         aria-current=${active ? 'page' : nothing}
-        ?disabled=${this.disabled}
         @click=${() => this.openConversation(entry.conversation.id)}
       >
         <div class=${classMap(rowClasses)}>
           ${this.renderNode(entry, active)}
-          <span class="conversations-history-item-title">${entry.conversation.title}</span>
+          <width-aware-label
+            class="conversations-history-item-title"
+            .fullText=${entry.conversation.title}
+          ></width-aware-label>
         </div>
       </vaadin-button>
     `;
@@ -469,10 +463,6 @@ class ConversationsHistory extends LitElement {
   }
 
   private openConversation(conversationId: string): void {
-    if (this.disabled) {
-      return;
-    }
-
     this.dispatchEvent(new CustomEvent('conversation-open-requested', {
       detail: { conversationId },
       bubbles: true,

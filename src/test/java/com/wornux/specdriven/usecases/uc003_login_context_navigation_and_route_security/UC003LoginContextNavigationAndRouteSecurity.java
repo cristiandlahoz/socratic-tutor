@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 
-import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.security.authorization.AccessSnapshotService;
 import com.wornux.security.authorization.ActiveContextHolder;
@@ -102,7 +102,7 @@ class UC003LoginContextNavigationAndRouteSecurity {
                 .resolveLoginContext(accountRepository.findById(STUDENT_ACCOUNT_ID).orElseThrow());
 
         assertThat(result).isInstanceOf(ContextSelectionResult.Selected.class);
-        assertThat(((ContextSelectionResult.Selected) result).option().level()).isEqualTo(ContextLevel.GROUP_CLASS);
+        assertThat(((ContextSelectionResult.Selected) result).option().level()).isEqualTo(ScopeLevel.GROUP_CLASS);
         assertThat(activeContextHolder.current()).get().extracting("groupClassId").isEqualTo(ALGORITHMS_CLASS_ID);
     }
 
@@ -120,7 +120,7 @@ class UC003LoginContextNavigationAndRouteSecurity {
 
         assertThat(result).isInstanceOf(ContextSelectionResult.SelectionRequired.class);
         assertThat(((ContextSelectionResult.SelectionRequired) result).options())
-                .filteredOn(option -> option.level() == ContextLevel.GROUP_CLASS)
+                .filteredOn(option -> option.level() == ScopeLevel.GROUP_CLASS)
                 .hasSize(2);
     }
 
@@ -131,9 +131,9 @@ class UC003LoginContextNavigationAndRouteSecurity {
         var result = contextSelectionService.resolveLoginContext(account);
 
         assertThat(result).isInstanceOf(ContextSelectionResult.Selected.class);
-        assertThat(((ContextSelectionResult.Selected) result).option().level()).isEqualTo(ContextLevel.TENANT);
+        assertThat(((ContextSelectionResult.Selected) result).option().level()).isEqualTo(ScopeLevel.TENANT);
         assertThat(contextDiscoveryService.discover(account))
-                .filteredOn(option -> option.level() == ContextLevel.GROUP_CLASS)
+                .filteredOn(option -> option.level() == ScopeLevel.GROUP_CLASS)
                 .isEmpty();
     }
 
@@ -147,7 +147,7 @@ class UC003LoginContextNavigationAndRouteSecurity {
         var account = accountRepository.findById(TENANT_ADMIN_ACCOUNT_ID).orElseThrow();
 
         assertThat(contextDiscoveryService.discover(account))
-                .filteredOn(option -> option.level() == ContextLevel.GROUP_CLASS)
+                .filteredOn(option -> option.level() == ScopeLevel.GROUP_CLASS)
                 .extracting("classId")
                 .containsExactly(ALGORITHMS_CLASS_ID);
     }

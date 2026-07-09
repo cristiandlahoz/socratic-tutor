@@ -357,6 +357,49 @@
   box-shadow: var(--aura-shadow-m);
 }
 
+@media (prefers-color-scheme: light) {
+  html:not([data-theme-preference]) .login-view__form [slot="submit"],
+  html[data-theme-preference="system"] .login-view__form [slot="submit"],
+  html:not([data-theme-preference]) .login-view__form vaadin-button[theme~="submit"],
+  html[data-theme-preference="system"] .login-view__form vaadin-button[theme~="submit"] {
+    --vaadin-button-background: var(--aura-accent-color);
+    --vaadin-button-text-color: var(--vaadin-text-color);
+    background: var(--aura-accent-color);
+    color: var(--vaadin-text-color);
+  }
+
+  html:not([data-theme-preference]) .login-view__form [slot="submit"]::part(label),
+  html[data-theme-preference="system"] .login-view__form [slot="submit"]::part(label),
+  html:not([data-theme-preference]) .login-view__form vaadin-button[theme~="submit"]::part(label),
+  html[data-theme-preference="system"] .login-view__form vaadin-button[theme~="submit"]::part(label) {
+    color: var(--vaadin-text-color);
+  }
+
+  html:not([data-theme-preference]) .login-view__cherry,
+  html[data-theme-preference="system"] .login-view__cherry {
+    --ascii-animation-color: color-mix(in srgb, var(--vaadin-text-color) 92%, var(--aura-accent-text-color));
+    --ascii-animation-shadow: 0 0 0.15rem color-mix(in srgb, var(--vaadin-text-color) 18%, transparent);
+  }
+}
+
+html[data-theme-preference="light"] .login-view__form [slot="submit"],
+html[data-theme-preference="light"] .login-view__form vaadin-button[theme~="submit"] {
+  --vaadin-button-background: var(--aura-accent-color);
+  --vaadin-button-text-color: var(--vaadin-text-color);
+  background: var(--aura-accent-color);
+  color: var(--vaadin-text-color);
+}
+
+html[data-theme-preference="light"] .login-view__form [slot="submit"]::part(label),
+html[data-theme-preference="light"] .login-view__form vaadin-button[theme~="submit"]::part(label) {
+  color: var(--vaadin-text-color);
+}
+
+html[data-theme-preference="light"] .login-view__cherry {
+  --ascii-animation-color: color-mix(in srgb, var(--vaadin-text-color) 92%, var(--aura-accent-text-color));
+  --ascii-animation-shadow: 0 0 0.15rem color-mix(in srgb, var(--vaadin-text-color) 18%, transparent);
+}
+
 .login-view__form [slot="forgot-password"] {
   color: color-mix(in srgb, var(--aura-accent-text-color) 88%, var(--vaadin-text-color));
   font-family: var(--aura-font-family);

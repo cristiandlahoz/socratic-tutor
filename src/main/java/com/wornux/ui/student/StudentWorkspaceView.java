@@ -4,19 +4,11 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
-
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.identity.Account;
@@ -29,62 +21,53 @@ import com.wornux.services.training_activity.TrainingActivityLaunchedBus;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
-import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.auth.NoAccessView;
-import com.wornux.ui.conversation.ConversationView;
+import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "student", layout = MainLayout.class)
 @PageTitle("Espacio del estudiante")
 @PermitAll
-@RequiresPermission(AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW)
-public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterObserver, AfterNavigationObserver {
+@RequiresPermission(value = AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW, workspace = WorkspaceDestination.STUDENT)
+public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNavigationObserver {
 
-    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final WorkspaceRoutingService workspaceRoutingService;
-    private final StudentWorkspaceService studentWorkspaceService;
-    private final TrainingActivityLaunchedBus activityLaunchedBus;
-    private final Div content = new Div();
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
+    private final transient StudentWorkspaceService studentWorkspaceService;
+    private final transient TrainingActivityLaunchedBus activityLaunchedBus;
     private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
-    private final Grid<TrainingActivityAssignment> assignmentsGrid = new Grid<>(TrainingActivityAssignment.class, false);
+    private final Grid<TrainingActivityAssignment> assignmentsGrid =
+            new Grid<>(TrainingActivityAssignment.class, false);
     private AutoCloseable activityLaunchedSubscription;
 
     public StudentWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
-            WorkspaceRoutingService workspaceRoutingService,
             StudentWorkspaceService studentWorkspaceService,
             TrainingActivityLaunchedBus activityLaunchedBus) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
-        this.workspaceRoutingService = workspaceRoutingService;
         this.studentWorkspaceService = studentWorkspaceService;
         this.activityLaunchedBus = activityLaunchedBus;
 
-        UiCss.WORKSPACE_VIEW.addTo(this);
         configureToolbarFields();
         configureGrid();
 
-        content.add(
-            createHeader(
-                "Espacio del estudiante",
-                "Mantén la clase activa en contexto, revisa las actividades asignadas y vuelve al tutor cuando necesites razonar con guía."),
+        setWorkspaceContent(
+            "Espacio del estudiante",
+            "Mantén la clase activa en contexto, revisa las actividades asignadas y vuelve al tutor cuando necesites razonar con guía.",
             createToolbar(),
             assignmentsGrid);
-        content.setWidthFull();
-        add(content);
     }
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         subscribeToAssignmentLaunches(attachEvent.getUI());
-        refreshDashboard();
+        refresh();
     }
 
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        refreshDashboard();
+        refresh();
     }
 
     @Override
@@ -95,15 +78,13 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
 
     private void subscribeToAssignmentLaunches(UI ui) {
         unsubscribeFromAssignmentLaunches();
-        activityLaunchedSubscription = activityLaunchedBus.subscribe(notification -> {
-            ui.access(() -> {
-                var selectedClass = classSelector.getValue();
-                if (selectedClass == null || !notification.affectsGroupClassMember(selectedClass.groupClassMemberId())) {
-                    return;
-                }
-                refreshAssignments();
-            });
-        });
+        activityLaunchedSubscription = activityLaunchedBus.subscribe(notification -> ui.access(() -> {
+            var selectedClass = classSelector.getValue();
+            if (selectedClass == null || !notification.affectsGroupClassMember(selectedClass.groupClassMemberId())) {
+                return;
+            }
+            refreshAssignments();
+        }));
     }
 
     private void unsubscribeFromAssignmentLaunches() {
@@ -113,30 +94,12 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         try {
             activityLaunchedSubscription.close();
         }
-        catch (Exception exception) {
-            // Subscription.remove no tiene excepciones chequeadas.
+        catch (Exception _) {
+            // Best effort: UI listeners are removed during detach.
         }
         activityLaunchedSubscription = null;
     }
 
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedUserContextUtils.requireCurrentAccount();
-        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.STUDENT)) {
-            event.forwardTo(NoAccessView.class);
-            return;
-        }
-        refreshDashboard();
-    }
-
-    private Div createHeader(String title, String description) {
-        var heading = new H1(title);
-        var copy = new Paragraph(description);
-        var header = new Div(heading, copy);
-        UiCss.WORKSPACE_HERO.addTo(header);
-        UiCss.WORKSPACE_HERO_PLAIN.addTo(header);
-        return header;
-    }
 
     private void configureToolbarFields() {
         classSelector.setItemLabelGenerator(value -> "%s - %s".formatted(value.classCode(), value.className()));
@@ -149,16 +112,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
     }
 
     private Component createToolbar() {
-        var toolbar = new HorizontalLayout(classSelector);
-        UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
-        toolbar.setPadding(false);
-        toolbar.setMargin(false);
-        toolbar.setSpacing(false);
-        return toolbar;
-    }
-
-    private void openConversation() {
-        UI.getCurrent().navigate(ConversationView.class);
+        return toolbar(classSelector);
     }
 
     private void configureGrid() {
@@ -197,14 +151,18 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
                 .setHeader("Estado")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
-        assignmentsGrid.addColumn(LitRenderer.<TrainingActivityAssignment>of("""
-                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${openEvaluation}" aria-label="Abrir evaluación para ${item.title}">
-                        <vaadin-icon icon="vaadin:comments" slot="prefix"></vaadin-icon>
-                        Abrir evaluación
-                    </vaadin-button>
-                """)
-                .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
-                .withFunction("openEvaluation", this::openEvaluation))
+        assignmentsGrid
+                .addColumn(
+                    LitRenderer
+                            .<TrainingActivityAssignment>of(
+                                """
+                                    <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${openEvaluation}" aria-label="Abrir evaluación para ${item.title}">
+                                        <vaadin-icon icon="vaadin:comments" slot="prefix"></vaadin-icon>
+                                        Abrir evaluación
+                                    </vaadin-button>
+                                """)
+                            .withProperty("title", assignment -> assignment.getTrainingActivity().getTitle())
+                            .withFunction("openEvaluation", this::openEvaluation))
                 .setHeader("Opciones")
                 .setAutoWidth(true)
                 .setFlexGrow(0);
@@ -232,7 +190,7 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         UI.getCurrent().navigate("training-activity/assignments/%s".formatted(assignment.getId()));
     }
 
-    private void refreshDashboard() {
+    private void refresh() {
         var account = authenticatedUserContextUtils.requireCurrentAccount();
         var classes = studentWorkspaceService.listStudentClasses(account);
         classSelector.setItems(classes);
@@ -256,6 +214,6 @@ public class StudentWorkspaceView extends VerticalLayout implements BeforeEnterO
         }
         studentWorkspaceService
                 .switchClass(authenticatedUserContextUtils.requireCurrentAccount(), accessibleClass.groupClassMemberId());
-        refreshDashboard();
+        refresh();
     }
 }

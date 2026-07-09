@@ -152,15 +152,19 @@ STARTED
       final_report generated
 ```
 
-The current tutor service uses a fixed three-step reflection sequence:
+The current tutor runtime is adaptive. It starts with a model-generated first
+question, persists every accepted answer before the next decision, and keeps
+asking only while the transcript is producing useful evidence.
+
+The assignment can close in two internal ways:
 
 ```text
-question_count < 3  -> ask another question
-question_count >= 3 -> no next question, submit assignment
+COMPLETE_SUCCESS                  -> enough evidence for a normal report
+COMPLETE_INSUFFICIENT_EVIDENCE    -> student-facing completion stays normal,
+                                     but the professor report states that the
+                                     transcript was not sufficient for a
+                                     reliable evaluation
 ```
-
-When `nextQuestion(...)` returns `null`, the assignment is submitted and the
-report is generated in the same transaction.
 
 ## Transcript storage
 
@@ -220,7 +224,7 @@ assignment.setStatus(TrainingActivityAssignmentStatus.SUBMITTED);
 assignment.setSubmittedAt(Instant.now());
 assignment.setCurrentQuestion(null);
 assignment.setFinalReport(
-    tutorService.finalReport(assignment, transcriptMarkdown(transcript))
+    tutorService.finalReport(assignment, transcript, finalDecision)
 );
 ```
 
@@ -234,32 +238,35 @@ TrainingAssignmentTutorService.java
 Current report shape:
 
 ```text
-# Reporte diagnóstico formativo
+## Síntesis diagnóstica
+<AI formative synthesis grounded in observable evidence>
 
-**Actividad:** <activity title>
-**Pasos de reflexión completados:** <question_count>
-
-## Síntesis general
-<AI formative synthesis>
+## Evidencias observables
+- <facts that are directly visible in the transcript>
 
 ## Fortalezas observadas
 - <strengths grounded in the transcript>
 
-## Aspectos que necesitan refuerzo
+## Dudas o aspectos a trabajar
 - <reinforcement opportunities grounded in the transcript>
 
-## Señales para el profesor
-- <suggested teacher follow-up>
+## Limitaciones de esta evaluación
+- <limits caused by weak evidence or tutor false premises>
 
-## Evidencia de la conversación
+## Recomendación docente
+<suggested teacher follow-up>
+
+## Transcripción
 
 <markdown transcript>
 ```
 
 The mechanism now makes an LLM call from `TrainingAssignmentTutorService` using
-`prompt/training_activity/report-prompt.st`. The prompt receives the already-built
-transcript markdown as its primary input and asks for a compact professor-facing
-**formative diagnostic report**.
+`prompt/training_activity/report-prompt.st`. The prompt receives the activity
+instructions, title, a teacher-friendly closure summary, transcript-grounded
+evidence hints, explicit evaluation limitations, and the canonical transcript
+markdown, then asks for a compact professor-facing **formative diagnostic
+report** as valid JSON only: `{"report": "markdown completo aquí"}`.
 
 The report is still persisted in:
 
@@ -275,14 +282,19 @@ training_activity_assignment.evaluation_transcript
 
 If the model call fails, returns invalid JSON, or does not include a usable
 `report` field, submission still completes. In that case the service stores a
-fallback report with the report title, activity, completed step count, a brief
-note explaining that the AI analysis could not be generated, and the full
-transcript markdown for teacher review.
+fallback report with the same diagnostic sections, observable evidence,
+strengths, teacher-facing limitations, and a teacher recommendation. Both
+model-generated and fallback reports must be honest about insufficient evidence,
+must never invent understanding that does not exist in the transcript, and must
+not expose internal runtime metadata such as enum names, `type=...`,
+`answerQuality=...`, or `coverageStatus=...`.
 
 The diagnostic report must not assign numeric grades, percentages,
 approved/rejected labels, rankings, or definitive judgments. Its purpose is to
 help the professor understand the student's visible responses, likely strengths,
-confusions, and useful next pedagogical steps.
+confusions, and useful next pedagogical steps. Fallback reports must stay honest:
+they infer only observable signals such as very brief answers, “no sé”, examples,
+explicit reasoning, code, or blank answers.
 
 ## Professor display projection
 
@@ -319,20 +331,30 @@ TrainingActivityDialog
   -> reportButton(...)
   -> renderReportMode(...)
   -> reportBody(...)
+  -> extractTranscriptEvidence(...)
   -> parseQuestions(...)
 ```
 
 ## Structured report parsing
 
-The report view tries to parse the markdown transcript into structured question
-cards.
+The report view sanitizes teacher-facing text to remove internal metadata, then
+separates the narrative from the canonical transcript before it
+parses question cards. This keeps narrative lines in `## Lectura por intercambio`
+from being mistaken for real transcript questions.
 
 Patterns:
 
 ```text
-QUESTION_HEADING_PATTERN       -> ### Pregunta N
+QUESTION_LABEL_PATTERN         -> Pregunta N labels, including markdown headings like ### Pregunta N
+TRANSCRIPT_HEADING_PATTERN     -> ## Transcripción / ## Evidencia disponible / Transcript headings
 STUDENT_ANSWER_LABEL_PATTERN   -> **Respuesta del estudiante:**
 ```
+
+When a transcript/evidence heading is present, the parser only reads the content
+after that heading so narrative sections such as `## Lectura por intercambio` are
+not mistaken for transcript cards. Legacy canonical reports without a
+transcript/evidence heading are still parsed as a whole report, so stored reports
+that start directly with `### Pregunta 1` continue to render question cards.
 
 If parsing succeeds, the UI renders the transcript evidence as question cards:
 

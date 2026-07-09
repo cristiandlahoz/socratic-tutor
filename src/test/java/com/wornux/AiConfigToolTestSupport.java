@@ -1,6 +1,7 @@
 package com.wornux;
 
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -9,9 +10,11 @@ import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.ai.tools.ToolUsageAuditService;
 import com.wornux.config.AIConfig;
-import com.wornux.config.ChatProperties;
-import com.wornux.config.TutorAiProperties;
+import com.wornux.config.ApplicationProperties;
+import com.wornux.config.ApplicationPropertiesConfiguration;
+import com.wornux.data.enums.GuardAction;
 import com.wornux.data.enums.GuardDecision;
+import com.wornux.dtos.chat.GuardCheck;
 import com.wornux.services.chat.ChatSessionActivityBus;
 import com.wornux.services.document.DocumentRetrievalService;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -35,8 +38,8 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootConfiguration
-@EnableConfigurationProperties({ TutorAiProperties.class, ChatProperties.class })
-@Import({ AIConfig.class })
+@EnableConfigurationProperties({ ApplicationProperties.class })
+@Import({ AIConfig.class, ApplicationPropertiesConfiguration.class })
 @ImportAutoConfiguration({
         OpenAiChatAutoConfiguration.class,
         ToolCallingAutoConfiguration.class,
@@ -65,10 +68,8 @@ class AiConfigToolTestSupport {
             MeterRegistry meterRegistry,
             ObservationRegistry observationRegistry,
             ObjectMapper objectMapper,
-            TutorAiProperties tutorAiProperties) {
-        tutorAiProperties.getToolObservability().setCaptureToolReturns(true);
-        tutorAiProperties.getToolObservability().setMaxToolReturnChars(1_000);
-        return new ToolUsageAuditService(meterRegistry, observationRegistry, objectMapper, tutorAiProperties);
+            ApplicationProperties.Ai.ToolAudit toolAuditProperties) {
+        return new ToolUsageAuditService(meterRegistry, observationRegistry, objectMapper, toolAuditProperties);
     }
 
     @Bean
@@ -99,7 +100,9 @@ class AiConfigToolTestSupport {
     @Bean
     GuardClassifierService guardClassifierService() {
         var guardClassifierService = mock(GuardClassifierService.class);
-        when(guardClassifierService.classify(anyList())).thenReturn(GuardDecision.SAFE);
+        var safe = new GuardCheck(GuardDecision.SAFE, GuardAction.ALLOW);
+        when(guardClassifierService.classify(anyList())).thenReturn(safe);
+        when(guardClassifierService.classify(anyList(), anyString())).thenReturn(safe);
         return guardClassifierService;
     }
 

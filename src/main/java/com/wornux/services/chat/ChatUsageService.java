@@ -1,9 +1,8 @@
 package com.wornux.services.chat;
 
-import java.time.Instant;
 import java.util.UUID;
 
-import com.wornux.config.ChatProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.dtos.chat.ConversationTokenUsage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,21 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatUsageService {
 
     private final ConversationService conversationService;
-    private final ChatProperties chatProperties;
+    private final ApplicationProperties.Ai.Conversation chatProperties;
 
-    public ChatUsageService(ConversationService conversationService, ChatProperties chatProperties) {
+    public ChatUsageService(ConversationService conversationService, ApplicationProperties.Ai.Conversation chatProperties) {
         this.conversationService = conversationService;
         this.chatProperties = chatProperties;
-    }
-
-    @Transactional
-    public void updateConversationInputTokens(UUID conversationId, Integer inputTokens) {
-        if (inputTokens == null) {
-            return;
-        }
-        var conversation = conversationService.requireOwnedConversation(conversationId);
-        conversation.setLastPromptTokens(inputTokens);
-        conversation.setUpdatedAt(Instant.now());
     }
 
     @Transactional(readOnly = true)

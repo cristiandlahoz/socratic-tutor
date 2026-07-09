@@ -1,6 +1,6 @@
 package com.wornux.infrastructure.email;
 
-import com.wornux.config.SocraticEmailProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.services.email.EmailMessage;
 import com.wornux.services.email.EmailSendException;
 import com.wornux.services.email.EmailService;
@@ -14,9 +14,9 @@ import org.springframework.stereotype.Service;
 public class SmtpEmailService implements EmailService {
 
     private final JavaMailSender mailSender;
-    private final SocraticEmailProperties emailProperties;
+    private final ApplicationProperties.Email emailProperties;
 
-    public SmtpEmailService(JavaMailSender mailSender, SocraticEmailProperties emailProperties) {
+    public SmtpEmailService(JavaMailSender mailSender, ApplicationProperties.Email emailProperties) {
         this.mailSender = mailSender;
         this.emailProperties = emailProperties;
     }

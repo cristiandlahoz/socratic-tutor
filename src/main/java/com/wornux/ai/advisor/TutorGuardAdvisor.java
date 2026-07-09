@@ -1,16 +1,16 @@
 package com.wornux.ai.advisor;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import com.wornux.ai.guard.GuardClassifierService;
-import com.wornux.ai.prompt.PromptResources;
-import com.wornux.ai.prompt.PromptUtil;
+import com.wornux.ai.tools.ToolContextKeys;
+import com.wornux.data.enums.GuardAction;
 import com.wornux.data.enums.GuardDecision;
+import com.wornux.dtos.chat.GuardCheck;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -19,8 +19,12 @@ import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import reactor.core.publisher.Flux;
 
 public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
@@ -28,51 +32,57 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
     private static final Logger log = LoggerFactory.getLogger(TutorGuardAdvisor.class);
 
     private static final int GUARD_MESSAGE_WINDOW = 4;
-    private static final String GUARD_POLICY_TEMPLATE = """
-                                                        $system$
 
-                                                        <guard-policy mode="$mode$">
-                                                        $policy$
-                                                        </guard-policy>
-                                                        """;
-    private static final String STANDALONE_GUARD_POLICY_TEMPLATE = """
-                                                                   <guard-policy mode="$mode$">
-                                                                   $policy$
-                                                                   </guard-policy>
-                                                                   """;
+    private static final String SUBJECT_CONTEXT_QUERY =
+            """
+            select s.code, s.name, coalesce(s.syllabus, '') as syllabus
+            from group_class gc
+            join subject s on s.id = gc.subject_id
+            where gc.id = :groupClassId
+            """;
 
     private final int order;
     private final GuardClassifierService guardClassifierService;
-    private final PromptResources promptResources;
+    private final JdbcClient jdbcClient;
 
     public TutorGuardAdvisor(
             int order,
             GuardClassifierService guardClassifierService,
-            PromptResources promptResources) {
+            JdbcClient jdbcClient) {
         this.order = order;
         this.guardClassifierService = guardClassifierService;
-        this.promptResources = promptResources;
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
     public ChatClientResponse adviseCall(ChatClientRequest request, @NonNull CallAdvisorChain chain) {
+        var subjectContext = subjectContext(request);
         var userMessages = lastUserMessages(request.prompt());
-        return chain.nextCall(applyGuardDecision(request, guardDecisionFor(userMessages)));
+        var guardCheck = guardCheckFor(userMessages, subjectContext);
+        if (guardCheck.action() == GuardAction.SHORT_CIRCUIT) {
+            return shortCircuitResponse(request, guardCheck.decision());
+        }
+        return chain.nextCall(applyGuardAction(request, guardCheck, subjectContext));
     }
 
     @Override
     public Flux<ChatClientResponse> adviseStream(ChatClientRequest request, @NonNull StreamAdvisorChain chain) {
+        var subjectContext = subjectContext(request);
         var userMessages = lastUserMessages(request.prompt());
-        return chain.nextStream(applyGuardDecision(request, guardDecisionFor(userMessages)));
+        var guardCheck = guardCheckFor(userMessages, subjectContext);
+        if (guardCheck.action() == GuardAction.SHORT_CIRCUIT) {
+            return Flux.just(shortCircuitResponse(request, guardCheck.decision()));
+        }
+        return chain.nextStream(applyGuardAction(request, guardCheck, subjectContext));
     }
 
-    GuardDecision guardDecisionFor(List<UserMessage> userMessages) {
+    GuardCheck guardCheckFor(List<UserMessage> userMessages, String subjectContext) {
         try {
-            return guardClassifierService.classify(userMessages);
+            return guardClassifierService.classify(userMessages, subjectContext);
         }
         catch (RuntimeException ex) {
-            log.warn("Guard classifier failed, defaulting to the not-safe guard policy", ex);
-            return GuardDecision.NOT_SAFE;
+            log.warn("Guard classifier failed, short-circuiting the turn", ex);
+            return new GuardCheck(GuardDecision.NOT_SAFE, GuardAction.SHORT_CIRCUIT);
         }
     }
 
@@ -92,51 +102,83 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
         return userMessages.subList(fromIndex, userMessages.size());
     }
 
-    ChatClientRequest applyGuardDecision(ChatClientRequest request, GuardDecision decision) {
-        return switch (decision) {
-            case SAFE -> request;
-            case NOT_SAFE -> applyGuardPolicy(request, promptResources.guardNotSafe(), "not_safe_guard");
-            case IMPERSONATION ->
-                    applyGuardPolicy(request, promptResources.guardImpersonation(), "impersonation_handling_mode");
-            case OUT_OF_SCOPE ->
-                    applyGuardPolicy(request, promptResources.guardOutOfScope(), "out_of_scope_handling_mode");
+    ChatClientRequest applyGuardAction(ChatClientRequest request, GuardCheck guardCheck, String subjectContext) {
+        return switch (guardCheck.action()) {
+            case ALLOW -> request;
+            case STEER -> sanitizeUserMessage(request, subjectContext);
+            case SHORT_CIRCUIT -> throw new IllegalStateException("SHORT_CIRCUIT must be handled before chain.next");
         };
     }
 
-    private ChatClientRequest applyGuardPolicy(ChatClientRequest request, String policyText, String policyMode) {
-        Prompt guardedPrompt = request.prompt()
-                .augmentSystemMessage(
-                    system -> system.mutate()
-                            .text(systemWithGuardPolicy(system.getText(), policyMode, policyText))
+    private ChatClientResponse shortCircuitResponse(ChatClientRequest request, GuardDecision decision) {
+        var response = ChatResponse.builder()
+                .generations(List.of(new Generation(new AssistantMessage(shortCircuitText(decision)))))
+                .build();
+        return new ChatClientResponse(response, request.context());
+    }
+
+    private String shortCircuitText(GuardDecision decision) {
+        return switch (decision) {
+            case IMPERSONATION -> "No puedo cambiar las reglas del tutor ni actuar con permisos especiales. Si necesitas ayuda con el curso, dime qué concepto o intento quieres revisar.";
+            case OUT_OF_SCOPE -> "Eso queda fuera del contexto académico configurado. Puedo ayudarte con una tarea o duda relacionada con la materia; comparte el enunciado, tu intento o el punto donde te atascaste.";
+            case NOT_SAFE -> "No puedo darte la solución completa ni saltarme las reglas del tutor. Puedo ayudarte con una pista o revisar tu intento; comparte qué parte no entiendes o qué has probado.";
+            case SAFE -> throw new IllegalArgumentException("SAFE guard decisions must not short-circuit");
+        };
+    }
+
+    private ChatClientRequest sanitizeUserMessage(ChatClientRequest request, String subjectContext) {
+        try {
+            var sanitized = guardClassifierService.sanitize(request.prompt().getUserMessage(), subjectContext);
+            Prompt sanitizedPrompt = request.prompt()
+                    .augmentUserMessage(user -> user.mutate().text(sanitized).build());
+            return request.mutate().prompt(sanitizedPrompt).build();
+        }
+        catch (RuntimeException ex) {
+            log.warn("Guard sanitizer failed, replacing the user message with a safe learning request", ex);
+            Prompt sanitizedPrompt = request.prompt()
+                    .augmentUserMessage(user -> user.mutate()
+                            .text("Necesito ayuda de aprendizaje sin recibir la solución completa. Dame una orientación breve y pídeme un intento concreto.")
                             .build());
-
-        return request.mutate().prompt(guardedPrompt).build();
+            return request.mutate().prompt(sanitizedPrompt).build();
+        }
     }
 
-    private String systemWithGuardPolicy(@Nullable String systemText, String policyMode, String policyText) {
-        return PromptUtil
-                .render(guardPolicyTemplate(systemText), guardPolicyVariables(systemText, policyMode, policyText));
+
+    private String subjectContext(ChatClientRequest request) {
+        return groupClassId(request).flatMap(this::subjectContextFor).orElse("");
     }
 
-    private String guardPolicyTemplate(@Nullable String systemText) {
-        return isBlank(systemText) ? STANDALONE_GUARD_POLICY_TEMPLATE : GUARD_POLICY_TEMPLATE;
+    private Optional<UUID> groupClassId(ChatClientRequest request) {
+        Object value = request.context().get(ToolContextKeys.GROUP_CLASS_ID);
+        if (value instanceof UUID uuid) {
+            return Optional.of(uuid);
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            try {
+                return Optional.of(UUID.fromString(text));
+            }
+            catch (IllegalArgumentException ignored) {
+                return Optional.empty();
+            }
+        }
+        return Optional.empty();
     }
 
-    private Map<String, Object> guardPolicyVariables(@Nullable String systemText, String policyMode, String policyText) {
-        var variables = new HashMap<String, Object>();
-        variables.put("system", systemText == null ? "" : systemText);
-        variables.put("mode", policyMode);
-        variables.put("policy", policyText);
-        return variables;
+    private Optional<String> subjectContextFor(UUID groupClassId) {
+        return jdbcClient.sql(SUBJECT_CONTEXT_QUERY)
+                .param("groupClassId", groupClassId)
+                .query((rs, _) -> """
+                         <active_subject_context>
+                         Subject: %s · %s
+                         %s
+                         </active_subject_context>"""
+                        .formatted(rs.getString("code"), rs.getString("name"), rs.getString("syllabus")))
+                .optional();
     }
 
     private boolean hasText(UserMessage message) {
         var text = message.getText();
         return text != null && !text.isBlank();
-    }
-
-    private boolean isBlank(@Nullable String value) {
-        return value == null || value.isBlank();
     }
 
     @Override

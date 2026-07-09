@@ -1,65 +1,48 @@
 package com.wornux.ui.professor;
 
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
-import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.ProfessorWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
-import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.auth.NoAccessView;
-import com.wornux.ui.conversation.ConversationView;
+import com.wornux.ui.components.TerminalDialog;
+import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
-import com.wornux.ui.ingestion.DocumentIngestionView;
-import com.wornux.ui.training_activity.TrainingActivityView;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "professor", layout = MainLayout.class)
 @PageTitle("Espacio del profesor")
 @PermitAll
-@RequiresPermission(AppPermission.GROUP_CLASS_MEMBER_VIEW)
-public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+@RequiresPermission(value = AppPermission.GROUP_CLASS_MEMBER_VIEW, workspace = WorkspaceDestination.PROFESSOR)
+public class ProfessorWorkspaceView extends WorkspaceViewShell implements AfterNavigationObserver {
 
     private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final WorkspaceRoutingService workspaceRoutingService;
     private final ProfessorWorkspaceService professorWorkspaceService;
-    private final ComboBox<AccessibleClass> classSelector = new ComboBox<>("Contexto de clase");
     private final Grid<com.wornux.data.entities.academic.GroupClassMember> studentsGrid =
             new Grid<>(GroupClassMember.class, false);
-    private final EmailField studentEmailField = new EmailField("Correo del estudiante");
 
     public ProfessorWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
-            WorkspaceRoutingService workspaceRoutingService,
             ProfessorWorkspaceService professorWorkspaceService) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
-        this.workspaceRoutingService = workspaceRoutingService;
         this.professorWorkspaceService = professorWorkspaceService;
 
-        UiCss.WORKSPACE_VIEW.addTo(this);
-        classSelector.setItemLabelGenerator(value -> "%s - %s".formatted(value.classCode(), value.className()));
-        classSelector.addValueChangeListener(event -> {
-            if (event.isFromClient()) {
-                switchClass(event.getValue());
-            }
-        });
+        UiCss.WORKSPACE_GRID.addTo(studentsGrid);
+        UiCss.WORKSPACE_TENANT_GRID.addTo(studentsGrid);
+        studentsGrid.setWidthFull();
+        studentsGrid.setSelectionMode(Grid.SelectionMode.NONE);
         studentsGrid.addColumn(
             member -> "%s %s".formatted(
                 member.getTenantAccount().getAccount().getFirstName(),
@@ -69,52 +52,77 @@ public class ProfessorWorkspaceView extends VerticalLayout implements BeforeEnte
         studentsGrid.addComponentColumn(member -> new Button("Deshabilitar", _ -> disableStudent(member.getId())))
                 .setHeader("Acciones");
 
-        add(
-            new H1("Espacio del profesor"),
-            classSelector,
-            new HorizontalLayout(
-                    new Button("Abrir conversación", _ -> UI.getCurrent().navigate(ConversationView.class)),
-                    new Button("Documentos", _ -> UI.getCurrent().navigate(DocumentIngestionView.class)),
-                    new Button("Actividades formativas", _ -> UI.getCurrent().navigate(TrainingActivityView.class))),
-            new HorizontalLayout(studentEmailField,
-                    new Button("Enviar invitación", new Icon(VaadinIcon.PAPERPLANE), _ -> inviteStudent())),
+        var inviteButton = primaryButton("Enviar invitación", this::openInviteStudentDialog);
+        inviteButton.setIcon(new SvgIcon("/icons/IconEnvelope.svg"));
+        var actionBar = toolbar(inviteButton);
+        UiCss.PROFESSOR_ACTION_BAR.addTo(actionBar);
+
+        setWorkspaceContent(
+            "Espacio del profesor",
+            "Revisa quién tiene acceso a tu clase activa y envía invitaciones puntuales desde un flujo enfocado.",
+            actionBar,
             studentsGrid);
     }
 
     @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedUserContextUtils.requireCurrentAccount();
-        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.PROFESSOR)) {
-            event.forwardTo(NoAccessView.class);
-            return;
-        }
+    public void afterNavigation(AfterNavigationEvent event) {
         refresh();
     }
 
     private void refresh() {
         var account = authenticatedUserContextUtils.requireCurrentAccount();
-        var classes = professorWorkspaceService.listProfessorClasses(account);
-        classSelector.setItems(classes);
-        if (!classes.isEmpty() && classSelector.getValue() == null) {
-            classSelector.setValue(classes.getFirst());
-        }
         studentsGrid.setItems(professorWorkspaceService.listStudents(account));
     }
 
-    private void switchClass(AccessibleClass accessibleClass) {
-        if (accessibleClass == null) {
-            return;
-        }
-        professorWorkspaceService
-                .switchClass(authenticatedUserContextUtils.requireCurrentAccount(), accessibleClass.groupClassMemberId());
-        refresh();
+    private void openInviteStudentDialog() {
+        var emailField = new EmailField("Correo del estudiante");
+        UiCss.WORKSPACE_FIELD.addTo(emailField);
+        emailField.setPlaceholder("estudiante@institucion.edu");
+        emailField.setErrorMessage("Escribe un correo válido.");
+        emailField.setWidthFull();
+        emailField.getElement().setAttribute("autocomplete", "off");
+        emailField.getElement().setAttribute("autocapitalize", "none");
+        emailField.getElement().setAttribute("autocorrect", "off");
+        emailField.getElement().setAttribute("spellcheck", "false");
+        emailField.getElement().setAttribute("data-1p-ignore", "true");
+        emailField.getElement().setAttribute("data-lpignore", "true");
+        emailField.getElement().setAttribute("data-form-type", "other");
+
+        var dialog = new TerminalDialog(
+            "student.invitation",
+            "Invitar estudiante",
+            "Escribe el correo institucional del estudiante. Recibirá un enlace para unirse a la clase activa.",
+            emailField);
+        var cancel = secondaryButton("Cancelar", dialog::close);
+        var send = primaryButton("Enviar invitación", () -> inviteStudent(dialog, emailField));
+        send.setIcon(new SvgIcon("/icons/IconEnvelope.svg"));
+        dialog.addActions(cancel, send);
+        dialog.open();
+        emailField.getElement().executeJs("""
+                const input = this.shadowRoot?.querySelector('input');
+                if (input) {
+                  input.setAttribute('autocomplete', 'off');
+                  input.setAttribute('autocapitalize', 'none');
+                  input.setAttribute('autocorrect', 'off');
+                  input.setAttribute('spellcheck', 'false');
+                  input.setAttribute('data-1p-ignore', 'true');
+                  input.setAttribute('data-lpignore', 'true');
+                  input.setAttribute('data-form-type', 'other');
+                }
+                """);
+        emailField.focus();
     }
 
-    private void inviteStudent() {
+    private void inviteStudent(Dialog dialog, EmailField inviteEmailField) {
+        if (inviteEmailField.isEmpty()) {
+            inviteEmailField.setInvalid(true);
+            return;
+        }
         try {
             professorWorkspaceService
-                    .inviteStudent(authenticatedUserContextUtils.requireCurrentAccount(), studentEmailField.getValue());
-            studentEmailField.clear();
+                    .inviteStudent(authenticatedUserContextUtils.requireCurrentAccount(), inviteEmailField.getValue());
+            dialog.close();
+            refresh();
             Notification.show("Invitación enviada.");
         }
         catch (RuntimeException exception) {

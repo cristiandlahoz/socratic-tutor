@@ -14,7 +14,7 @@ import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.SvgIcon;
 import com.wornux.data.entities.identity.Account;
-import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.services.context.AvailableContextOption;
 import com.wornux.services.context.ContextDiscoveryService;
@@ -59,8 +59,8 @@ public class ProfileDrawerCard extends Component implements HasComponents {
             ContextSelectionService contextSelectionService) {
         var options = contextDiscoveryService.discover(account);
         var active = activeContextHolder.current();
-        var tenantOptions = options.stream().filter(option -> option.level() == ContextLevel.TENANT).toList();
-        var classOptions = options.stream().filter(option -> option.level() == ContextLevel.GROUP_CLASS).toList();
+        var tenantOptions = options.stream().filter(option -> option.level() == ScopeLevel.TENANT).toList();
+        var classOptions = options.stream().filter(option -> option.level() == ScopeLevel.GROUP_CLASS).toList();
 
         var container = new Div();
         UiCss.PROFILE_DRAWER_CARD_CONTEXT.addTo(container);
@@ -70,7 +70,7 @@ public class ProfileDrawerCard extends Component implements HasComponents {
         }
 
         if (classOptions.size() > 1
-                || active.map(context -> context.level() == ContextLevel.GROUP_CLASS).orElse(false)) {
+                || active.map(context -> context.level() == ScopeLevel.GROUP_CLASS).orElse(false)) {
             var selector = new ComboBox<AvailableContextOption>("Clase");
             UiCss.PROFILE_DRAWER_CARD_CONTEXT_SELECT.addTo(selector);
             selector.setItems(classOptions);

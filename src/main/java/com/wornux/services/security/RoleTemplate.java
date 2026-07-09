@@ -2,7 +2,7 @@ package com.wornux.services.security;
 
 import java.util.Arrays;
 
-import com.wornux.data.entities.authorization.RoleAssignmentLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.security.permission.AppPermission;
 
 public enum RoleTemplate {
@@ -10,7 +10,7 @@ public enum RoleTemplate {
             "SYSTEM_ADMIN",
             "System Admin",
             "Platform-level administrator with full visibility.",
-            RoleAssignmentLevel.PLATFORM,
+            ScopeLevel.PLATFORM,
             100,
             false,
             true,
@@ -28,7 +28,7 @@ public enum RoleTemplate {
             "TENANT_ADMIN",
             "Tenant Admin",
             "Tenant-scoped academic administrator.",
-            RoleAssignmentLevel.TENANT,
+            ScopeLevel.TENANT,
             80,
             true,
             true,
@@ -73,7 +73,7 @@ public enum RoleTemplate {
             "PROFESSOR",
             "Professor",
             "Professor operating inside assigned group classes.",
-            RoleAssignmentLevel.GROUP_CLASS,
+            ScopeLevel.GROUP_CLASS,
             60,
             true,
             true,
@@ -106,7 +106,7 @@ public enum RoleTemplate {
             "STUDENT",
             "Student",
             "Student operating only inside owned group-class scope.",
-            RoleAssignmentLevel.GROUP_CLASS,
+            ScopeLevel.GROUP_CLASS,
             40,
             true,
             true,
@@ -122,7 +122,7 @@ public enum RoleTemplate {
     private final String code;
     private final String displayName;
     private final String description;
-    private final RoleAssignmentLevel assignmentLevel;
+    private final ScopeLevel assignmentLevel;
     private final int priority;
     private final boolean assignable;
     private final boolean systemDefined;
@@ -132,7 +132,7 @@ public enum RoleTemplate {
             String code,
             String displayName,
             String description,
-            RoleAssignmentLevel assignmentLevel,
+            ScopeLevel assignmentLevel,
             int priority,
             boolean assignable,
             boolean systemDefined,
@@ -153,7 +153,7 @@ public enum RoleTemplate {
 
     public String description() { return description; }
 
-    public RoleAssignmentLevel assignmentLevel() { return assignmentLevel; }
+    public ScopeLevel assignmentLevel() { return assignmentLevel; }
 
     public int priority() { return priority; }
 

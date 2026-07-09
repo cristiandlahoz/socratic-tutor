@@ -85,6 +85,44 @@
   gap: var(--vaadin-gap-s);
 }
 
+document-upload-dropzone vaadin-upload {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+}
+
+document-upload-dropzone vaadin-upload::part(primary-buttons) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+document-upload-dropzone vaadin-upload::part(drop-label) {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 5.5rem);
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  transform: translateY(-50%);
+}
+
+document-upload-dropzone vaadin-upload > vaadin-button.document-ingest-upload-button {
+  flex: 0 0 auto !important;
+}
+
+document-upload-dropzone vaadin-upload > [slot='drop-label'] {
+  display: none;
+}
+
 .document-ingest-upload-copy,
 .document-ingest-section-header,
 .document-ingest-catalog-shell,
@@ -219,6 +257,14 @@ vaadin-button.document-ingest-segment-delete-button::part(button) {
       border-color var(--motion-fast),
       color var(--motion-fast),
       transform var(--motion-fast);
+}
+
+.document-ingest-trash-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background: var(--vaadin-text-color);
+  mask: url('/icons/trash.svg') center / contain no-repeat;
 }
 
 vaadin-button.document-ingest-back-button:hover::part(button),

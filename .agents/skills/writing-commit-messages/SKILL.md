@@ -65,8 +65,14 @@ listing files.
 - Use this skill for both drafting commit messages and executing
   commits. Do not bypass it when the user asks to commit changes.
 - If `.jj` is present, use `jj` instead of `git` for all commands.
-- Run a diff to see what changes are present since the last commit.
-- Identify the subsystem from the changed file paths.
+- Run status, stat, and full diff commands to thoroughly understand what
+  changes are present since the last commit before drafting messages.
+- Analyze the diff for semantic boundaries: group changes by intent,
+  behavior, or subsystem, not merely by file path. If unrelated changes
+  are present, split them into separate commits with `jj split` or the
+  equivalent Git staging workflow before committing.
+- Identify the subsystem from the changed file paths and the semantic
+  purpose of each group.
 - Identify any referenced issues/PRs from the diff context or
   branch name.
 - Draft the commit message following the format above.

@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.NotFoundException;
-import com.wornux.config.CProgramAnalysisProperties;
+import com.wornux.config.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -27,9 +27,9 @@ public class DockerImageStartupGuard implements ApplicationRunner {
     private static final long PULL_TIMEOUT_MINUTES = 5;
 
     private final DockerClient dockerClient;
-    private final CProgramAnalysisProperties properties;
+    private final ApplicationProperties.CRunner properties;
 
-    public DockerImageStartupGuard(DockerClient dockerClient, CProgramAnalysisProperties properties) {
+    public DockerImageStartupGuard(DockerClient dockerClient, ApplicationProperties.CRunner properties) {
         this.dockerClient = dockerClient;
         this.properties = properties;
     }

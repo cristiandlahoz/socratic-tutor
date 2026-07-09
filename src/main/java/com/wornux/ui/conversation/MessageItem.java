@@ -29,17 +29,34 @@ public final class MessageItem {
     @Getter
     private final boolean loading;
     @Getter
+    private final String loadingLabel;
+    @Getter
+    private final boolean debuggableCodeBlocks;
+    @Getter
     private String text;
     transient String clientText;
+    transient boolean clientLoading;
     transient MessagesList host;
 
     public MessageItem(String text, Instant time, String userName, Variant variant, boolean loading) {
+        this(text, time, userName, variant, loading, true, null);
+    }
+
+    public MessageItem(String text, Instant time, String userName, Variant variant, boolean loading, boolean debuggableCodeBlocks) {
+        this(text, time, userName, variant, loading, debuggableCodeBlocks, null);
+    }
+
+    public MessageItem(String text, Instant time, String userName, Variant variant, boolean loading,
+            boolean debuggableCodeBlocks, String loadingLabel) {
         this.text = text != null ? text : "";
         this.clientText = this.text;
         this.time = time != null ? time.toString() : "";
         this.userName = Objects.requireNonNull(userName, "userName cannot be null");
         this.variant = Objects.requireNonNull(variant, "variant cannot be null");
         this.loading = loading;
+        this.loadingLabel = loadingLabel == null || loadingLabel.isBlank() ? null : loadingLabel;
+        this.debuggableCodeBlocks = debuggableCodeBlocks;
+        this.clientLoading = loading;
     }
 
     public String getVariant() {

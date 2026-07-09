@@ -1,20 +1,16 @@
 import './braille-spinner.js';
 import './markdown-renderer.js';
+import { ensureDocumentStyle } from 'Frontend/shared/dom-utils.js';
 import { LitElement, html } from 'lit';
 import type { BrailleSpinnerName } from './braille-spinners.js';
+import { resolveLoadingLabel } from './message-item-loading-label.js';
 
 const MESSAGE_ITEM_STYLE_ID = 'message-item-styles';
 
 type MessageVariant = 'user' | 'assistant';
 
 function ensureMessageItemStyles(): void {
-  if (document.getElementById(MESSAGE_ITEM_STYLE_ID)) {
-    return;
-  }
-
-  const style = document.createElement('style');
-  style.id = MESSAGE_ITEM_STYLE_ID;
-  style.textContent = `
+  ensureDocumentStyle(MESSAGE_ITEM_STYLE_ID, `
     message-item {
       --message-item-font-size-base: var(--aura-font-size-m, 13px);
       --message-item-font-size: var(--message-font-size, var(--message-item-font-size-base));
@@ -82,7 +78,7 @@ function ensureMessageItemStyles(): void {
     }
 
     message-item[loading] braille-spinner {
-      --thinking-spinner-size: clamp(1.5rem, 2vw, 1.95rem);
+      --thinking-spinner-size: clamp(0.75rem, 1vw, 0.975rem);
       --thinking-spinner-weight: 400;
       --thinking-spinner-color: var(--aura-accent-text-color);
       --thinking-spinner-accent-color: var(--aura-red);
@@ -123,8 +119,7 @@ function ensureMessageItemStyles(): void {
         max-inline-size: 100%;
       }
     }
-  `;
-  document.head.appendChild(style);
+  `);
 }
 
 class MessageItem extends LitElement {
@@ -134,6 +129,8 @@ class MessageItem extends LitElement {
     userName: { type: String, attribute: 'user-name' },
     variant: { type: String, reflect: true },
     loading: { type: Boolean, reflect: true },
+    loadingLabel: { type: String, attribute: 'loading-label' },
+    debuggableCodeBlocks: { type: Boolean, attribute: 'debuggable-code-blocks' },
     thinkingSpinner: { type: String, attribute: 'thinking-spinner' },
   };
 
@@ -142,6 +139,8 @@ class MessageItem extends LitElement {
   declare userName: string;
   declare variant: MessageVariant;
   declare loading: boolean;
+  declare loadingLabel: string;
+  declare debuggableCodeBlocks: boolean;
   declare thinkingSpinner: BrailleSpinnerName;
 
   constructor() {
@@ -151,7 +150,10 @@ class MessageItem extends LitElement {
     this.userName = '';
     this.variant = 'assistant';
     this.loading = false;
+    this.loadingLabel = '';
+    this.debuggableCodeBlocks = false;
     this.thinkingSpinner = 'braille';
+    this.loadingLabel = 'Generando respuesta';
   }
 
   connectedCallback(): void {
@@ -172,20 +174,20 @@ class MessageItem extends LitElement {
       return html`
         <span class="message-item__loading">
           <braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>
-          <span class="message-item__loading-label">Generando respuesta</span>
+          <span class="message-item__loading-label">${resolveLoadingLabel(this.loadingLabel)}</span>
         </span>
       `;
     }
 
-    return html`<markdown-renderer
-      .content=${this.text ?? ''}
-      .debuggableCodeBlocks=${this.variant === 'assistant'}
-    ></markdown-renderer>`;
+      return html`<markdown-renderer
+        .content=${this.text ?? ''}
+        .debuggableCodeBlocks=${this.debuggableCodeBlocks}
+      ></markdown-renderer>`;
   }
 
   private accessibleLabel(): string {
     if (this.loading) {
-      return 'Tutor Socrático está pensando';
+      return resolveLoadingLabel(this.loadingLabel);
     }
 
     const author = this.userName?.trim() || 'Mensaje';

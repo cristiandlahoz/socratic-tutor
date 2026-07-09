@@ -8,9 +8,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.SvgIcon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
@@ -24,10 +22,10 @@ import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionService;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
+import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.components.ProfileDrawerCard;
 import com.wornux.ui.components.ToggleIcon;
 import com.wornux.ui.components.sidebar.ConversationHistoryDrawer;
-import com.wornux.ui.components.sidebar.SidebarDividerLine;
 import com.wornux.ui.components.sidebar.WorkspaceDrawerNavigation;
 import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.conversation.ConversationViewModel;
@@ -45,13 +43,14 @@ public class MainLayout extends AppLayout {
 
     private final ConversationState state;
     private final ConversationViewModel viewModel;
-    private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final AuthenticationContext authenticationContext;
-    private final ActiveContextHolder activeContextHolder;
-    private final AuthorizationService authorizationService;
-    private final ContextDiscoveryService contextDiscoveryService;
-    private final ContextSelectionService contextSelectionService;
-    private final NavigationRegistry navigationRegistry;
+    private final transient AuthenticatedUserContextUtils authenticatedUserContextUtils;
+    private final transient AuthenticationContext authenticationContext;
+    private final transient ActiveContextHolder activeContextHolder;
+    private final transient AuthorizationService authorizationService;
+    private final transient ContextDiscoveryService contextDiscoveryService;
+    private final transient ContextSelectionService contextSelectionService;
+    private final transient NavigationRegistry navigationRegistry;
+    private final transient WorkspaceRoutingService workspaceRoutingService;
     private final Div drawerContent = new Div();
 
     public MainLayout(
@@ -63,7 +62,8 @@ public class MainLayout extends AppLayout {
             AuthorizationService authorizationService,
             ContextDiscoveryService contextDiscoveryService,
             ContextSelectionService contextSelectionService,
-            NavigationRegistry navigationRegistry) {
+            NavigationRegistry navigationRegistry,
+            WorkspaceRoutingService workspaceRoutingService) {
         this.state = state;
         this.viewModel = viewModel;
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
@@ -73,6 +73,7 @@ public class MainLayout extends AppLayout {
         this.contextDiscoveryService = contextDiscoveryService;
         this.contextSelectionService = contextSelectionService;
         this.navigationRegistry = navigationRegistry;
+        this.workspaceRoutingService = workspaceRoutingService;
 
         setPrimarySection(Section.DRAWER);
         addToNavbar(createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE, "Abrir menú"));
@@ -91,7 +92,6 @@ public class MainLayout extends AppLayout {
 
     private void refreshDrawerContent() {
         drawerContent.removeAll();
-        drawerContent.add(new SidebarDividerLine());
         drawerContent.add(createBrandSection());
 
         var currentAccount = authenticatedUserContextUtils.currentAccount();
@@ -99,11 +99,14 @@ public class MainLayout extends AppLayout {
             return;
         }
 
+        var account = currentAccount.get();
         var entries = navigationRegistry.entries().stream()
                 .filter(entry -> activeContextHolder.current()
                         .map(context -> context.level().ordinal() >= entry.minimumContextLevel().ordinal())
                         .orElse(false))
                 .filter(entry -> authorizationService.can(entry.requiredPermission()))
+                .filter(entry -> entry.workspaceDestination() == null
+                        || workspaceRoutingService.canAccessWorkspace(account, entry.workspaceDestination()))
                 .sorted(Comparator.comparingInt(NavigationEntry::order))
                 .toList();
         drawerContent.add(new WorkspaceDrawerNavigation(entries));
@@ -134,7 +137,11 @@ public class MainLayout extends AppLayout {
             return true;
         }
         try {
-            return authorizationService.can(permission.value());
+            return authorizationService.can(permission.value())
+                    && (permission.workspace() == com.wornux.services.workspace.WorkspaceDestination.NO_ACCESS
+                            || workspaceRoutingService.canAccessWorkspace(
+                                    authenticatedUserContextUtils.requireCurrentAccount(),
+                                    permission.workspace()));
         }
         catch (RuntimeException _) {
             return false;
@@ -146,15 +153,7 @@ public class MainLayout extends AppLayout {
         UiCss.APP_SIDEBAR_BRAND_TITLE.addTo(appTitle);
         appTitle.getElement().setAttribute("aria-label", "Tutor Socrático");
 
-        var appDescription = "Tutor para explorar ideas, resolver dudas y aprender introducción a la algoritmia "
-                + "con conversaciones guiadas.";
-        var appInfo = new Button(new Icon(VaadinIcon.INFO_CIRCLE_O));
-        appInfo.addThemeVariants(ButtonVariant.TERTIARY);
-        UiCss.APP_SIDEBAR_BRAND_INFO.addTo(appInfo);
-        appInfo.setAriaLabel("Acerca de Tutor Socrático");
-        appInfo.setTooltipText(appDescription);
-
-        var appTitleGroup = new Div(appTitle, appInfo);
+        var appTitleGroup = new Div(appTitle);
         UiCss.APP_SIDEBAR_BRAND_TITLE_GROUP.addTo(appTitleGroup);
 
         var drawerToggle = createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE_INSIDE, "Cerrar menú");

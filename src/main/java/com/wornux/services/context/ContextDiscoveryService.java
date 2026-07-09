@@ -6,7 +6,7 @@ import java.util.List;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.authorization.TenantAccountRole;
 import com.wornux.data.entities.identity.Account;
-import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.authorization.AccountPlatformRoleRepository;
 import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
@@ -35,7 +35,7 @@ public class ContextDiscoveryService {
         var options = new java.util.ArrayList<AvailableContextOption>();
         if (isPlatformAccount(account)) {
             options.add(new AvailableContextOption(
-                    ContextLevel.PLATFORM,
+                    ScopeLevel.PLATFORM,
                     null,
                     null,
                     "Plataforma",
@@ -46,7 +46,7 @@ public class ContextDiscoveryService {
         findTenantAdminRoles(account).stream().findFirst().ifPresent(role -> {
             var tenant = role.getTenantAccount().getTenant();
             options.add(new AvailableContextOption(
-                    ContextLevel.TENANT,
+                    ScopeLevel.TENANT,
                     tenant.getId(),
                     null,
                     tenant.getName(),
@@ -84,7 +84,7 @@ public class ContextDiscoveryService {
     private AvailableContextOption toClassOption(GroupClassMember member) {
         var groupClass = member.getGroupClass();
         return new AvailableContextOption(
-                ContextLevel.GROUP_CLASS,
+                ScopeLevel.GROUP_CLASS,
                 groupClass.getTenant().getId(),
                 groupClass.getId(),
                 "%s · %s".formatted(groupClass.getCode(), groupClass.getName()),

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
+import com.wornux.config.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,11 +31,11 @@ public class ModelAvailabilityService {
     public ModelAvailabilityService(
             @Value("${spring.ai.openai.base-url}") String baseUrl,
             @Value("${spring.ai.openai.api-key:}") String apiKey,
-            @Value("${app.ai.model-availability.timeout:2s}") Duration timeout) {
+            ApplicationProperties.Ai.ModelAvailability modelAvailabilityProperties) {
         this.apiKey = apiKey;
-        this.timeout = timeout;
+        this.timeout = modelAvailabilityProperties.getTimeout();
         this.modelsUri = URI.create(baseUrl.replaceAll("/+$", "") + "/models");
-        this.httpClient = HttpClient.newBuilder().connectTimeout(timeout).build();
+        this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
     }
 
     public ModelAvailabilityStatus currentStatus() {
@@ -55,8 +56,8 @@ public class ModelAvailabilityService {
         updateStatus(ModelAvailabilityStatus.OFFLINE);
     }
 
-    @Scheduled(fixedDelayString = "${app.ai.model-availability.probe-interval-ms:10000}",
-            initialDelayString = "${app.ai.model-availability.initial-delay-ms:1000}")
+    @Scheduled(fixedDelayString = "#{@modelAvailabilityProperties.probeIntervalMs}",
+            initialDelayString = "#{@modelAvailabilityProperties.initialDelayMs}")
     public void probeConfiguredModelServer() {
         try {
             var requestBuilder =

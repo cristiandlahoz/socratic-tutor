@@ -66,11 +66,11 @@ public class SafeBrowserModeService {
         return eventRepository.findByAssignment_TrainingActivity_IdOrderByOccurredAtDesc(trainingActivityId);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = SafeBrowserSessionStartRejectedException.class)
     public TrainingActivityAssignment startSession(UUID assignmentId) {
         var assignment = requireCurrentStudentAssignment(assignmentId);
-        ensureCanEstablishSession(assignment);
         var now = Instant.now();
+        ensureCanEstablishSession(assignment, now);
         assignment.setSafeBrowserSessionActive(true);
         assignment.setSafeBrowserLastHeartbeatAt(now);
         assignment.setUpdatedAt(now);
@@ -79,12 +79,21 @@ public class SafeBrowserModeService {
     }
 
     @Transactional
+    public TrainingActivityAssignment deactivateSession(UUID assignmentId) {
+        return deactivateSafeBrowserSession(requireCurrentStudentAssignment(assignmentId), Instant.now());
+    }
+
+    @Transactional
     public void recordHeartbeat(UUID assignmentId) {
         var assignment = requireCurrentStudentAssignment(assignmentId);
-        if (!assignment.getTrainingActivity().isSafeBrowserEnabled() || assignment.isSafeBrowserLocked()) {
+        var now = Instant.now();
+        if (!assignment.getTrainingActivity().isSafeBrowserEnabled()
+                || assignment.isSafeBrowserLocked()
+                || assignment.getStatus().isTerminal()
+                || assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED) {
+            deactivateSafeBrowserSession(assignment, now);
             return;
         }
-        var now = Instant.now();
         assignment.setSafeBrowserSessionActive(true);
         assignment.setSafeBrowserLastHeartbeatAt(now);
         assignment.setUpdatedAt(now);
@@ -125,6 +134,8 @@ public class SafeBrowserModeService {
                 .stream()
                 .filter(assignment -> assignment.getTrainingActivity().isSafeBrowserEnabled())
                 .filter(assignment -> !assignment.isSafeBrowserLocked())
+                .filter(assignment -> !assignment.getStatus().isTerminal())
+                .filter(assignment -> assignment.getTrainingActivity().getStatus() != TrainingActivityLifecycleStatus.CLOSED)
                 .filter(assignment -> assignment.getSafeBrowserLastHeartbeatAt() != null)
                 .filter(assignment -> assignment.getSafeBrowserLastHeartbeatAt().isBefore(cutoff))
                 .toList();
@@ -136,15 +147,12 @@ public class SafeBrowserModeService {
             TrainingActivityAssignment assignment,
             SafeBrowserEventType eventType,
             boolean createAlert) {
-        if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
-            recordEvent(assignment, eventType, SafeBrowserEventSeverity.VIOLATION, Instant.now());
-            return assignment;
-        }
-        if (assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED) {
-            recordEvent(assignment, eventType, SafeBrowserEventSeverity.VIOLATION, Instant.now());
-            return assignment;
-        }
         var now = Instant.now();
+        if (assignment.getStatus().isTerminal()
+                || assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED) {
+            recordEvent(assignment, eventType, SafeBrowserEventSeverity.VIOLATION, now);
+            return deactivateSafeBrowserSession(assignment, now);
+        }
         recordEvent(assignment, eventType, SafeBrowserEventSeverity.VIOLATION, now);
         if (!assignment.isSafeBrowserLocked()) {
             assignment.setSafeBrowserLocked(true);
@@ -161,11 +169,24 @@ public class SafeBrowserModeService {
         return saved;
     }
 
+    private TrainingActivityAssignment deactivateSafeBrowserSession(TrainingActivityAssignment assignment, Instant now) {
+        if (!assignment.isSafeBrowserSessionActive()) {
+            return assignment;
+        }
+        assignment.setSafeBrowserSessionActive(false);
+        assignment.setUpdatedAt(now);
+        var saved = assignmentRepository.save(assignment);
+        publishAfterCommit(saved, saved.isSafeBrowserLocked());
+        return saved;
+    }
+
     private void publishAfterCommit(TrainingActivityAssignment assignment, boolean locked) {
         var notification = new SafeBrowserAssignmentStateBus.Notification(
+                assignment.getTrainingActivity().getId(),
                 assignment.getId(),
                 assignment.getGroupClassMember().getId(),
-                locked);
+                locked,
+                assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED);
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             assignmentStateBus.publish(notification);
             return;
@@ -205,21 +226,40 @@ public class SafeBrowserModeService {
         return alert;
     }
 
-    private void ensureCanEstablishSession(TrainingActivityAssignment assignment) {
+    private void ensureCanEstablishSession(TrainingActivityAssignment assignment, Instant now) {
         if (!assignment.getTrainingActivity().isSafeBrowserEnabled()) {
-            return;
+            deactivateSafeBrowserSession(assignment, now);
+            throw rejectedStart("Safe Browser Mode is not enabled for this assignment.");
         }
         if (assignment.isSafeBrowserLocked()) {
-            throw new IllegalStateException("Safe Browser Mode was interrupted. Ask your professor to review this assignment.");
+            deactivateSafeBrowserSession(assignment, now);
+            throw rejectedStart("Safe Browser Mode was interrupted. Ask your professor to review this assignment.");
         }
         if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
-            throw new IllegalStateException("Submitted assignments cannot be reopened.");
+            deactivateSafeBrowserSession(assignment, now);
+            throw rejectedStart("Submitted assignments cannot be reopened.");
+        }
+        if (assignment.getStatus().isTerminal()) {
+            deactivateSafeBrowserSession(assignment, now);
+            throw rejectedStart("The evaluation assignment has ended.");
         }
         if (assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED) {
-            throw new IllegalStateException("The evaluation window has ended.");
+            deactivateSafeBrowserSession(assignment, now);
+            throw rejectedStart("The evaluation window has ended.");
         }
         if (assignment.isSafeBrowserSessionActive()) {
             throw new IllegalStateException("This assignment already has an active Safe Browser session.");
+        }
+    }
+
+    private SafeBrowserSessionStartRejectedException rejectedStart(String message) {
+        return new SafeBrowserSessionStartRejectedException(message);
+    }
+
+    private static final class SafeBrowserSessionStartRejectedException extends IllegalStateException {
+
+        private SafeBrowserSessionStartRejectedException(String message) {
+            super(message);
         }
     }
 

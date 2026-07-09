@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
@@ -12,7 +13,7 @@ import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.authorization.TenantAccountRole;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.identity.AccountContextPreference;
-import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.data.entities.identity.Tenant;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.authorization.AccountPlatformRoleRepository;
@@ -20,6 +21,8 @@ import com.wornux.data.repositories.authorization.TenantAccountRoleRepository;
 import com.wornux.data.repositories.identity.AccountContextPreferenceRepository;
 import com.wornux.data.repositories.identity.AccountRepository;
 import com.wornux.data.repositories.identity.TenantAccountRepository;
+import com.wornux.security.authorization.ActiveContext;
+import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WorkspaceRoutingService {
 
     private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
+    private final ActiveContextHolder activeContextHolder;
     private final AccountRepository accountRepository;
     private final TenantAccountRepository tenantAccountRepository;
     private final AccountContextPreferenceRepository accountContextPreferenceRepository;
@@ -38,6 +42,7 @@ public class WorkspaceRoutingService {
 
     public WorkspaceRoutingService(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
+            ActiveContextHolder activeContextHolder,
             AccountRepository accountRepository,
             TenantAccountRepository tenantAccountRepository,
             AccountContextPreferenceRepository accountContextPreferenceRepository,
@@ -45,6 +50,7 @@ public class WorkspaceRoutingService {
             TenantAccountRoleRepository tenantAccountRoleRepository,
             GroupClassMemberRepository groupClassMemberRepository) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
+        this.activeContextHolder = activeContextHolder;
         this.accountRepository = accountRepository;
         this.tenantAccountRepository = tenantAccountRepository;
         this.accountContextPreferenceRepository = accountContextPreferenceRepository;
@@ -63,14 +69,14 @@ public class WorkspaceRoutingService {
     @Transactional
     public WorkspaceDecision resolveForAccount(Account account) {
         if (hasPlatformPermission(account, AppPermission.TENANT_VIEW)) {
-            setContext(account, ContextLevel.PLATFORM, null, null);
+            setContext(account, ScopeLevel.PLATFORM, null, null);
             return new WorkspaceDecision(WorkspaceDestination.SYSTEM_ADMIN, null, null);
         }
 
         var tenantAdmin = findTenantAdminRoles(account).stream().findFirst();
         if (tenantAdmin.isPresent()) {
             var tenantAccount = tenantAdmin.get().getTenantAccount();
-            setContext(account, ContextLevel.TENANT, tenantAccount.getTenant(), null);
+            setContext(account, ScopeLevel.TENANT, tenantAccount.getTenant(), null);
             return new WorkspaceDecision(WorkspaceDestination.TENANT_ADMIN, tenantAccount.getId(), null);
         }
 
@@ -107,7 +113,7 @@ public class WorkspaceRoutingService {
     @Transactional
     public boolean prepareWorkspaceAccess(Account account, WorkspaceDestination destination) {
         return switch (destination) {
-            case SYSTEM_ADMIN -> hasPlatformPermission(account, AppPermission.TENANT_VIEW);
+            case SYSTEM_ADMIN -> prepareSystemAdminAccess(account);
             case TENANT_ADMIN -> prepareTenantAdminAccess(account);
             case PROFESSOR -> prepareGroupClassAccess(account, GroupClassMemberKind.PROFESSOR);
             case STUDENT -> prepareGroupClassAccess(account, GroupClassMemberKind.STUDENT);
@@ -120,7 +126,7 @@ public class WorkspaceRoutingService {
         return tenantAccountRoleRepository.findByTenantAccount_Account_IdAndTenantAccount_LockedFalse(account.getId())
                 .stream()
                 .filter(role -> role.getRole().isActive())
-                .collect(java.util.stream.Collectors.groupingBy(TenantAccountRole::getTenantAccount))
+                .collect(Collectors.groupingBy(TenantAccountRole::getTenantAccount))
                 .entrySet()
                 .stream()
                 .filter(entry -> entry.getValue().stream()
@@ -155,7 +161,7 @@ public class WorkspaceRoutingService {
     public void switchTenant(Account account, UUID tenantAccountId) {
         var tenantAccount = tenantAccountRepository.findByIdAndAccount_Id(tenantAccountId, account.getId())
                 .orElseThrow(() -> new SecurityException("The tenant context is not available for this account."));
-        setContext(account, ContextLevel.TENANT, tenantAccount.getTenant(), null);
+        setContext(account, ScopeLevel.TENANT, tenantAccount.getTenant(), null);
         authenticatedUserContextUtils.refreshCurrentAuthentication(account.getId());
     }
 
@@ -196,6 +202,14 @@ public class WorkspaceRoutingService {
                                         requiredKind));
     }
 
+    private boolean prepareSystemAdminAccess(Account account) {
+        if (!hasPlatformPermission(account, AppPermission.TENANT_VIEW)) {
+            return false;
+        }
+        setContext(account, ScopeLevel.PLATFORM, null, null);
+        return true;
+    }
+
     private boolean prepareTenantAdminAccess(Account account) {
         var tenantAdminRoles = findTenantAdminRoles(account);
         if (tenantAdminRoles.isEmpty()) {
@@ -210,7 +224,7 @@ public class WorkspaceRoutingService {
             return true;
         }
         var tenantAccount = tenantAdminRoles.getFirst().getTenantAccount();
-        setContext(account, ContextLevel.TENANT, tenantAccount.getTenant(), null);
+        setContext(account, ScopeLevel.TENANT, tenantAccount.getTenant(), null);
         return true;
     }
 
@@ -255,10 +269,10 @@ public class WorkspaceRoutingService {
     }
 
     private void setClassContext(Account account, GroupClassMember member) {
-        setContext(account, ContextLevel.GROUP_CLASS, member.getGroupClass().getTenant(), member.getGroupClass());
+        setContext(account, ScopeLevel.GROUP_CLASS, member.getGroupClass().getTenant(), member.getGroupClass());
     }
 
-    private void setContext(Account account, ContextLevel level, Tenant tenant, GroupClass groupClass) {
+    private void setContext(Account account, ScopeLevel level, Tenant tenant, GroupClass groupClass) {
         var preference = accountContextPreferenceRepository.findById(account.getId()).orElseGet(() -> {
             var created = new AccountContextPreference();
             created.setAccount(account);
@@ -271,5 +285,14 @@ public class WorkspaceRoutingService {
         accountContextPreferenceRepository.save(preference);
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
+        activeContextHolder.set(activeContext(level, tenant, groupClass));
+    }
+
+    private ActiveContext activeContext(ScopeLevel level, Tenant tenant, GroupClass groupClass) {
+        return switch (level) {
+            case PLATFORM -> ActiveContext.platform();
+            case TENANT -> ActiveContext.tenant(tenant.getId());
+            case GROUP_CLASS -> ActiveContext.groupClass(tenant.getId(), groupClass.getId());
+        };
     }
 }

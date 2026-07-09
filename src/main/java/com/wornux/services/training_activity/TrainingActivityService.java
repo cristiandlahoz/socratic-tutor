@@ -7,26 +7,35 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.academic.GroupClass;
-import com.wornux.config.SocraticEmailProperties;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
-import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
+import com.wornux.data.entities.training_activity.InstructionQualityStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
+import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityRepository;
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.context.SetupRequiredException;
-import org.springframework.context.annotation.Lazy;
 import com.wornux.services.email.EmailMessage;
 import com.wornux.services.email.EmailService;
 import com.wornux.services.email.EmailTemplateService;
 import com.wornux.services.email.TemplatedEmailMessage;
+import com.wornux.services.training_activity.instruction_review.InstructionQualityReviewException;
+import com.wornux.services.training_activity.instruction_review.InstructionReviewCoordinator;
+import com.wornux.services.training_activity.instruction_review.InstructionReviewExecutionStatus;
+import com.wornux.services.training_activity.instruction_review.InstructionReviewSnapshotDto;
+import com.wornux.services.training_activity.instruction_review.InstructionReviewUnavailableException;
+import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -35,14 +44,18 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Service
 public class TrainingActivityService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TrainingActivityService.class);
+
     private final TrainingActivityRepository trainingActivityRepository;
     private final TrainingActivityAssignmentRepository trainingActivityAssignmentRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
     private final EmailService emailService;
     private final EmailTemplateService emailTemplateService;
-    private final SocraticEmailProperties emailProperties;
+    private final ApplicationProperties.Email emailProperties;
     private final ActiveAcademicContextResolver contextResolver;
     private final TrainingActivityLaunchedBus activityLaunchedBus;
+    private final SafeBrowserAssignmentStateBus assignmentStateBus;
+    private final InstructionReviewCoordinator instructionReviewCoordinator;
     private final TrainingActivityService self;
 
     public TrainingActivityService(
@@ -51,24 +64,43 @@ public class TrainingActivityService {
             GroupClassMemberRepository groupClassMemberRepository,
             EmailService emailService,
             EmailTemplateService emailTemplateService,
-            SocraticEmailProperties emailProperties,
+            ApplicationProperties applicationProperties,
             ActiveAcademicContextResolver contextResolver,
             TrainingActivityLaunchedBus activityLaunchedBus,
+            SafeBrowserAssignmentStateBus assignmentStateBus,
+            InstructionReviewCoordinator instructionReviewCoordinator,
             @Lazy TrainingActivityService self) {
         this.trainingActivityRepository = trainingActivityRepository;
         this.trainingActivityAssignmentRepository = trainingActivityAssignmentRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
         this.emailService = emailService;
         this.emailTemplateService = emailTemplateService;
-        this.emailProperties = emailProperties;
+        this.emailProperties = applicationProperties.getEmail();
         this.contextResolver = contextResolver;
         this.activityLaunchedBus = activityLaunchedBus;
+        this.assignmentStateBus = assignmentStateBus;
+        this.instructionReviewCoordinator = instructionReviewCoordinator;
         this.self = self;
     }
 
     @Transactional
     public TrainingActivity createPending(String title, String instruction, boolean safeBrowserEnabled) {
+        return createPending(new TrainingActivitySaveCommand(title, instruction, safeBrowserEnabled));
+    }
+
+    @Transactional
+    public TrainingActivity createPending(TrainingActivitySaveCommand command) {
+        LOGGER.info(
+                "createPending started: titleLength={} instructionLength={} safeBrowserEnabled={}",
+                command.title() == null ? 0 : command.title().trim().length(),
+                command.instructions() == null ? 0 : command.instructions().trim().length(),
+                command.safeBrowserEnabled());
         var context = requireProfessorContext();
+        LOGGER.info(
+                "createPending resolved professor context: groupClassId={} tenantAccountId={} groupClassMemberId={}",
+                context.groupClassId(),
+                context.tenantAccountId(),
+                context.groupClassMemberId());
         var activity = new TrainingActivity();
         activity.setId(UUID.randomUUID());
         activity.setGroupClass(new GroupClass());
@@ -77,27 +109,39 @@ public class TrainingActivityService {
         activity.getCreatedByTenantAccount().setId(context.tenantAccountId());
         activity.setCreatedByGroupClassMember(new GroupClassMember());
         activity.getCreatedByGroupClassMember().setId(context.groupClassMemberId());
-        activity.setTitle(title);
-        activity.setInstructions(instruction);
-        activity.setSafeBrowserEnabled(safeBrowserEnabled);
+        activity.setTitle(command.title());
+        activity.setInstructions(command.instructions());
+        activity.setSafeBrowserEnabled(command.safeBrowserEnabled());
         activity.setStatus(TrainingActivityLifecycleStatus.DRAFT);
         activity.setCreatedAt(Instant.now());
         activity.setUpdatedAt(Instant.now());
-        return trainingActivityRepository.save(activity);
+        LOGGER.info("createPending built draft entity: activityId={}", activity.getId());
+        validateRequiredFields(command);
+        LOGGER.info("createPending passed required-fields validation: activityId={}", activity.getId());
+        var decision = reviewAdvisory(null, command.title(), command.instructions());
+        LOGGER.info(
+                "createPending received review decision: activityId={} canSave={} reviewStatus={} qualityStatus={} issuesCount={}",
+                activity.getId(),
+                decision.canSave(),
+                decision.snapshot().reviewStatus(),
+                decision.snapshot().qualityStatus(),
+                decision.snapshot().issues() == null ? 0 : decision.snapshot().issues().size());
+        ensureReviewAllowsSave(command, decision);
+        instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
+        LOGGER.info("createPending applied persisted review: activityId={} reviewHash={}", activity.getId(), activity.getInstructionReviewHash());
+        var saved = trainingActivityRepository.save(activity);
+        LOGGER.info("createPending saved draft successfully: activityId={} status={}", saved.getId(), saved.getStatus());
+        return saved;
     }
 
     @Transactional(readOnly = true)
     public List<TrainingActivity> listAll() {
-        return contextResolver.resolveCurrent()
-                .map(
-                    context -> trainingActivityRepository
-                            .findByGroupClass_IdOrderByUpdatedAtDesc(context.groupClassId()))
-                .orElseGet(List::of);
+        return trainingActivityRepository.findByGroupClass_IdOrderByUpdatedAtDesc(requireProfessorContext().groupClassId());
     }
 
     @Transactional(readOnly = true)
     public TrainingActivity get(UUID activityId) {
-        var context = contextResolver.requireCurrent();
+        var context = requireProfessorContext();
         return trainingActivityRepository.findById(activityId)
                 .filter(
                     activity -> activity.getGroupClass() != null
@@ -148,20 +192,28 @@ public class TrainingActivityService {
     @Transactional
     public TrainingActivity update(UUID activityId, String title, String instruction) {
         var activity = self.get(activityId);
-        return update(activityId, title, instruction, activity.isSafeBrowserEnabled());
+        return update(activityId, new TrainingActivitySaveCommand(title, instruction, activity.isSafeBrowserEnabled()));
     }
 
     @Transactional
     public TrainingActivity update(UUID activityId, String title, String instruction, boolean safeBrowserEnabled) {
+        return update(activityId, new TrainingActivitySaveCommand(title, instruction, safeBrowserEnabled));
+    }
+
+    @Transactional
+    public TrainingActivity update(UUID activityId, TrainingActivitySaveCommand command) {
         var activity = self.get(activityId);
-        if (activity.getStatus() != TrainingActivityLifecycleStatus.DRAFT
-                && activity.isSafeBrowserEnabled() != safeBrowserEnabled) {
-            throw new IllegalStateException("Safe Browser Mode can only be changed before launch.");
+        if (activity.getStatus() != TrainingActivityLifecycleStatus.DRAFT) {
+            throw new IllegalStateException("Only draft training activities can be updated.");
         }
-        activity.setTitle(title);
-        activity.setInstructions(instruction);
-        activity.setSafeBrowserEnabled(safeBrowserEnabled);
+        validateRequiredFields(command);
+        var decision = reviewAdvisory(activity, command.title(), command.instructions());
+        ensureReviewAllowsSave(command, decision);
+        activity.setTitle(command.title());
+        activity.setInstructions(command.instructions());
+        activity.setSafeBrowserEnabled(command.safeBrowserEnabled());
         activity.setUpdatedAt(Instant.now());
+        instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
         return trainingActivityRepository.save(activity);
     }
 
@@ -171,6 +223,8 @@ public class TrainingActivityService {
         if (activity.getStatus() != TrainingActivityLifecycleStatus.DRAFT) {
             throw new IllegalStateException("Only draft training activities can be launched.");
         }
+        refreshInstructionReviewAdvisory(activity);
+        ensureInstructionReviewAllowsLaunch(activity);
         trainingActivityRepository.findFirstByCreatedByTenantAccount_IdAndStatus(
                 activity.getCreatedByTenantAccount().getId(), TrainingActivityLifecycleStatus.PUBLISHED)
                 .filter(active -> !active.getId().equals(activity.getId()))
@@ -240,7 +294,9 @@ public class TrainingActivityService {
         if (!nonSubmittedAssignments.isEmpty()) {
             trainingActivityAssignmentRepository.saveAll(nonSubmittedAssignments);
         }
-        return trainingActivityRepository.save(activity);
+        var saved = trainingActivityRepository.save(activity);
+        publishAssignmentStateAfterCommit(trainingActivityAssignmentRepository.findByTrainingActivity_IdOrderByUpdatedAtDesc(activity.getId()));
+        return saved;
     }
 
     private void publishAfterCommit(TrainingActivityLaunchedBus.Notification notification) {
@@ -255,6 +311,30 @@ public class TrainingActivityService {
             @Override
             public void afterCommit() {
                 activityLaunchedBus.publish(notification);
+            }
+        });
+    }
+
+    private void publishAssignmentStateAfterCommit(List<TrainingActivityAssignment> assignments) {
+        if (assignments == null || assignments.isEmpty()) {
+            return;
+        }
+        var notifications = assignments.stream()
+                .map(assignment -> new SafeBrowserAssignmentStateBus.Notification(
+                        assignment.getTrainingActivity().getId(),
+                        assignment.getId(),
+                        assignment.getGroupClassMember().getId(),
+                        assignment.isSafeBrowserLocked(),
+                        assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED))
+                .toList();
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            notifications.forEach(assignmentStateBus::publish);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                notifications.forEach(assignmentStateBus::publish);
             }
         });
     }
@@ -309,6 +389,18 @@ public class TrainingActivityService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public InstructionReviewSnapshotDto getInstructionReviewSnapshot(UUID activityId) {
+        return instructionReviewCoordinator.snapshot(get(activityId));
+    }
+
+    @Transactional
+    public InstructionReviewSnapshotDto reviewDraft(TrainingActivitySaveCommand command) {
+        validateRequiredFields(command);
+        requireProfessorContext();
+        return reviewAdvisory(null, command.title(), command.instructions()).snapshot();
+    }
+
     private ActiveAcademicContext requireProfessorContext() {
         var context = contextResolver.requireCurrent();
         if (context.groupClassKind() != GroupClassMemberKind.PROFESSOR) {
@@ -316,6 +408,94 @@ public class TrainingActivityService {
                     "An active professor class context is required before managing training activities.");
         }
         return context;
+    }
+
+    private void validateRequiredFields(TrainingActivitySaveCommand command) {
+        if (command.title() == null || command.title().isBlank() || command.instructions() == null
+                || command.instructions().isBlank()) {
+            throw new IllegalArgumentException("Title and instructions are required.");
+        }
+    }
+
+    private InstructionReviewCoordinator.ReviewBeforeSaveDecision reviewAdvisory(
+            TrainingActivity currentActivity,
+            String title,
+            String instructions) {
+        try {
+            return instructionReviewCoordinator.reviewBeforeSave(currentActivity, title, instructions);
+        }
+        catch (InstructionReviewUnavailableException exception) {
+            var snapshot = instructionReviewCoordinator.unavailableSnapshot(currentActivity, exception.getReviewResult());
+            return new InstructionReviewCoordinator.ReviewBeforeSaveDecision(snapshot, exception.getReviewResult(), false);
+        }
+    }
+
+    private void ensureReviewAllowsSave(
+            TrainingActivitySaveCommand command,
+            InstructionReviewCoordinator.ReviewBeforeSaveDecision decision) {
+        var snapshot = decision.snapshot();
+        if (snapshot != null && snapshot.canSave()) {
+            return;
+        }
+        if (confirmedCachedGoodReview(command, decision)) {
+            return;
+        }
+        throw new InstructionQualityReviewException(blockingReviewMessage(snapshot), decision.reviewResult(), snapshot);
+    }
+
+    private boolean confirmedCachedGoodReview(
+            TrainingActivitySaveCommand command,
+            InstructionReviewCoordinator.ReviewBeforeSaveDecision decision) {
+        var snapshot = decision.snapshot();
+        var reviewResult = decision.reviewResult();
+        return snapshot != null
+                && reviewResult != null
+                && snapshot.requiresVisibleReviewConfirmation()
+                && snapshot.reviewHash() != null
+                && snapshot.reviewHash().equals(command.confirmedReviewHash())
+                && Boolean.TRUE.equals(reviewResult.validInstruction())
+                && reviewResult.qualityStatus() == InstructionQualityStatus.GOOD;
+    }
+
+    private String blockingReviewMessage(InstructionReviewSnapshotDto snapshot) {
+        if (snapshot != null && snapshot.message() != null && !snapshot.message().isBlank()) {
+            return snapshot.message();
+        }
+        return "Estas instrucciones no se pueden guardar todavía.";
+    }
+
+    private void ensureInstructionReviewAllowsLaunch(TrainingActivity activity) {
+        if (activity.getInstructionReviewStatus() == InstructionReviewStatus.UNAVAILABLE) {
+            throw new IllegalStateException(
+                    activity.getInstructionReviewMessage() == null || activity.getInstructionReviewMessage().isBlank()
+                            ? "No pudimos completar la revisión automática de instrucciones. Intenta guardar de nuevo."
+                            : activity.getInstructionReviewMessage());
+        }
+        if (!instructionReviewCoordinator.hasCurrentGoodInstructionReview(activity)) {
+            throw new IllegalStateException(
+                    activity.getInstructionReviewMessage() == null || activity.getInstructionReviewMessage().isBlank()
+                            ? "Lanzar la actividad requiere una revisión actual GOOD para las instrucciones guardadas."
+                            : activity.getInstructionReviewMessage());
+        }
+    }
+
+    private void refreshInstructionReviewAdvisory(TrainingActivity activity) {
+        try {
+            var decision = instructionReviewCoordinator.reviewBeforeSave(activity, activity.getTitle(), activity.getInstructions());
+            if (decision == null) {
+                return;
+            }
+            instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
+            trainingActivityRepository.save(activity);
+        }
+        catch (InstructionReviewUnavailableException exception) {
+            if (exception.getReviewResult() != null) {
+                var snapshot = instructionReviewCoordinator.unavailableSnapshot(activity, exception.getReviewResult());
+                instructionReviewCoordinator.applyPersistedReview(activity, snapshot, exception.getReviewResult());
+                trainingActivityRepository.save(activity);
+            }
+            LOGGER.warn("Launch review refresh failed because the instruction review is unavailable: activityId={}", activity.getId(), exception);
+        }
     }
 
     private String launchPlainText(TrainingActivity activity, String studentHomeUrl) {

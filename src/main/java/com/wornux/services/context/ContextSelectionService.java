@@ -1,7 +1,6 @@
 package com.wornux.services.context;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,7 +8,7 @@ import java.util.UUID;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.identity.AccountContextPreference;
-import com.wornux.data.entities.identity.ContextLevel;
+import com.wornux.data.entities.authorization.ScopeLevel;
 import com.wornux.data.entities.identity.Tenant;
 import com.wornux.data.repositories.academic.GroupClassRepository;
 import com.wornux.data.repositories.identity.AccountContextPreferenceRepository;
@@ -86,7 +85,7 @@ public class ContextSelectionService {
     }
 
     @Transactional
-    public AvailableContextOption select(Account account, ContextLevel level, UUID tenantId, UUID classId) {
+    public AvailableContextOption select(Account account, ScopeLevel level, UUID tenantId, UUID classId) {
         return select(account, new AvailableContextOption(level, tenantId, classId, "", "", null));
     }
 
@@ -94,7 +93,7 @@ public class ContextSelectionService {
         return switch (option.level()) {
             case PLATFORM -> "admin";
             case TENANT -> "tenant";
-            case GROUP_CLASS -> "chat";
+            case GROUP_CLASS -> "threads";
         };
     }
 
@@ -113,7 +112,7 @@ public class ContextSelectionService {
                 });
     }
 
-    private boolean sameContext(AvailableContextOption option, ContextLevel level, UUID tenantId, UUID classId) {
+    private boolean sameContext(AvailableContextOption option, ScopeLevel level, UUID tenantId, UUID classId) {
         return option.level() == level
                 && Objects.equals(option.tenantId(), tenantId)
                 && Objects.equals(option.classId(), classId);

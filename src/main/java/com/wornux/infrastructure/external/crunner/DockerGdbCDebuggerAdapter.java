@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.wornux.config.CProgramAnalysisProperties;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.services.crunner.CDebugRequest;
 import com.wornux.services.crunner.CDebugSessionResult;
 import com.wornux.services.crunner.CDiagnostic;
@@ -17,14 +17,14 @@ public class DockerGdbCDebuggerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(DockerGdbCDebuggerAdapter.class);
 
-    private final CProgramAnalysisProperties properties;
+    private final ApplicationProperties.CRunner properties;
     private final SarifDiagnosticParser sarifDiagnosticParser;
     private final GdbDebugDumpParser debugDumpParser;
     private final CWorkspaceFactory workspaceFactory;
     private final CDebuggerRunner debuggerRunner;
 
     public DockerGdbCDebuggerAdapter(
-            CProgramAnalysisProperties properties,
+            ApplicationProperties.CRunner properties,
             SarifDiagnosticParser sarifDiagnosticParser,
             GdbDebugDumpParser debugDumpParser,
             CWorkspaceFactory workspaceFactory,

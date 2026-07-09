@@ -10,6 +10,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.signals.Signal;
+import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ModelAvailabilityStatus;
 import com.wornux.ui.css.UiCss;
 
@@ -25,6 +26,7 @@ public final class ConversationComposer extends Component implements HasSize {
         Signal.effect(this, () -> setComposerEnabled(Boolean.TRUE.equals(state.composerEnabled().get())));
         Signal.effect(this, () -> setSendAvailable(Boolean.TRUE.equals(state.composerSubmitAllowed().get())));
         Signal.effect(this, () -> setModelStatus(state.modelAvailabilityStatus().get()));
+        Signal.effect(this, () -> setActivity(state.activity().get()));
         Signal.effect(this, () -> setTokenUsage(
             state.usageInputTokens().get(),
             state.usagePercent().get(),
@@ -41,7 +43,7 @@ public final class ConversationComposer extends Component implements HasSize {
     }
 
     public void setPromptLimit(int promptLimit) {
-        getElement().setProperty("promptLimit", promptLimit);
+        getElement().setProperty("promptLimit", Math.max(1, promptLimit));
     }
 
     public void setComposerEnabled(boolean composerEnabled) {
@@ -52,9 +54,18 @@ public final class ConversationComposer extends Component implements HasSize {
         getElement().setProperty("sendAvailable", sendAvailable);
     }
 
+    public void setAllowEmptySubmit(boolean allowEmptySubmit) {
+        getElement().setProperty("allowEmptySubmit", allowEmptySubmit);
+    }
+
     public void setModelStatus(ModelAvailabilityStatus status) {
         var resolvedStatus = status == null ? ModelAvailabilityStatus.CHECKING : status;
         getElement().setProperty("modelStatus", resolvedStatus.name().toLowerCase());
+    }
+
+    public void setActivity(ChatSessionActivity activity) {
+        var resolvedActivity = activity == null ? ChatSessionActivity.IDLE : activity;
+        getElement().setProperty("activity", resolvedActivity.name().toLowerCase(java.util.Locale.ROOT));
     }
 
     public void setTokenUsage(Integer inputTokens, Integer usagePercent, boolean compacted) {

@@ -25,6 +25,7 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
 
     private static final String NAME = "dynamic-context-management-advisor";
     private static final String CATALOG_PARAMETER = "catalog";
+    private static final String SUBJECT_CONTEXT_PARAMETER = "subjectContext";
 
     private static final String CATALOG_QUERY =
             """
@@ -42,6 +43,14 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
               and coalesce(metadata -> 'catalog' ->> 'label', '') <> ''
               and coalesce(metadata -> 'catalog' ->> 'useWhen', '') <> ''
             order by metadata ->> 'ingestionId', id
+            """;
+
+    private static final String SUBJECT_CONTEXT_QUERY =
+            """
+            select s.code, s.name, coalesce(s.syllabus, '') as syllabus
+            from group_class gc
+            join subject s on s.id = gc.subject_id
+            where gc.id = :groupClassId
             """;
 
     private final int order;
@@ -81,7 +90,11 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
     }
 
     private Map<String, Object> dynamicVariables(Map<String, @Nullable Object> context) {
-        return Map.of(CATALOG_PARAMETER, catalogBlock(context).orElse(""));
+        return Map.of(
+            CATALOG_PARAMETER,
+            catalogBlock(context).orElse(""),
+            SUBJECT_CONTEXT_PARAMETER,
+            subjectContextBlock(context).orElse(""));
     }
 
     private String render(String template, Map<String, Object> variables) {
@@ -99,6 +112,29 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
                 .param("groupClassId", groupClassId.toString())
                 .query(this::catalogEntry)
                 .list();
+    }
+
+    private Optional<String> subjectContextBlock(Map<String, @Nullable Object> context) {
+        return groupClassId(context).flatMap(this::subjectContextEntry)
+                .map(this::formatSubjectContext);
+    }
+
+    private Optional<SubjectContextEntry> subjectContextEntry(UUID groupClassId) {
+        return jdbcClient.sql(SUBJECT_CONTEXT_QUERY)
+                .param("groupClassId", groupClassId)
+                .query(this::subjectContextEntryFromRow)
+                .optional();
+    }
+
+    private String formatSubjectContext(SubjectContextEntry entry) {
+        return """
+               <active_subject_context>
+               This is trusted subject context. Use it to constrain the tutoring scope.
+               Subject: %s · %s
+               %s
+               If the student asks outside this subject context and outside uploaded course material, briefly redirect to the closest in-scope learning task.
+               </active_subject_context>"""
+                .formatted(entry.code(), entry.name(), entry.syllabus());
     }
 
     private String formatCatalog(List<CatalogEntry> entries) {
@@ -130,6 +166,12 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
         return new CatalogEntry(nonNullString(rs.getString("label")),
                 nonNullString(rs.getString("use_when")),
                 nonNullString(rs.getString("aliases")));
+    }
+
+    private SubjectContextEntry subjectContextEntryFromRow(ResultSet rs, int rowNumber) throws SQLException {
+        return new SubjectContextEntry(nonNullString(rs.getString("code")),
+                nonNullString(rs.getString("name")),
+                nonNullString(rs.getString("syllabus")));
     }
 
     private Optional<UUID> groupClassId(Map<String, @Nullable Object> context) {
@@ -167,4 +209,6 @@ public class DynamicContextManagementAdvisor implements CallAdvisor, StreamAdvis
     }
 
     private record CatalogEntry(String label, String useWhen, String aliases) {}
+
+    private record SubjectContextEntry(String code, String name, String syllabus) {}
 }

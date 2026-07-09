@@ -9,17 +9,18 @@ It uses `llama-swap` as a single OpenAI-compatible endpoint and routes requests 
 ### Main tutor model
 
 - `AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL`
-- Context window: `8192`
+- Context window: `20000`
 - Purpose: primary tutoring conversations and higher-quality reasoning.
 
 ### Side-job model
 
 - `unsloth/gemma-4-E4B-it-GGUF:IQ4_XS`
-- Context window: `2048`
+- Context window: `20000`
 - Purpose: low/medium-stakes support jobs:
   - C runner scaffolding / example preparation
   - Chat title/name generation
   - Guardrails / safety classification
+  - Subject syllabus PDF-to-context generation
 
 ## GPU / CPU handling
 
@@ -89,7 +90,58 @@ The wrapper sources `runpod.env`, which defaults to these persistent paths:
 /workspace/.cache
 ```
 
-Use `RUNPOD_WORKSPACE=/some/path` if the persistent mount is not `/workspace`.
+Use `RUNPOD_WORKSPACE=/some/path` if the persistent mount is not `/workspace`,
+or pass the wrapper option directly:
+
+```bash
+./bootstrap-inference_engine-runpod.sh --workspace /some/path -d
+./bootstrap-inference_engine-runpod.sh --home -d
+```
+
+`--home` sets the workspace root to `$HOME`, so binaries, llama.cpp, caches,
+logs, PID files, monitor state, and Hugging Face caches all stay under the home
+directory.
+
+## Lightning AI persistent setup
+
+Lightning AI Studios usually set `$HOME` to the persistent Studio directory,
+for example `/teamspace/studios/this_studio`. Confirm this first:
+
+```bash
+ssh user@ssh.lightning.ai 'echo $HOME'
+```
+
+Then copy or keep this inference-engine folder under `$HOME` and start the
+RunPod wrapper with `--home`:
+
+```bash
+cd "$HOME/inference-engine"
+./bootstrap-inference_engine-runpod.sh --home -d
+```
+
+With `--home`, all runtime artifacts stay under the persistent Studio home:
+
+```bash
+$HOME/bin                # llama-swap and llama-server symlink
+$HOME/llama.cpp          # llama.cpp source and build output
+$HOME/llama-cache        # downloaded GGUF models used by llama-server
+$HOME/inference-engine   # logs, PID files, and monitor state
+$HOME/huggingface        # Hugging Face cache
+$HOME/.cache             # XDG cache
+```
+
+Verify the engine after startup:
+
+```bash
+curl -fsS http://127.0.0.1:8080/v1/models
+```
+
+If Lightning reports a non-persistent `$HOME`, do not use `--home`; instead pass
+an explicit persistent path:
+
+```bash
+./bootstrap-inference_engine-runpod.sh --workspace /teamspace/studios/this_studio/inference-engine-state -d
+```
 
 For GPU acceleration, llama.cpp needs the CUDA Toolkit (`nvcc`) or a configured
 `CUDAToolkit_ROOT`. `nvidia-smi` alone only proves that the GPU driver is
@@ -147,9 +199,7 @@ Spring AI uses one base URL and selects the backend with the model name.
 ```bash
 OPENAI_BASE_URL=http://127.0.0.1:8080/v1
 CHAT_MODEL=AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL
-GUARD_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
-TITLE_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
-C_EXAMPLE_PREPARATION_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
+SWITZERLAND_KNIFE_MODEL=unsloth/gemma-4-E4B-it-GGUF:IQ4_XS
 ```
 
 ## Useful overrides
@@ -163,6 +213,9 @@ LLAMA_CPP_REF=b1234 ./bootstrap-inference_engine.sh -d
 
 # Start Gemma directly through the launcher alias.
 ./start-llama-server.sh gemma 5800
+
+# Override Gemma context when needed. The default Gemma context is 20000.
+GEMMA_CONTEXT=12000 ./start-llama-server.sh gemma 5800
 
 # Start Ornith directly through the launcher alias.
 ./start-llama-server.sh ornith 5800

@@ -17,7 +17,6 @@ public class ConversationHistoryDrawer extends Div {
         Signal.effect(history, () -> {
             history.setConversations(state.conversationHistory().get().stream().map(Signal::get).toList());
             history.setActiveConversationId(state.activeConversationId().get());
-            history.setDisabled(state.responseInProgress().get());
         });
 
         add(history);

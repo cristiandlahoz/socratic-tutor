@@ -1,27 +1,19 @@
 package com.wornux.ui.admin;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wornux.data.entities.identity.Tenant;
@@ -30,17 +22,16 @@ import com.wornux.security.permission.AppPermission;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.workspace.SystemAdminWorkspaceService;
 import com.wornux.services.workspace.WorkspaceDestination;
-import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.MainLayout;
-import com.wornux.ui.auth.NoAccessView;
+import com.wornux.ui.components.WorkspaceViewShell;
 import com.wornux.ui.css.UiCss;
 import jakarta.annotation.security.PermitAll;
 
 @Route(value = "admin", layout = MainLayout.class)
 @PageTitle("Espacio de administración del sistema")
 @PermitAll
-@RequiresPermission(AppPermission.TENANT_VIEW)
-public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+@RequiresPermission(value = AppPermission.TENANT_VIEW, workspace = WorkspaceDestination.SYSTEM_ADMIN)
+public class SystemAdminWorkspaceView extends WorkspaceViewShell {
 
     private enum AdminFilter {
         ALL("Todas"), WITHOUT_ADMIN("Sin administrador"), WITH_ADMIN("Con administrador activo");
@@ -53,7 +44,6 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
     }
 
     private final AuthenticatedUserContextUtils authenticatedUserContextUtils;
-    private final WorkspaceRoutingService workspaceRoutingService;
     private final SystemAdminWorkspaceService systemAdminWorkspaceService;
     private final Grid<Tenant> tenantGrid = new Grid<>(Tenant.class, false);
     private final TextField searchField = new TextField("Buscar institución");
@@ -62,46 +52,26 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
 
     public SystemAdminWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
-            WorkspaceRoutingService workspaceRoutingService,
             SystemAdminWorkspaceService systemAdminWorkspaceService) {
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
-        this.workspaceRoutingService = workspaceRoutingService;
         this.systemAdminWorkspaceService = systemAdminWorkspaceService;
 
-        UiCss.WORKSPACE_VIEW.addTo(this);
         configureGrid();
 
-        add(
-            createHeader(
-                "Espacio de administración del sistema",
-                "Gestiona las instituciones desde una sola tabla. Crea el espacio institucional y envía la invitación cuando ya tengas definida a la persona administradora."),
+        setWorkspaceContent(
+            "Espacio de administración del sistema",
+            "Gestiona las instituciones desde una sola tabla. Crea el espacio institucional y envía la invitación cuando ya tengas definida a la persona administradora.",
             createToolbar(),
             tenantGrid);
         refresh();
     }
 
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        var account = authenticatedUserContextUtils.requireCurrentAccount();
-        if (!workspaceRoutingService.prepareWorkspaceAccess(account, WorkspaceDestination.SYSTEM_ADMIN)) {
-            event.forwardTo(NoAccessView.class);
-        }
-    }
-
-    private Div createHeader(String title, String description) {
-        var heading = new H1(title);
-        var copy = new Paragraph(description);
-        var header = new Div(heading, copy);
-        UiCss.WORKSPACE_HERO.addTo(header);
-        UiCss.WORKSPACE_HERO_PLAIN.addTo(header);
-        return header;
-    }
 
     private Component createToolbar() {
         UiCss.WORKSPACE_FIELD.addTo(searchField);
         searchField.setPlaceholder("Nombre de la institución");
         searchField.setClearButtonVisible(true);
-        searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        searchField.setPrefixComponent(new SvgIcon("/icons/IconSearch.svg"));
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(_ -> applyFilters());
 
@@ -113,14 +83,9 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         adminFilter.addValueChangeListener(_ -> applyFilters());
 
         var createButton = primaryButton("Crear institución", this::openCreateTenantDialog);
-        createButton.setIcon(new Icon(VaadinIcon.PLUS));
+        createButton.setIcon(new SvgIcon("/icons/IconBuildingPlus.svg"));
 
-        var toolbar = new HorizontalLayout(searchField, adminFilter, createButton);
-        UiCss.WORKSPACE_GRID_TOOLBAR.addTo(toolbar);
-        toolbar.setPadding(false);
-        toolbar.setMargin(false);
-        toolbar.setSpacing(false);
-        return toolbar;
+        return toolbar(searchField, adminFilter, createButton);
     }
 
     private void configureGrid() {
@@ -152,7 +117,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
                             .<Tenant>of(
                                 """
                                     <vaadin-button class="workspace-row-action" theme="tertiary small" @click="${sendInvite}" aria-label="Enviar invitación a ${item.name}">
-                                        <vaadin-icon icon="vaadin:paperplane" slot="prefix"></vaadin-icon>
+                                        <vaadin-icon src="/icons/IconEnvelope.svg" slot="prefix" aria-hidden="true"></vaadin-icon>
                                         Enviar
                                     </vaadin-button>
                                 """)
@@ -163,15 +128,6 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
                 .setFlexGrow(0);
     }
 
-    private Button primaryButton(String label, Runnable action) {
-        var button = new Button(label, _ -> action.run());
-        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        return button;
-    }
-
-    private Button secondaryButton(String label, Runnable action) {
-        return new Button(label, _ -> action.run());
-    }
 
     private void openCreateTenantDialog() {
         var dialog = new Dialog();
@@ -217,7 +173,7 @@ public class SystemAdminWorkspaceView extends VerticalLayout implements BeforeEn
         dialog.add(new VerticalLayout(tenantName, help, emailField));
         var cancel = secondaryButton("Cancelar", dialog::close);
         var send = primaryButton("Enviar invitación", () -> onInviteTenantAdmin(dialog, tenant, emailField));
-        send.setIcon(new Icon(VaadinIcon.PAPERPLANE));
+        send.setIcon(new SvgIcon("/icons/IconEnvelope.svg"));
         dialog.getFooter().add(cancel, send);
         dialog.open();
         emailField.focus();

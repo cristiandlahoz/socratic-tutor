@@ -41,7 +41,7 @@ public class Role {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "assignment_level", nullable = false)
-    private RoleAssignmentLevel assignmentLevel;
+    private ScopeLevel assignmentLevel;
 
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(nullable = false, columnDefinition = "text[]")

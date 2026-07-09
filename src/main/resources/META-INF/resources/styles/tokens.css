@@ -43,6 +43,8 @@
   --composer-border: color-mix(in srgb, var(--vaadin-text-color) 24%, var(--aura-app-background));
   --composer-border-hover: color-mix(in srgb, var(--aura-accent-text-color) 28%, var(--composer-border));
   --composer-placeholder-color: color-mix(in srgb, var(--vaadin-text-color) 42%, var(--aura-app-background));
+  --composer-input-text-color: oklch(86.909% 0.00408 106.48deg);
+  --composer-input-font-weight: 350;
   --composer-helper-color: color-mix(in srgb, var(--vaadin-text-color-secondary) 76%, var(--aura-app-background));
   --composer-helper-font-size: var(--aura-font-size-xs);
   --composer-helper-font-weight: var(--aura-font-weight-medium);
@@ -59,7 +61,6 @@
   --ui-toggle-color: var(--drawer-foreground);
   --ui-toggle-hover-color: var(--drawer-foreground-strong);
 
-  --sidebar-divider-line-gutter: calc(var(--vaadin-padding-l) + var(--vaadin-gap-s));
   --sidebar-divider-line-width: 16px;
   --sidebar-divider-line-border-width: 0.35px;
   --sidebar-divider-opacity: 1;
