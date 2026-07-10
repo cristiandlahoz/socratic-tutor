@@ -11,6 +11,7 @@ They are the single source of truth. Keep them up to date as the project evolves
 | `architecture.md` | Technology stack and application structure | After project context is filled in |
 | `datamodel/datamodel.md` | Entity definitions and relationships | When adding data-driven features |
 | `use-cases/use-case-template.md` | Template for individual feature specs | Copy per feature as `use-case-NNN-short-name.md` |
+| `use-cases/README.md` | Technical-spec and behavioral-use-case catalog, status, and dependency order | Before implementing any numbered specification |
 | `design-system.md` | Theme, component usage, and visual standards | When building or reviewing UI |
 
 ## Workflow
@@ -19,7 +20,7 @@ They are the single source of truth. Keep them up to date as the project evolves
 
 1. **Define context** — Fill in `project-context.md` with problem, vision, scope, and constraints.
 2. **Outline architecture** — Fill in `architecture.md` with tech stack and application structure.
-3. **Specify features** — Copy `use-cases/use-case-template.md` once per feature and update canonical specs when the feature changes the foundation.
+3. **Specify features** — Copy `use-cases/use-case-template.md` once per actor-visible feature. Add a `SPEC-NNN` technical contract when several use cases share persistence/orchestration foundations, and update canonical specs in the same change.
 
 ### Implement Specs
 

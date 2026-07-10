@@ -206,8 +206,9 @@ Aura computes gap and padding from `--aura-base-size` (unitless, range 12–24).
 ### Confirmation Dialogs
 
 - **Destructive actions:** Show modal before delete/deactivate
+- **Proceed despite advisory:** Show a modal before saving or publishing against current AI instruction advice; make clear that the model is advisory and the professor remains responsible for the final text.
 - **Title:** Clear question
-- **Buttons:** "Cancel" and "Confirm"
+- **Buttons:** Use action-specific labels. For instruction advice use "Volver a editar" and "Guardar de todos modos" or "Publicar de todos modos"; avoid an ambiguous generic "Confirm".
 - **Keyboard:** Escape = Cancel, Enter = Confirm
 
 ### Success Feedback
@@ -295,16 +296,55 @@ Students: grounding is reflected as context availability, not as a document mana
 
 ## 17. Training Activity UX
 
-Product-facing term: formative activities. Database tables use `training_activity` and `training_activity_assignment`.
+Product-facing term: formative activities. Persistence follows the normalized SPEC-005 activity, review, assignment, turn, report, Safe Browser, job, and outbox model.
 
-Professor UI: activity list, create/edit, publish/close/archive, assign to students, view assignment status.
-Student UI: assigned activities list, status badge, start/continue/submit.
+Professor UI: class-scoped activity grid, draft create/edit, advisory instruction review, explicit save/publish override, publish/close/archive, immutable published detail, assignment progress, Safe Browser incidents, and report state.
+
+Student UI: assigned activities list, explicit protected-session entry when required, one tutor question at a time, nonblank answer validation, persisted pending states, start/continue/completed status, and immediate return to the workspace after submission.
+
+### Asynchronous states
+
+Model work must never look like a frozen screen. Use calm explicit states:
+
+| Persisted/derived state | User-facing label | Expected interaction |
+|-------------------------|-------------------|----------------------|
+| Review queued/running | Revisando instrucción… | Editor remains usable; stale results never replace current text |
+| `STARTING` | Preparando primera pregunta… | Navigation remains available |
+| `WAITING_FOR_ANSWER` | Tu turno | Composer enabled only for nonblank input |
+| `WAITING_FOR_TUTOR` | Analizando respuesta… | Accepted answer visible; duplicate submit disabled |
+| Tutor temporary failure | No pudimos continuar todavía | Keep evidence; allow persisted retry/return later |
+| Report `PENDING`/`GENERATING` | Preparando reporte… | Professor can already inspect question-answer history |
+| Report `FAILED` | No se pudo generar el reporte | Show transcript and authorized retry path |
+
+Loading indicators must be accompanied by text and cannot be the only state signal.
+
+### Instruction advice
+
+- `GOOD` is a favorable suggestion, not a guarantee.
+- Warnings show summary, why it matters, and an actionable replacement.
+- Highlight text only when backend-validated source ranges match the current editor value.
+- Applying a suggestion is explicit and never autosaves.
+- Missing, failed, or unfavorable review permits an explicit professor override after deterministic validation passes.
+
+### Answer validation
+
+- Disable normal submit for empty/whitespace-only text and show a field-level message if submission is attempted.
+- Backend rejection remains authoritative and preserves the current question/input.
+- Do not confuse blank transport input with a meaningful response such as “no sé”; meaningful nonblank responses are accepted for tutor evaluation.
+
+### Safe Browser and report states
+
+- Safe Browser copy must explain both detectable rules and technical limitations; do not claim absolute browser/OS control.
+- A blocked student sees what happened and that professor review is required, without incident internals or secret tokens.
+- Professor report detail renders structured report sections, followed by the ordered question-answer list sourced from turns.
 
 Status labels:
 | DB status | Student label |
 |-----------|--------------|
 | ASSIGNED | Not started |
-| STARTED | In progress |
+| STARTING | Preparing first question |
+| WAITING_FOR_ANSWER | In progress — your turn |
+| WAITING_FOR_TUTOR | In progress — analyzing |
 | SUBMITTED | Submitted |
 | SKIPPED | Skipped |
 | EXPIRED | Expired |

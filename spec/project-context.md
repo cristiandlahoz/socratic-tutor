@@ -128,7 +128,7 @@ The current product scope includes:
 - Group-class membership.
 - Tutor conversation ownership and metadata through `conversation`, with message history and compaction owned by Spring AI Session JDBC events.
 - Grounding material through pgvector-backed `grounding_vector_store` rows.
-- Formative activities through `training_activity` and `training_activity_assignment`.
+- Formative activities through the normalized SPEC-005 definition, review, assignment, turn, report, Safe Browser, durable-job, and outbox model.
 - Role-based onboarding and workspace routing.
 - Service-layer permission, tenant, group-class, and ownership checks.
 - AI tutor orchestration with guardrails and authorized grounding retrieval.
@@ -196,7 +196,16 @@ The canonical formative activity chain is:
 ```text
 group_class
   -> training_activity
+      -> training_instruction_review
+          -> training_instruction_review_override
       -> training_activity_assignment
+          -> training_activity_turn
+          -> training_activity_report
+          -> safe_browser_session
+              -> safe_browser_event
+
+training_activity_ai_job
+outbox_event
 ```
 
 ---
@@ -214,6 +223,18 @@ It does not represent a professor workspace.
 A `group_class` is the concrete class section where professors and students interact with tutor resources.
 
 Conversations, grounding material, training activities, and assignments are scoped to group classes.
+
+### Formative activities are durable workflows, not synchronous AI requests
+
+A formative activity has three product responsibilities that must remain separate:
+
+1. A professor authors, optionally reviews, and publishes an immutable activity brief.
+2. A student completes a durable adaptive question-and-answer assignment, optionally under Safe Browser monitoring.
+3. A professor receives an asynchronous evidence-based report and the authoritative ordered question-answer history.
+
+AI instruction review is advisory. Professors may explicitly proceed despite its recommendation, while deterministic required-field validation remains mandatory.
+
+Student start, answer, and completion actions must keep the application responsive. Model and email calls run as bounded durable background work; an accepted student answer is committed before the next tutor decision, and student completion never waits for report generation.
 
 ### Account is the only authenticated identity root
 
@@ -275,6 +296,9 @@ The tutor should:
 - **Schema source of truth:** Flyway SQL migrations.
 - **ORM behavior:** Hibernate validates schema; it must not create the production-like schema.
 - **AI:** Spring AI/Ollama-style orchestration may be used, but it must remain downstream of authorization.
+- **AI latency/failure:** Formative review, tutor, and report model calls use bounded durable background work; UI request threads and domain transactions do not wait for them.
+- **Formative evidence:** Nonblank accepted student answers are durable before follow-up model work; blank/whitespace-only answers are rejected.
+- **POC migration:** No valuable production formative-activity data must be preserved; the target is a clean Flyway baseline rather than compatibility conversion.
 - **Conversation history:** Spring AI Session owns conversation events and context compaction; domain `conversation` owns access, listing, titles, and application metadata.
 - **Dependency maturity:** The required archived-event schema and APIs currently come from Spring AI Session `0.6.0-SNAPSHOT`; upgrades must re-verify the official schema and advisor contracts before changing that version.
 - **Vector search:** pgvector-backed grounding rows may be used for embeddings and retrieval.

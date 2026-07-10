@@ -46,8 +46,20 @@ erDiagram
     GROUP_CLASS ||--o{ TRAINING_ACTIVITY : has
     TENANT_ACCOUNT ||--o{ TRAINING_ACTIVITY : creates
     GROUP_CLASS_MEMBER ||--o{ TRAINING_ACTIVITY : creates_as_class_member
+    TRAINING_ACTIVITY ||--o{ TRAINING_INSTRUCTION_REVIEW : receives_reviews
+    GROUP_CLASS_MEMBER ||--o{ TRAINING_INSTRUCTION_REVIEW : requests
+    TRAINING_INSTRUCTION_REVIEW ||--o{ TRAINING_INSTRUCTION_REVIEW_OVERRIDE : may_be_overridden
+    TRAINING_ACTIVITY ||--o{ TRAINING_INSTRUCTION_REVIEW_OVERRIDE : records_override
+    GROUP_CLASS_MEMBER ||--o{ TRAINING_INSTRUCTION_REVIEW_OVERRIDE : confirms
     TRAINING_ACTIVITY ||--o{ TRAINING_ACTIVITY_ASSIGNMENT : assigns
     GROUP_CLASS_MEMBER ||--o{ TRAINING_ACTIVITY_ASSIGNMENT : receives
+    TRAINING_ACTIVITY_ASSIGNMENT ||--o{ TRAINING_ACTIVITY_TURN : records
+    TRAINING_ACTIVITY_ASSIGNMENT ||--o| TRAINING_ACTIVITY_REPORT : produces
+    TRAINING_ACTIVITY_ASSIGNMENT ||--o{ SAFE_BROWSER_SESSION : protects
+    SAFE_BROWSER_SESSION ||--o{ SAFE_BROWSER_EVENT : records
+    TRAINING_ACTIVITY ||--o{ TRAINING_ACTIVITY_AI_JOB : schedules
+    TRAINING_INSTRUCTION_REVIEW ||--o{ TRAINING_ACTIVITY_AI_JOB : schedules_review
+    TRAINING_ACTIVITY_ASSIGNMENT ||--o{ TRAINING_ACTIVITY_AI_JOB : schedules_runtime
 
     TENANT ||--o{ INVITATION : scopes
     GROUP_CLASS ||--o{ INVITATION : optionally_targets
@@ -197,21 +209,160 @@ erDiagram
         text title
         text instructions
         text status "DRAFT | PUBLISHED | CLOSED | ARCHIVED"
+        boolean safe_browser_required
         timestamptz opens_at
         timestamptz closes_at
+        timestamptz published_at
+        timestamptz closed_at
+        bigint version
         timestamptz created_at
         timestamptz updated_at
+    }
+
+    TRAINING_INSTRUCTION_REVIEW {
+        uuid id PK
+        uuid candidate_id
+        uuid training_activity_id FK
+        uuid group_class_id FK
+        uuid requested_by_group_class_member_id FK
+        text title_snapshot
+        text instructions_snapshot
+        text instructions_hash
+        text execution_status "PENDING | SUCCEEDED | FAILED"
+        text outcome "GOOD | NEEDS_IMPROVEMENT | INVALID"
+        text summary
+        jsonb issues
+        text improved_instructions
+        text model_name
+        text rubric_version
+        text failure_code
+        timestamptz requested_at
+        timestamptz completed_at
+    }
+
+    TRAINING_INSTRUCTION_REVIEW_OVERRIDE {
+        uuid id PK
+        uuid training_activity_id FK
+        uuid training_instruction_review_id FK
+        uuid actor_group_class_member_id FK
+        text instructions_hash
+        text action "SAVE_DRAFT | PUBLISH"
+        timestamptz created_at
     }
 
     TRAINING_ACTIVITY_ASSIGNMENT {
         uuid id PK
         uuid training_activity_id FK
         uuid group_class_member_id FK
-        text status "ASSIGNED | STARTED | SUBMITTED | SKIPPED | EXPIRED | EXCUSED"
+        text status "ASSIGNED | STARTING | WAITING_FOR_ANSWER | WAITING_FOR_TUTOR | SUBMITTED | SKIPPED | EXPIRED | EXCUSED"
+        text evidence_status
+        text completion_reason
+        bigint version
         timestamptz assigned_at
         timestamptz started_at
         timestamptz submitted_at
         timestamptz updated_at
+    }
+
+    TRAINING_ACTIVITY_TURN {
+        uuid id PK
+        uuid training_activity_assignment_id FK
+        int sequence_number
+        text question_text
+        timestamptz question_created_at
+        text answer_text
+        uuid answer_submission_id
+        timestamptz answer_submitted_at
+        text decision_type
+        text answer_quality
+        text evidence_status
+        text coverage_status
+        text pedagogical_move
+        jsonb decision_metadata
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    TRAINING_ACTIVITY_REPORT {
+        uuid id PK
+        uuid training_activity_assignment_id FK,UK
+        text status "PENDING | GENERATING | READY | FAILED"
+        text evidence_status
+        text summary
+        jsonb strengths
+        jsonb weaknesses
+        jsonb observations
+        jsonb recommendations
+        text model_name
+        text prompt_version
+        int attempt_count
+        text last_error_code
+        bigint version
+        timestamptz requested_at
+        timestamptz completed_at
+        timestamptz updated_at
+    }
+
+    SAFE_BROWSER_SESSION {
+        uuid id PK
+        uuid training_activity_assignment_id FK
+        text token_hash
+        text status "PENDING | ACTIVE | VIOLATED | EXPIRED | ENDED"
+        bigint version
+        timestamptz started_at
+        timestamptz last_heartbeat_at
+        timestamptz ended_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    SAFE_BROWSER_EVENT {
+        uuid id PK
+        uuid safe_browser_session_id FK
+        uuid training_activity_assignment_id FK
+        uuid client_event_id
+        text event_type
+        timestamptz client_occurred_at
+        timestamptz received_at
+        jsonb metadata
+    }
+
+    TRAINING_ACTIVITY_AI_JOB {
+        uuid id PK
+        text job_type "INSTRUCTION_REVIEW | FIRST_QUESTION | NEXT_DECISION | FINAL_REPORT"
+        int priority
+        uuid training_activity_id FK
+        uuid training_instruction_review_id FK
+        uuid training_activity_assignment_id FK
+        uuid training_activity_turn_id FK
+        uuid training_activity_report_id FK
+        bigint input_version
+        text semantic_key
+        int generation
+        text status "PENDING | RUNNING | SUCCEEDED | RETRYABLE | FAILED"
+        int attempt_count
+        int max_attempts
+        timestamptz available_at
+        timestamptz lease_until
+        text last_error_code
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    OUTBOX_EVENT {
+        uuid id PK
+        text aggregate_type
+        uuid aggregate_id
+        text event_type
+        text deduplication_key UK
+        jsonb payload
+        text status "PENDING | PROCESSING | PUBLISHED | FAILED"
+        int attempt_count
+        timestamptz available_at
+        timestamptz lease_until
+        text last_error_code
+        timestamptz created_at
+        timestamptz published_at
     }
 
     CONVERSATION {
@@ -389,12 +540,63 @@ Authorization assignments are stored at the narrowest scope they govern:
 - Belongs to one group class.
 - Records the tenant account that created it and optionally the class membership used to create it.
 - Status: `DRAFT | PUBLISHED | CLOSED | ARCHIVED`.
+- Title, instructions, Safe Browser setting, and schedule are editable only in `DRAFT`.
+- `published_at` and `closed_at` record lifecycle transitions; `version` provides optimistic concurrency.
+- Published historical activity definitions are closed/archived, not cascade-deleted.
+
+### `training_instruction_review` and `training_instruction_review_override`
+
+- A review is an immutable advisory result for one exact instructions hash and rubric version.
+- `candidate_id` correlates an unsaved editor candidate; `training_activity_id` may be null until the candidate is saved, then may be attached once without changing review content.
+- `title_snapshot` is model context; freshness is based on `instructions_snapshot`/`instructions_hash`, not title-only edits.
+- An override records explicit professor confirmation for `SAVE_DRAFT` or `PUBLISH` and never bypasses deterministic validation or authorization; its review id may be null when the review is missing or unavailable.
+- Abandoned unassociated candidate reviews may be removed by a documented retention policy; attached review/override history is retained.
 
 ### `training_activity_assignment`
 
 - Product-facing name: formative activity assignment.
 - Targets a student group-class member.
-- Status: `ASSIGNED | STARTED | SUBMITTED | SKIPPED | EXPIRED | EXCUSED`.
+- Status: `ASSIGNED | STARTING | WAITING_FOR_ANSWER | WAITING_FOR_TUTOR | SUBMITTED | SKIPPED | EXPIRED | EXCUSED`.
+- `(training_activity_id, group_class_member_id)` is unique.
+- Assignment owns runtime state and optimistic version, but does not embed transcript, report, review, or Safe Browser history.
+
+### `training_activity_turn`
+
+- Authoritative ordered question-and-answer evidence for an assignment.
+- `(training_activity_assignment_id, sequence_number)` and `(training_activity_assignment_id, answer_submission_id)` are unique when an answer submission id exists.
+- Question text and non-null answer text must contain non-whitespace characters.
+- One turn accepts at most one authoritative answer.
+- Stores backend-validated decision metadata only; hidden model reasoning is prohibited.
+
+### `training_activity_report`
+
+- Exactly one structured report exists per assignment.
+- Status: `PENDING | GENERATING | READY | FAILED`.
+- Question-answer evidence remains in turns and is not duplicated in generated Markdown.
+- Report failure never changes a submitted assignment back to an active state.
+
+### `training_activity_ai_job`
+
+- Durable internal work for review, first question, next decision, and report generation.
+- Job foreign keys are nullable according to job type; an instruction-review job references its review candidate, while runtime/report jobs reference the applicable assignment/turn/report.
+- `(semantic_key, generation)` is unique, and a partial uniqueness rule prevents more than one live generation for the same semantic input.
+- Claims use finite leases; external calls run after the claim transaction ends.
+- Result application validates expected `input_version` in a new short transaction.
+- Student tutor jobs have higher priority than review and report jobs.
+
+### `safe_browser_session` and `safe_browser_event`
+
+- At most one pending/active session exists per assignment.
+- Opaque session tokens are stored hashed and validated with authenticated assignment ownership.
+- `VIOLATED`, `EXPIRED`, and `ENDED` sessions are terminal.
+- Events are append-only and idempotent by `(safe_browser_session_id, client_event_id)`.
+- Professor allowance creates audit history and permits a new session; it never reactivates a terminal session.
+
+### `outbox_event`
+
+- Stores post-commit integration work such as published-activity email notification.
+- `deduplication_key` is unique and delivery uses finite leases and bounded retries.
+- Domain mutation and outbox insert commit together; provider delivery occurs afterward.
 
 ### `invitation`
 

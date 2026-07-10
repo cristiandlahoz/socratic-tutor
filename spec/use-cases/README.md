@@ -1,140 +1,104 @@
-# RBAC Rewrite Specs
+# Specification and Use Case Catalog
 
-This folder stores implementation specifications for the Socratic Tutor RBAC rewrite.
+This folder contains two independent numbered series:
 
-These specs are not optional design notes. They define the required database shape, authorization model, context switching behavior, Vaadin route protection, cache invalidation, and role-management UI for the new RBAC foundation.
+- `SPEC-NNN` files define cross-cutting technical foundations and implementation constraints.
+- `UC-NNN` files define actor-visible behavior, alternative flows, business rules, and acceptance tests.
 
-Implementation must follow the specs in order. Each spec depends on the previous one being completed.
+Numbers may repeat across the two series. Always reference the complete identifier (`SPEC-005`, not just `005`). A use case may depend on several technical specs; a technical spec may be implemented through several use cases.
 
-## Quick path
+The canonical project documents in `spec/` remain authoritative. When an approved specification changes persistence, architecture, context, or shared UX states, update those canonical documents in the same specification change.
 
-1. Read the specs in numeric order.
-2. Do not start a later spec before the previous one is implemented.
-3. Do not introduce `resource`, `action`, `permission`, or `role_permission` tables.
-4. Do not store contextual permissions in `UserDetails` or Spring authorities.
-5. Do not create a separate `tutor-chat` resource; conversation is the protected feature.
-6. Do not add generic polymorphic assignment tables.
-7. Keep permission checks annotation-driven wherever possible.
-8. Do not start the app or run broad test suites unless a spec explicitly asks for a small integration test.
+## Workflow
 
-## Spec index
+1. Read `../project-context.md`, `../spec.md`, `../architecture.md`, and `../datamodel/datamodel.md`.
+2. Read technical specs in dependency order.
+3. Read the target use case and every use case it references.
+4. Implement one bounded increment at a time.
+5. Run the target flow/rule tests and regression tests for already implemented dependencies.
+6. Mark a document `Implemented` only when its mapped implementation and verification are complete.
 
-| ID | Title | Status | Primary Target | Notes |
-|----|-------|--------|----------------|-------|
-| SPEC-001 | RBAC Schema and Domain Model | Verified | Database, entities, repositories | Replaces the current RBAC schema. Removes resource/action/permission tables and models roles, namespaces, assignments, class membership identity, and ownership boundaries. |
-| SPEC-002 | Authorization Engine, Cache, and Annotations | Verified | Security services, Caffeine, annotations | Builds the runtime authorization engine, access snapshots, cache invalidation, and annotation-based checks for service-level permissions. |
-| SPEC-003 | Login Context, Navigation, and Route Security | Implemented | Login workflow, Vaadin navigation, MainLayout | Adds login context selection, navbar context switching, custom Vaadin route authorization, NoAccessView, and permission-based navigation items. |
-| SPEC-004 | Role Matrix and Assignment UI | Implemented | Vaadin RBAC administration UI | Adds contextual role matrix screens and assignment screens for platform, tenant, and group-class role management. |
+Do not repeatedly reimplement every prior use case. Re-run their acceptance/regression tests after dependent changes.
 
-## Dependency order
+## Technical specification index
 
-```text
-SPEC-001
-  ↓
-SPEC-002
-  ↓
-SPEC-003
-  ↓
-SPEC-004
-```
+| ID | Title | Status | Primary target | File |
+|----|-------|--------|----------------|------|
+| SPEC-001 | RBAC Schema and Domain Model | Verified | Database, entities, repositories | [001-rbac-schema-and-domain-model.md](001-rbac-schema-and-domain-model.md) |
+| SPEC-002 | Authorization Engine, Cache, and Annotations | Verified | Security services, cache, annotations | [002-authorization-engine-cache-and-annotations.md](002-authorization-engine-cache-and-annotations.md) |
+| SPEC-003 | Login Context, Navigation, and Route Security | Implemented | Login, active context, route security | [003-login-context-navigation-and-route-security.md](003-login-context-navigation-and-route-security.md) |
+| SPEC-004 | Role Matrix and Assignment UI | Implemented | Contextual role administration | [004-role-matrix-and-assignment-ui.md](004-role-matrix-and-assignment-ui.md) |
+| SPEC-005 | Formative Activity Persistence and Orchestration | Pending | Data model, async AI jobs, outbox, concurrency | [005-formative-activity-persistence-and-orchestration.md](005-formative-activity-persistence-and-orchestration.md) |
 
-Do not skip the order. The UI specs depend on the schema, domain model, snapshot engine, and authorization annotations.
+## Behavioral use case index
 
-## Core model
+| ID | Title | Status | Primary actor | File |
+|----|-------|--------|---------------|------|
+| UC-003 | Training Activity Lifecycle | Pending | Professor | [use-case-003-training-activity-lifecycle.md](use-case-003-training-activity-lifecycle.md) |
+| UC-005 | Safe Browser Session | Pending | Student / Professor reviewer | [use-case-005-safe-browser-mode.md](use-case-005-safe-browser-mode.md) |
+| UC-006 | Advisory AI Instruction Quality Review | Pending | Professor | [use-case-006-ai-instruction-quality-review.md](use-case-006-ai-instruction-quality-review.md) |
+| UC-007 | Durable Adaptive Student Tutor Runtime | Pending | Student | [use-case-007-adaptive-student-tutor-runtime.md](use-case-007-adaptive-student-tutor-runtime.md) |
+| UC-008 | Publish and Deliver a Training Activity | Pending | Professor | [use-case-008-publish-and-deliver-training-activity.md](use-case-008-publish-and-deliver-training-activity.md) |
+| UC-009 | Finalize and Report a Training Evaluation | Pending | Professor reviewer | [use-case-009-finalize-and-report-evaluation.md](use-case-009-finalize-and-report-evaluation.md) |
 
-The RBAC rewrite follows this model:
+Missing UC numbers are reserved or belong to historical work; do not renumber approved identifiers merely to close gaps.
 
-```text
-Roles grant permissions.
-Membership defines academic identity.
-Ownership filters data.
-Priority limits role management.
-Active context decides which assignments are loaded.
-```
-
-A tenant admin may have administrative reach over group classes without being listed as a professor or student. A professor or student may only switch to classes where they have actual class membership.
-
-## Permission model
-
-Permissions are code-owned stable strings.
-
-They are modeled in Java as:
+## Formative activity dependency order
 
 ```text
-AppResource + AppAction -> AppPermission
+SPEC-005
+  ├── UC-003 activity lifecycle
+  │     └── UC-006 advisory instruction review
+  │           └── UC-008 publish and deliver
+  ├── UC-005 Safe Browser session
+  └── UC-007 durable tutor runtime
+        └── UC-009 finalization and report
 ```
 
-They are stored in the database only as `role.permissions text[]`.
+Recommended implementation sequence:
 
-The database must not contain these tables:
+1. SPEC-005 schema, state machines, durable AI jobs, outbox, and concurrency foundation.
+2. UC-003 and UC-006 draft lifecycle and advisory review.
+3. UC-008 atomic publication, student workspace delivery, and notification outbox.
+4. UC-005 Safe Browser sessions/events and heartbeat expiry.
+5. UC-007 non-blocking tutor runtime and durable nonblank answers.
+6. UC-009 immediate student completion and asynchronous structured reports.
+
+## Formative activity non-negotiable rules
+
+- AI instruction review is a suggestion. Deterministic blank validation is mandatory; a professor may explicitly save or publish despite AI advice.
+- No Vaadin request/session thread or domain transaction waits for LLM or SMTP work.
+- Blank/whitespace-only student answers are rejected in UI and backend and create no AI job.
+- Every accepted answer is committed before requesting the next tutor decision.
+- Student completion never waits for final report generation.
+- Assignment, turn, report, review, Safe Browser, job, and outbox responsibilities remain separated as specified by SPEC-005.
+- There is no POC-era global limit of one published activity per professor.
+- Published evidence is archived, not cascade-deleted through ordinary product actions.
+
+## RBAC foundation constraints
+
+The existing RBAC specifications retain their own ordered dependency:
 
 ```text
-resource
-action
-permission
-role_permission
+SPEC-001 -> SPEC-002 -> SPEC-003 -> SPEC-004
 ```
 
-The domain must not contain a separate tutor permission resource. Conversation permissions cover tutor usage.
-
-## Runtime model
-
-Authentication, context, and authorization must stay separate:
-
-```text
-UserDetails / Authentication
-= who is logged in
-
-ActiveContext
-= where the user is acting now
-
-UserAccessSnapshot
-= what the user can do there
-```
-
-Contextual permissions must not be loaded into Spring authorities during login.
-
-## UI model
-
-MainLayout must be built from the active context and current access snapshot.
-
-The navbar context switcher follows these rules:
-
-```text
-Platform user
-- can switch tenants from the navbar.
-
-Tenant admin
-- is tied to one active tenant.
-- does not switch tenants.
-- may manage group classes through tenant authority.
-- is not listed as professor/student unless explicitly assigned as a group-class member.
-
-Professor
-- can switch only to classes where member_kind = PROFESSOR.
-
-Student
-- can switch only to classes where member_kind = STUDENT.
-```
-
-## Testing rule
-
-No broad app startup verification is required from these specs.
-
-Only write small integration tests when the spec explicitly asks for them. Required integration tests must use Testcontainers with PostgreSQL and real schema behavior.
+Follow their explicit schema, permission, active-context, route-security, and role-management rules. Formative activity implementation must use those authorization services and must not create a parallel authorization model.
 
 ## Status legend
 
-- **Pending** — drafted but not yet implemented.
+- **Pending** — approved or drafted target is not yet fully implemented and verified.
 - **In Progress** — implementation is underway.
-- **Implemented** — code and required checks are complete.
-- **Verified** — implementation has been manually reviewed against the spec.
+- **Implemented** — code and required automated/manual checks are complete.
+- **Verified** — implemented behavior has been reviewed against the specification.
+- **Superseded** — retained only for history and replaced by an identified canonical document.
 
 ## Maintenance rule
 
-When adding, renaming, or replacing an RBAC spec:
+When adding, renaming, or replacing a file:
 
-1. Keep the numeric order.
-2. Update the spec index in this README.
-3. State the dependency relationship.
-4. Do not leave architectural gaps for the implementation agent to infer.
+1. Preserve its complete `SPEC-NNN` or `UC-NNN` identity.
+2. Update the applicable index and dependency relationship.
+3. Remove or mark contradictory behavior in the replaced canonical document.
+4. Keep flows and business rules testable.
+5. Do not leave implementation agents to infer transaction, ownership, idempotency, or failure semantics that affect correctness.

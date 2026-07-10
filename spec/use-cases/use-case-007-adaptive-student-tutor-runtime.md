@@ -1,11 +1,11 @@
-# UC-007: Adaptive Student Tutor Runtime for Training Assignments
+# UC-007: Durable Adaptive Student Tutor Runtime
 
 ---
 
-**Goal:** As a student, I want the tutor to ask adaptive Socratic questions based on the training activity instructions and my previous answers so that the final formative report reflects real evidence of my understanding instead of generic, fixed, or hardcoded questions.
+**Goal:** As a student, I want to answer adaptive Socratic questions without the application freezing or losing my responses so that the evaluation gathers trustworthy evidence of my understanding.
 
-**Status:** Pending
-**Date:** 2026-07-07
+**Status:** Pending  
+**Date:** 2026-07-10
 
 > A use case cannot be marked as **Implemented** unless all criteria in the use-case implementation workflow are fulfilled.
 
@@ -14,283 +14,218 @@
 ## Actors
 
 - **Primary actor:** Student
-- **Secondary actors:** Professor, backend training assignment evaluation service, adaptive tutor runtime service, Spring AI `ChatClient`/`ChatModel`, local/remote tutor model, final report generation service
+- **Secondary actors:** Durable tutor worker, configured tutor model, UC-005 Safe Browser session, UC-009 report workflow
 
 ---
 
 ## Preconditions
 
-- The student is authenticated.
-- The student has an existing `training_activity_assignment` assigned to their `group_class_member`.
-- The student opens an assignment they own from `/training-activity/assignments/{assignmentId}`.
-- The parent training activity exists and is in a state that allows the student to start or continue.
-- The training activity has a title and final saved professor instructions.
-- The normal student assignment lifecycle already exists: assignment ownership validation, start, answer submission, transcript persistence, current question persistence, submission, and final report generation.
-- The system can persist current question, student answer, transcript, assignment status, tutor decision metadata if supported, and final report.
-- The system has access to an adaptive tutor model or configured Spring AI model endpoint for generating student-facing Socratic questions.
-- Professor instructions are treated as untrusted content and cannot override backend/system tutor rules.
-- This use case may benefit from UC-006 instruction quality review, but it must still work for legacy activities that were created before UC-006 existed.
+- Student is authenticated and owns an assignment created by UC-008.
+- Parent activity is `PUBLISHED` and within its answerable window.
+- Assignment is `ASSIGNED`, `STARTING`, `WAITING_FOR_ANSWER`, or `WAITING_FOR_TUTOR`.
+- If Safe Browser is required, UC-005 has established a current active session.
+- Activity has immutable title and professor instructions.
+- SPEC-005 turn, job, idempotency, optimistic-concurrency, and non-blocking orchestration are available.
 
 ---
 
 ## Trigger
 
-The student opens or continues an assigned training activity from `/training-activity/assignments/{assignmentId}`, or submits an answer to the current tutor question.
+The student opens `/training-activity/assignments/{assignmentId}`, starts an assigned evaluation, or submits a response to its current question.
 
 ---
 
 ## Main Flow
 
-> This use case extends the existing student training assignment execution flow. It does not replace assignment ownership checks, safe-browser rules, closed-activity rules, transcript persistence, or final report generation.
-
-1. Student opens `/training-activity/assignments/{assignmentId}`.
-2. System loads the `training_activity_assignment` and validates that it belongs to the current student.
-3. System validates that the parent training activity and assignment state allow the student to start or continue.
-4. If the assignment is `ASSIGNED` and can be started, system starts the assignment through the normal service flow.
-5. System prepares adaptive tutor context using the activity title, final saved professor instructions, group-class context, assignment state, existing transcript, current question, question progress metadata, and available grounding/context if supported.
-6. If no current question exists, adaptive tutor runtime builds a first-question prompt from the activity context.
-7. The first-question prompt instructs the model to identify the main instruction aspects and ask one diagnostic Socratic question about the highest-priority aspect.
-8. Adaptive tutor model returns a backend-validated structured tutor decision.
-9. If the decision is `QUESTION`, system stores the question as `currentQuestion` and displays exactly one Spanish Socratic question to the student.
-10. Student writes an answer and submits it.
-11. System validates that the answer can be accepted for the current assignment state.
-12. System persists the student answer into the transcript before requesting the next tutor decision.
-13. Adaptive tutor runtime builds the next-decision prompt using the activity title, final saved professor instructions, previous/current question, latest student answer, full transcript, assignment state, group-class context, and available grounding/context.
-14. Adaptive tutor model must reason through the latest answer before asking another question.
-15. The model classifies the answer quality, determines whether the answer provides usable evidence, updates coverage of professor-instruction aspects, detects repeated unproductive patterns, and chooses the next pedagogical move.
-16. The model returns a structured decision: `QUESTION`, `COMPLETE_SUCCESS`, or `COMPLETE_INSUFFICIENT_EVIDENCE`.
-17. Backend validates the tutor decision before storing or acting on it.
-18. If the decision is `QUESTION`, system stores the next question, updates progress metadata, optionally stores tutor decision metadata, and displays the question to the student.
-19. Student answers the next question.
-20. Flow repeats from Main Flow step 11 until the tutor decision is `COMPLETE_SUCCESS` or `COMPLETE_INSUFFICIENT_EVIDENCE`.
-21. If the decision is `COMPLETE_SUCCESS`, system submits/completes the assignment through the normal submission flow.
-22. System generates a final formative report grounded in sufficient, varied, relevant transcript evidence and professor instructions.
-23. If the decision is `COMPLETE_INSUFFICIENT_EVIDENCE`, system submits/completes the assignment through the normal student-facing completion flow, while storing insufficient-evidence status or equivalent internal report metadata.
-24. System still generates a final formative report for the professor, but the report is explicitly limited by the transcript quality and explains that the student did not provide enough relevant or evaluable evidence for a reliable evaluation.
-25. System shows the normal completed/submitted state to the student; it must not expose `COMPLETE_INSUFFICIENT_EVIDENCE`, evidence labels, or internal model decision labels to the student.
-26. Professor can later review the student transcript, tutor decisions if stored, evidence status, internal insufficient-evidence tag, and final report through the existing review surface.
+1. Student opens the assigned evaluation.
+2. System validates authenticated ownership and loads persisted activity, assignment, Safe Browser, current turn, and job state.
+3. If assignment is `ASSIGNED`, student clicks **Comenzar**.
+4. System executes a short idempotent start command that changes assignment to `STARTING` and creates one `FIRST_QUESTION` job.
+5. System returns immediately and renders **Preparando primera pregunta** without holding the Vaadin request/session thread for model generation.
+6. Tutor worker claims the job in a short transaction and releases that transaction.
+7. Worker builds immutable authorized context from activity title, instructions, assignment, relevant class context, and available grounding.
+8. Worker calls the tutor model outside any domain transaction.
+9. Backend validates the structured first-question decision.
+10. In a new short transaction, system verifies the expected assignment/input version, stores turn 1, and changes assignment to `WAITING_FOR_ANSWER`.
+11. UI receives or polls the persisted state and displays exactly one Spanish Socratic question.
+12. Student writes a response.
+13. UI enables submission only when normalized input contains at least one non-whitespace character.
+14. Student submits the response with a stable `answerSubmissionId`.
+15. Backend trims/normalizes for validation, verifies ownership, expected current turn, assignment state, activity window, and Safe Browser session when required.
+16. In one short transaction, system persists the nonblank answer on the current turn, changes assignment to `WAITING_FOR_TUTOR`, and creates one `NEXT_DECISION` job.
+17. System acknowledges that the answer was saved and renders **Analizando respuesta** immediately.
+18. Tutor worker claims the job and calls the model outside any domain transaction using the immutable activity definition and complete ordered turn history.
+19. Model classifies the latest response, evaluates evidence and instruction coverage, and returns a structured `QUESTION`, `COMPLETE_SUCCESS`, or `COMPLETE_INSUFFICIENT_EVIDENCE` decision.
+20. Backend validates the decision against the job input, assignment state, allowed enums, and student-facing output rules.
+21. If decision is `QUESTION`, system stores exactly one next turn and changes assignment to `WAITING_FOR_ANSWER` in a short optimistic transaction.
+22. UI displays the next question and flow repeats from Main Flow step 12.
+23. If decision is terminal, system records evidence/completion metadata and changes assignment to `SUBMITTED` in a short transaction.
+24. In the same transaction, system creates exactly one `PENDING` report and corresponding `FINAL_REPORT` job for UC-009.
+25. System immediately displays completion and navigates the student back to `/student`; it does not wait for report generation.
+26. Student workspace shows the assignment as completed.
 
 ---
 
 ## Alternative Flows
 
-### AF-1: Assignment does not belong to current student
+### AF-1: Assignment is not owned or accessible
 
-**Branches from:** Main Flow step 2
-**Condition:** Student opens an assignment id that is not assigned to their `group_class_member`.
+**Branches from:** Main Flow step 2, 4, or 15  
+**Condition:** Assignment does not belong to the authenticated student's class membership or is outside authorized context.
 
-1. System denies access.
-2. System shows a no-access or not-found state.
-3. No transcript, current question, assignment status, or final report is changed.
-4. Adaptive tutor model is not called.
+1. System denies access without exposing assignment content.
+2. No assignment, turn, or AI job changes.
+3. Tutor model is not called.
+4. Use case ends.
+
+### AF-2: Assignment or activity is not answerable
+
+**Branches from:** Main Flow step 2, 4, or 15  
+**Condition:** Activity is closed/archived, assignment is submitted/expired/excused, or lifecycle state does not accept the command.
+
+1. Backend rejects start or answer before mutation.
+2. System shows completed, closed, expired, blocked, or no-access state as appropriate.
+3. No new AI job is created.
+4. Existing evidence remains unchanged.
 5. Use case ends.
 
-### AF-2: No active or answerable assignment state
+### AF-3: Safe Browser session is missing or terminal
 
-**Branches from:** Main Flow step 3 or step 11
-**Condition:** Parent training activity is closed, assignment is locked, assignment is submitted, assignment is not started when required, or the assignment is otherwise not answerable.
+**Branches from:** Main Flow step 2, 4, or 15  
+**Condition:** Activity requires Safe Browser and no current active session exists.
 
-1. System rejects the start or answer action.
-2. System shows the appropriate blocked, closed, locked, submitted, or no-access state.
-3. System does not update transcript, current question, assignment status, or final report.
-4. Adaptive tutor model is not called for a new question.
-5. Use case ends.
+1. Backend rejects start/answer before turn mutation or AI job creation.
+2. System routes student to UC-005 entry or blocked state.
+3. Existing answer input remains visible when safely possible.
+4. Use case ends or resumes after a new valid session.
 
-### AF-3: Assignment is already submitted
+### AF-4: Blank or whitespace-only response
 
-**Branches from:** Main Flow step 3
-**Condition:** Student opens an assignment that has already been submitted or completed.
+**Branches from:** Main Flow step 13 or 15  
+**Condition:** Response is null, empty, or contains only whitespace after normalization.
 
-1. System loads the submitted assignment.
-2. System does not call the adaptive tutor model for a new question.
-3. System shows the completed/submitted state and existing report if available.
-4. Student cannot modify previous answers.
-5. Use case ends.
+1. UI prevents normal submission and shows **Escribe una respuesta antes de continuar**.
+2. If a forged request reaches the backend, backend rejects it with a validation error.
+3. No answer is persisted, assignment status does not change, and no AI job/model call occurs.
+4. Student remains on the current question.
+5. Returns to Main Flow step 12.
 
-### AF-4: First tutor decision is invalid
+### AF-5: Meaningful but minimal response
 
-**Branches from:** Main Flow step 8
-**Condition:** Tutor model returns malformed JSON, invalid enum values, multiple questions, a non-Spanish question, an explanation instead of a question, unsafe text, or a question not grounded in the activity context.
+**Branches from:** Main Flow step 19  
+**Condition:** Nonblank response such as “no sé”, “no entiendo”, or another meaningful minimal answer provides little evidence.
 
-1. Backend rejects the invalid tutor decision.
-2. System logs the failure with assignment id, training activity id, progress count, model name, and error details.
-3. System does not store the invalid question as authoritative.
-4. System does not silently fall back to generic hardcoded questions in production.
-5. Depending on configuration, system shows a friendly temporary error or allows retry.
-6. Use case ends or returns to Main Flow step 5.
+1. System keeps the already accepted response as transcript evidence.
+2. Model may classify it as `TOO_VAGUE` or equivalent low/no-evidence quality, but never as a transport-level blank.
+3. Model asks one respectful clarification/refocus question when further evidence remains reasonable, or eventually completes with insufficient evidence.
+4. Flow returns to Main Flow step 21 or follows terminal flow.
 
-### AF-5: Student submits an empty or minimal answer
+### AF-6: Absurd, spam, evasive, or off-topic response
 
-**Branches from:** Main Flow step 15
-**Condition:** Student submits an empty answer, greeting, monosyllable, or minimal text such as “hola”, “ok”, “sí”, “no”, or “no sé”.
+**Branches from:** Main Flow step 19  
+**Condition:** Accepted nonblank response is unrelated or non-evaluable.
 
-1. System persists the answer into the transcript if the assignment can accept answers.
-2. Adaptive tutor model classifies the answer as `EMPTY` or equivalent no-evidence state.
-3. If this is an early unproductive answer and another attempt is reasonable, model returns `QUESTION` with `REFOCUS` or `ASK_FOR_CLARITY`.
-4. The question asks the student to provide a minimal concrete idea related to the activity.
-5. The tutor does not advance to a new concept as if the answer were valid evidence.
-6. Flow returns to Main Flow step 10.
+1. System preserves the response as submitted evidence.
+2. Model chooses a respectful `REFOCUS`, `REPHRASE`, or clarification move without treating it as positive evidence.
+3. Repeated unproductive behavior may produce `COMPLETE_INSUFFICIENT_EVIDENCE`.
+4. Flow continues from Main Flow step 21 or step 23.
 
-### AF-6: Student submits absurd, spam, or joke content
+### AF-7: Duplicate answer command
 
-**Branches from:** Main Flow step 15
-**Condition:** Student submits random text, keyboard mashing, spam, repeated characters, jokes, or text such as “asdasdasd”.
+**Branches from:** Main Flow step 14 or 16  
+**Condition:** Double-click, reconnect, or retry repeats the same `answerSubmissionId`.
 
-1. System persists the answer into the transcript if the assignment can accept answers.
-2. Adaptive tutor model classifies the answer as `ABSURD` or equivalent no-evidence state.
-3. If this is an early occurrence, model returns `QUESTION` with a firm but respectful reconduction move.
-4. The question asks for a real answer connected to the previous question or activity instructions.
-5. The tutor does not regañar, mock, or give the answer.
-6. Flow returns to Main Flow step 10.
+1. Backend returns the previously accepted command result.
+2. Exactly one answer and one semantic next-decision job exist.
+3. Assignment does not advance twice.
+4. UI refreshes persisted state.
 
-### AF-7: Student answer is off topic
+### AF-8: Concurrent or stale answer command
 
-**Branches from:** Main Flow step 15
-**Condition:** Student answer is understandable but does not respond to the tutor question or activity instructions.
+**Branches from:** Main Flow step 15 or 16  
+**Condition:** Command targets an old question/version or another answer already won the race.
 
-1. Adaptive tutor model classifies the answer as `OFF_TOPIC`.
-2. Model chooses `REFOCUS` or `REPHRASE`.
-3. Model asks one question that connects the student back to the activity objective or the previous question.
-4. System stores and displays the question.
-5. Flow returns to Main Flow step 10.
+1. Optimistic concurrency rejects the stale mutation.
+2. System never overwrites an accepted answer.
+3. UI reloads current persisted question/job state.
+4. Use case ends or continues from current state.
 
-### AF-8: Student answer is too vague
+### AF-9: Student navigates away while tutor is working
 
-**Branches from:** Main Flow step 15
-**Condition:** Student answer is related to the activity but too general, superficial, or unsupported.
+**Branches from:** Main Flow step 5, 17, or 18  
+**Condition:** Browser disconnects, reloads, or navigates away.
 
-1. Adaptive tutor model classifies the answer as `TOO_VAGUE`.
-2. Model chooses `ASK_FOR_EXAMPLE`, `ASK_FOR_JUSTIFICATION`, or `ASK_FOR_CLARITY`.
-3. Model asks one question requesting precision, a concrete example, or a reason.
-4. The tutor does not treat the vague answer as enough evidence for completion.
-5. Flow returns to Main Flow step 10.
+1. Durable job and already accepted answer continue independently of the UI connection.
+2. No correctness depends on an in-memory listener.
+3. On return, system reconstructs `STARTING`, `WAITING_FOR_TUTOR`, `WAITING_FOR_ANSWER`, or `SUBMITTED` from persistence.
+4. Student resumes without duplicate work.
 
-### AF-9: Student answer is partially correct or almost understands
+### AF-10: Model timeout or temporary failure
 
-**Branches from:** Main Flow step 15
-**Condition:** Latest answer contains a valid idea but is incomplete, confused, or mixes concepts.
+**Branches from:** Main Flow step 8 or 18  
+**Condition:** Model fails, times out, or worker lease expires.
 
-1. Adaptive tutor model classifies the answer as `PARTIALLY_CORRECT`.
-2. Model identifies the strongest idea and the main confusion.
-3. Model chooses a move such as `REPHRASE`, `ASK_FOR_CLARITY`, `PROBE_MISCONCEPTION`, or `ASK_FOR_JUSTIFICATION`.
-4. Model generates exactly one Socratic question that targets the weak or confused part without giving the answer.
-5. System stores and displays the next question.
-6. Flow returns to Main Flow step 10.
+1. Worker records a safe retryable error and releases/requeues work with bounded backoff.
+2. Accepted student answer remains persisted.
+3. Assignment remains resumable in `STARTING` or `WAITING_FOR_TUTOR` with a temporary-error UI state.
+4. System does not silently substitute hardcoded production questions.
+5. Student may leave and return while retry occurs.
 
-### AF-10: Student answer is good, but activity coverage is incomplete
+### AF-11: Model output is invalid
 
-**Branches from:** Main Flow step 15
-**Condition:** Latest answer is useful, but important aspects from the professor instructions remain uncovered.
+**Branches from:** Main Flow step 9 or 20  
+**Condition:** Output is malformed, has invalid enums, contains multiple questions, leaks hidden text, or violates terminal rules.
 
-1. Adaptive tutor model classifies the answer as `GOOD` or `EXCELLENT`.
-2. Model marks current evidence as useful but coverage as partial.
-3. Model chooses `INCREASE_DIFFICULTY`, `MOVE_TO_NEXT_ASPECT`, `ASK_FOR_EXAMPLE`, `ASK_FOR_JUSTIFICATION`, or `TRANSFER_TO_NEW_CASE`.
-4. Model generates exactly one question about another relevant instruction aspect or a deeper version of the same aspect.
-5. System stores and displays the next question.
-6. Flow returns to Main Flow step 10.
+1. Backend rejects it and does not persist it as an authoritative question/decision.
+2. Job follows bounded retry/failure policy.
+3. Accepted answer and prior turns remain unchanged.
+4. UI shows a safe temporary error when retry is not immediate.
 
-### AF-11: Student answer is excellent and coverage is sufficient
+### AF-12: Stale worker result
 
-**Branches from:** Main Flow step 15
-**Condition:** Latest answer is clear, specific, justified, and the transcript already covers the main instruction aspects.
+**Branches from:** Main Flow step 10 or 21  
+**Condition:** Assignment/input version changed after worker captured its context.
 
-1. Adaptive tutor model classifies the answer as `EXCELLENT`.
-2. Model verifies that transcript evidence is sufficient, varied, and relevant.
-3. Model returns `COMPLETE_SUCCESS`.
-4. Backend validates covered aspects, evidence status, and reason.
-5. System completes the assignment through the normal submission flow.
-6. System generates a final report grounded in transcript evidence.
-7. Use case ends.
+1. Result-application transaction rejects the stale result.
+2. System records stale completion for observability without mutating current turns.
+3. Current assignment state remains authoritative.
+4. Necessary current work is scheduled idempotently.
 
-### AF-12: Student repeatedly gives vague, absurd, evasive, or off-topic answers
+### AF-13: Strong evidence remains incomplete
 
-**Branches from:** Main Flow step 15
-**Condition:** Transcript shows a repeated unproductive pattern and the model determines that continuing is unlikely to produce useful evidence for a reliable report.
+**Branches from:** Main Flow step 19  
+**Condition:** Latest answer is good/excellent but important instruction aspects remain uncovered.
 
-1. Adaptive tutor model returns `COMPLETE_INSUFFICIENT_EVIDENCE`.
-2. Backend validates that the decision includes evidence status, missing instruction aspects, unproductive pattern flag, and reason.
-3. System does not ask more questions just to reach a numeric quota.
-4. System completes the assignment through the normal student-facing completion flow while storing insufficient-evidence status or equivalent internal metadata for report generation and professor review.
-5. System generates a final report for the professor explaining why the transcript does not support a reliable evaluation.
-6. System does not invent student understanding that is not supported by the transcript.
-7. Student only sees the normal completed/submitted state; the internal insufficient-evidence decision is not displayed to the student.
-8. Use case ends.
+1. Model records useful evidence and selects another uncovered aspect, deeper justification, example, or transfer case.
+2. It does not repeat a mastered aspect without pedagogical reason.
+3. Flow continues through Main Flow step 21.
 
-### AF-13: Technical maximum turn limit is reached
+### AF-14: Evidence is sufficient
 
-**Branches from:** Main Flow step 15
-**Condition:** A configurable technical safety limit is reached to prevent infinite loops.
+**Branches from:** Main Flow step 19  
+**Condition:** Ordered turns provide sufficient, varied, relevant evidence for a useful formative report.
 
-1. System asks the model or backend decision policy to determine whether existing evidence is sufficient or insufficient.
-2. If evidence is sufficient, flow follows AF-11.
-3. If evidence is insufficient, flow follows AF-12.
-4. System does not treat reaching the technical limit as successful completion by itself.
-5. Final report clearly reflects the evidence status.
-6. Use case ends.
+1. Model returns `COMPLETE_SUCCESS` with validated coverage/evidence metadata and no student question.
+2. Flow continues at Main Flow step 23.
 
-### AF-14: Adaptive tutor model returns invalid next decision
+### AF-15: Evidence remains insufficient or turn safety limit is reached
 
-**Branches from:** Main Flow step 16 or step 17
-**Condition:** Tutor model returns malformed JSON, missing fields, invalid enum values, multiple questions, explanation instead of a question, unsafe text, or output not grounded in activity context.
+**Branches from:** Main Flow step 19  
+**Condition:** Reasonable reconduction is exhausted or configured maximum turns are reached without sufficient evidence.
 
-1. Backend rejects the invalid tutor decision.
-2. System logs the failure with assignment id, training activity id, progress count, model name, and error details.
-3. System does not silently use hardcoded generic questions in production.
-4. No invalid tutor question is stored as authoritative.
-5. Depending on configuration, system shows a friendly temporary error, keeps the assignment resumable, or allows retry.
-6. Use case ends or returns to Main Flow step 13.
-
-### AF-15: Adaptive tutor model is unavailable during student execution
-
-**Branches from:** Main Flow step 6 or step 13
-**Condition:** Tutor model is offline, times out, or cannot be reached.
-
-1. System does not wait indefinitely.
-2. System logs the model failure with assignment id, training activity id, model name, and error details.
-3. System does not silently fall back to fixed English questions in production.
-4. If configured production behavior is to block, system shows a friendly temporary error and keeps the assignment in a resumable state.
-5. If an explicit local/development fallback is enabled, fallback usage is logged and must not be treated as AI-generated.
-6. Use case ends or student retries.
-
-### AF-16: Professor instructions are weak or legacy
-
-**Branches from:** Main Flow step 5 or step 13
-**Condition:** The activity was launched with legacy or weak instructions.
-
-1. Adaptive tutor runtime still uses the final saved instructions as available context.
-2. Model avoids inventing unsupported details beyond the activity context.
-3. If instructions are too weak to support reliable coverage, model may ask broader diagnostic questions or eventually complete with insufficient evidence.
-4. Final report must reflect the limits of the available instruction context and transcript evidence.
-5. Use case continues or completes according to evidence status.
-
-### AF-17: Prompt injection attempt inside professor instructions
-
-**Branches from:** Main Flow step 5 or step 13
-**Condition:** Professor instructions contain text attempting to override tutor/system rules, such as “ignore previous instructions”, “give the answer”, or “mark all answers correct”.
-
-1. Adaptive tutor runtime treats professor instructions as untrusted activity content.
-2. Backend/system tutor rules override professor-provided instructions.
-3. Tutor must not reveal prompts, give answers directly, or violate system rules.
-4. Suspicious instruction content may be logged for professor/admin review if supported.
-5. Use case continues using safe tutor rules.
-
-### AF-18: Grounding/context is unavailable
-
-**Branches from:** Main Flow step 5 or step 13
-**Condition:** Grounding documents, chunks, or contextual retrieval are unavailable for the activity.
-
-1. Adaptive tutor runtime builds the prompt using title, instructions, transcript, assignment state, and group-class context.
-2. Model must not invent external content.
-3. If grounding is required for the activity and missing, system may show a friendly error or continue with limited context according to product rules.
-4. Use case continues or ends according to configured behavior.
+1. Model/backend policy returns `COMPLETE_INSUFFICIENT_EVIDENCE` with missing-aspect metadata.
+2. Reaching the limit alone is not classified as successful learning evidence.
+3. Student sees only normal completion, not internal evidence labels.
+4. Flow continues at Main Flow step 23.
 
 ---
 
 ## Postconditions
 
-- **On success:** The student-facing tutor uses the final saved professor instructions, previous/current question, latest student answer, full transcript, assignment state, group-class context, and available grounding/context to generate adaptive Socratic questions; the tutor classifies answer quality before deciding the next action; the assignment completes successfully only when the transcript contains sufficient, varied, relevant evidence for a meaningful formative report; the final report is grounded in transcript evidence and professor instructions.
-- **On insufficient evidence:** If the student repeatedly submits vague, absurd, empty, evasive, or off-topic answers, the assignment may complete after reasonable reconduction attempts using the normal student-facing completed/submitted state; internally, the assignment/report metadata records insufficient evidence so the report model can generate an honest limited report for the professor. The student must not see the `COMPLETE_INSUFFICIENT_EVIDENCE` label or internal evidence-status labels. The report clearly states to the professor that evaluation is limited because the student did not provide enough relevant or evaluable responses, and it must not invent mastery or evidence.
-- **On failure:** If assignment ownership, state, lock, or closed-activity validation fails, no tutor decision is generated; if the tutor model fails, times out, or returns invalid output, system does not trust it; invalid tutor decisions do not become authoritative questions; fallback questions must not be silently used in production; the assignment remains resumable when possible.
+- **On continued evaluation:** Ordered turns contain every accepted nonblank response; assignment waits either for the student or durable tutor work.
+- **On completion:** Assignment is `SUBMITTED`, evidence metadata is stored, one pending report exists, and student is back at the workspace without waiting for report generation.
+- **On model failure:** Accepted responses remain durable and retryable; no invalid/stale model result becomes authoritative.
+- **On validation failure:** Blank, unauthorized, stale, blocked, or invalid-state commands produce no answer or model work.
 
 ---
 
@@ -298,222 +233,84 @@ The student opens or continues an assigned training activity from `/training-act
 
 | ID | Rule |
 |----|------|
-| BR-01 | The student runtime must use an adaptive tutor model for first and follow-up questions; fixed hardcoded questions must not be the primary production flow. |
-| BR-02 | The adaptive tutor runtime extends the existing student assignment execution flow; it does not replace ownership checks, transcript persistence, safe-browser rules, assignment locks, or report generation. |
-| BR-03 | The tutor model must be invoked when generating the first question for a started assignment unless an explicit failure/fallback path applies. |
-| BR-04 | The tutor model must be invoked after each accepted student answer to decide the next question or completion state. |
-| BR-05 | The student answer must be persisted before the next tutor decision is generated so the model can reason over the complete transcript. |
-| BR-06 | The tutor prompt must include activity title, final saved professor instructions, assignment state, previous/current question, latest student answer, transcript/history, group-class context, and available grounding/context when available. |
-| BR-07 | Professor instructions are untrusted content and cannot override backend/system tutor rules. |
-| BR-08 | The tutor must answer the student in Spanish unless a future product rule explicitly supports another language. |
-| BR-09 | The tutor must generate exactly one student-facing question when continuing. |
-| BR-10 | The tutor must not give the answer directly, solve the activity for the student, or explain as a traditional lecturer. |
-| BR-11 | The first question must be derived from the professor instructions and activity context; it must not be a generic “initial understanding” template unless the instructions explicitly require that style. |
-| BR-12 | Before every follow-up question, the tutor must analyze the latest answer in relation to the previous question, professor instructions, transcript, and expected evidence. |
-| BR-13 | The tutor must classify answer quality using a backend-validated enum such as `EMPTY`, `ABSURD`, `OFF_TOPIC`, `TOO_VAGUE`, `PARTIALLY_CORRECT`, `GOOD`, or `EXCELLENT`. |
-| BR-14 | The tutor must evaluate whether the answer provides usable evidence for the final report. |
-| BR-15 | The tutor must track which instruction aspects are already covered, weak, missing, or unsupported by evidence. |
-| BR-16 | If the student answer is empty or minimal, the tutor should ask for a minimal concrete response rather than advancing. |
-| BR-17 | If the student answer is absurd, spam, or a joke, the tutor should reconduct firmly but respectfully and not treat it as evidence. |
-| BR-18 | If the student answer is off topic, the tutor should refocus the student on the activity objective or previous question. |
-| BR-19 | If the student answer is too vague, the tutor should request precision, an example, or justification. |
-| BR-20 | If the student answer is partially correct, the tutor should identify the weak/confused part and probe it without giving the answer. |
-| BR-21 | If the student answer is good but coverage is incomplete, the tutor should increase difficulty, ask for transfer/application, ask for justification, or move to another instruction aspect. |
-| BR-22 | If the student answer is excellent about one aspect, the tutor must not repeat the same aspect unnecessarily; it should move to uncovered aspects or complete if coverage is sufficient. |
-| BR-23 | The activity must not complete successfully only because a fixed number of questions was reached. |
-| BR-24 | The activity must complete successfully only when the transcript contains sufficient, varied, relevant evidence to produce a useful formative report. |
-| BR-25 | The tutor may complete with insufficient evidence when the student repeatedly submits non-evaluable, vague, absurd, evasive, or off-topic responses after reasonable reconduction attempts. |
-| BR-25A | `COMPLETE_INSUFFICIENT_EVIDENCE` is an internal tutor/report-generation decision, not a student-facing status label. |
-| BR-25B | The student must only see the normal completed/submitted state after an insufficient-evidence completion, unless a future product decision defines a different student-facing message without exposing internal labels. |
-| BR-25C | Insufficient-evidence metadata must be stored for the final report model and professor review so the report can explain the transcript limitations honestly. |
-| BR-26 | The tutor should not keep asking indefinitely when the transcript shows no reasonable chance of producing a useful report. |
-| BR-27 | A technical maximum turn limit may exist to prevent infinite loops, but reaching the limit is not by itself evidence of successful completion. |
-| BR-28 | If the technical maximum turn limit is reached without sufficient evidence, the assignment should complete with insufficient evidence or equivalent limited-report status. |
-| BR-29 | The final report must not invent mastery, understanding, or evidence not present in the transcript. |
-| BR-30 | A successful final report should cite concrete transcript evidence for strengths, weaknesses, misconceptions, and recommendations. |
-| BR-31 | An insufficient-evidence final report should explain to the professor that evaluation is limited because the student did not provide enough relevant or evaluable responses. |
-| BR-32 | Student-facing questions must not be hardcoded as the primary production flow. |
-| BR-33 | Existing strings such as “What is your initial understanding of this activity?”, “Which concept feels least clear after your first answer?”, and “Can you explain the idea with a concrete example?” must not be used as the normal production tutor flow. |
-| BR-34 | Fallback questions must be explicit, configurable, logged, and disabled or strongly restricted in production. |
-| BR-35 | The system must not silently fall back to fixed English questions in production. |
-| BR-36 | Tutor model failures must be logged with assignment id, training activity id, question/progress count, model name, and error details. |
-| BR-37 | Invalid JSON or invalid tutor decisions must not be treated as valid questions or completion decisions. |
-| BR-38 | A `QUESTION` decision must include one Spanish student-facing question in `questionText`. |
-| BR-39 | A completion decision must use empty `questionText` and include a clear reason. |
-| BR-40 | Suggested decision types are `QUESTION`, `COMPLETE_SUCCESS`, and `COMPLETE_INSUFFICIENT_EVIDENCE`. |
-| BR-41 | Suggested evidence statuses are `NO_EVIDENCE`, `WEAK_EVIDENCE`, `PARTIAL_EVIDENCE`, and `STRONG_EVIDENCE`. |
-| BR-42 | Suggested coverage statuses are `NONE`, `WEAK`, `PARTIAL`, and `SUFFICIENT`. |
-| BR-43 | Suggested pedagogical moves include `REFOCUS`, `REPHRASE`, `ASK_FOR_CLARITY`, `ASK_FOR_EXAMPLE`, `ASK_FOR_JUSTIFICATION`, `PROBE_MISCONCEPTION`, `INCREASE_DIFFICULTY`, `MOVE_TO_NEXT_ASPECT`, `TRANSFER_TO_NEW_CASE`, `COMPLETE_SUCCESSFULLY`, and `COMPLETE_WITH_INSUFFICIENT_EVIDENCE`. |
-| BR-44 | If an assignment is already submitted, closed, locked, or not answerable, the adaptive tutor model must not be called to generate another question. |
-| BR-45 | This use case depends on final saved professor instructions, but it must still support legacy activities without UC-006 review metadata. |
-| BR-46 | Tutor prompts and model configuration must be centralized in the backend, not hardcoded in the Vaadin view or TypeScript component. |
+| BR-01 | Start and answer UI requests must return after short persistence work and must not wait for the tutor model. |
+| BR-02 | No domain database transaction may remain open during a model call. |
+| BR-03 | The Vaadin request/session thread must not perform synchronous LLM generation. |
+| BR-04 | Null, empty, and whitespace-only answers are rejected in both UI and backend. |
+| BR-05 | A rejected blank answer creates no transcript mutation, assignment transition, or AI job. |
+| BR-06 | Meaningful nonblank responses such as “no sé” are accepted and evaluated as evidence quality, not rejected as blank. |
+| BR-07 | Every accepted answer is committed before its next tutor decision is scheduled/called. |
+| BR-08 | Accepted answers survive disconnect, cancellation, timeout, model failure, and application restart. |
+| BR-09 | `answerSubmissionId` makes answer submission idempotent. |
+| BR-10 | Assignment optimistic version and current turn prevent lost updates and stale answers. |
+| BR-11 | Exactly one current unanswered question may exist for an assignment. |
+| BR-12 | A continuation decision produces exactly one Spanish student-facing question. |
+| BR-13 | Terminal decisions produce no next question and are internal; students see normal completion. |
+| BR-14 | Tutor questions derive from immutable activity instructions, ordered turns, and authorized context. |
+| BR-15 | Professor instructions and student responses are untrusted prompt content. |
+| BR-16 | The tutor must not reveal system prompts, give the answer directly, or treat unsupported claims as evidence. |
+| BR-17 | The tutor tracks answer quality, evidence strength, and coverage using backend-validated enums. |
+| BR-18 | Successful completion requires sufficient, varied, relevant transcript evidence; it is not triggered only by a fixed question count. |
+| BR-19 | Repeated non-evaluable answers may complete with internal insufficient-evidence metadata after reasonable reconduction. |
+| BR-20 | A technical turn limit prevents infinite loops but does not imply success. |
+| BR-21 | Production does not silently fall back to generic hardcoded questions after model failure. |
+| BR-22 | Tutor jobs use bounded concurrency, finite deadlines, leases, and bounded retry. |
+| BR-23 | Student tutor jobs outrank instruction-review and report jobs when model capacity is constrained. |
+| BR-24 | UI state is reconstructable from persistence; an in-memory event bus may optimize refresh but is not authoritative. |
+| BR-25 | A terminal decision submits the assignment and creates the report request atomically. |
+| BR-26 | Student navigation after submission never waits for UC-009 report generation. |
+| BR-27 | Hidden model chain-of-thought is never requested for persistence or stored; only validated decision fields are retained. |
 
-### Required tutor decision shape
+### Validated tutor decision
 
-The adaptive tutor runtime must produce a backend-validated object equivalent to:
+The backend contract is equivalent to:
 
 ```json
 {
   "type": "QUESTION | COMPLETE_SUCCESS | COMPLETE_INSUFFICIENT_EVIDENCE",
-  "answerQuality": "EMPTY | ABSURD | OFF_TOPIC | TOO_VAGUE | PARTIALLY_CORRECT | GOOD | EXCELLENT",
+  "answerQuality": "ABSURD | OFF_TOPIC | TOO_VAGUE | PARTIALLY_CORRECT | GOOD | EXCELLENT",
   "evidenceStatus": "NO_EVIDENCE | WEAK_EVIDENCE | PARTIAL_EVIDENCE | STRONG_EVIDENCE",
   "coverageStatus": "NONE | WEAK | PARTIAL | SUFFICIENT",
   "pedagogicalMove": "REFOCUS | REPHRASE | ASK_FOR_CLARITY | ASK_FOR_EXAMPLE | ASK_FOR_JUSTIFICATION | PROBE_MISCONCEPTION | INCREASE_DIFFICULTY | MOVE_TO_NEXT_ASPECT | TRANSFER_TO_NEW_CASE | COMPLETE_SUCCESSFULLY | COMPLETE_WITH_INSUFFICIENT_EVIDENCE",
-  "shouldContinue": true,
   "coveredInstructionAspects": ["..."],
   "missingInstructionAspects": ["..."],
-  "unproductivePatternDetected": false,
   "questionText": "¿...?",
-  "reason": "..."
+  "reasonCode": "..."
 }
 ```
 
-### Required adaptive tutor system prompt
-
-```text
-Eres un tutor socrático adaptativo para actividades formativas.
-
-Tu trabajo es obtener evidencia suficiente y útil sobre la comprensión del estudiante siguiendo las instrucciones del profesor.
-
-No eres una lista fija de preguntas.
-No debes terminar por una cantidad fija de preguntas.
-No debes seguir preguntando eternamente si el estudiante no aporta evidencia.
-No debes inventar evidencia ni asumir comprensión que el estudiante no demostró.
-
-En cada turno debes razonar así:
-
-1. Lee las instrucciones de la actividad.
-2. Identifica qué aspectos, conceptos, habilidades o evidencias deben evaluarse.
-3. Lee la pregunta anterior, la última respuesta del estudiante y el historial completo.
-4. Clasifica la última respuesta como EMPTY, ABSURD, OFF_TOPIC, TOO_VAGUE, PARTIALLY_CORRECT, GOOD o EXCELLENT.
-5. Decide si esa respuesta aporta evidencia útil para el reporte final.
-6. Actualiza qué aspectos de las instrucciones ya están cubiertos, cuáles están débiles y cuáles faltan.
-7. Detecta si hay un patrón improductivo de respuestas vacías, absurdas, evasivas, vagas o fuera de tema.
-8. Decide el mejor movimiento pedagógico: reconducir, reformular, pedir claridad, pedir ejemplo, pedir justificación, explorar una confusión, subir dificultad, mover a otro aspecto, finalizar con éxito o finalizar por evidencia insuficiente.
-9. Si continúas, genera exactamente una pregunta en español.
-10. Si ya hay evidencia suficiente y variada para un buen reporte, finaliza con COMPLETE_SUCCESS.
-11. Si ya no hay señales razonables de que seguir preguntando produzca un buen reporte, devuelve internamente `COMPLETE_INSUFFICIENT_EVIDENCE` para que el backend genere un reporte limitado para el profesor.
-
-Reglas obligatorias:
-
-- Responde siempre en español.
-- Haz exactamente una pregunta si decides continuar.
-- No des la respuesta correcta.
-- No expliques como profesor tradicional.
-- No regañes ni humilles al estudiante.
-- No trates una respuesta vacía, absurda, vaga o fuera de tema como evidencia válida.
-- Si el estudiante escribe “hola”, “asdasd”, “jajaja”, “no sé”, “ok” o texto sin sentido, reconduce con firmeza amable.
-- Si el estudiante casi entiende, reformula o pregunta desde otro ángulo.
-- Si el estudiante responde parcialmente bien, profundiza en la parte débil.
-- Si el estudiante responde bien, aumenta la dificultad o cambia a otro aspecto pendiente.
-- Si el estudiante responde excelente sobre un aspecto, no repitas lo mismo; avanza a otro aspecto relevante o finaliza si ya hay evidencia suficiente.
-- Si el estudiante responde basura, saludos, bromas o evasivas repetidas, finaliza internamente con evidencia insuficiente para que el reporte del profesor refleje esa limitación.
-- Esa decisión interna no debe redactarse como mensaje para el estudiante; el estudiante solo verá que la actividad quedó completada/enviada.
-- No finalices exitosamente si no podrías escribir un reporte útil con evidencias concretas del transcript.
-- No inventes información fuera del contexto disponible.
-```
-
-### Required adaptive tutor user prompt
-
-```text
-Actividad formativa:
-Título: {{title}}
-
-Instrucciones del profesor:
-{{instructions}}
-
-Contexto académico:
-Tenant: {{tenant}}
-Group class: {{groupClass}}
-Estado de la asignación: {{assignmentStatus}}
-Cantidad de preguntas realizadas: {{questionCount}}
-
-Pregunta actual/anterior:
-{{currentQuestion}}
-
-Última respuesta del estudiante:
-{{lastAnswer}}
-
-Historial completo:
-{{transcript}}
-
-Grounding disponible:
-{{grounding}}
-
-Analiza el historial y decide la próxima acción.
-
-Debes evaluar:
-
-1. Qué pedían realmente las instrucciones del profesor.
-2. Qué aspectos ya fueron cubiertos por respuestas del estudiante.
-3. Qué aspectos siguen sin evidencia suficiente.
-4. Si la última respuesta fue vacía, absurda, fuera de tema, vaga, parcialmente correcta, buena o excelente.
-5. Si la última respuesta aporta evidencia útil para el reporte final.
-6. Qué movimiento pedagógico conviene ahora.
-7. Si todavía vale la pena preguntar más.
-8. Si ya existe evidencia suficiente para cerrar con éxito.
-9. Si ya no vale la pena seguir preguntando porque el estudiante no aporta evidencia útil.
-10. Si se debe cerrar internamente con evidencia insuficiente para que el reporte del profesor no invente comprensión.
-11. Si se llegó a un límite técnico sin evidencia suficiente.
-
-Devuelve SOLO JSON válido con la forma definida por el contrato del backend.
-```
+`answerQuality` may be absent for the first-question decision. `questionText` is required only for `QUESTION`. Human-readable hidden reasoning is not part of the contract.
 
 ---
 
 ## Tests
 
-> Tests verify the flows and business rules above. There is no separate acceptance-criteria list — the flows and rules *are* the acceptance criteria. The use case's test class, folder, and naming conventions are defined by the `/use-case-tests` skill — do not name a test class here.
-
-- [ ] Main Flow covered: student starts assignment, adaptive tutor generates first question, student answer is persisted, tutor analyzes the answer, returns a next decision, and assignment completes with success or with internal insufficient-evidence metadata while showing the normal completed state to the student.
-- [ ] Assignment ownership and state alternatives covered: AF-1 through AF-3.
-- [ ] First tutor decision failure covered: AF-4.
-- [ ] Empty/minimal answer alternative covered: AF-5.
-- [ ] Absurd/spam answer alternative covered: AF-6.
-- [ ] Off-topic answer alternative covered: AF-7.
-- [ ] Too-vague answer alternative covered: AF-8.
-- [ ] Partially correct answer alternative covered: AF-9.
-- [ ] Good-but-incomplete answer alternative covered: AF-10.
-- [ ] Excellent-and-sufficient answer alternative covered: AF-11.
-- [ ] Repeated unproductive pattern alternative covered: AF-12.
-- [ ] Technical maximum turn limit covered: AF-13.
-- [ ] Adaptive tutor model failure alternatives covered: AF-14 and AF-15.
-- [ ] Weak instruction and prompt safety alternatives covered: AF-16 and AF-17.
-- [ ] Grounding/context alternative covered: AF-18.
-- [ ] Business rule covered: first question is generated through adaptive tutor model, not hardcoded strings.
-- [ ] Business rule covered: next question is generated after each accepted student answer through adaptive tutor model.
-- [ ] Business rule covered: student answer is persisted before next tutor decision.
-- [ ] Business rule covered: prompt includes title, final instructions, previous/current question, latest answer, transcript, assignment state, group class, and grounding/context if available.
-- [ ] Business rule covered: tutor classifies answer quality before generating the next question.
-- [ ] Business rule covered: tutor reconducts empty, absurd, vague, or off-topic answers.
-- [ ] Business rule covered: tutor probes partially correct answers instead of treating them as complete understanding.
-- [ ] Business rule covered: tutor moves to another instruction aspect or increases difficulty when the student answers well but coverage is incomplete.
-- [ ] Business rule covered: successful completion is based on sufficient evidence, not a fixed number of questions.
-- [ ] Business rule covered: repeated non-evaluable answers can complete the assignment with internal insufficient-evidence metadata.
-- [ ] Business rule covered: final report does not invent evidence not present in the transcript.
-- [ ] Business rule covered: model failure does not silently fall back to generic hardcoded questions in production.
-- [ ] Anti-regression test covered: the strings `What is your initial understanding of this activity?`, `Which concept feels least clear after your first answer?`, and `Can you explain the idea with a concrete example?` are not used as the primary student tutor path.
-- [ ] Business rule covered: submitted, closed, locked, or not-answerable assignments do not call the tutor model.
-- [ ] Business rule covered: `COMPLETE_INSUFFICIENT_EVIDENCE` is returned internally when repeated bad answers make a useful report unlikely.
-- [ ] Business rule covered: student does not see `COMPLETE_INSUFFICIENT_EVIDENCE`, evidence-status labels, or internal tutor decision labels after completion.
-- [ ] Business rule covered: insufficient-evidence metadata is available to the professor report generator even though the student-facing completion state remains normal.
-- [ ] Business rule covered: `COMPLETE_SUCCESS` requires sufficient, varied, relevant evidence tied to professor instructions.
+- [ ] Main Flow covered with a controllable slow model proving start/answer return before generation completes.
+- [ ] AF-1 and AF-2 ownership/lifecycle covered without model calls.
+- [ ] AF-3 Safe Browser enforcement covered.
+- [ ] AF-4 blank/whitespace rejected in UI, service, and database constraints.
+- [ ] AF-5 meaningful “no sé” accepted and evaluated.
+- [ ] AF-6 non-evaluable response reconduction covered.
+- [ ] AF-7 duplicate answer idempotency covered.
+- [ ] AF-8 stale/concurrent answer optimistic conflict covered.
+- [ ] AF-9 disconnect/reload recovery covered from persistence.
+- [ ] AF-10 and AF-11 model failure/invalid output preserve answers.
+- [ ] AF-12 stale result cannot overwrite current state.
+- [ ] AF-13 through AF-15 adaptive continuation and both terminal decisions covered.
+- [ ] Cancellation after accepted answer preserves turn and retryable job.
+- [ ] Terminal decision submits and creates exactly one report without waiting for it.
+- [ ] BR-01 through BR-27 covered.
 
 ---
 
 ## UI Surface
 
-> This use case is an authenticated student workspace flow using the existing Vaadin Flow assignment route and any existing TypeScript-enhanced conversation/composer components. There is no public anonymous route.
-
-- Student assigned training activity execution screen: student sees one adaptive Socratic question at a time, submits answers, and receives follow-up questions generated from final saved professor instructions, transcript, latest answer, and assignment context.
-- Student answer composer: may use existing TypeScript composer behavior for answer input, submit state, loading state while the tutor model decides, and error/retry state when model generation fails.
-- Student completion state: always shows the normal completed/submitted state after tutor completion. It must not expose `COMPLETE_INSUFFICIENT_EVIDENCE`, evidence-status labels, or internal model decision labels to the student.
-- Professor report/review surface: shows final report and transcript, including whether the report is based on sufficient evidence or limited by insufficient student responses. This surface may show the internal insufficient-evidence tag or a professor-facing equivalent.
-- Service methods remain authoritative for assignment ownership, permission, group-class context, assignment lock, closed-activity rules, transcript persistence, and completion.
+- Student assignment screen showing one persisted question at a time.
+- Explicit states for start, preparing question, waiting for answer, analyzing, temporary failure/retry, Safe Browser blocked, and completed.
+- Answer composer trims only for validation, disables blank submission, protects against duplicate clicks, and preserves unsent text on recoverable validation errors.
+- Completion navigates to student workspace immediately after persisted submission.
 
 | Surface | Access | Entry Point |
 |---------|--------|-------------|
-| Student assigned training activity execution | Authenticated owning student | `/training-activity/assignments/{assignmentId}` |
-| Student answer composer | Authenticated owning student | Embedded in assignment execution screen |
-| Student completion state | Authenticated owning student | Existing assignment route after submission |
-| Professor report/review surface | Authenticated professor or authorized reviewer | Existing training activity review/detail route |
+| Student assignment runtime | Authenticated owning student | `/training-activity/assignments/{assignmentId}` |
+| Completed assignment row | Authenticated owning student | `/student` |

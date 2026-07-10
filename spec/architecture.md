@@ -55,7 +55,7 @@ The application is organized around these active bounded areas:
 | `academic` | Subjects, academic periods, group classes, and group-class members. |
 | `conversation` | Tutor conversation ownership, listing, titles, access control, and domain metadata. |
 | `grounding` | PgVectorStore-backed grounding rows, embeddings, and retrieval. |
-| `training_activity` | Formative activity definitions and student assignments. |
+| `training_activity` | Formative activity definitions, advisory reviews, assignment runtime, turns, reports, Safe Browser sessions, and durable work orchestration. |
 | `onboarding` | Invitation acceptance, registration, role assignment, and workspace routing. |
 | `ai` | Tutor prompt composition, advisors, tools, guardrails, Spring AI Session memory, compaction, and retrieval orchestration. |
 | `ui` | Vaadin views, layouts, navigation, and role/context-specific workspaces. |
@@ -106,7 +106,16 @@ Formative activities:
 ```text
 group_class
   -> training_activity
+      -> training_instruction_review
+          -> training_instruction_review_override
       -> training_activity_assignment
+          -> training_activity_turn
+          -> training_activity_report
+          -> safe_browser_session
+              -> safe_browser_event
+
+training_activity_ai_job
+outbox_event
 ```
 
 ---
@@ -218,6 +227,14 @@ group_class_member
 conversation
 training_activity
 training_activity_assignment
+training_instruction_review
+training_instruction_review_override
+training_activity_turn
+training_activity_report
+training_activity_ai_job
+safe_browser_session
+safe_browser_event
+outbox_event
 grounding_vector_store
 ```
 
@@ -450,26 +467,71 @@ They must not query global grounding rows without scope constraints.
 
 ## 12. Formative Activity Architecture
 
-Database model:
+SPEC-005 is the authoritative persistence and orchestration contract. The product-facing name remains formative activity.
+
+### Internal module boundaries
 
 ```text
-training_activity
-training_activity_assignment
+training_activity/
+  application/       commands, queries, transaction boundaries, authorization
+  domain/            lifecycle/state rules and immutable command/result types
+  persistence/       entities and repositories owned by this module
+  review/            instruction review prompt adapter and validated result mapper
+  tutor/             first-question/next-decision prompt adapter and validation
+  report/            structured report prompt adapter and validation
+  safe_browser/      session/event policies and heartbeat expiry
+  jobs/              durable bounded AI job claiming, leases, retry, priority
+  notification/      outbox handling and idempotent email delivery
+  ui/                Vaadin views/components consuming application DTOs
 ```
 
-Product-facing name:
+Package names may follow current conventions, but these responsibilities must not be collapsed into one fat entity/service/view.
+
+### Persistence responsibilities
 
 ```text
-formative activity
+training_activity                         immutable-after-publish definition
+training_instruction_review              append-only advisory review history
+training_instruction_review_override     explicit professor acknowledgement
+training_activity_assignment              student delivery and runtime state
+training_activity_turn                    authoritative question/answer evidence
+training_activity_report                  structured asynchronous report
+training_activity_ai_job                  durable model work
+safe_browser_session                      protected-session state
+safe_browser_event                        append-only incident/action history
+outbox_event                              post-commit integration delivery
 ```
 
-`training_activity` is the definition.
+These internal entities inherit authorization from their parent activity or assignment and do not become independent RBAC resources.
 
-`training_activity_assignment` is the student-facing assigned state.
+### Non-blocking command/worker split
+
+UI/application commands may validate and commit domain state, enqueue durable work, and return a DTO. They must not call an LLM or SMTP while holding a Vaadin request/session thread or domain database transaction.
+
+Workers follow this pattern:
+
+```text
+short claim transaction
+  -> external model/provider call without domain transaction
+  -> backend validation
+  -> short optimistic result transaction
+```
+
+Correctness is reconstructed from PostgreSQL. Vaadin push or in-memory events may reduce refresh latency but cannot be the only state-delivery mechanism.
+
+### Priority and capacity
+
+Model capacity is bounded. Live student `FIRST_QUESTION` and `NEXT_DECISION` jobs outrank instruction-review and final-report jobs. Executors/queues must have configured concurrency, deadlines, leases, and bounded retry; unbounded async execution is prohibited.
+
+### Evidence and report boundary
+
+`training_activity_turn` is the transcript source of truth. `training_activity_report` stores validated structured analysis only. The UI renders ordered turns directly and never reparses question/answer evidence from generated Markdown. Hidden model chain-of-thought is neither requested for persistence nor stored.
+
+### Migration baseline
+
+No valuable production data exists for the POC module. Implementation rewrites the formative portion of the Flyway production baseline, removes obsolete formative POC migrations/columns, and requires a deliberate development database reset. Compatibility conversion code is out of scope.
 
 `evaluation_run` is not part of the active target model.
-
-Assignment progress is represented by status transitions on `training_activity_assignment`.
 
 ---
 
@@ -592,7 +654,7 @@ Required categories:
 - ownership tests,
 - Spring AI Session advisor, event filtering, compaction, and conversation ownership tests,
 - grounding retrieval tests,
-- formative assignment tests,
+- formative lifecycle, advisory-review, publication/outbox, assignment-turn, asynchronous tutor, Safe Browser expiry, and structured-report tests,
 - Vaadin route startup tests,
 - AI advisor startup tests,
 - legacy exclusion tests.

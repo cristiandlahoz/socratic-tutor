@@ -53,7 +53,16 @@ The canonical formative activity chain is:
 ```text
 group_class
   -> training_activity
+      -> training_instruction_review
+          -> training_instruction_review_override
       -> training_activity_assignment
+          -> training_activity_turn
+          -> training_activity_report
+          -> safe_browser_session
+              -> safe_browser_event
+
+training_activity_ai_job
+outbox_event
 ```
 
 Do not use `client_id`, browser cookies, legacy chat tables, legacy document ingestion tables, legacy evaluation-run tables, or old student-profile tables as the active source of identity, authorization, ownership, membership, or tutor activity.
@@ -100,7 +109,7 @@ The application must include:
 - Group-class-centered professor and student workflows.
 - Socratic tutor chat through domain `conversation` records and Spring AI Session JDBC history events.
 - Group-class grounding through pgvector-backed `grounding_vector_store` rows scoped by metadata.
-- Formative activities through `training_activity` and `training_activity_assignment`.
+- Formative activities through the normalized definition, review, assignment, turn, report, Safe Browser, durable AI-job, and outbox model defined by SPEC-005.
 - Invitation-based access for tenant admins, professors, and students.
 - Service-layer authorization and scope checks.
 - Vaadin protected routes.
@@ -287,7 +296,14 @@ Most tutor activity is owned by or created through a `group_class_member`.
 | `ai_session` / `ai_session_event` | Spring AI Session-owned lifecycle metadata, message history, synthetic summaries, and compaction archive. |
 | `grounding_vector_store` | Flat pgvector-backed retrieval row for class-scoped grounding material. |
 | `training_activity` | Group-class formative activity definition. |
-| `training_activity_assignment` | Student-facing assigned formative activity state. |
+| `training_instruction_review` | Immutable advisory AI review for one exact activity-instructions hash and rubric version. |
+| `training_instruction_review_override` | Auditable professor decision to save or publish despite an AI warning or unavailable review. |
+| `training_activity_assignment` | Student-facing assigned formative activity and single-attempt runtime state. |
+| `training_activity_turn` | Authoritative ordered tutor-question and student-answer evidence. |
+| `training_activity_report` | Structured asynchronous professor report for one submitted assignment. |
+| `training_activity_ai_job` | Durable bounded work item for review, tutor, and report model calls. |
+| `safe_browser_session` / `safe_browser_event` | Protected-session state and append-only monitoring/audit history for an assignment. |
+| `outbox_event` | Durable post-commit integration event such as activity notification delivery. |
 
 ---
 
@@ -346,7 +362,15 @@ ai_session
 ai_session_event
 grounding_vector_store
 training_activity
+training_instruction_review
+training_instruction_review_override
 training_activity_assignment
+training_activity_turn
+training_activity_report
+training_activity_ai_job
+safe_browser_session
+safe_browser_event
+outbox_event
 ```
 
 The baseline must not create active legacy tables as part of the target model.
@@ -422,6 +446,11 @@ Required constraints include:
 - `group_class_member(group_class_id, tenant_account_id, role)` unique.
 - `group_class_join_code.code` unique.
 - `training_activity_assignment(training_activity_id, group_class_member_id)` unique.
+- `training_activity_turn(training_activity_assignment_id, sequence_number)` unique.
+- `training_activity_report.training_activity_assignment_id` unique.
+- `safe_browser_event(safe_browser_session_id, client_event_id)` unique.
+- `outbox_event.deduplication_key` unique.
+- Mutable training activity, assignment, report, Safe Browser session, AI job, and outbox aggregates must have optimistic or atomic concurrency protection.
 
 Spring AI Session table constraints and indexes must match its official JDBC PostgreSQL schema rather than an application approximation.
 
@@ -430,8 +459,12 @@ Allowed values must be constrained where appropriate:
 ```text
 group_class_member.role = PROFESSOR | STUDENT
 training_activity.status = DRAFT | PUBLISHED | CLOSED | ARCHIVED
-training_activity_assignment.status = ASSIGNED | STARTED | SUBMITTED | SKIPPED | EXPIRED | EXCUSED
+training_activity_assignment.status = ASSIGNED | STARTING | WAITING_FOR_ANSWER | WAITING_FOR_TUTOR | SUBMITTED | SKIPPED | EXPIRED | EXCUSED
+training_activity_report.status = PENDING | GENERATING | READY | FAILED
+safe_browser_session.status = PENDING | ACTIVE | VIOLATED | EXPIRED | ENDED
 ```
+
+Database checks must reject blank/whitespace-only stored activity titles, activity instructions, tutor questions, and non-null student answers.
 
 ---
 
@@ -937,66 +970,88 @@ The tutor may only retrieve from rows that are usable according to the current g
 
 ## Formative Activity Requirements
 
-The schema names this area:
+The user-facing concept is a formative activity. SPEC-005 is the authoritative technical contract and UC-003 plus UC-005 through UC-009 define its observable behavior.
 
-```text
-training_activity
-training_activity_assignment
-```
+### Activity definition and lifecycle
 
-The user-facing product concept may be presented as formative activities.
+A `training_activity`:
 
-### Training Activity Definition
+- belongs to one group class;
+- is created and managed by an authorized class member;
+- requires a nonblank title and nonblank instructions;
+- has status `DRAFT | PUBLISHED | CLOSED | ARCHIVED`;
+- may define open/close times and optional Safe Browser requirement;
+- is editable only while `DRAFT`;
+- becomes definition-immutable after publication;
+- is closed/archived instead of physically deleted after publication.
 
-A `training_activity` represents a group-class formative activity definition.
+There is a global one-published-activity-per-professor restriction.
 
-Rules:
+### Advisory instruction review
 
-- It belongs to a group class.
-- It is created by a valid group-class member.
-- It has a lifecycle status.
-- It may open and close by date/time.
-- It is managed by professors or authorized roles inside the group class.
+- AI review is a suggestion, not a source of authorization or deterministic validity.
+- Blank required fields are rejected without AI.
+- A professor may save or publish despite a warning, missing review, or unavailable review only after explicit confirmation.
+- Every override records action, actor, and exact instructions hash.
+- Review execution is asynchronous and must not hold a Vaadin request/session thread or domain transaction during model work.
+- Students never see review diagnostics or overrides.
 
-Allowed statuses:
+### Publication and assignment delivery
 
-```text
-DRAFT
-PUBLISHED
-CLOSED
-ARCHIVED
-```
+- Publication atomically transitions the draft, creates one assignment per eligible student, and writes a durable outbox event.
+- `(training_activity_id, group_class_member_id)` is unique.
+- Student workspace visibility is driven by committed assignment rows.
+- Notification email runs after commit; email failure never rolls back publication or assignment delivery.
 
-### Training Activity Assignment
+### Durable assignment runtime
 
-A `training_activity_assignment` represents a student's assigned activity state.
-
-Rules:
-
-- It belongs to a training_activity.
-- It targets a group-class member.
-- It must target a student group-class member.
-- Students can view and update only their own assignments.
-- Professors can create/manage assignments only inside allowed group classes.
-
-Allowed statuses:
+Allowed assignment states are:
 
 ```text
 ASSIGNED
-STARTED
+STARTING
+WAITING_FOR_ANSWER
+WAITING_FOR_TUTOR
 SUBMITTED
 SKIPPED
 EXPIRED
 EXCUSED
 ```
 
-Expected basic student lifecycle:
+Expected interactive lifecycle:
 
 ```text
-ASSIGNED -> STARTED -> SUBMITTED
+ASSIGNED -> STARTING -> WAITING_FOR_ANSWER
+WAITING_FOR_ANSWER -> WAITING_FOR_TUTOR -> WAITING_FOR_ANSWER
+STARTING | WAITING_FOR_ANSWER | WAITING_FOR_TUTOR -> SUBMITTED
 ```
 
-`evaluation_run` is not part of the active target model.
+- Starting and answering return after short durable transactions; model calls happen in bounded background work.
+- A blank/whitespace-only student response is rejected in UI and backend, is not persisted, and creates no AI job.
+- A meaningful nonblank response such as “no sé” is accepted and evaluated as weak/no evidence when appropriate.
+- Every accepted answer is persisted in an ordered `training_activity_turn` before the follow-up tutor decision is generated.
+- Disconnect, cancellation, timeout, restart, and model failure must not discard an accepted response.
+- Model results are applied only after backend validation and optimistic input-version checks.
+- Hidden model chain-of-thought is not stored.
+
+### Completion and reporting
+
+- A terminal tutor decision atomically submits the assignment and creates one pending report/job.
+- Student completion and return to the workspace do not wait for report generation.
+- Reports are structured, asynchronous, evidence-based, and unique per assignment.
+- Ordered question-answer history comes from turns and is not reparsed from report Markdown.
+- A report failure never reopens or un-submits the assignment.
+
+### Safe Browser
+
+- Safe Browser is an optional detection mode, not a guarantee of operating-system control.
+- Sessions are assignment-specific, token-bound, and terminal after violation/expiry/end.
+- Backend heartbeat expiry is scheduled and authoritative.
+- A heartbeat cannot reactivate a terminal session.
+- Violations block only the affected assignment and remain append-only audit history.
+- Professor allowance creates a new eligible session; it does not mutate a violated session back to active.
+
+`evaluation_run` and POC transcript/report/review columns on `training_activity_assignment` are not part of the active target model.
 
 ---
 
@@ -1197,7 +1252,12 @@ Legacy packages may remain for reference or later migration work, but they must 
 - A training_activity_assignment must belong to a training_activity.
 - A training_activity_assignment must target a student group-class member.
 - Students can view and update only their own assignments.
-- Assignment progress is represented by updating `training_activity_assignment.status`.
+- Assignment lifecycle is represented by `training_activity_assignment.status`; ordered evidence is represented by `training_activity_turn`.
+- AI instruction review is advisory and may be overridden explicitly; deterministic blank validation cannot be overridden.
+- Model calls and SMTP delivery must run outside Vaadin request/session threads and outside domain transaction boundaries.
+- Accepted nonblank student answers must be durable before follow-up tutor work begins.
+- Student submission must not wait for final report generation.
+- Historical assignments, turns, Safe Browser events, and reports must be preserved through close/archive behavior.
 - `evaluation_run` must not be active target persistence.
 
 ### Delete and Disable Policy
@@ -1317,7 +1377,7 @@ Use these criteria to evaluate whether an implementation is acceptable.
 - AI tutor response flow runs without legacy persistence dependencies.
 - Conversation ownership uses `conversation`; history and compaction use Spring AI Session JDBC tables.
 - Grounding persistence uses `grounding_*`.
-- Formative activity persistence uses `training_activity` and `training_activity_assignment`.
+- Formative activity persistence and orchestration use the normalized SPEC-005 activity, review, assignment, turn, report, Safe Browser, AI-job, and outbox model.
 
 ### UX Criteria
 
