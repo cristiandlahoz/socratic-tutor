@@ -437,7 +437,7 @@ class TrainingActivityServiceTest {
         var groupClassId = UUID.randomUUID();
         var activity = activity(activityId, groupClassId);
         var assigned = assignment(activity, TrainingActivityAssignmentStatus.ASSIGNED);
-        var started = assignment(activity, TrainingActivityAssignmentStatus.STARTED);
+        var started = assignment(activity, TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
         var submitted = assignment(activity, TrainingActivityAssignmentStatus.SUBMITTED);
         var excused = assignment(activity, TrainingActivityAssignmentStatus.EXCUSED);
 
@@ -507,7 +507,7 @@ class TrainingActivityServiceTest {
         var groupClassId = UUID.randomUUID();
         var activity = activity(activityId, groupClassId);
         var assigned = assignment(activity, TrainingActivityAssignmentStatus.ASSIGNED);
-        var started = assignment(activity, TrainingActivityAssignmentStatus.STARTED);
+        var started = assignment(activity, TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
         var submitted = assignment(activity, TrainingActivityAssignmentStatus.SUBMITTED);
         var excused = assignment(activity, TrainingActivityAssignmentStatus.EXCUSED);
 

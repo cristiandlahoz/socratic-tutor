@@ -274,7 +274,10 @@ public class TrainingActivityDialog extends Div {
     private String assignmentStatusLabel(TrainingActivityAssignment assignment) {
         return switch (assignment.getStatus()) {
             case ASSIGNED -> "Asignada";
-            case STARTED -> "Iniciada";
+            case STARTING -> "Preparando pregunta";
+            case WAITING_FOR_ANSWER -> "Esperando respuesta";
+            case WAITING_FOR_TUTOR -> "Analizando respuesta";
+            case TEMPORARILY_UNAVAILABLE -> "Tutor no disponible temporalmente";
             case SUBMITTED -> "Enviada";
             case SKIPPED -> "Omitida";
             case EXPIRED -> "Vencida";

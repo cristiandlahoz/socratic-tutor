@@ -1,259 +1,212 @@
 package com.wornux.services.training_activity;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
 import com.wornux.data.entities.academic.GroupClassMemberKind;
+import com.wornux.data.entities.training_activity.TrainingActivityAiJob;
+import com.wornux.data.entities.training_activity.TrainingActivityAiJobStatus;
+import com.wornux.data.entities.training_activity.TrainingActivityAiJobType;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
+import com.wornux.data.entities.training_activity.TrainingActivityTurn;
+import com.wornux.data.repositories.training_activity.TrainingActivityAiJobRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
+import com.wornux.data.repositories.training_activity.TrainingActivityTurnRepository;
 import com.wornux.services.context.ActiveAcademicContextResolver;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Accepts student commands only. Model invocation belongs to {@link TrainingTutorJobService};
+ * no Vaadin request can retain a transaction while the configured model runs.
+ */
 @Service
 public class TrainingAssignmentEvaluationService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(TrainingAssignmentEvaluationService.class);
-
-    private static final TypeReference<
-        List<EvaluationExchange>
-    > TRANSCRIPT_TYPE = new TypeReference<>() {};
+    private static final int TUTOR_PRIORITY = 10;
+    private static final int MAX_ATTEMPTS = 3;
 
     private final TrainingActivityAssignmentRepository assignmentRepository;
+    private final TrainingActivityTurnRepository turnRepository;
+    private final TrainingActivityAiJobRepository jobRepository;
     private final ActiveAcademicContextResolver contextResolver;
-    private final TrainingAssignmentTutorService tutorService;
-    private final JsonMapper jsonMapper;
-    private final TrainingAssignmentDecisionPersistenceService decisionPersistenceService;
+    private final TrainingTutorJobService tutorJobService;
 
+    @Autowired
     public TrainingAssignmentEvaluationService(
-        TrainingActivityAssignmentRepository assignmentRepository,
-        ActiveAcademicContextResolver contextResolver,
-        TrainingAssignmentTutorService tutorService,
-        JsonMapper jsonMapper,
-        TrainingAssignmentDecisionPersistenceService decisionPersistenceService
-    ) {
+            TrainingActivityAssignmentRepository assignmentRepository,
+            TrainingActivityTurnRepository turnRepository,
+            TrainingActivityAiJobRepository jobRepository,
+            ActiveAcademicContextResolver contextResolver,
+            TrainingTutorJobService tutorJobService) {
         this.assignmentRepository = assignmentRepository;
+        this.turnRepository = turnRepository;
+        this.jobRepository = jobRepository;
         this.contextResolver = contextResolver;
-        this.tutorService = tutorService;
-        this.jsonMapper = jsonMapper;
-        this.decisionPersistenceService = decisionPersistenceService;
+        this.tutorJobService = tutorJobService;
+    }
+
+    /** Compatibility constructor for focused tests that do not exercise recovery. */
+    public TrainingAssignmentEvaluationService(
+            TrainingActivityAssignmentRepository assignmentRepository,
+            TrainingActivityTurnRepository turnRepository,
+            TrainingActivityAiJobRepository jobRepository,
+            ActiveAcademicContextResolver contextResolver) {
+        this(assignmentRepository, turnRepository, jobRepository, contextResolver, null);
     }
 
     @Transactional(readOnly = true)
     public TrainingActivityAssignment getForCurrentStudent(UUID assignmentId) {
-        return getForStudent(assignmentId, requireCurrentStudentGroupClassMemberId());
+        return hydrate(requireOwned(assignmentId));
     }
 
     @Transactional
     public TrainingActivityAssignment start(UUID assignmentId) {
-        var assignment = getForCurrentStudent(assignmentId);
+        var assignment = requireOwnedLocked(assignmentId);
         ensureAnswerable(assignment);
-        if (
-            assignment.getStatus() == TrainingActivityAssignmentStatus.ASSIGNED
-        ) {
-            AdaptiveTutorDecision decision;
-            try {
-                decision = tutorService.firstDecision(assignment);
-                if (decision.type() != TutorDecisionType.QUESTION) {
-                    throw new IllegalStateException("The adaptive tutor must start with a question.");
-                }
-            }
-            catch (RuntimeException exception) {
-                LOGGER.warn(
-                        "Training assignment start failed before the first question was persisted: assignmentId={} trainingActivityId={} status={} safeBrowserEnabled={} safeBrowserSessionActive={} model={} reason={}",
-                        assignment.getId(),
-                        assignment.getTrainingActivity() == null ? null : assignment.getTrainingActivity().getId(),
-                        assignment.getStatus(),
-                        assignment.getTrainingActivity() != null && assignment.getTrainingActivity().isSafeBrowserEnabled(),
-                        assignment.isSafeBrowserSessionActive(),
-                        tutorService.currentModelName(),
-                        exception.getMessage(),
-                        exception);
-                throw new AdaptiveTutorStartUnavailableException(exception);
-            }
-            assignment.setStatus(TrainingActivityAssignmentStatus.STARTED);
-            assignment.setStartedAt(Instant.now());
-            assignment.setCurrentQuestion(decision.questionText());
-            assignment.setQuestionCount(1);
-            decisionPersistenceService.applyDecisionMetadata(assignment, decision);
-            assignment.setUpdatedAt(Instant.now());
+        if (assignment.getStatus() != TrainingActivityAssignmentStatus.ASSIGNED) {
+            return hydrate(assignment);
         }
-        return assignmentRepository.save(assignment);
+        var now = Instant.now();
+        assignment.setStatus(TrainingActivityAssignmentStatus.STARTING);
+        assignment.setStartedAt(now);
+        assignment.setUpdatedAt(now);
+        assignmentRepository.saveAndFlush(assignment);
+        enqueueIfAbsent(TrainingActivityAiJobType.FIRST_QUESTION, assignment, null, assignment.getVersion(), "first:" + assignmentId, now);
+        return hydrate(assignment);
     }
 
+    @Transactional
+    public TrainingActivityAssignment submitAnswer(UUID assignmentId, String answer, UUID answerSubmissionId) {
+        if (answerSubmissionId == null) {
+            throw new IllegalArgumentException("A response submission id is required.");
+        }
+        validateRequiredAnswer(answer);
+        var assignment = requireOwnedLocked(assignmentId);
+        ensureAnswerable(assignment);
+        var duplicate = turnRepository.findByAssignment_IdAndAnswerSubmissionId(assignmentId, answerSubmissionId);
+        if (duplicate.isPresent()) {
+            if (!Objects.equals(duplicate.get().getAnswerText(), answer)) {
+                throw new IllegalArgumentException("The response submission id was already used for a different answer.");
+            }
+            return hydrate(assignment);
+        }
+        if (assignment.getStatus() != TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER) {
+            throw new IllegalStateException("The evaluation is not waiting for an answer.");
+        }
+        var turn = turnRepository.findFirstByAssignment_IdAndAnswerTextIsNullOrderBySequenceNumberDesc(assignmentId)
+                .orElseThrow(() -> new IllegalStateException("The current tutor question is unavailable."));
+        var now = Instant.now();
+        turn.setAnswerText(answer);
+        turn.setAnswerSubmissionId(answerSubmissionId);
+        turn.setAnswerSubmittedAt(now);
+        turn.setUpdatedAt(now);
+        turnRepository.save(turn);
+        assignment.setStatus(TrainingActivityAssignmentStatus.WAITING_FOR_TUTOR);
+        assignment.setUpdatedAt(now);
+        assignmentRepository.saveAndFlush(assignment);
+        enqueueIfAbsent(TrainingActivityAiJobType.NEXT_DECISION, assignment, turn, assignment.getVersion(),
+                "next:" + assignmentId + ":" + turn.getId(), now);
+        return hydrate(assignment);
+    }
+
+    /** Compatibility entrypoint retained for callers compiled before UC-007. */
     public TrainingActivityAssignment answer(UUID assignmentId, String answer) {
-        var preparedAnswer = prepareAnswer(assignmentId, answer);
-        if (preparedAnswer.alreadySubmitted()) {
-            return preparedAnswer.assignment();
-        }
-        var decision = tutorService.nextDecision(preparedAnswer.assignment(), preparedAnswer.answer(), preparedAnswer.transcript());
-        return persistDecision(preparedAnswer, decision);
+        return submitAnswer(assignmentId, answer, UUID.randomUUID());
     }
 
+    @Transactional
+    public TrainingActivityAssignment retryTutor(UUID assignmentId) {
+        requireOwnedLocked(assignmentId);
+        if (tutorJobService == null || !tutorJobService.retryTemporaryFailure(assignmentId)) {
+            throw new IllegalStateException("The tutor is not awaiting recovery for this evaluation.");
+        }
+        return hydrate(requireOwned(assignmentId));
+    }
+
+    /** Compatibility transport: completion means the durable command committed, not model completion. */
     public Flux<AnswerStreamEvent> answerStream(UUID assignmentId, String answer) {
-        var preparedAnswer = prepareAnswer(assignmentId, answer);
-        if (preparedAnswer.alreadySubmitted()) {
-            return Flux.just(AnswerStreamEvent.completed(preparedAnswer.assignment()));
+        return Flux.just(AnswerStreamEvent.completed(submitAnswer(assignmentId, answer, UUID.randomUUID())));
+    }
+
+    @Transactional(readOnly = true)
+    public List<EvaluationExchange> readEvaluationTranscript(TrainingActivityAssignment assignment) {
+        if (assignment == null || assignment.getId() == null) {
+            return List.of();
         }
-        return tutorService.nextDecisionStream(preparedAnswer.assignment(), preparedAnswer.answer(), preparedAnswer.transcript())
-                .concatMap(event -> {
-                    if (!event.isCompletion()) {
-                        return event.textDelta().isBlank()
-                                ? Flux.empty()
-                                : Flux.just(AnswerStreamEvent.messageDelta(event.textDelta()));
-                    }
-                    return Mono.fromCallable(() -> AnswerStreamEvent.completed(persistDecision(preparedAnswer, event.decision())))
-                            .subscribeOn(Schedulers.boundedElastic())
-                            .flux();
-                });
+        return turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(assignment.getId()).stream()
+                .filter(turn -> turn.getAnswerText() != null)
+                .map(turn -> new EvaluationExchange(turn.getQuestionText(), turn.getAnswerText()))
+                .toList();
     }
 
-    private boolean isTerminalDecision(AdaptiveTutorDecision decision) {
-        return decision != null
-                && (decision.type() == TutorDecisionType.COMPLETE_SUCCESS
-                || decision.type() == TutorDecisionType.COMPLETE_INSUFFICIENT_EVIDENCE);
-    }
-
-    private TrainingActivityAssignment persistDecision(PreparedAnswer preparedAnswer, AdaptiveTutorDecision decision) {
-        var finalReport = isTerminalDecision(decision)
-                ? tutorService.finalReport(preparedAnswer.assignment(), preparedAnswer.transcript(), decision)
-                : null;
-        return decisionPersistenceService.applyDecision(
-                preparedAnswer.assignmentId(),
-                preparedAnswer.studentGroupClassMemberId(),
-                preparedAnswer.transcript(),
-                decision,
-                finalReport);
-    }
-
-    private PreparedAnswer prepareAnswer(UUID assignmentId, String answer) {
-        var studentGroupClassMemberId = requireCurrentStudentGroupClassMemberId();
-        var assignment = getForStudent(assignmentId, studentGroupClassMemberId);
-        ensureAnswerable(assignment);
-        var normalizedAnswer = normalizeSubmittedAnswer(answer);
-        if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
-            return new PreparedAnswer(assignment, assignmentId, studentGroupClassMemberId,
-                    normalizedAnswer, readTranscript(assignment.getEvaluationTranscript()), true);
-        }
-        if (
-            assignment.getCurrentQuestion() == null ||
-            assignment.getCurrentQuestion().isBlank()
-        ) {
-            start(assignmentId);
-            assignment = getForStudent(assignmentId, studentGroupClassMemberId);
-        }
-
-        var transcript = readTranscript(assignment.getEvaluationTranscript());
-        transcript.add(
-            new EvaluationExchange(
-                assignment.getCurrentQuestion(),
-                normalizedAnswer
-            )
-        );
-        return new PreparedAnswer(assignment, assignmentId, studentGroupClassMemberId, normalizedAnswer, transcript, false);
-    }
-
-    private String normalizeSubmittedAnswer(String answer) {
-        return answer == null ? "" : answer.trim();
-    }
-
-    private UUID requireCurrentStudentGroupClassMemberId() {
+    private TrainingActivityAssignment requireOwned(UUID assignmentId) {
         var context = contextResolver.requireCurrent();
         if (context.groupClassKind() != GroupClassMemberKind.STUDENT) {
-            throw new SecurityException(
-                "Only students can complete assigned evaluations."
-            );
+            throw new SecurityException("Only students can answer assigned evaluations.");
         }
-        return context.groupClassMemberId();
+        return assignmentRepository.findWithTrainingActivityById(assignmentId)
+                .filter(assignment -> context.groupClassMemberId().equals(assignment.getGroupClassMember().getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Unknown training assignment %s".formatted(assignmentId)));
     }
 
-    private TrainingActivityAssignment getForStudent(UUID assignmentId, UUID studentGroupClassMemberId) {
-        return assignmentRepository
-            .findWithTrainingActivityById(assignmentId)
-            .filter(assignment -> studentGroupClassMemberId.equals(assignment.getGroupClassMember().getId()))
-            .orElseThrow(() ->
-                new IllegalArgumentException(
-                    "Unknown training assignment %s".formatted(assignmentId)
-                )
-            );
+    private TrainingActivityAssignment requireOwnedLocked(UUID assignmentId) {
+        var context = contextResolver.requireCurrent();
+        if (context.groupClassKind() != GroupClassMemberKind.STUDENT) {
+            throw new SecurityException("Only students can answer assigned evaluations.");
+        }
+        return assignmentRepository.findLockedWithTrainingActivityById(assignmentId)
+                .filter(assignment -> context.groupClassMemberId().equals(assignment.getGroupClassMember().getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Unknown training assignment %s".formatted(assignmentId)));
     }
 
     private void ensureAnswerable(TrainingActivityAssignment assignment) {
-        if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
-            return;
-        }
-        if (assignment.getStatus().isTerminal()) {
-            throw new IllegalStateException("The evaluation assignment has ended.");
-        }
-        if (assignment.getTrainingActivity().getStatus() == TrainingActivityLifecycleStatus.CLOSED) {
-            throw new IllegalStateException("The evaluation window has ended.");
+        if (assignment.getStatus().isTerminal() || assignment.getTrainingActivity().getStatus() != TrainingActivityLifecycleStatus.PUBLISHED) {
+            throw new IllegalStateException("The evaluation assignment is no longer answerable.");
         }
         if (assignment.isSafeBrowserLocked()) {
-            throw new IllegalStateException(
-                "Safe Browser Mode was interrupted. Ask your professor to review this assignment."
-            );
+            throw new IllegalStateException("Safe Browser Mode was interrupted. Ask your professor to review this assignment.");
         }
-        if (
-            assignment.getTrainingActivity().isSafeBrowserEnabled() &&
-            !assignment.isSafeBrowserSessionActive()
-        ) {
-            throw new IllegalStateException(
-                "Safe Browser Mode must be active before answering."
-            );
+        if (assignment.getTrainingActivity().isSafeBrowserEnabled() && !assignment.isSafeBrowserSessionActive()) {
+            throw new IllegalStateException("Safe Browser Mode must be active before answering.");
         }
     }
 
-    public List<EvaluationExchange> readEvaluationTranscript(
-        TrainingActivityAssignment assignment
-    ) {
-        return readTranscript(assignment.getEvaluationTranscript());
+    private void validateRequiredAnswer(String answer) {
+        if (answer == null || answer.trim().isBlank()) {
+            throw new IllegalArgumentException("Escribe una respuesta antes de continuar");
+        }
     }
 
-    private List<EvaluationExchange> readTranscript(String transcriptJson) {
-        if (transcriptJson == null || transcriptJson.isBlank()) {
-            return new ArrayList<>();
-        }
-        try {
-            return new ArrayList<>(
-                jsonMapper.readValue(transcriptJson, TRANSCRIPT_TYPE)
-            );
-        } catch (JacksonException exception) {
-            throw new IllegalStateException(
-                "Could not read training assignment transcript.",
-                exception
-            );
-        }
+    private void enqueueIfAbsent(
+            TrainingActivityAiJobType type, TrainingActivityAssignment assignment, TrainingActivityTurn turn,
+            long inputVersion, String semanticKey, Instant now) {
+        jobRepository.insertTutorJobIfAbsent(UUID.randomUUID(), type.name(), TUTOR_PRIORITY,
+                assignment.getTrainingActivity().getId(), assignment.getId(), turn == null ? null : turn.getId(), null,
+                inputVersion, semanticKey, MAX_ATTEMPTS, now, now, now);
+    }
+
+    private TrainingActivityAssignment hydrate(TrainingActivityAssignment assignment) {
+        var turns = turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(assignment.getId());
+        assignment.setQuestionCount(turns.size());
+        assignment.setCurrentQuestion(turns.stream().filter(turn -> turn.getAnswerText() == null)
+                .map(TrainingActivityTurn::getQuestionText).reduce((first, second) -> second).orElse(null));
+        assignment.setEvaluationTranscript("[]");
+        return assignment;
     }
 
     public record EvaluationExchange(String question, String answer) {}
-
     public record AnswerStreamEvent(String messageDelta, TrainingActivityAssignment assignment) {
-
-        public static AnswerStreamEvent messageDelta(String messageDelta) {
-            return new AnswerStreamEvent(messageDelta, null);
-        }
-
         public static AnswerStreamEvent completed(TrainingActivityAssignment assignment) {
             return new AnswerStreamEvent("", assignment);
         }
+        public static AnswerStreamEvent messageDelta(String messageDelta) {
+            return new AnswerStreamEvent(messageDelta, null);
+        }
     }
-
-    private record PreparedAnswer(
-            TrainingActivityAssignment assignment,
-            UUID assignmentId,
-            UUID studentGroupClassMemberId,
-            String answer,
-            List<EvaluationExchange> transcript,
-            boolean alreadySubmitted) {}
 }

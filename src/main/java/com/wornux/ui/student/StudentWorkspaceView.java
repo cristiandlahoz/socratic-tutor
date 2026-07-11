@@ -155,7 +155,7 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
                                 assignment -> assignment.getTrainingActivity().getInstructions()))
                 .setHeader("Actividad")
                 .setComparator(assignment -> assignment.getTrainingActivity().getTitle())
-                .setAutoWidth(true)
+                .setAutoWidth(false)
                 .setFlexGrow(1);
         assignmentsGrid
                 .addColumn(
@@ -189,7 +189,10 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
     private String assignmentStatusLabel(TrainingActivityAssignmentStatus status) {
         return switch (status) {
             case ASSIGNED -> "Asignada";
-            case STARTED -> "Iniciada";
+            case STARTING -> "Preparando pregunta";
+            case WAITING_FOR_ANSWER -> "Esperando respuesta";
+            case WAITING_FOR_TUTOR -> "Analizando respuesta";
+            case TEMPORARILY_UNAVAILABLE -> "Tutor no disponible temporalmente";
             case SUBMITTED -> "Entregada";
             case SKIPPED -> "Omitida";
             case EXPIRED -> "Vencida";
@@ -199,8 +202,8 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
 
     private String assignmentStatusTone(TrainingActivityAssignmentStatus status) {
         return switch (status) {
-            case STARTED, SUBMITTED -> "is-active";
-            case ASSIGNED, SKIPPED, EXPIRED, EXCUSED -> "is-open";
+            case STARTING, WAITING_FOR_ANSWER, WAITING_FOR_TUTOR, SUBMITTED -> "is-active";
+            case ASSIGNED, TEMPORARILY_UNAVAILABLE, SKIPPED, EXPIRED, EXCUSED -> "is-open";
         };
     }
 

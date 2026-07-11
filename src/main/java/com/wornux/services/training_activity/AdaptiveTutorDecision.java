@@ -18,5 +18,10 @@ public record AdaptiveTutorDecision(
         List<String> missingInstructionAspects,
         boolean unproductivePatternDetected,
         String questionText,
-        String reason) {
+        String reasonCode) {
+
+    /** Legacy accessor; its value is a bounded machine code, never chain-of-thought. */
+    public String reason() {
+        return reasonCode;
+    }
 }

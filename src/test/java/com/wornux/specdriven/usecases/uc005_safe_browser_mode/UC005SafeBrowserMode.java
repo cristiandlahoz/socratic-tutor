@@ -257,7 +257,7 @@ class UC005SafeBrowserMode {
         ReflectionTestUtils.setField(assignment, "id", UUID.randomUUID());
         ReflectionTestUtils.setField(assignment, "trainingActivity", activity);
         ReflectionTestUtils.setField(assignment, "groupClassMember", student);
-        ReflectionTestUtils.setField(assignment, "status", TrainingActivityAssignmentStatus.STARTED);
+        ReflectionTestUtils.setField(assignment, "status", TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
         ReflectionTestUtils.setField(assignment, "updatedAt", Instant.now());
 
         var assignmentRepository = org.mockito.Mockito.mock(TrainingActivityAssignmentRepository.class);

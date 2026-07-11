@@ -1,5 +1,6 @@
 package com.wornux.ui.student;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
@@ -14,11 +15,13 @@ import java.util.UUID;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.Account;
+import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.training_activity.TrainingActivityLaunchedBus;
 import com.wornux.services.workspace.AccessibleClass;
 import com.wornux.services.workspace.StudentWorkspaceService;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class StudentWorkspaceViewTest {
 
@@ -46,5 +49,18 @@ class StudentWorkspaceViewTest {
         assertDoesNotThrow(() -> view.afterNavigation(afterNavigationEvent));
 
         verify(studentWorkspaceService, never()).switchClass(eq(account), any());
+    }
+
+    @Test
+    void temporaryTutorUnavailabilityIsShownAsRetryable() {
+        var view = new StudentWorkspaceView(mock(AuthenticatedUserContextUtils.class),
+                mock(StudentWorkspaceService.class), mock(TrainingActivityLaunchedBus.class));
+        String statusLabel = ReflectionTestUtils.invokeMethod(view, "assignmentStatusLabel",
+                TrainingActivityAssignmentStatus.TEMPORARILY_UNAVAILABLE);
+        String statusTone = ReflectionTestUtils.invokeMethod(view, "assignmentStatusTone",
+                TrainingActivityAssignmentStatus.TEMPORARILY_UNAVAILABLE);
+
+        assertThat(statusLabel).isEqualTo("Tutor no disponible temporalmente");
+        assertThat(statusTone).isEqualTo("is-open");
     }
 }

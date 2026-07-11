@@ -157,14 +157,13 @@ class TrainingActivityAssignmentRepositoryIntegrationTest {
                 now,
                 now);
         jdbcTemplate.update(
-                "insert into training_activity_assignment (id, training_activity_id, group_class_member_id, status, assigned_at, started_at, submitted_at, updated_at, current_question, question_count, evaluation_transcript, final_report, safe_browser_locked, safe_browser_session_active, unproductive_pattern_detected, insufficient_evidence) values (?, ?, ?, 'STARTED', ?, ?, null, ?, ?, 1, '[]', null, false, false, false, false)",
+                "insert into training_activity_assignment (id, training_activity_id, group_class_member_id, status, assigned_at, started_at, submitted_at, version, updated_at, safe_browser_locked, safe_browser_session_active) values (?, ?, ?, 'WAITING_FOR_ANSWER', ?, ?, null, 0, ?, false, false)",
                 assignmentId,
                 trainingActivityId,
                 studentMemberId,
                 now,
                 now,
-                now,
-                "¿Qué entiendes inicialmente?");
+                now);
         return new FixtureIds(assignmentId, studentMemberId);
     }
 

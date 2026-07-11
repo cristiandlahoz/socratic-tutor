@@ -797,4 +797,5 @@ public class TrainingAssignmentTutorService {
     private String textOrFallback(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value.trim();
     }
+
 }

@@ -18,6 +18,9 @@ public class TrainingActivityAiJob {
     @Column(nullable = false) private int priority;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_activity_id") private TrainingActivity trainingActivity;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_instruction_review_id") private TrainingInstructionReview instructionReview;
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_activity_assignment_id") private TrainingActivityAssignment assignment;
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_activity_turn_id") private TrainingActivityTurn turn;
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_activity_report_id") private TrainingActivityReport report;
     @Column(name = "input_version", nullable = false) private long inputVersion;
     @Column(name = "semantic_key", nullable = false) private String semanticKey;
     @Column(nullable = false) private int generation;

@@ -378,7 +378,7 @@ class TrainingAssignmentTutorServiceTest {
         ReflectionTestUtils.setField(assignment, "id", UUID.randomUUID());
         ReflectionTestUtils.setField(assignment, "trainingActivity", activity);
         ReflectionTestUtils.setField(assignment, "groupClassMember", member);
-        ReflectionTestUtils.setField(assignment, "status", TrainingActivityAssignmentStatus.STARTED);
+        ReflectionTestUtils.setField(assignment, "status", TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
         ReflectionTestUtils.setField(assignment, "currentQuestion", "What is a pointer?");
         ReflectionTestUtils.setField(assignment, "questionCount", 1);
         return assignment;

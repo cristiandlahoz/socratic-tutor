@@ -64,7 +64,7 @@ public class TrainingAssignmentDecisionPersistenceService {
             assignment.setFinalReport(finalReport);
         }
         else {
-            assignment.setStatus(TrainingActivityAssignmentStatus.STARTED);
+            assignment.setStatus(TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
             assignment.setCurrentQuestion(decision.questionText());
             assignment.setQuestionCount(assignment.getQuestionCount() + 1);
         }

@@ -4,8 +4,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Composite;
@@ -45,7 +43,6 @@ import com.wornux.ui.student.StudentWorkspaceView;
 import jakarta.annotation.security.PermitAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
 
 @Route(value = "training-activity/assignments", layout = MainLayout.class)
 @PermitAll
@@ -79,12 +76,11 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     private UUID assignmentId;
     private TrainingActivityAssignment assignment;
     private AutoCloseable assignmentStateSubscription;
-    private Disposable activeAnswerStream;
-    private final AtomicLong activeAnswerStreamGeneration = new AtomicLong();
     private String assignmentStartFailureMessage = "";
     private boolean activityClosedNoticeShown;
     private boolean lastClosedNonSubmittedBlocked;
     private String safeBrowserSessionToken;
+    private UUID pendingAnswerSubmissionId;
 
     public TrainingAssignmentView(
             TrainingAssignmentEvaluationService evaluationService,
@@ -103,7 +99,7 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         composerState.modelAvailabilityStatus().set(ModelAvailabilityStatus.CONNECTED);
         composerState.responseInProgress().set(true);
         composer = new ConversationComposer(composerState, chatProperties.composerPromptLimit(), this::submitAnswer);
-        composer.setAllowEmptySubmit(true);
+        composer.setAllowEmptySubmit(false);
 
         UiCss.CONVERSATION_COMPOSER.addTo(inputShell);
         inputShell.add(composer);
@@ -153,7 +149,6 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
-        invalidateActiveAnswerStream();
         unsubscribeFromAssignmentStateChanges();
         detachSafeBrowserClientHooks();
         setAssignmentShellHidden(false);
@@ -167,11 +162,11 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
                 return;
             }
             ui.access(() -> {
-                if (notification.locked() || notification.activityClosed()) {
-                    invalidateActiveAnswerStream();
-                }
                 assignment = evaluationService.getForCurrentStudent(assignmentId);
                 renderAssignment();
+                if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
+                    ui.navigate("student");
+                }
             });
         });
     }
@@ -197,14 +192,6 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
             lastClosedNonSubmittedBlocked = false;
             clearAssignmentStartFailure();
             assignment = evaluationService.getForCurrentStudent(assignmentId);
-            if (canAutoStart(assignment)) {
-                try {
-                    assignment = evaluationService.start(assignmentId);
-                }
-                catch (AdaptiveTutorStartUnavailableException exception) {
-                    showRecoverableStartFailure(exception);
-                }
-            }
             renderAssignment();
         }
         catch (IllegalArgumentException | SecurityException exception) {
@@ -252,187 +239,23 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         if (assignmentId == null) {
             return;
         }
-
-        var wasSubmitted = assignment != null && assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED;
-        var submittedAt = Instant.now();
-        var generation = startNewAnswerStreamGeneration();
-        composerState.responseInProgress().set(true);
-        clearComposer();
-        var streamingAssistant = new AtomicReference<>(assistantLoadingMessage(submittedAt));
-        messageList.addItem(userMessage(answer, submittedAt));
-        messageList.addItem(streamingAssistant.get());
-        var ui = getUI().orElse(UI.getCurrent());
-
         try {
-            activeAnswerStream = evaluationService.answerStream(assignmentId, answer)
-                    .subscribe(
-                            event -> runUi(ui, () -> handleAnswerStreamEvent(event, streamingAssistant, wasSubmitted, generation)),
-                            exception -> runUi(ui, () -> handleAnswerStreamFailure(answer, exception, generation)));
-        }
-        catch (RuntimeException exception) {
-            handleAnswerStreamFailure(answer, exception, generation);
-        }
-    }
-
-    private void handleAnswerStreamEvent(
-            TrainingAssignmentEvaluationService.AnswerStreamEvent event,
-            AtomicReference<MessageItem> streamingAssistant,
-            boolean wasSubmitted,
-            long generation) {
-        if (!isCurrentAnswerStream(generation)) {
-            return;
-        }
-        if (event.assignment() != null) {
-            clearActiveAnswerStreamIfCurrent(generation);
-            assignment = event.assignment();
-            renderAssignment();
-            if (!wasSubmitted && assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
-                showCompletionDialog();
+            if (answer == null || answer.trim().isBlank()) {
+                Notification.show("Escribe una respuesta antes de continuar");
                 return;
             }
-            focusComposerIfReady();
-            return;
-        }
-        if (event.messageDelta() == null || event.messageDelta().isEmpty()) {
-            return;
-        }
-        ensureStreamingAssistantReady(streamingAssistant);
-        var assistantMessage = streamingAssistant.get();
-        assistantMessage.setText(assistantMessage.getText() + event.messageDelta());
-    }
-
-    private void handleAnswerStreamFailure(String answer, Throwable throwable, long generation) {
-        if (!isCurrentAnswerStream(generation)) {
-            return;
-        }
-        clearActiveAnswerStreamIfCurrent(generation);
-        var recoveredCommittedState = refreshAssignmentAfterFailure(answer, generation, throwable);
-        renderAssignment();
-        if (recoveredCommittedState) {
-            updateComposerState();
-            focusComposerIfReady();
-            return;
-        }
-        composerState.composerText().set(answer);
-        updateComposerState();
-        Notification.show(resolveSubmissionFailureMessage(throwable instanceof RuntimeException runtimeException
-                ? runtimeException
-                : new IllegalStateException(throwable)));
-    }
-
-    private boolean refreshAssignmentAfterFailure(String answer, long generation, Throwable throwable) {
-        LOGGER.warn(
-                "Training assignment answer stream failed: assignmentId={} generation={} answerLength={} assignmentStatus={} activityStatus={}",
-                assignmentId,
-                generation,
-                answer == null ? 0 : answer.length(),
-                assignment == null ? null : assignment.getStatus(),
-                assignment == null || assignment.getTrainingActivity() == null
-                        ? null
-                        : assignment.getTrainingActivity().getStatus(),
-                throwable);
-        if (assignmentId == null) {
-            return false;
-        }
-        try {
-            var refreshedAssignment = evaluationService.getForCurrentStudent(assignmentId);
-            if (refreshedAssignment == null) {
-                return false;
+            composerState.responseInProgress().set(true);
+            if (pendingAnswerSubmissionId == null) {
+                pendingAnswerSubmissionId = UUID.randomUUID();
             }
-            assignment = refreshedAssignment;
-            return isAnswerAlreadyPersisted(answer);
+            assignment = evaluationService.submitAnswer(assignmentId, answer, pendingAnswerSubmissionId);
+            pendingAnswerSubmissionId = null;
+            clearComposer();
+            renderAssignment();
         }
-        catch (RuntimeException refreshException) {
-            LOGGER.warn(
-                    "Training assignment refresh after stream failure did not produce a canonical snapshot: assignmentId={} generation={}",
-                    assignmentId,
-                    generation,
-                    refreshException);
-            return false;
-        }
-    }
-
-    private boolean isAnswerAlreadyPersisted(String answer) {
-        if (assignment == null || answer == null) {
-            return false;
-        }
-        var transcript = evaluationService.readEvaluationTranscript(assignment);
-        if (transcript.isEmpty()) {
-            return false;
-        }
-        return answer.equals(transcript.getLast().answer());
-    }
-
-    private void ensureStreamingAssistantReady(AtomicReference<MessageItem> streamingAssistant) {
-        var currentAssistant = streamingAssistant.get();
-        if (!currentAssistant.isLoading()) {
-            return;
-        }
-        var streamedAssistant = assistantMessage("", Instant.parse(currentAssistant.getTime()));
-        var items = new ArrayList<>(messageList.getItems());
-        var lastIndex = items.lastIndexOf(currentAssistant);
-        if (lastIndex >= 0) {
-            items.set(lastIndex, streamedAssistant);
-            messageList.setItems(items);
-        }
-        streamingAssistant.set(streamedAssistant);
-    }
-
-    private void runUi(UI ui, Runnable action) {
-        if (ui != null && ui == UI.getCurrent()) {
-            action.run();
-            return;
-        }
-        if (ui == null) {
-            return;
-        }
-        if (ui.getSession() == null) {
-            var previousUi = UI.getCurrent();
-            try {
-                UI.setCurrent(ui);
-                action.run();
-            }
-            finally {
-                UI.setCurrent(previousUi);
-            }
-            return;
-        }
-        if (!ui.isAttached()) {
-            return;
-        }
-        if (ui.getSession() != null && ui.getSession().hasLock()) {
-            action.run();
-            return;
-        }
-        ui.access(() -> action.run());
-    }
-
-    private boolean isCurrentAnswerStream(long generation) {
-        return activeAnswerStreamGeneration.get() == generation;
-    }
-
-    private long startNewAnswerStreamGeneration() {
-        disposeActiveAnswerStream();
-        return activeAnswerStreamGeneration.incrementAndGet();
-    }
-
-    private void clearActiveAnswerStreamIfCurrent(long generation) {
-        if (!isCurrentAnswerStream(generation)) {
-            return;
-        }
-        activeAnswerStream = null;
-    }
-
-    private void invalidateActiveAnswerStream() {
-        activeAnswerStreamGeneration.incrementAndGet();
-        disposeActiveAnswerStream();
-    }
-
-    private void disposeActiveAnswerStream() {
-        var answerStream = activeAnswerStream;
-        activeAnswerStream = null;
-        if (answerStream != null) {
-            answerStream.dispose();
+        catch (RuntimeException exception) {
+            composerState.responseInProgress().set(false);
+            Notification.show(resolveSubmissionFailureMessage(exception));
         }
     }
 
@@ -441,14 +264,6 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
             return "No se pudo procesar tu respuesta.";
         }
         return exception.getMessage();
-    }
-
-    private boolean canAutoStart(TrainingActivityAssignment assignment) {
-        return assignment != null
-                && !assignment.getTrainingActivity().isSafeBrowserEnabled()
-                && assignment.getTrainingActivity().getStatus() != TrainingActivityLifecycleStatus.CLOSED
-                && !assignment.getStatus().isTerminal()
-                && assignment.getStatus() == TrainingActivityAssignmentStatus.ASSIGNED;
     }
 
     private boolean isBlocked(TrainingActivityAssignment assignment) {
@@ -638,9 +453,26 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
 
     private void renderStartRecoveryNotice() {
         startRecoveryNotice.removeAll();
-        var visible = assignmentStartFailureMessage != null && !assignmentStartFailureMessage.isBlank();
+        var awaitingStart = assignment != null && assignment.getStatus() == TrainingActivityAssignmentStatus.ASSIGNED
+                && !assignment.getTrainingActivity().isSafeBrowserEnabled();
+        var temporaryTutorFailure = assignment != null
+                && assignment.getStatus() == TrainingActivityAssignmentStatus.TEMPORARILY_UNAVAILABLE;
+        var visible = awaitingStart || temporaryTutorFailure
+                || (assignmentStartFailureMessage != null && !assignmentStartFailureMessage.isBlank());
         startRecoveryNotice.setVisible(visible);
         if (!visible) {
+            return;
+        }
+        if (awaitingStart) {
+            var startButton = new Button("Comenzar", _ -> retryAssignmentStart());
+            startButton.addThemeVariants(ButtonVariant.PRIMARY);
+            startRecoveryNotice.add(new Paragraph("Cuando estés listo, comienza la evaluación."), startButton);
+            return;
+        }
+        if (temporaryTutorFailure) {
+            var retryButton = new Button("Reintentar tutor", _ -> retryTutor());
+            retryButton.addThemeVariants(ButtonVariant.PRIMARY);
+            startRecoveryNotice.add(new Paragraph("El tutor no está disponible temporalmente. Tu respuesta fue guardada."), retryButton);
             return;
         }
         startRecoveryNotice.add(new Paragraph(assignmentStartFailureMessage));
@@ -683,6 +515,19 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
             showRecoverableStartFailure(exception);
             renderAssignment();
             Notification.show(exception.getMessage());
+        }
+    }
+
+    private void retryTutor() {
+        if (assignmentId == null) {
+            return;
+        }
+        try {
+            assignment = evaluationService.retryTutor(assignmentId);
+            renderAssignment();
+        }
+        catch (RuntimeException exception) {
+            Notification.show(resolveSubmissionFailureMessage(exception));
         }
     }
 
@@ -789,7 +634,6 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
             return;
         }
         try {
-            invalidateActiveAnswerStream();
             assignment = safeBrowserModeService.reportViolation(
                     assignmentId, sessionToken, SafeBrowserEventType.valueOf(eventType), UUID.fromString(clientEventId));
             renderAssignment();
@@ -896,6 +740,15 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
             messages.add(assistantMessage(SUBMITTED_MESSAGE, submittedMessageTime(assignment, messageTime, offset)));
         }
+        if (assignment.getStatus() == TrainingActivityAssignmentStatus.STARTING) {
+            messages.add(assistantLoadingMessage(Instant.now(), "Preparando primera pregunta"));
+        }
+        if (assignment.getStatus() == TrainingActivityAssignmentStatus.WAITING_FOR_TUTOR) {
+            messages.add(assistantLoadingMessage(Instant.now(), "Analizando respuesta"));
+        }
+        if (assignment.getStatus() == TrainingActivityAssignmentStatus.TEMPORARILY_UNAVAILABLE) {
+            messages.add(assistantMessage("El tutor no está disponible temporalmente. Tu respuesta fue guardada.", Instant.now()));
+        }
         if (assignment.isSafeBrowserLocked()) {
             messages.add(assistantMessage(LOCKED_MESSAGE, Instant.now()));
         }
@@ -916,8 +769,12 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     }
 
     private MessageItem assistantLoadingMessage(Instant createdAt) {
+        return assistantLoadingMessage(createdAt, QUESTION_LOADING_LABEL);
+    }
+
+    private MessageItem assistantLoadingMessage(Instant createdAt, String label) {
         return new MessageItem("", createdAt, TUTOR_NAME, MessageItem.Variant.ASSISTANT, true, false,
-                QUESTION_LOADING_LABEL);
+                label);
     }
 
     private MessageItem userMessage(String content, Instant createdAt) {

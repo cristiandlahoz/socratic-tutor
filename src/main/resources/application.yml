@@ -54,7 +54,8 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY:dummy}
       base-url: ${OPENAI_BASE_URL:http://127.0.0.1:8080/v1}
-      timeout: ${OPENAI_TIMEOUT:5m}
+      timeout: ${OPENAI_TIMEOUT:50s}
+      max-retries: ${OPENAI_MAX_RETRIES:0}
       chat:
         model: ${CHAT_MODEL:AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL}
     ollama:
@@ -92,10 +93,14 @@ app:
     adaptive-tutor:
       model: ${ADAPTIVE_TUTOR_MODEL:${spring.ai.openai.chat.model}}
       allow-local-fallback: ${ADAPTIVE_TUTOR_ALLOW_LOCAL_FALLBACK:false}
+      deadline-ms: ${ADAPTIVE_TUTOR_DEADLINE_MS:60000}
+      lease-seconds: ${ADAPTIVE_TUTOR_LEASE_SECONDS:75}
     instruction-review:
       model: ${INSTRUCTION_REVIEW_MODEL:${app.ai.switzerland-knife.model}}
       max-tokens: ${INSTRUCTION_REVIEW_MAX_TOKENS:192}
       temperature: ${INSTRUCTION_REVIEW_TEMPERATURE:0.0}
+      deadline-ms: ${INSTRUCTION_REVIEW_DEADLINE_MS:15000}
+      lease-seconds: ${INSTRUCTION_REVIEW_LEASE_SECONDS:30}
     tool-audit:
       capture-tool-returns: ${TOOL_AUDIT_CAPTURE_TOOL_RETURNS:false}
       preview-max-chars: ${TOOL_AUDIT_PREVIEW_MAX_CHARS:96}

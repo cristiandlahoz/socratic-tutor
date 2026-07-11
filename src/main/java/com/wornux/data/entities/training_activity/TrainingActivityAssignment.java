@@ -17,6 +17,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
@@ -55,57 +56,31 @@ public class TrainingActivityAssignment {
     @Column(nullable = false)
     private long version;
 
-    @Column(name = "current_question")
-    private String currentQuestion;
-
-    @Column(name = "question_count", nullable = false)
-    private int questionCount;
-
-    @Column(name = "evaluation_transcript", nullable = false)
-    private String evaluationTranscript = "[]";
-
-    @Column(name = "final_report")
-    private String finalReport;
-
-    @Column(name = "last_tutor_decision_json")
-    private String lastTutorDecisionJson;
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "tutor_answer_quality")
-    private AnswerQuality tutorAnswerQuality;
+    @Column(name = "evidence_status")
+    private EvidenceStatus evidenceStatus;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tutor_evidence_status")
-    private EvidenceStatus tutorEvidenceStatus;
+    @Column(name = "completion_reason")
+    private String completionReason;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tutor_coverage_status")
-    private CoverageStatus tutorCoverageStatus;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tutor_pedagogical_move")
-    private PedagogicalMove tutorPedagogicalMove;
-
-    @Column(name = "covered_instruction_aspects_json")
-    private String coveredInstructionAspectsJson;
-
-    @Column(name = "missing_instruction_aspects_json")
-    private String missingInstructionAspectsJson;
-
-    @Column(name = "unproductive_pattern_detected", nullable = false)
-    private boolean unproductivePatternDetected;
-
-    @Column(name = "insufficient_evidence", nullable = false)
-    private boolean insufficientEvidence;
-
-    @Column(name = "tutor_decision_reason")
-    private String tutorDecisionReason;
-
-    @Column(name = "tutor_model_name")
-    private String tutorModelName;
-
-    @Column(name = "tutor_prompt_version")
-    private String tutorPromptVersion;
+    // Non-authoritative compatibility projection for legacy UI/report components.
+    // UC-007 persists the transcript exclusively in training_activity_turn.
+    @Transient private String currentQuestion;
+    @Transient private int questionCount;
+    @Transient private String evaluationTranscript = "[]";
+    @Transient private String finalReport;
+    @Transient private String lastTutorDecisionJson;
+    @Transient private AnswerQuality tutorAnswerQuality;
+    @Transient private EvidenceStatus tutorEvidenceStatus;
+    @Transient private CoverageStatus tutorCoverageStatus;
+    @Transient private PedagogicalMove tutorPedagogicalMove;
+    @Transient private String coveredInstructionAspectsJson;
+    @Transient private String missingInstructionAspectsJson;
+    @Transient private boolean unproductivePatternDetected;
+    @Transient private boolean insufficientEvidence;
+    @Transient private String tutorDecisionReason;
+    @Transient private String tutorModelName;
+    @Transient private String tutorPromptVersion;
 
     @Column(name = "safe_browser_locked", nullable = false)
     private boolean safeBrowserLocked;

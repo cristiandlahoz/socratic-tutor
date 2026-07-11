@@ -4,10 +4,16 @@
 
 **Goal:** As a student, I want to answer adaptive Socratic questions without the application freezing or losing my responses so that the evaluation gathers trustworthy evidence of my understanding.
 
-**Status:** Pending  
+**Status:** In Progress
 **Date:** 2026-07-10
 
 > A use case cannot be marked as **Implemented** unless all criteria in the use-case implementation workflow are fulfilled.
+>
+> **UC-009 dependency:** terminal submission now creates the durable pending report request and `FINAL_REPORT` job, but report content generation remains owned by UC-009. UC-007 therefore remains **In Progress**.
+>
+> **Migration baseline:** UC-007 changes are folded directly into Flyway `V1__baseline.sql`. Local development databases must be recreated from an empty PostgreSQL baseline; no compatibility migration is provided.
+>
+> **Test replacement boundary:** the pre-UC-007 reactive answer-stream tests were replaced only because the durable command/event flow removes that obsolete API. The focused replacement covers blank input, payload-safe idempotency, atomic enqueue, lease fencing, retry exhaustion, and expired-lease bounds.
 
 ---
 
@@ -22,7 +28,7 @@
 
 - Student is authenticated and owns an assignment created by UC-008.
 - Parent activity is `PUBLISHED` and within its answerable window.
-- Assignment is `ASSIGNED`, `STARTING`, `WAITING_FOR_ANSWER`, or `WAITING_FOR_TUTOR`.
+- Assignment is `ASSIGNED`, `STARTING`, `WAITING_FOR_ANSWER`, `WAITING_FOR_TUTOR`, or recoverable `TEMPORARILY_UNAVAILABLE`.
 - If Safe Browser is required, UC-005 has established a current active session.
 - Activity has immutable title and professor instructions.
 - SPEC-005 turn, job, idempotency, optimistic-concurrency, and non-blocking orchestration are available.

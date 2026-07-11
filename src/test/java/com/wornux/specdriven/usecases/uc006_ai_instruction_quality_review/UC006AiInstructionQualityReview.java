@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -59,6 +60,7 @@ import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingActivityLaunchedBus;
 import com.wornux.services.training_activity.TrainingActivitySaveCommand;
 import com.wornux.services.training_activity.TrainingActivityService;
+import com.wornux.services.training_activity.TrainingTutorJobService;
 import com.wornux.services.training_activity.instruction_review.InstructionLintIssueDto;
 import com.wornux.services.training_activity.instruction_review.InstructionQualityReviewException;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewCoordinator;
@@ -78,6 +80,8 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.model.openai.autoconfigure.OpenAiChatProperties;
+import org.springframework.ai.model.openai.autoconfigure.OpenAiCommonProperties;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class UC006AiInstructionQualityReview {
@@ -204,7 +208,8 @@ class UC006AiInstructionQualityReview {
                 return reviewResult(InstructionQualityStatus.GOOD);
             });
             var worker = new InstructionReviewJobWorker(
-                    reviewService, reviewEngine, workerExecutor, modelExecutor, 10, 30, meterRegistry);
+                    reviewService, reviewEngine, mock(TrainingTutorJobService.class), workerExecutor, modelExecutor,
+                    10, 30, 60_000, 75, openAiProperties(), new OpenAiChatProperties(), meterRegistry);
 
             ReflectionTestUtils.invokeMethod(worker, "process", work.jobId());
 
@@ -1465,6 +1470,13 @@ class UC006AiInstructionQualityReview {
                   "endOffset": null
                 }
                 """;
+    }
+
+    private static OpenAiCommonProperties openAiProperties() {
+        var properties = new OpenAiCommonProperties();
+        properties.setTimeout(Duration.ofSeconds(50));
+        properties.setMaxRetries(0);
+        return properties;
     }
 
     private static ThreadPoolExecutor executor() {

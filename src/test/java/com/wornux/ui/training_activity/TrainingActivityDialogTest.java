@@ -177,6 +177,18 @@ class TrainingActivityDialogTest {
                 .doesNotContain("TutorDecisionType");
     }
 
+    @Test
+    void temporaryTutorUnavailabilityIsLabeledAsRetryable() {
+        var activity = activity();
+        var assignment = assignment(activity);
+        ReflectionTestUtils.setField(assignment, "status", TrainingActivityAssignmentStatus.TEMPORARILY_UNAVAILABLE);
+
+        var statusLabel = (String) ReflectionTestUtils.invokeMethod(
+                dialog(activity), "assignmentStatusLabel", assignment);
+
+        assertThat(statusLabel).isEqualTo("Tutor no disponible temporalmente");
+    }
+
     private static TrainingActivityDialog dialog(TrainingActivity activity) {
         return dialog(activity, null);
     }
