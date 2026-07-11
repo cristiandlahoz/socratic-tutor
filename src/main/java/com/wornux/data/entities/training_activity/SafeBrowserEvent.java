@@ -1,6 +1,7 @@
 package com.wornux.data.entities.training_activity;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 import com.wornux.data.entities.academic.GroupClassMember;
@@ -15,6 +16,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "safe_browser_event")
@@ -54,8 +57,9 @@ public class SafeBrowserEvent {
     @Column(name = "client_occurred_at")
     private Instant clientOccurredAt;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata")
-    private String metadata;
+    private Map<String, Object> metadata;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

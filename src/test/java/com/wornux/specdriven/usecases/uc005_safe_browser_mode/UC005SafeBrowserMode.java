@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +41,8 @@ import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.SafeBrowserSessionExpiryWorker;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.persistence.LockModeType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -216,6 +219,19 @@ class UC005SafeBrowserMode {
                         () -> fixture.service.recordHeartbeat(fixture.assignment.getId(), "not-the-issued-token"))
                 .isInstanceOf(SecurityException.class)
                 .hasMessage("Invalid Safe Browser session token.");
+    }
+
+    @Test
+    void br20_metadataUsesHibernateJsonMapping() throws NoSuchFieldException {
+        var event = new SafeBrowserEvent();
+        var metadata = Map.<String, Object>of("signal", "TAB_HIDDEN", "elapsedMs", 125);
+        var field = SafeBrowserEvent.class.getDeclaredField("metadata");
+
+        event.setMetadata(metadata);
+
+        assertThat(event.getMetadata()).isEqualTo(metadata);
+        assertThat(field.getType()).isEqualTo(Map.class);
+        assertThat(field.getAnnotation(JdbcTypeCode.class).value()).isEqualTo(SqlTypes.JSON);
     }
 
     private static Fixture fixture() {
