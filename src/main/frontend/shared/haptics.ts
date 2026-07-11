@@ -1,3 +1,5 @@
+import { play, type SoundName } from 'cuelume';
+
 export type HapticIntent =
   | 'selection'
   | 'toggle'
@@ -17,30 +19,56 @@ const patterns: Record<HapticIntent, VibratePattern> = {
   confirmation: [30, 40, 30],
 };
 
+const sounds: Partial<Record<HapticIntent, SoundName>> = {
+  selection: 'tick',
+  toggle: 'toggle',
+  messageSent: 'release',
+  success: 'success',
+  done: 'bloom',
+  confirmation: 'chime',
+};
+
 const defaultIntervalMs = 120;
 const repeatedIntentIntervalMs = 300;
 
 let lastVibrationAt = 0;
 const lastIntentAt = new Map<HapticIntent, number>();
 
+document.addEventListener('click', (event) => {
+  const target = event.target as Element;
+  if (target.closest?.('.c-runner-control-button')) {
+    play('press');
+  }
+  else if (target.closest?.('.conversation-view__debugger-toggle, .c-runner-panel-toggle')) {
+    play('whisper');
+  }
+  else if (target.closest?.([
+    '.sidebar-actions__item-link',
+    '.shell-drawer-toggle',
+    '.shell-drawer-toggle-inside',
+  ].join(', '))) {
+    haptic('toggle');
+  }
+});
+
 export function haptic(intent: HapticIntent): void {
   try {
-    if (!canVibrate()) {
-      return;
+    const sound = sounds[intent];
+    if (sound) {
+      play(sound);
     }
 
     const now = globalThis.performance?.now?.() ?? Date.now();
     const lastIntent = lastIntentAt.get(intent) ?? 0;
-
-    if (now - lastVibrationAt < defaultIntervalMs || now - lastIntent < repeatedIntentIntervalMs) {
-      return;
+    if (canVibrate()
+      && now - lastVibrationAt >= defaultIntervalMs
+      && now - lastIntent >= repeatedIntentIntervalMs) {
+      lastVibrationAt = now;
+      lastIntentAt.set(intent, now);
+      globalThis.navigator.vibrate(patterns[intent]);
     }
-
-    lastVibrationAt = now;
-    lastIntentAt.set(intent, now);
-    globalThis.navigator.vibrate(patterns[intent]);
   } catch {
-    // Haptics are progressive enhancement only.
+    // Interaction feedback is progressive enhancement only.
   }
 }
 

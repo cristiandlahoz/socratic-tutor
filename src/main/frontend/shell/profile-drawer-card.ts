@@ -1,8 +1,10 @@
 import { LitElement, html } from 'lit';
+import { haptic } from 'Frontend/shared/haptics.js';
 
 class ProfileDrawerCard extends LitElement {
   private readonly expandedClass = 'is-expanded';
   private readonly headerClass = 'profile-drawer-card__header';
+  private readonly themeButtonClass = 'theme-switcher__button';
   private readonly onHostClick = (event: Event) => this.handleHostClick(event);
   private readonly onDocumentPointerDown = (event: Event) => this.handleDocumentPointerDown(event);
 
@@ -24,10 +26,13 @@ class ProfileDrawerCard extends LitElement {
   }
 
   private handleHostClick(event: Event): void {
-    if (!this.eventPathHasClass(event, this.headerClass)) {
+    if (this.eventPathHasInactiveThemeButton(event)) {
+      haptic('selection');
       return;
     }
-    this.setExpanded(!this.classList.contains(this.expandedClass));
+    if (this.eventPathHasClass(event, this.headerClass)) {
+      this.setExpanded(!this.classList.contains(this.expandedClass));
+    }
   }
 
   private handleDocumentPointerDown(event: Event): void {
@@ -47,8 +52,17 @@ class ProfileDrawerCard extends LitElement {
     );
   }
 
+  private eventPathHasInactiveThemeButton(event: Event): boolean {
+    return (event.composedPath?.() ?? []).some(
+      (target) => target instanceof HTMLElement
+        && target.classList.contains(this.themeButtonClass)
+        && target.getAttribute('aria-pressed') !== 'true',
+    );
+  }
+
   private setExpanded(expanded: boolean): void {
     this.classList.toggle(this.expandedClass, expanded);
+    haptic('toggle');
     this.syncHeaderExpanded();
   }
 
