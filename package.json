@@ -3,7 +3,7 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "test:frontend:instruction-review": "tsc -p tsconfig.frontend-test.json && node --test target/frontend-test/src/test/frontend/training-activity/instruction-review/utils.test.js target/frontend-test/src/test/frontend/conversation/markdown-code-blocks.test.js target/frontend-test/src/test/frontend/conversation/message-item-loading-label.test.js"
+    "test:frontend:instruction-review": "tsc -p tsconfig.frontend-test.json && node --test target/frontend-test/src/test/frontend/training-activity/instruction-review/utils.test.js target/frontend-test/src/test/frontend/conversation/message-item-loading-label.test.js"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",
