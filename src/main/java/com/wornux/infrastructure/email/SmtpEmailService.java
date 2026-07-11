@@ -38,6 +38,9 @@ public class SmtpEmailService implements EmailService {
             if (!message.ccAddresses().isEmpty()) {
                 helper.setCc(message.ccAddresses().toArray(String[]::new));
             }
+            if (message.idempotencyKey() != null && !message.idempotencyKey().isBlank()) {
+                mimeMessage.setHeader("X-Idempotency-Key", message.idempotencyKey());
+            }
             mailSender.send(mimeMessage);
         }
         catch (MessagingException | java.io.UnsupportedEncodingException exception) {

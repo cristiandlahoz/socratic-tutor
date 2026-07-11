@@ -217,9 +217,13 @@ create table training_activity (
     status text not null,
     opens_at timestamptz null,
     closes_at timestamptz null,
+    published_at timestamptz null,
+    version bigint not null default 0,
     created_at timestamptz not null default current_timestamp,
     updated_at timestamptz not null default current_timestamp,
-    constraint chk_training_activity_status check (status in ('DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED'))
+    constraint chk_training_activity_status check (status in ('DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED')),
+    constraint chk_training_activity_title_not_blank check (btrim(title) <> ''),
+    constraint chk_training_activity_instructions_not_blank check (btrim(instructions) <> '')
 );
 
 create table training_activity_assignment (
@@ -230,11 +234,106 @@ create table training_activity_assignment (
     assigned_at timestamptz not null default current_timestamp,
     started_at timestamptz null,
     submitted_at timestamptz null,
+    version bigint not null default 0,
     updated_at timestamptz not null default current_timestamp,
     constraint chk_training_activity_assignment_status check (
         status in ('ASSIGNED', 'STARTED', 'SUBMITTED', 'SKIPPED', 'EXPIRED', 'EXCUSED')
     ),
     constraint uk_training_activity_assignment_activity_member unique (training_activity_id, group_class_member_id)
+);
+
+-- Advisory instruction review requests, explicit overrides, and asynchronous jobs.
+create table training_instruction_review (
+    id uuid primary key default gen_random_uuid(),
+    candidate_id uuid not null,
+    training_activity_id uuid null references training_activity(id) on delete cascade,
+    group_class_id uuid not null references group_class(id) on delete cascade,
+    requested_by_group_class_member_id uuid not null references group_class_member(id) on delete restrict,
+    title_snapshot text not null,
+    instructions_snapshot text not null,
+    instructions_hash text not null,
+    execution_status text not null check (execution_status in ('PENDING', 'SUCCEEDED', 'FAILED')),
+    outcome text null check (outcome in ('GOOD', 'NEEDS_IMPROVEMENT', 'INVALID')),
+    summary text null,
+    issues_json jsonb null,
+    improved_instructions text null,
+    model_name text not null,
+    rubric_version text not null,
+    failure_code text null,
+    requested_at timestamptz not null,
+    completed_at timestamptz null,
+    constraint uk_training_instruction_review_semantic unique (candidate_id, group_class_id, requested_by_group_class_member_id, instructions_hash, model_name, rubric_version)
+);
+
+create table training_instruction_review_override (
+    id uuid primary key default gen_random_uuid(),
+    training_activity_id uuid null references training_activity(id) on delete cascade,
+    training_instruction_review_id uuid null references training_instruction_review(id) on delete set null,
+    instructions_hash text not null,
+    action text not null check (action in ('SAVE_DRAFT', 'PUBLISH')),
+    actor_group_class_member_id uuid not null references group_class_member(id) on delete restrict,
+    created_at timestamptz not null default current_timestamp
+);
+
+create table training_activity_ai_job (
+    id uuid primary key default gen_random_uuid(),
+    job_type text not null check (job_type in ('INSTRUCTION_REVIEW', 'FIRST_QUESTION', 'NEXT_DECISION', 'FINAL_REPORT')),
+    priority integer not null,
+    training_activity_id uuid null references training_activity(id) on delete cascade,
+    training_instruction_review_id uuid null references training_instruction_review(id) on delete cascade,
+    training_activity_assignment_id uuid null references training_activity_assignment(id) on delete cascade,
+    input_version bigint not null default 0,
+    semantic_key text not null,
+    generation integer not null default 1,
+    status text not null check (status in ('PENDING', 'RUNNING', 'SUCCEEDED', 'RETRYABLE', 'FAILED')),
+    attempt_count integer not null default 0,
+    max_attempts integer not null,
+    available_at timestamptz not null,
+    lease_until timestamptz null,
+    last_error_code text null,
+    created_at timestamptz not null default current_timestamp,
+    updated_at timestamptz not null default current_timestamp,
+    constraint uk_training_activity_ai_job_semantic_generation unique (semantic_key, generation),
+    constraint chk_training_activity_ai_job_instruction_review check (
+        job_type <> 'INSTRUCTION_REVIEW' or training_instruction_review_id is not null
+    )
+);
+
+-- Publication delivery is durable. SMTP work starts only after this transaction commits.
+create table outbox_event (
+    id uuid primary key default gen_random_uuid(),
+    aggregate_type text not null,
+    aggregate_id uuid not null references training_activity(id) on delete cascade,
+    event_type text not null,
+    deduplication_key text not null,
+    status text not null,
+    attempt_count integer not null default 0,
+    available_at timestamptz not null default current_timestamp,
+    lease_until timestamptz null,
+    last_error_code text null,
+    created_at timestamptz not null default current_timestamp,
+    published_at timestamptz null,
+    version bigint not null default 0,
+    constraint uk_outbox_event_deduplication_key unique (deduplication_key),
+    constraint chk_outbox_event_status check (status in ('PENDING', 'PROCESSING', 'PUBLISHED', 'FAILED'))
+);
+
+create table outbox_recipient_delivery (
+    id uuid primary key default gen_random_uuid(),
+    outbox_event_id uuid not null references outbox_event(id) on delete cascade,
+    group_class_member_id uuid not null references group_class_member(id) on delete restrict,
+    idempotency_key text not null,
+    status text not null,
+    attempt_count integer not null default 0,
+    available_at timestamptz not null default current_timestamp,
+    lease_until timestamptz null,
+    last_error_code text null,
+    sent_at timestamptz null,
+    created_at timestamptz not null default current_timestamp,
+    version bigint not null default 0,
+    constraint uk_outbox_recipient_delivery_event_member unique (outbox_event_id, group_class_member_id),
+    constraint uk_outbox_recipient_delivery_key unique (idempotency_key),
+    constraint chk_outbox_recipient_delivery_status check (status in ('PENDING', 'PROCESSING', 'SENDING', 'SENT', 'FAILED', 'UNCERTAIN'))
 );
 
 -- ── Invitations (internal, BIGINT identity) ──
@@ -292,6 +391,12 @@ create index idx_training_activity_created_by_tenant_account_id on training_acti
 create index idx_training_activity_created_by_group_class_member_id on training_activity (created_by_group_class_member_id);
 create index idx_training_activity_assignment_activity_id on training_activity_assignment (training_activity_id);
 create index idx_training_activity_assignment_group_class_member_id on training_activity_assignment (group_class_member_id);
+create index idx_training_instruction_review_activity on training_instruction_review (training_activity_id, requested_at desc);
+create index idx_training_instruction_review_lookup on training_instruction_review (candidate_id, group_class_id, requested_by_group_class_member_id, instructions_hash, model_name, rubric_version);
+create index idx_training_instruction_review_override_activity on training_instruction_review_override (training_activity_id, created_at desc);
+create index idx_training_activity_ai_job_available on training_activity_ai_job (status, available_at, priority, created_at);
+create index idx_outbox_event_available on outbox_event (status, available_at, created_at);
+create index idx_outbox_recipient_delivery_available on outbox_recipient_delivery (status, available_at, created_at);
 create index idx_invitation_tenant_id on invitation (tenant_id);
 create index idx_invitation_group_class_id on invitation (group_class_id);
 create index idx_invitation_invited_email on invitation (invited_email);

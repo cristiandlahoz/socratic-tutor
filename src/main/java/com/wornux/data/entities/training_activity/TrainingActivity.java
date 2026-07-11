@@ -16,6 +16,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -55,6 +56,13 @@ public class TrainingActivity {
 
     @Column(name = "closes_at")
     private Instant closesAt;
+
+    @Column(name = "published_at")
+    private Instant publishedAt;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     @Column(name = "safe_browser_enabled", nullable = false)
     private boolean safeBrowserEnabled;

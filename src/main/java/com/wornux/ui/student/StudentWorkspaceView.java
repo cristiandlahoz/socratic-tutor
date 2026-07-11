@@ -4,6 +4,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.data.renderer.LitRenderer;
@@ -39,6 +40,7 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
     private final Grid<TrainingActivityAssignment> assignmentsGrid =
             new Grid<>(TrainingActivityAssignment.class, false);
     private AutoCloseable activityLaunchedSubscription;
+    private Registration assignmentRefreshPollRegistration;
 
     public StudentWorkspaceView(
             AuthenticatedUserContextUtils authenticatedUserContextUtils,
@@ -62,6 +64,7 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         subscribeToAssignmentLaunches(attachEvent.getUI());
+        startAssignmentRefreshPolling(attachEvent.getUI());
         refresh();
     }
 
@@ -73,6 +76,7 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
     @Override
     protected void onDetach(DetachEvent detachEvent) {
         unsubscribeFromAssignmentLaunches();
+        stopAssignmentRefreshPolling();
         super.onDetach(detachEvent);
     }
 
@@ -98,6 +102,20 @@ public class StudentWorkspaceView extends WorkspaceViewShell implements AfterNav
             // Best effort: UI listeners are removed during detach.
         }
         activityLaunchedSubscription = null;
+    }
+
+    private void startAssignmentRefreshPolling(UI ui) {
+        stopAssignmentRefreshPolling();
+        assignmentRefreshPollRegistration = ui.addPollListener(_ -> refreshAssignments());
+        ui.setPollInterval(5_000);
+    }
+
+    private void stopAssignmentRefreshPolling() {
+        if (assignmentRefreshPollRegistration != null) {
+            assignmentRefreshPollRegistration.remove();
+            assignmentRefreshPollRegistration = null;
+        }
+        getUI().ifPresent(ui -> ui.setPollInterval(-1));
     }
 
 

@@ -11,5 +11,7 @@ public enum InstructionReviewStatus {
     COMPLETED_FROM_CACHE,
     SKIPPED_NO_CHANGES,
     FAILED,
-    UNAVAILABLE
+    UNAVAILABLE,
+    STALE,
+    OVERRIDDEN
 }

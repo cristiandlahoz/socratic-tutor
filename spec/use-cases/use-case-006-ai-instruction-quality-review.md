@@ -4,7 +4,7 @@
 
 **Goal:** As a professor, I want fast, actionable AI feedback about my formative activity instructions while retaining the final decision so that I can improve the tutor brief without an unreliable model preventing my work.
 
-**Status:** Pending  
+**Status:** In Progress
 **Date:** 2026-07-10
 
 > A use case cannot be marked as **Implemented** unless all criteria in the use-case implementation workflow are fulfilled.
@@ -241,6 +241,14 @@ The backend contract is equivalent to:
 ```
 
 Offsets are optional unless the backend validates them against the reviewed text. Hidden reasoning is not part of this contract.
+
+---
+
+## Pending Dependencies and Partial Verification
+
+- **Unresolved acceptance:** The Main Flow, AF-1 through AF-12, and BR-01 through BR-18 checklists remain open. Existing mapped focused tests cover durable idempotency, timeout cancellation, retryable failure state, stale override rejection, invalid persisted ranges, and the read authorization contract; they do not yet prove an end-to-end asynchronous review, suggestion application, cancellation, or publication-override path.
+- **Future use-case dependency:** UC-003 owns draft lifecycle persistence and consumes the `SAVE_DRAFT` override; UC-008 consumes the `PUBLISH` override. UC-005, UC-007, and UC-009 have no direct instruction-review flow in their approved specifications.
+- **Implemented and verified so far:** The working tree adds durable review/job/override records, asynchronous review polling, bounded worker execution, and focused automated coverage for review idempotency, timeout, stale override rejection, and invalid ranges. This is partial coverage only.
 
 ---
 

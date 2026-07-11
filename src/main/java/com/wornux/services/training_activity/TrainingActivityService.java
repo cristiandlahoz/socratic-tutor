@@ -28,14 +28,19 @@ import com.wornux.services.email.EmailService;
 import com.wornux.services.email.EmailTemplateService;
 import com.wornux.services.email.TemplatedEmailMessage;
 import com.wornux.services.training_activity.instruction_review.InstructionQualityReviewException;
+import com.wornux.services.training_activity.instruction_review.AdvisoryInstructionReviewService;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewCoordinator;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewExecutionStatus;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewSnapshotDto;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewUnavailableException;
 import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewStatus;
+import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewOverrideAction;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -48,6 +53,8 @@ public class TrainingActivityService {
 
     private final TrainingActivityRepository trainingActivityRepository;
     private final TrainingActivityAssignmentRepository trainingActivityAssignmentRepository;
+    private final com.wornux.data.repositories.training_activity.OutboxEventRepository outboxEventRepository;
+    private final com.wornux.data.repositories.training_activity.OutboxRecipientDeliveryRepository outboxRecipientDeliveryRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
     private final EmailService emailService;
     private final EmailTemplateService emailTemplateService;
@@ -56,7 +63,40 @@ public class TrainingActivityService {
     private final TrainingActivityLaunchedBus activityLaunchedBus;
     private final SafeBrowserAssignmentStateBus assignmentStateBus;
     private final InstructionReviewCoordinator instructionReviewCoordinator;
+    private final AdvisoryInstructionReviewService advisoryInstructionReviewService;
     private final TrainingActivityService self;
+
+    @Autowired
+    public TrainingActivityService(
+            TrainingActivityRepository trainingActivityRepository,
+            TrainingActivityAssignmentRepository trainingActivityAssignmentRepository,
+            com.wornux.data.repositories.training_activity.OutboxEventRepository outboxEventRepository,
+            com.wornux.data.repositories.training_activity.OutboxRecipientDeliveryRepository outboxRecipientDeliveryRepository,
+            GroupClassMemberRepository groupClassMemberRepository,
+            EmailService emailService,
+            EmailTemplateService emailTemplateService,
+            ApplicationProperties applicationProperties,
+            ActiveAcademicContextResolver contextResolver,
+            TrainingActivityLaunchedBus activityLaunchedBus,
+            SafeBrowserAssignmentStateBus assignmentStateBus,
+            InstructionReviewCoordinator instructionReviewCoordinator,
+            AdvisoryInstructionReviewService advisoryInstructionReviewService,
+            @Lazy TrainingActivityService self) {
+        this.trainingActivityRepository = trainingActivityRepository;
+        this.trainingActivityAssignmentRepository = trainingActivityAssignmentRepository;
+        this.outboxEventRepository = outboxEventRepository;
+        this.outboxRecipientDeliveryRepository = outboxRecipientDeliveryRepository;
+        this.groupClassMemberRepository = groupClassMemberRepository;
+        this.emailService = emailService;
+        this.emailTemplateService = emailTemplateService;
+        this.emailProperties = applicationProperties.getEmail();
+        this.contextResolver = contextResolver;
+        this.activityLaunchedBus = activityLaunchedBus;
+        this.assignmentStateBus = assignmentStateBus;
+        this.instructionReviewCoordinator = instructionReviewCoordinator;
+        this.advisoryInstructionReviewService = advisoryInstructionReviewService;
+        this.self = self;
+    }
 
     public TrainingActivityService(
             TrainingActivityRepository trainingActivityRepository,
@@ -69,26 +109,39 @@ public class TrainingActivityService {
             TrainingActivityLaunchedBus activityLaunchedBus,
             SafeBrowserAssignmentStateBus assignmentStateBus,
             InstructionReviewCoordinator instructionReviewCoordinator,
+            AdvisoryInstructionReviewService advisoryInstructionReviewService,
             @Lazy TrainingActivityService self) {
-        this.trainingActivityRepository = trainingActivityRepository;
-        this.trainingActivityAssignmentRepository = trainingActivityAssignmentRepository;
-        this.groupClassMemberRepository = groupClassMemberRepository;
-        this.emailService = emailService;
-        this.emailTemplateService = emailTemplateService;
-        this.emailProperties = applicationProperties.getEmail();
-        this.contextResolver = contextResolver;
-        this.activityLaunchedBus = activityLaunchedBus;
-        this.assignmentStateBus = assignmentStateBus;
-        this.instructionReviewCoordinator = instructionReviewCoordinator;
-        this.self = self;
+        this(trainingActivityRepository, trainingActivityAssignmentRepository, null, null, groupClassMemberRepository,
+                emailService, emailTemplateService, applicationProperties, contextResolver, activityLaunchedBus,
+                assignmentStateBus, instructionReviewCoordinator, advisoryInstructionReviewService, self);
+    }
+
+    /** Compatibility constructor retained for existing isolated unit fixtures. */
+    public TrainingActivityService(
+            TrainingActivityRepository trainingActivityRepository,
+            TrainingActivityAssignmentRepository trainingActivityAssignmentRepository,
+            GroupClassMemberRepository groupClassMemberRepository,
+            EmailService emailService,
+            EmailTemplateService emailTemplateService,
+            ApplicationProperties applicationProperties,
+            ActiveAcademicContextResolver contextResolver,
+            TrainingActivityLaunchedBus activityLaunchedBus,
+            SafeBrowserAssignmentStateBus assignmentStateBus,
+            InstructionReviewCoordinator instructionReviewCoordinator,
+            @Lazy TrainingActivityService self) {
+        this(trainingActivityRepository, trainingActivityAssignmentRepository, groupClassMemberRepository,
+                emailService, emailTemplateService, applicationProperties, contextResolver, activityLaunchedBus,
+                assignmentStateBus, instructionReviewCoordinator, null, self);
     }
 
     @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_CREATE)
     public TrainingActivity createPending(String title, String instruction, boolean safeBrowserEnabled) {
         return createPending(new TrainingActivitySaveCommand(title, instruction, safeBrowserEnabled));
     }
 
     @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_CREATE)
     public TrainingActivity createPending(TrainingActivitySaveCommand command) {
         LOGGER.info(
                 "createPending started: titleLength={} instructionLength={} safeBrowserEnabled={}",
@@ -118,28 +171,34 @@ public class TrainingActivityService {
         LOGGER.info("createPending built draft entity: activityId={}", activity.getId());
         validateRequiredFields(command);
         LOGGER.info("createPending passed required-fields validation: activityId={}", activity.getId());
-        var decision = reviewAdvisory(null, command.title(), command.instructions());
-        LOGGER.info(
-                "createPending received review decision: activityId={} canSave={} reviewStatus={} qualityStatus={} issuesCount={}",
-                activity.getId(),
-                decision.canSave(),
-                decision.snapshot().reviewStatus(),
-                decision.snapshot().qualityStatus(),
-                decision.snapshot().issues() == null ? 0 : decision.snapshot().issues().size());
-        ensureReviewAllowsSave(command, decision);
-        instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
-        LOGGER.info("createPending applied persisted review: activityId={} reviewHash={}", activity.getId(), activity.getInstructionReviewHash());
+        if (advisoryInstructionReviewService == null) {
+            var decision = reviewAdvisory(null, command.title(), command.instructions());
+            ensureReviewAllowsSave(command, decision);
+            instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
+            return trainingActivityRepository.save(activity);
+        }
         var saved = trainingActivityRepository.save(activity);
+        if (advisoryInstructionReviewService != null) {
+            var candidateId = command.reviewCandidateId() == null ? saved.getId() : command.reviewCandidateId();
+            var snapshot = advisoryInstructionReviewService.request(
+                    candidateId, saved, context.groupClassId(), context.groupClassMemberId(), command.title(), command.instructions());
+            if (command.confirmedReviewHash() != null && !command.confirmedReviewHash().isBlank()) {
+                ensureAsyncReviewAllowsSave(command, snapshot);
+                advisoryInstructionReviewService.recordOverride(saved, context.groupClassMemberId(), command.instructions(), InstructionReviewOverrideAction.SAVE_DRAFT);
+            }
+        }
         LOGGER.info("createPending saved draft successfully: activityId={} status={}", saved.getId(), saved.getStatus());
         return saved;
     }
 
     @Transactional(readOnly = true)
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_VIEW)
     public List<TrainingActivity> listAll() {
         return trainingActivityRepository.findByGroupClass_IdOrderByUpdatedAtDesc(requireProfessorContext().groupClassId());
     }
 
     @Transactional(readOnly = true)
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_VIEW)
     public TrainingActivity get(UUID activityId) {
         var context = requireProfessorContext();
         return trainingActivityRepository.findById(activityId)
@@ -150,6 +209,7 @@ public class TrainingActivityService {
     }
 
     @Transactional(readOnly = true)
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_VIEW)
     public List<TrainingActivityAssignment> listAssignments(UUID activityId) {
         var activity = get(activityId);
         return trainingActivityAssignmentRepository.findByTrainingActivity_IdOrderByUpdatedAtDesc(activity.getId());
@@ -185,53 +245,102 @@ public class TrainingActivityService {
     }
 
     @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_DELETE)
     public void delete(UUID activityId) {
         trainingActivityRepository.delete(self.get(activityId));
     }
 
     @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
     public TrainingActivity update(UUID activityId, String title, String instruction) {
         var activity = self.get(activityId);
         return update(activityId, new TrainingActivitySaveCommand(title, instruction, activity.isSafeBrowserEnabled()));
     }
 
     @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
     public TrainingActivity update(UUID activityId, String title, String instruction, boolean safeBrowserEnabled) {
         return update(activityId, new TrainingActivitySaveCommand(title, instruction, safeBrowserEnabled));
     }
 
     @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
     public TrainingActivity update(UUID activityId, TrainingActivitySaveCommand command) {
         var activity = self.get(activityId);
         if (activity.getStatus() != TrainingActivityLifecycleStatus.DRAFT) {
             throw new IllegalStateException("Only draft training activities can be updated.");
         }
         validateRequiredFields(command);
-        var decision = reviewAdvisory(activity, command.title(), command.instructions());
-        ensureReviewAllowsSave(command, decision);
+        if (advisoryInstructionReviewService == null) {
+            var decision = reviewAdvisory(activity, command.title(), command.instructions());
+            ensureReviewAllowsSave(command, decision);
+            activity.setTitle(command.title());
+            activity.setInstructions(command.instructions());
+            activity.setSafeBrowserEnabled(command.safeBrowserEnabled());
+            activity.setUpdatedAt(Instant.now());
+            instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
+            return trainingActivityRepository.save(activity);
+        }
+        var context = requireProfessorContext();
+        var snapshot = advisoryInstructionReviewService.request(
+                command.reviewCandidateId() == null ? activity.getId() : command.reviewCandidateId(),
+                activity,
+                context.groupClassId(),
+                context.groupClassMemberId(),
+                command.title(),
+                command.instructions());
+        ensureAsyncReviewAllowsSave(command, snapshot);
         activity.setTitle(command.title());
         activity.setInstructions(command.instructions());
         activity.setSafeBrowserEnabled(command.safeBrowserEnabled());
         activity.setUpdatedAt(Instant.now());
-        instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
-        return trainingActivityRepository.save(activity);
+        var saved = trainingActivityRepository.save(activity);
+        if (!snapshot.isSaveableGoodReview()) {
+            advisoryInstructionReviewService.recordOverride(
+                    saved, context.groupClassMemberId(), command.instructions(), InstructionReviewOverrideAction.SAVE_DRAFT);
+        }
+        return saved;
     }
 
     @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
     public int launch(UUID activityId) {
+        return launch(activityId, get(activityId).getVersion(), false);
+    }
+
+    @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
+    public int launch(UUID activityId, boolean publishAnyway) {
+        return launch(activityId, get(activityId).getVersion(), publishAnyway);
+    }
+
+    @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
+    public int launch(UUID activityId, long expectedVersion, boolean publishAnyway) {
         var activity = get(activityId);
+        if (activity.getStatus() == TrainingActivityLifecycleStatus.PUBLISHED) {
+            return (int) trainingActivityAssignmentRepository.countByTrainingActivity_Id(activityId);
+        }
+        if (activity.getVersion() != expectedVersion) {
+            throw new IllegalStateException("The activity changed. Refresh the publication confirmation and try again.");
+        }
         if (activity.getStatus() != TrainingActivityLifecycleStatus.DRAFT) {
             throw new IllegalStateException("Only draft training activities can be launched.");
         }
-        refreshInstructionReviewAdvisory(activity);
-        ensureInstructionReviewAllowsLaunch(activity);
-        trainingActivityRepository.findFirstByCreatedByTenantAccount_IdAndStatus(
-                activity.getCreatedByTenantAccount().getId(), TrainingActivityLifecycleStatus.PUBLISHED)
-                .filter(active -> !active.getId().equals(activity.getId()))
-                .ifPresent(_ -> {
-                    throw new IllegalStateException("A professor can evaluate only one group/activity at a time.");
-                });
-
+        if (advisoryInstructionReviewService == null) {
+            refreshInstructionReviewAdvisory(activity);
+            ensureInstructionReviewAllowsLaunch(activity);
+        }
+        else {
+            var snapshot = advisoryInstructionReviewService.current(activity.getId(), activity.getInstructions());
+            if (!snapshot.isSaveableGoodReview() && !publishAnyway) {
+                throw new IllegalStateException("AI review is advisory. Confirm Publish anyway to continue.");
+            }
+            if (!snapshot.isSaveableGoodReview()) {
+                advisoryInstructionReviewService.recordOverride(activity, requireProfessorContext().groupClassMemberId(),
+                        activity.getInstructions(), InstructionReviewOverrideAction.PUBLISH);
+            }
+        }
         var now = Instant.now();
         var students = groupClassMemberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(
                 activity.getGroupClass().getId())
@@ -258,21 +367,57 @@ public class TrainingActivityService {
         }
 
         activity.setStatus(TrainingActivityLifecycleStatus.PUBLISHED);
-        activity.setOpensAt(now);
+        activity.setPublishedAt(now);
         activity.setUpdatedAt(now);
         trainingActivityRepository.save(activity);
 
-        var messages = launchMessages(activity, students);
+        persistPublicationOutbox(activity, students, now);
+
         var notification = new TrainingActivityLaunchedBus.Notification(
                 activity.getId(),
                 activity.getGroupClass().getId(),
                 students.stream().map(GroupClassMember::getId).collect(Collectors.toUnmodifiableSet()));
-        sendAfterCommit(messages);
         publishAfterCommit(notification);
         return students.size();
     }
 
+    @Transactional(readOnly = true)
+    public int eligibleStudentCount(UUID activityId) {
+        var activity = get(activityId);
+        return (int) groupClassMemberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(activity.getGroupClass().getId())
+                .stream().filter(member -> member.getMemberKind() == GroupClassMemberKind.STUDENT).count();
+    }
+
+    private void persistPublicationOutbox(TrainingActivity activity, List<GroupClassMember> students, Instant now) {
+        if (outboxEventRepository == null || outboxRecipientDeliveryRepository == null) {
+            return;
+        }
+        var event = new com.wornux.data.entities.training_activity.OutboxEvent();
+        event.setId(UUID.randomUUID());
+        event.setAggregateType("TRAINING_ACTIVITY");
+        event.setAggregateId(activity.getId());
+        event.setEventType("ACTIVITY_PUBLISHED");
+        event.setDeduplicationKey("activity-published:" + activity.getId());
+        event.setStatus(com.wornux.data.entities.training_activity.OutboxEventStatus.PENDING);
+        event.setAvailableAt(now);
+        event.setCreatedAt(now);
+        outboxEventRepository.save(event);
+        var deliveries = students.stream().map(student -> {
+            var delivery = new com.wornux.data.entities.training_activity.OutboxRecipientDelivery();
+            delivery.setId(UUID.randomUUID());
+            delivery.setOutboxEvent(event);
+            delivery.setGroupClassMember(student);
+            delivery.setIdempotencyKey("activity-published:" + activity.getId() + ":" + student.getId());
+            delivery.setStatus(com.wornux.data.entities.training_activity.OutboxRecipientDeliveryStatus.PENDING);
+            delivery.setAvailableAt(now);
+            delivery.setCreatedAt(now);
+            return delivery;
+        }).toList();
+        outboxRecipientDeliveryRepository.saveAll(deliveries);
+    }
+
     @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
     public TrainingActivity close(UUID activityId) {
         var activity = get(activityId);
         if (activity.getStatus() != TrainingActivityLifecycleStatus.PUBLISHED) {
@@ -391,13 +536,21 @@ public class TrainingActivityService {
 
     @Transactional(readOnly = true)
     public InstructionReviewSnapshotDto getInstructionReviewSnapshot(UUID activityId) {
-        return instructionReviewCoordinator.snapshot(get(activityId));
+        var activity = get(activityId);
+        return advisoryInstructionReviewService == null
+                ? instructionReviewCoordinator.snapshot(activity)
+                : advisoryInstructionReviewService.current(activityId, activity.getInstructions());
     }
 
     @Transactional
+    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_CREATE)
     public InstructionReviewSnapshotDto reviewDraft(TrainingActivitySaveCommand command) {
         validateRequiredFields(command);
-        requireProfessorContext();
+        var context = requireProfessorContext();
+        if (advisoryInstructionReviewService != null) {
+            var candidateId = command.reviewCandidateId() == null ? UUID.randomUUID() : command.reviewCandidateId();
+            return advisoryInstructionReviewService.request(candidateId, null, context.groupClassId(), context.groupClassMemberId(), command.title(), command.instructions());
+        }
         return reviewAdvisory(null, command.title(), command.instructions()).snapshot();
     }
 
@@ -441,6 +594,26 @@ public class TrainingActivityService {
             return;
         }
         throw new InstructionQualityReviewException(blockingReviewMessage(snapshot), decision.reviewResult(), snapshot);
+    }
+
+    private void ensureAsyncReviewAllowsSave(
+            TrainingActivitySaveCommand command,
+            InstructionReviewSnapshotDto snapshot) {
+        if (snapshot.isSaveableGoodReview()) {
+            return;
+        }
+        var explicitCurrentOverride = command.confirmedReviewHash() != null
+                && command.confirmedReviewHash().equals(snapshot.reviewHash())
+                && snapshot.reviewStatus() != InstructionReviewStatus.IDLE
+                && snapshot.reviewStatus() != InstructionReviewStatus.REVIEWING
+                && snapshot.reviewStatus() != InstructionReviewStatus.LOCAL_INVALID
+                && snapshot.reviewStatus() != InstructionReviewStatus.STALE;
+        if (!explicitCurrentOverride) {
+            throw new InstructionQualityReviewException(
+                    "A current GOOD review or an explicit confirmation for this reviewed instruction is required.",
+                    null,
+                    snapshot);
+        }
     }
 
     private boolean confirmedCachedGoodReview(

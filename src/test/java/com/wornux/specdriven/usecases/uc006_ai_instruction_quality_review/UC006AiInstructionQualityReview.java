@@ -15,6 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.vaadin.flow.component.UI;
@@ -30,12 +34,21 @@ import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.data.entities.training_activity.InstructionQualityStatus;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
+import com.wornux.data.entities.training_activity.TrainingActivityAiJob;
+import com.wornux.data.entities.training_activity.TrainingActivityAiJobStatus;
+import com.wornux.data.entities.training_activity.instruction_review.TrainingInstructionReviewExecutionStatus;
+import com.wornux.data.entities.training_activity.instruction_review.TrainingInstructionReview;
 import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewCacheEntry;
 import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewStatus;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityRepository;
+import com.wornux.data.repositories.training_activity.TrainingActivityAiJobRepository;
 import com.wornux.data.repositories.training_activity.instruction_review.InstructionReviewCacheRepository;
+import com.wornux.data.repositories.training_activity.instruction_review.TrainingInstructionReviewOverrideRepository;
+import com.wornux.data.repositories.training_activity.instruction_review.TrainingInstructionReviewRepository;
+import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.security.permission.AppPermission;
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.email.EmailService;
@@ -53,9 +66,12 @@ import com.wornux.services.training_activity.instruction_review.InstructionRevie
 import com.wornux.services.training_activity.instruction_review.InstructionReviewResult;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewService;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewSnapshotDto;
+import com.wornux.services.training_activity.instruction_review.AdvisoryInstructionReviewService;
+import com.wornux.services.training_activity.instruction_review.InstructionReviewJobWorker;
 import com.wornux.services.workspace.WorkspaceRoutingService;
 import com.wornux.ui.training_activity.TrainingActivityView;
 import com.wornux.ui.training_activity.instruction_review.InstructionLinterEditor;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -65,6 +81,268 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class UC006AiInstructionQualityReview {
+
+    @Test
+    void br11_duplicateReviewRequestCreatesOneDurableJobWithoutCallingTheModel() {
+        var reviewRepository = mock(TrainingInstructionReviewRepository.class);
+        var overrideRepository = mock(TrainingInstructionReviewOverrideRepository.class);
+        var jobRepository = mock(TrainingActivityAiJobRepository.class);
+        var engine = mock(InstructionReviewService.class);
+        var candidateId = UUID.randomUUID();
+        when(engine.hashNormalizedInstructions(any())).thenReturn("instruction-hash");
+        when(engine.currentModelName()).thenReturn("review-model");
+        when(engine.promptVersion()).thenReturn("rubric-v1");
+        var persistedReview = new TrainingInstructionReview();
+        persistedReview.setExecutionStatus(TrainingInstructionReviewExecutionStatus.PENDING);
+        persistedReview.setInstructionsHash("instruction-hash");
+        persistedReview.setRequestedAt(Instant.now());
+        when(reviewRepository.findByCandidateIdAndGroupClass_IdAndRequestedByGroupClassMember_IdAndInstructionsHashAndModelNameAndRubricVersion(
+                any(), any(), any(), any(), any(), any())).thenReturn(Optional.empty(), Optional.of(persistedReview));
+        when(reviewRepository.insertIfAbsent(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(1);
+        var service = new AdvisoryInstructionReviewService(reviewRepository, overrideRepository, jobRepository, engine);
+
+        var requested = service.request(candidateId, null, UUID.randomUUID(), UUID.randomUUID(), "Pointers", goodInstructions());
+
+        assertThat(requested.reviewStatus()).isEqualTo(InstructionReviewStatus.REVIEWING);
+        verify(reviewRepository).insertIfAbsent(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(jobRepository).save(any(TrainingActivityAiJob.class));
+        verify(engine, never()).review(any(), any());
+    }
+
+    @Test
+    void af7_duplicateReviewRequestReusesPersistedCandidateAndDoesNotScheduleAnotherJob() {
+        var reviewRepository = mock(TrainingInstructionReviewRepository.class);
+        var overrideRepository = mock(TrainingInstructionReviewOverrideRepository.class);
+        var jobRepository = mock(TrainingActivityAiJobRepository.class);
+        var engine = mock(InstructionReviewService.class);
+        var candidateId = UUID.randomUUID();
+        var review = new TrainingInstructionReview();
+        review.setCandidateId(candidateId);
+        review.setInstructionsHash("instruction-hash");
+        review.setExecutionStatus(TrainingInstructionReviewExecutionStatus.PENDING);
+        review.setRequestedAt(Instant.now());
+        when(engine.hashNormalizedInstructions(any())).thenReturn("instruction-hash");
+        when(engine.currentModelName()).thenReturn("review-model");
+        when(engine.promptVersion()).thenReturn("rubric-v1");
+        when(reviewRepository.findByCandidateIdAndGroupClass_IdAndRequestedByGroupClassMember_IdAndInstructionsHashAndModelNameAndRubricVersion(
+                any(), any(), any(), any(), any(), any())).thenReturn(Optional.of(review));
+        var service = new AdvisoryInstructionReviewService(reviewRepository, overrideRepository, jobRepository, engine);
+
+        var requested = service.request(candidateId, null, UUID.randomUUID(), UUID.randomUUID(), "Pointers", goodInstructions());
+
+        assertThat(requested.reviewStatus()).isEqualTo(InstructionReviewStatus.REVIEWING);
+        verify(jobRepository, never()).save(any(TrainingActivityAiJob.class));
+        verify(engine, never()).review(any(), any());
+    }
+
+    @Test
+    void br11_idempotencyConflictRereadsTheScopedReviewWithoutSchedulingAnotherJob() {
+        var reviewRepository = mock(TrainingInstructionReviewRepository.class);
+        var overrideRepository = mock(TrainingInstructionReviewOverrideRepository.class);
+        var jobRepository = mock(TrainingActivityAiJobRepository.class);
+        var engine = mock(InstructionReviewService.class);
+        var review = new TrainingInstructionReview();
+        review.setInstructionsHash("instruction-hash");
+        review.setExecutionStatus(TrainingInstructionReviewExecutionStatus.PENDING);
+        review.setRequestedAt(Instant.now());
+        when(engine.hashNormalizedInstructions(any())).thenReturn("instruction-hash");
+        when(engine.currentModelName()).thenReturn("review-model");
+        when(engine.promptVersion()).thenReturn("rubric-v1");
+        when(reviewRepository.findByCandidateIdAndGroupClass_IdAndRequestedByGroupClassMember_IdAndInstructionsHashAndModelNameAndRubricVersion(
+                any(), any(), any(), any(), any(), any())).thenReturn(Optional.empty(), Optional.of(review));
+        when(reviewRepository.insertIfAbsent(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(0);
+
+        new AdvisoryInstructionReviewService(reviewRepository, overrideRepository, jobRepository, engine)
+                .request(UUID.randomUUID(), null, UUID.randomUUID(), UUID.randomUUID(), "Pointers", goodInstructions());
+
+        verify(jobRepository, never()).save(any(TrainingActivityAiJob.class));
+    }
+
+    @Test
+    void af4_expiredRunningLeaseCanBeClaimedAgain() {
+        var reviewRepository = mock(TrainingInstructionReviewRepository.class);
+        var jobRepository = mock(TrainingActivityAiJobRepository.class);
+        var job = new TrainingActivityAiJob();
+        var review = new TrainingInstructionReview();
+        review.setId(UUID.randomUUID());
+        review.setTitleSnapshot("Pointers");
+        review.setInstructionsSnapshot(goodInstructions());
+        job.setId(UUID.randomUUID());
+        job.setStatus(TrainingActivityAiJobStatus.RUNNING);
+        job.setLeaseUntil(Instant.now().minusSeconds(1));
+        job.setInstructionReview(review);
+        when(jobRepository.findById(job.getId())).thenReturn(Optional.of(job));
+        when(jobRepository.claim(any(), any(), any(), any(), any())).thenReturn(1);
+
+        var work = new AdvisoryInstructionReviewService(
+                reviewRepository, mock(TrainingInstructionReviewOverrideRepository.class), jobRepository, mock(InstructionReviewService.class))
+                .claim(job.getId(), Instant.now(), Instant.now().plusSeconds(30));
+
+        assertThat(work.jobId()).isEqualTo(job.getId());
+    }
+
+    @Test
+    void af4_modelTimeoutInterruptsTheOutstandingModelFuture() throws InterruptedException {
+        var reviewService = mock(AdvisoryInstructionReviewService.class);
+        var reviewEngine = mock(InstructionReviewService.class);
+        var workerExecutor = executor();
+        var modelExecutor = executor();
+        var meterRegistry = new SimpleMeterRegistry();
+        var interrupted = new CountDownLatch(1);
+        try {
+            var work = new AdvisoryInstructionReviewService.ReviewWork(UUID.randomUUID(), UUID.randomUUID(), "Pointers", goodInstructions());
+            when(reviewService.claim(any(), any(), any())).thenReturn(work);
+            when(reviewService.applyFailure(work.jobId(), "MODEL_TIMEOUT")).thenReturn(true);
+            when(reviewEngine.review(any(), any())).thenAnswer(_ -> {
+                try {
+                    Thread.sleep(10_000);
+                }
+                catch (InterruptedException exception) {
+                    interrupted.countDown();
+                    throw new IllegalStateException(exception);
+                }
+                return reviewResult(InstructionQualityStatus.GOOD);
+            });
+            var worker = new InstructionReviewJobWorker(
+                    reviewService, reviewEngine, workerExecutor, modelExecutor, 10, 30, meterRegistry);
+
+            ReflectionTestUtils.invokeMethod(worker, "process", work.jobId());
+
+            assertThat(interrupted.await(1, TimeUnit.SECONDS)).isTrue();
+            verify(reviewService).applyFailure(work.jobId(), "MODEL_TIMEOUT");
+            assertThat(meterRegistry.get("training.activity.instruction-review.timeout").counter().count()).isEqualTo(1);
+            assertThat(meterRegistry.get("training.activity.instruction-review.error").counter().count()).isEqualTo(1);
+            assertThat(meterRegistry.get("training.activity.instruction-review.retry").counter().count()).isEqualTo(1);
+            assertThat(meterRegistry.get("training.activity.instruction-review.model.latency").timer().count()).isEqualTo(1);
+            assertThat(meterRegistry.find("training.activity.instruction-review.worker.queue.depth").gauge()).isNotNull();
+            assertThat(meterRegistry.find("training.activity.instruction-review.model.queue.depth").gauge()).isNotNull();
+        }
+        finally {
+            workerExecutor.shutdownNow();
+            modelExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    void af1_readOperationsRequireTrainingActivityViewPermission() throws NoSuchMethodException {
+        assertThat(TrainingActivityService.class.getMethod("listAll").getAnnotation(RequiresPermission.class).value())
+                .isEqualTo(AppPermission.TRAINING_ACTIVITY_VIEW);
+        assertThat(TrainingActivityService.class.getMethod("get", UUID.class).getAnnotation(RequiresPermission.class).value())
+                .isEqualTo(AppPermission.TRAINING_ACTIVITY_VIEW);
+        assertThat(TrainingActivityService.class.getMethod("listAssignments", UUID.class)
+                .getAnnotation(RequiresPermission.class).value()).isEqualTo(AppPermission.TRAINING_ACTIVITY_VIEW);
+    }
+
+    @Test
+    void br11_discardsPersistedIssueRangesOutsideTheReviewedInstructions() {
+        var reviewRepository = mock(TrainingInstructionReviewRepository.class);
+        var engine = mock(InstructionReviewService.class);
+        var review = new TrainingInstructionReview();
+        review.setExecutionStatus(TrainingInstructionReviewExecutionStatus.SUCCEEDED);
+        review.setOutcome(com.wornux.data.entities.training_activity.instruction_review.InstructionReviewOutcome.GOOD);
+        review.setInstructionsHash("instruction-hash");
+        review.setInstructionsSnapshot("short text");
+        review.setRequestedAt(Instant.now());
+        review.setIssuesJson("""
+                [{"id":"bad","severity":"WARNING","category":"TEST","startOffset":-1,"endOffset":3,"suggestedReplacement":"replacement"}]
+                """);
+        when(engine.hashNormalizedInstructions(any())).thenReturn("instruction-hash");
+        when(reviewRepository.findFirstByTrainingActivity_IdOrderByRequestedAtDesc(any())).thenReturn(Optional.of(review));
+
+        var snapshot = new AdvisoryInstructionReviewService(
+                reviewRepository, mock(TrainingInstructionReviewOverrideRepository.class), mock(TrainingActivityAiJobRepository.class), engine)
+                .current(UUID.randomUUID(), "short text");
+
+        assertThat(snapshot.issues()).isEmpty();
+    }
+
+    @Test
+    void br01_updateRejectsFabricatedOrStaleOverrideConfirmationBeforePersisting() {
+        var activityRepository = mock(TrainingActivityRepository.class);
+        var contextResolver = mock(ActiveAcademicContextResolver.class);
+        var advisory = mock(AdvisoryInstructionReviewService.class);
+        var activity = activity(goodInstructions());
+        var context = professorContext(activity.getGroupClass().getId());
+        when(contextResolver.requireCurrent()).thenReturn(context);
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(advisory.request(any(), any(), any(), any(), any(), any())).thenReturn(new InstructionReviewSnapshotDto(
+                activity.getId(), "current-hash", InstructionReviewStatus.COMPLETED,
+                InstructionQualityStatus.NEEDS_IMPROVEMENT, false, "Needs work", false, false, List.of(), "", Instant.now()));
+        var service = new TrainingActivityService(
+                activityRepository,
+                mock(TrainingActivityAssignmentRepository.class),
+                mock(GroupClassMemberRepository.class),
+                mock(EmailService.class),
+                mock(EmailTemplateService.class),
+                applicationProperties(),
+                contextResolver,
+                new TrainingActivityLaunchedBus(),
+                mock(SafeBrowserAssignmentStateBus.class),
+                mock(InstructionReviewCoordinator.class),
+                advisory,
+                null);
+        ReflectionTestUtils.setField(service, "self", service);
+
+        assertThatThrownBy(() -> service.update(activity.getId(), new TrainingActivitySaveCommand(
+                        "Updated title", goodInstructions(), false, "fabricated-hash", UUID.randomUUID())))
+                .isInstanceOf(InstructionQualityReviewException.class);
+
+        verify(activityRepository, never()).save(any(TrainingActivity.class));
+    }
+
+    @Test
+    void br01_updateDoesNotPersistWhenTheReviewRequestFails() {
+        var activityRepository = mock(TrainingActivityRepository.class);
+        var contextResolver = mock(ActiveAcademicContextResolver.class);
+        var advisory = mock(AdvisoryInstructionReviewService.class);
+        var activity = activity(goodInstructions());
+        when(contextResolver.requireCurrent()).thenReturn(professorContext(activity.getGroupClass().getId()));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(advisory.request(any(), any(), any(), any(), any(), any())).thenThrow(new IllegalStateException("review unavailable"));
+        var service = new TrainingActivityService(
+                activityRepository,
+                mock(TrainingActivityAssignmentRepository.class),
+                mock(GroupClassMemberRepository.class),
+                mock(EmailService.class),
+                mock(EmailTemplateService.class),
+                applicationProperties(),
+                contextResolver,
+                new TrainingActivityLaunchedBus(),
+                mock(SafeBrowserAssignmentStateBus.class),
+                mock(InstructionReviewCoordinator.class),
+                advisory,
+                null);
+        ReflectionTestUtils.setField(service, "self", service);
+
+        assertThatThrownBy(() -> service.update(activity.getId(), new TrainingActivitySaveCommand(
+                        "Updated title", goodInstructions(), false, "", UUID.randomUUID())))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("review unavailable");
+
+        verify(activityRepository, never()).save(any(TrainingActivity.class));
+        assertThat(activity.getTitle()).isEqualTo("Strings en C");
+    }
+
+    @Test
+    void af4_retryableModelFailureUsesBoundedRetryWithoutMutatingTheReviewVerdict() {
+        var reviewRepository = mock(TrainingInstructionReviewRepository.class);
+        var overrideRepository = mock(TrainingInstructionReviewOverrideRepository.class);
+        var jobRepository = mock(TrainingActivityAiJobRepository.class);
+        var engine = mock(InstructionReviewService.class);
+        var review = new TrainingInstructionReview();
+        var job = new TrainingActivityAiJob();
+        job.setStatus(TrainingActivityAiJobStatus.RUNNING);
+        job.setAttemptCount(1);
+        job.setMaxAttempts(3);
+        job.setInstructionReview(review);
+        when(jobRepository.findById(any())).thenReturn(Optional.of(job));
+        var service = new AdvisoryInstructionReviewService(reviewRepository, overrideRepository, jobRepository, engine);
+
+        service.applyFailure(UUID.randomUUID(), "MODEL_TIMEOUT");
+
+        assertThat(job.getStatus()).isEqualTo(TrainingActivityAiJobStatus.RETRYABLE);
+        assertThat(review.getExecutionStatus()).isNull();
+    }
 
     @Test
     void saveDraftDoesNotWaitForModel() {
@@ -453,7 +731,7 @@ class UC006AiInstructionQualityReview {
     }
 
     @Test
-    void mainFlow_goodSuggestionPersistsWithoutConfirmation() {
+    void mainFlow_goodReviewWaitsForExplicitDraftSave() {
         var previousUi = UI.getCurrent();
         var ui = new UI();
         UI.setCurrent(ui);
@@ -463,11 +741,8 @@ class UC006AiInstructionQualityReview {
                     "review-hash-good",
                     InstructionReviewStatus.READY_TO_SAVE,
                     InstructionQualityStatus.GOOD);
-            var saved = activity(goodInstructions());
-            when(service.listAll()).thenReturn(List.of(), List.of(saved));
+            when(service.listAll()).thenReturn(List.of());
             when(service.reviewDraft(any(TrainingActivitySaveCommand.class))).thenReturn(snapshot);
-            when(service.createPending(any(TrainingActivitySaveCommand.class))).thenReturn(saved);
-            when(service.getInstructionReviewSnapshot(saved.getId())).thenReturn(snapshot);
 
             var view = new TrainingActivityView(
                     service,
@@ -484,7 +759,7 @@ class UC006AiInstructionQualityReview {
             ReflectionTestUtils.invokeMethod(view, "onSave");
 
             verify(service).reviewDraft(any(TrainingActivitySaveCommand.class));
-            verify(service).createPending(any(TrainingActivitySaveCommand.class));
+            verify(service, never()).createPending(any(TrainingActivitySaveCommand.class));
         }
         finally {
             UI.setCurrent(previousUi);
@@ -1190,6 +1465,10 @@ class UC006AiInstructionQualityReview {
                   "endOffset": null
                 }
                 """;
+    }
+
+    private static ThreadPoolExecutor executor() {
+        return new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(2));
     }
 
     private record ServiceFixture(

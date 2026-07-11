@@ -22,4 +22,6 @@ public interface TrainingActivityAssignmentRepository extends JpaRepository<Trai
     List<TrainingActivityAssignment> findByTrainingActivity_IdAndStatusNot(UUID trainingActivityId, TrainingActivityAssignmentStatus status);
 
     List<TrainingActivityAssignment> findBySafeBrowserSessionActiveTrue();
+
+    long countByTrainingActivity_Id(UUID trainingActivityId);
 }

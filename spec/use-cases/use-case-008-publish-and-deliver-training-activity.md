@@ -4,7 +4,7 @@
 
 **Goal:** As a professor, I want to publish a draft activity once and reliably deliver one assignment to every eligible student so that it appears immediately in their workspace and notifications are sent without risking partial publication.
 
-**Status:** Pending  
+**Status:** In Progress
 **Date:** 2026-07-10
 
 > A use case cannot be marked as **Implemented** unless all criteria in the use-case implementation workflow are fulfilled.
@@ -140,6 +140,8 @@ The professor clicks **Publicar actividad** from a draft activity detail or edit
 4. Operational monitoring exposes the backlog/failure.
 5. Professor publication request is not held open or rolled back.
 
+> SMTP cannot provide exactly-once recipient delivery. The worker persists a `SENDING` boundary before calling SMTP. A crash or transport error after that boundary becomes an auditable `UNCERTAIN` delivery and is never retried automatically; an authorized professor must explicitly replay it. Only outcomes known to have failed before acceptance are retried automatically.
+
 ### AF-9: Notification permanently fails
 
 **Branches from:** Main Flow step 15  
@@ -181,6 +183,14 @@ The professor clicks **Publicar actividad** from a draft activity detail or edit
 
 ---
 
+## Pending Dependencies and Partial Verification
+
+- **Unresolved acceptance:** The Main Flow, AF-1 through AF-9, and BR-01 through BR-14 checklists remain open. Existing mapped focused tests cover service-level publication/outbox paths, expired lease recovery, bounded recovery queries, uncertain SMTP outcomes, runtime transport uncertainty, and authorized manual replay; they do not yet prove end-to-end publication UI, roster concurrency, worker contention, or full recipient delivery/replay acceptance.
+- **Future use-case dependency:** UC-003 provides the draft lifecycle that UC-008 publishes; UC-005 consumes the immutable Safe Browser configuration and assignments; UC-007 consumes committed assignments in the student runtime; UC-009 follows UC-007 submission to generate reports. These successors are not implemented by publication.
+- **Implemented and verified so far:** The working tree adds draft-to-published assignment/outbox persistence, student workspace refresh, recipient delivery states, bounded retry, uncertain-SMTP handling, and manual replay. Focused automated verification covers service paths, uncertain SMTP, and replay only; this is partial coverage.
+
+---
+
 ## Tests
 
 - [ ] Main Flow covered from publication preview through assignments, dashboard visibility, and outbox delivery.
@@ -192,6 +202,7 @@ The professor clicks **Publicar actividad** from a draft activity detail or edit
 - [ ] AF-6 concurrent/duplicate publication covered.
 - [ ] AF-7 atomic transaction rollback covered.
 - [ ] AF-8 and AF-9 transient/permanent email failures covered.
+- [ ] Worker claim contention, expired leases, uncertain SMTP acceptance, bounded retry, terminal replay, and event settlement covered.
 - [ ] BR-01 through BR-14 covered.
 
 ---
