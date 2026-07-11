@@ -6,8 +6,12 @@ import java.util.UUID;
 
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface TrainingActivityAssignmentRepository extends JpaRepository<TrainingActivityAssignment, UUID> {
     @EntityGraph(attributePaths = "trainingActivity")
@@ -15,6 +19,11 @@ public interface TrainingActivityAssignmentRepository extends JpaRepository<Trai
 
     @EntityGraph(attributePaths = {"trainingActivity", "trainingActivity.groupClass", "groupClassMember", "groupClassMember.groupClass"})
     Optional<TrainingActivityAssignment> findWithTrainingActivityById(UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"trainingActivity", "trainingActivity.groupClass", "groupClassMember", "groupClassMember.groupClass"})
+    @Query("select assignment from TrainingActivityAssignment assignment where assignment.id = :id")
+    Optional<TrainingActivityAssignment> findLockedWithTrainingActivityById(@Param("id") UUID id);
 
     @EntityGraph(attributePaths = {"trainingActivity", "groupClassMember", "groupClassMember.tenantAccount", "groupClassMember.tenantAccount.account"})
     List<TrainingActivityAssignment> findByTrainingActivity_IdOrderByUpdatedAtDesc(UUID trainingActivityId);

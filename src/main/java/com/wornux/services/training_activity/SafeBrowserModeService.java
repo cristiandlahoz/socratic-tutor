@@ -9,6 +9,9 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.training_activity.SafeBrowserAlert;
@@ -26,11 +29,12 @@ import com.wornux.data.repositories.training_activity.SafeBrowserEventRepository
 import com.wornux.data.repositories.training_activity.SafeBrowserSessionRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityRepository;
-import com.wornux.config.ApplicationProperties;
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -39,6 +43,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class SafeBrowserModeService {
 
     private static final SecureRandom TOKEN_RANDOM = new SecureRandom();
+    private static final Logger LOGGER = LoggerFactory.getLogger(SafeBrowserModeService.class);
 
     private final TrainingActivityAssignmentRepository assignmentRepository;
     private final TrainingActivityRepository activityRepository;
@@ -47,7 +52,11 @@ public class SafeBrowserModeService {
     private final SafeBrowserAlertRepository alertRepository;
     private final ActiveAcademicContextResolver contextResolver;
     private final SafeBrowserAssignmentStateBus assignmentStateBus;
-    private final ApplicationProperties.SafeBrowser properties;
+    private final Counter sessionStartCounter;
+    private final Counter heartbeatCounter;
+    private final Counter duplicateConflictCounter;
+    private final Timer sessionStartLatency;
+    private final Timer heartbeatLatency;
 
     public SafeBrowserModeService(
             TrainingActivityAssignmentRepository assignmentRepository,
@@ -57,7 +66,7 @@ public class SafeBrowserModeService {
             SafeBrowserAlertRepository alertRepository,
             ActiveAcademicContextResolver contextResolver,
             SafeBrowserAssignmentStateBus assignmentStateBus,
-            ApplicationProperties.SafeBrowser properties) {
+            MeterRegistry meterRegistry) {
         this.assignmentRepository = assignmentRepository;
         this.activityRepository = activityRepository;
         this.sessionRepository = sessionRepository;
@@ -65,7 +74,11 @@ public class SafeBrowserModeService {
         this.alertRepository = alertRepository;
         this.contextResolver = contextResolver;
         this.assignmentStateBus = assignmentStateBus;
-        this.properties = properties;
+        this.sessionStartCounter = meterRegistry.counter("training.activity.safe-browser.session.start");
+        this.heartbeatCounter = meterRegistry.counter("training.activity.safe-browser.heartbeat");
+        this.duplicateConflictCounter = meterRegistry.counter("training.activity.safe-browser.violation.duplicate");
+        this.sessionStartLatency = meterRegistry.timer("training.activity.safe-browser.session.start.latency");
+        this.heartbeatLatency = meterRegistry.timer("training.activity.safe-browser.heartbeat.latency");
     }
 
     @Transactional(readOnly = true)
@@ -83,51 +96,67 @@ public class SafeBrowserModeService {
 
     @Transactional(noRollbackFor = SafeBrowserSessionStartRejectedException.class)
     public SessionStart beginSession(UUID assignmentId) {
-        var assignment = requireCurrentStudentAssignment(assignmentId);
-        var now = Instant.now();
-        ensureCanEstablishSession(assignment, now);
-        sessionRepository.findFirstByAssignment_IdAndStatusInOrderByCreatedAtDesc(
-                        assignmentId, List.of(SafeBrowserSessionStatus.PENDING, SafeBrowserSessionStatus.ACTIVE))
-                .ifPresent(session -> {
-                    throw rejectedStart("This assignment already has an active Safe Browser session.");
-                });
+        var sample = Timer.start();
+        try {
+            var assignment = requireCurrentStudentAssignment(assignmentId);
+            var now = Instant.now();
+            ensureCanEstablishSession(assignment, now);
+            sessionRepository.findFirstByAssignment_IdAndStatusInOrderByCreatedAtDesc(
+                            assignmentId, List.of(SafeBrowserSessionStatus.PENDING, SafeBrowserSessionStatus.ACTIVE))
+                    .ifPresent(session -> {
+                        throw rejectedStart("This assignment already has an active Safe Browser session.");
+                    });
 
-        var token = newToken();
-        var session = new SafeBrowserSession();
-        session.setId(UUID.randomUUID());
-        session.setAssignment(assignment);
-        session.setTokenHash(hash(token));
-        session.setStatus(SafeBrowserSessionStatus.PENDING);
-        session.setStartedAt(now);
-        session.setCreatedAt(now);
-        session.setUpdatedAt(now);
-        sessionRepository.save(session);
-        return new SessionStart(session.getId(), token);
+            var token = newToken();
+            var session = new SafeBrowserSession();
+            session.setId(UUID.randomUUID());
+            session.setAssignment(assignment);
+            session.setTokenHash(hash(token));
+            session.setStatus(SafeBrowserSessionStatus.PENDING);
+            session.setStartedAt(now);
+            session.setCreatedAt(now);
+            session.setUpdatedAt(now);
+            sessionRepository.save(session);
+            sessionStartCounter.increment();
+            LOGGER.info("event=safe_browser_session_started assignment_id={} session_id={}", assignmentId, session.getId());
+            return new SessionStart(session.getId(), token);
+        }
+        finally {
+            sample.stop(sessionStartLatency);
+        }
     }
 
     @Transactional
     public TrainingActivityAssignment recordHeartbeat(UUID assignmentId, String token) {
-        var assignment = requireCurrentStudentAssignment(assignmentId);
-        var session = requireCurrentSession(assignmentId, token);
-        var now = Instant.now();
-        if (session.getStatus().isTerminal()) {
-            throw new IllegalStateException("Safe Browser Mode session is no longer active.");
+        var sample = Timer.start();
+        try {
+            var assignment = requireCurrentStudentAssignment(assignmentId);
+            var session = requireCurrentSession(assignmentId, token);
+            var now = Instant.now();
+            if (session.getStatus().isTerminal()) {
+                throw new IllegalStateException("Safe Browser Mode session is no longer active.");
+            }
+            if (!isAnswerable(assignment)) {
+                endSession(session, now);
+                return deactivateSafeBrowserSession(assignment, now);
+            }
+            if (session.getStatus() == SafeBrowserSessionStatus.PENDING) {
+                session.setStatus(SafeBrowserSessionStatus.ACTIVE);
+                recordEvent(session, assignment, SafeBrowserEventType.SESSION_STARTED, SafeBrowserEventSeverity.INFO, now, UUID.randomUUID());
+            }
+            session.setLastHeartbeatAt(now);
+            session.setUpdatedAt(now);
+            sessionRepository.save(session);
+            assignment.setSafeBrowserSessionActive(true);
+            assignment.setSafeBrowserLastHeartbeatAt(now);
+            assignment.setUpdatedAt(now);
+            heartbeatCounter.increment();
+            LOGGER.debug("event=safe_browser_heartbeat assignment_id={} session_id={}", assignmentId, session.getId());
+            return assignmentRepository.save(assignment);
         }
-        if (!isAnswerable(assignment)) {
-            endSession(session, now);
-            return deactivateSafeBrowserSession(assignment, now);
+        finally {
+            sample.stop(heartbeatLatency);
         }
-        if (session.getStatus() == SafeBrowserSessionStatus.PENDING) {
-            session.setStatus(SafeBrowserSessionStatus.ACTIVE);
-            recordEvent(session, assignment, SafeBrowserEventType.SESSION_STARTED, SafeBrowserEventSeverity.INFO, now, UUID.randomUUID());
-        }
-        session.setLastHeartbeatAt(now);
-        session.setUpdatedAt(now);
-        sessionRepository.save(session);
-        assignment.setSafeBrowserSessionActive(true);
-        assignment.setSafeBrowserLastHeartbeatAt(now);
-        assignment.setUpdatedAt(now);
-        return assignmentRepository.save(assignment);
     }
 
     @Transactional
@@ -141,6 +170,8 @@ public class SafeBrowserModeService {
         }
         var session = requireCurrentSession(assignmentId, token);
         if (eventRepository.findBySession_IdAndClientEventId(session.getId(), clientEventId).isPresent()) {
+            duplicateConflictCounter.increment();
+            LOGGER.info("event=safe_browser_violation_duplicate assignment_id={} session_id={}", assignmentId, session.getId());
             return assignment;
         }
         if (session.getStatus() != SafeBrowserSessionStatus.ACTIVE || assignment.isSafeBrowserLocked()) {
@@ -183,19 +214,30 @@ public class SafeBrowserModeService {
         return saved;
     }
 
-    @Scheduled(fixedDelayString = "${app.safe-browser.expiry-poll-ms:10000}")
-    @Transactional
-    public int expireStaleSessions() {
-        var now = Instant.now();
-        var setupExpired = sessionRepository.findByStatusAndCreatedAtBefore(
-                SafeBrowserSessionStatus.PENDING, now.minus(properties.getSetupTimeout()));
-        setupExpired.forEach(session -> endSessionAsExpired(session, now));
-
-        var heartbeatExpired = sessionRepository.findByStatusAndLastHeartbeatAtBefore(
-                SafeBrowserSessionStatus.ACTIVE, now.minus(properties.getHeartbeatTimeout()));
-        heartbeatExpired.forEach(session -> lockAssignment(
-                session.getAssignment(), session, SafeBrowserEventType.HEARTBEAT_LOST, UUID.randomUUID(), SafeBrowserSessionStatus.EXPIRED, true));
-        return setupExpired.size() + heartbeatExpired.size();
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean expireStaleSession(
+            UUID assignmentId, UUID sessionId, SafeBrowserSessionStatus expectedStatus, Instant cutoff, Instant now) {
+        var assignment = requireLockedAssignment(assignmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown training assignment %s".formatted(assignmentId)));
+        var session = sessionRepository.findById(sessionId)
+                .filter(candidate -> candidate.getAssignment().getId().equals(assignmentId))
+                .filter(candidate -> candidate.getStatus() == expectedStatus)
+                .filter(candidate -> isStale(candidate, expectedStatus, cutoff))
+                .orElse(null);
+        if (session == null) {
+            return false;
+        }
+        if (expectedStatus == SafeBrowserSessionStatus.PENDING) {
+            endSessionAsExpired(session, now);
+            return true;
+        }
+        if (!isAnswerable(assignment)) {
+            endSession(session, now);
+            deactivateSafeBrowserSession(assignment, now);
+            return true;
+        }
+        lockAssignment(assignment, session, SafeBrowserEventType.HEARTBEAT_LOST, UUID.randomUUID(), SafeBrowserSessionStatus.EXPIRED, true);
+        return true;
     }
 
     private TrainingActivityAssignment lockAssignment(
@@ -337,14 +379,23 @@ public class SafeBrowserModeService {
         if (context.groupClassKind() != GroupClassMemberKind.STUDENT) {
             throw new SecurityException("Only students can use Safe Browser Mode for assigned evaluations.");
         }
-        return assignmentRepository.findWithTrainingActivityById(assignmentId)
+        return requireLockedAssignment(assignmentId)
                 .filter(assignment -> context.groupClassMemberId().equals(assignment.getGroupClassMember().getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Unknown training assignment %s".formatted(assignmentId)));
     }
 
     private TrainingActivityAssignment requireAssignment(UUID assignmentId) {
-        return assignmentRepository.findWithTrainingActivityById(assignmentId)
+        return requireLockedAssignment(assignmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown training assignment %s".formatted(assignmentId)));
+    }
+
+    private java.util.Optional<TrainingActivityAssignment> requireLockedAssignment(UUID assignmentId) {
+        return assignmentRepository.findLockedWithTrainingActivityById(assignmentId);
+    }
+
+    private static boolean isStale(SafeBrowserSession session, SafeBrowserSessionStatus expectedStatus, Instant cutoff) {
+        var observedAt = expectedStatus == SafeBrowserSessionStatus.PENDING ? session.getCreatedAt() : session.getLastHeartbeatAt();
+        return observedAt != null && observedAt.isBefore(cutoff);
     }
 
     private ActiveAcademicContext requireProfessorCanManage(UUID trainingActivityId) {
