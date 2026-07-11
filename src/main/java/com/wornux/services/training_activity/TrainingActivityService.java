@@ -24,8 +24,8 @@ import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.context.SetupRequiredException;
 import com.wornux.services.email.EmailMessage;
-import com.wornux.services.email.EmailService;
-import com.wornux.services.email.EmailTemplateService;
+import com.wornux.infrastructure.email.SmtpEmailService;
+import com.wornux.infrastructure.email.ThymeleafEmailTemplateService;
 import com.wornux.services.email.TemplatedEmailMessage;
 import com.wornux.services.training_activity.instruction_review.InstructionQualityReviewException;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewCoordinator;
@@ -49,8 +49,8 @@ public class TrainingActivityService {
     private final TrainingActivityRepository trainingActivityRepository;
     private final TrainingActivityAssignmentRepository trainingActivityAssignmentRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
-    private final EmailService emailService;
-    private final EmailTemplateService emailTemplateService;
+    private final SmtpEmailService emailService;
+    private final ThymeleafEmailTemplateService emailTemplateService;
     private final ApplicationProperties.Email emailProperties;
     private final ActiveAcademicContextResolver contextResolver;
     private final TrainingActivityLaunchedBus activityLaunchedBus;
@@ -62,8 +62,8 @@ public class TrainingActivityService {
             TrainingActivityRepository trainingActivityRepository,
             TrainingActivityAssignmentRepository trainingActivityAssignmentRepository,
             GroupClassMemberRepository groupClassMemberRepository,
-            EmailService emailService,
-            EmailTemplateService emailTemplateService,
+            SmtpEmailService emailService,
+            ThymeleafEmailTemplateService emailTemplateService,
             ApplicationProperties applicationProperties,
             ActiveAcademicContextResolver contextResolver,
             TrainingActivityLaunchedBus activityLaunchedBus,
@@ -156,35 +156,6 @@ public class TrainingActivityService {
     }
 
     @Transactional
-    public TrainingActivity saveQuestions(UUID activityId, String questionsJson) {
-        throw new SetupRequiredException(
-                "Question persistence is not supported because the training activity model does not define it yet.");
-    }
-
-    @Transactional
-    public TrainingActivity markRunning(UUID activityId) {
-        throw new SetupRequiredException("Training activity execution is not supported yet.");
-    }
-
-    @Transactional
-    public TrainingActivity saveAnswers(UUID activityId, String answersJson) {
-        throw new SetupRequiredException(
-                "Answer persistence is not supported because the training activity assignment model does not define it yet.");
-    }
-
-    @Transactional
-    public TrainingActivity completeReport(UUID activityId, String reportMarkdown) {
-        throw new SetupRequiredException(
-                "Report persistence is not supported because the training activity model does not define it yet.");
-    }
-
-    @Transactional
-    public TrainingActivity markFailed(UUID activityId) {
-        throw new SetupRequiredException(
-                "Execution failure persistence is not supported because the training activity model does not define it yet.");
-    }
-
-    @Transactional
     public void delete(UUID activityId) {
         trainingActivityRepository.delete(self.get(activityId));
     }
@@ -253,9 +224,7 @@ public class TrainingActivityService {
             assignment.setUpdatedAt(now);
             assignments.add(assignment);
         }
-        if (!assignments.isEmpty()) {
-            trainingActivityAssignmentRepository.saveAll(assignments);
-        }
+        trainingActivityAssignmentRepository.saveAll(assignments);
 
         activity.setStatus(TrainingActivityLifecycleStatus.PUBLISHED);
         activity.setOpensAt(now);
@@ -384,9 +353,7 @@ public class TrainingActivityService {
     }
 
     private void send(List<EmailMessage> messages) {
-        for (var message : messages) {
-            emailService.send(message);
-        }
+        messages.forEach(emailService::send);
     }
 
     @Transactional(readOnly = true)

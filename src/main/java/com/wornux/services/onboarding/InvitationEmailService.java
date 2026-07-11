@@ -5,8 +5,8 @@ import java.util.HashMap;
 import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.onboarding.Invitation;
 import com.wornux.services.email.EmailMessage;
-import com.wornux.services.email.EmailService;
-import com.wornux.services.email.EmailTemplateService;
+import com.wornux.infrastructure.email.SmtpEmailService;
+import com.wornux.infrastructure.email.ThymeleafEmailTemplateService;
 import com.wornux.services.email.TemplatedEmailMessage;
 import org.springframework.stereotype.Service;
 
@@ -14,13 +14,13 @@ import org.springframework.stereotype.Service;
 public class InvitationEmailService {
 
     private final ApplicationProperties.Email emailProperties;
-    private final EmailTemplateService emailTemplateService;
-    private final EmailService emailService;
+    private final ThymeleafEmailTemplateService emailTemplateService;
+    private final SmtpEmailService emailService;
 
     public InvitationEmailService(
             ApplicationProperties.Email emailProperties,
-            EmailTemplateService emailTemplateService,
-            EmailService emailService) {
+            ThymeleafEmailTemplateService emailTemplateService,
+            SmtpEmailService emailService) {
         this.emailProperties = emailProperties;
         this.emailTemplateService = emailTemplateService;
         this.emailService = emailService;
