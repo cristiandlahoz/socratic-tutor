@@ -16,6 +16,10 @@ services:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
     volumes:
       - mailpit_data:/data
+  docling:
+    image: "ghcr.io/docling-project/docling-serve-cpu:v1.18.0"
+    ports:
+      - "${DOCLING_PORT:-5001}:5001"
   app:
     profiles:
       - app
@@ -29,6 +33,7 @@ services:
       - "DATABASE_URL=jdbc:postgresql://postgres:5432/socratic-tutor"
       - "DATABASE_USERNAME=postgres"
       - "DATABASE_PASSWORD=postgres"
+      - "ARCONIA_DOCLING_BASE_URL=http://docling:5001"
       - "SOCRATIC_EMAIL_SMTP_HOST=mailpit"
       - "SOCRATIC_EMAIL_SMTP_PORT=1025"
       - "SOCRATIC_EMAIL_SMTP_USERNAME="
@@ -44,6 +49,7 @@ services:
     depends_on:
       - postgres
       - mailpit
+      - docling
 volumes:
   db_postgres: {}
   mailpit_data: {}

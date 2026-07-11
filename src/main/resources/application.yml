@@ -66,6 +66,8 @@ spring:
       embedding:
         model: ${EMBEDDING_MODEL:qwen3-embedding:0.6b}
 arconia:
+  docling:
+    read-timeout: ${DOCLING_READ_TIMEOUT:5m}
   dev:
     services:
       docling:
