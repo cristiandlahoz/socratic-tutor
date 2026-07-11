@@ -20,6 +20,7 @@ public class ApplicationProperties implements InitializingBean {
   private DocumentIngest documentIngest = new DocumentIngest();
   private CRunner cRunner = new CRunner();
   private Email email = new Email();
+  private SafeBrowser safeBrowser = new SafeBrowser();
 
   private static void require(List<String> missing, Object value, String key) {
     if (value == null) {
@@ -242,6 +243,15 @@ public class ApplicationProperties implements InitializingBean {
         return sslEnabled;
       }
     }
+  }
+
+  @Getter
+  @Setter
+  public static class SafeBrowser {
+
+    private Duration heartbeatTimeout = Duration.ofSeconds(30);
+    private Duration setupTimeout = Duration.ofSeconds(30);
+    private Long expiryPollMs = 10_000L;
   }
 
   @Override

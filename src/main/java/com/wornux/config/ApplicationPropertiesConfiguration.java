@@ -45,4 +45,9 @@ public class ApplicationPropertiesConfiguration {
     ApplicationProperties.Email emailProperties(ApplicationProperties properties) {
         return properties.getEmail();
     }
+
+    @Bean
+    ApplicationProperties.SafeBrowser safeBrowserProperties(ApplicationProperties properties) {
+        return properties.getSafeBrowser();
+    }
 }

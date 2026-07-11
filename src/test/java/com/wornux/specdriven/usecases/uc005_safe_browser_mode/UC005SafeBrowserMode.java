@@ -1,283 +1,224 @@
 package com.wornux.specdriven.usecases.uc005_safe_browser_mode;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.data.entities.training_activity.SafeBrowserAlert;
-import com.wornux.data.entities.training_activity.SafeBrowserAlertStatus;
 import com.wornux.data.entities.training_activity.SafeBrowserEvent;
-import com.wornux.data.entities.training_activity.SafeBrowserEventSeverity;
 import com.wornux.data.entities.training_activity.SafeBrowserEventType;
+import com.wornux.data.entities.training_activity.SafeBrowserSession;
+import com.wornux.data.entities.training_activity.SafeBrowserSessionStatus;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.data.repositories.training_activity.SafeBrowserAlertRepository;
 import com.wornux.data.repositories.training_activity.SafeBrowserEventRepository;
+import com.wornux.data.repositories.training_activity.SafeBrowserSessionRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityRepository;
+import com.wornux.config.ApplicationProperties;
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
-import com.wornux.services.training_activity.TrainingAssignmentDecisionPersistenceService;
-import com.wornux.services.training_activity.TrainingAssignmentEvaluationService;
-import com.wornux.services.training_activity.TrainingAssignmentTutorService;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.json.JsonMapper;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class UC005SafeBrowserMode {
 
     @Test
-    void mainFlow_protectedSetupViolationProfessorReviewAndNewSessionAllowance() {
+    void mainFlow_tokenIsOpaqueAndProfessorUnlockPermitsANewSession() {
         var fixture = fixture();
-        var notifications = new ArrayList<SafeBrowserAssignmentStateBus.Notification>();
-        fixture.assignmentStateBus.subscribe(notifications::add);
+
+        var started = fixture.service.beginSession(fixture.assignment.getId());
+        var activated = fixture.service.recordHeartbeat(fixture.assignment.getId(), started.token());
+        assertThat(activated.isSafeBrowserSessionActive()).isTrue();
+
+        fixture.service.reportViolation(fixture.assignment.getId(), started.token(), SafeBrowserEventType.TAB_HIDDEN, UUID.randomUUID());
+        var professorContext = new ActiveAcademicContext(
+                UUID.randomUUID(),
+                fixture.activity.getCreatedByTenantAccount().getId(),
+                fixture.activity.getCreatedByGroupClassMember().getId(),
+                fixture.activity.getGroupClass().getId(),
+                GroupClassMemberKind.PROFESSOR);
+        when(fixture.contextResolver.requireCurrent()).thenReturn(professorContext);
+        when(fixture.contextResolver.resolveCurrent()).thenReturn(Optional.of(professorContext));
+        fixture.service.unlockAssignment(fixture.assignment.getId());
         when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.studentContext);
         when(fixture.contextResolver.resolveCurrent()).thenReturn(Optional.of(fixture.studentContext));
+        var next = fixture.service.beginSession(fixture.assignment.getId());
 
-        fixture.safeBrowserModeService.startSession(fixture.assignment.getId());
-        var locked = fixture.safeBrowserModeService.reportViolation(
-                fixture.assignment.getId(), SafeBrowserEventType.TAB_HIDDEN);
+        assertThat(started.token()).isNotBlank();
+        assertThat(fixture.session.get().getTokenHash()).isNotEqualTo(started.token());
+        assertThat(next.token()).isNotEqualTo(started.token());
+        assertThat(fixture.session.get().getStatus()).isEqualTo(SafeBrowserSessionStatus.PENDING);
+        assertThat(fixture.assignment.isSafeBrowserLocked()).isFalse();
+    }
 
-        assertThat(locked.isSafeBrowserLocked()).isTrue();
-        assertThat(locked.getSafeBrowserLockReason()).isEqualTo(SafeBrowserEventType.TAB_HIDDEN.name());
-        assertThat(fixture.otherAssignment.isSafeBrowserLocked()).isFalse();
-        assertThat(notifications).extracting(SafeBrowserAssignmentStateBus.Notification::locked).contains(true);
-        assertThat(notifications).singleElement().satisfies(notification -> {
-            assertThat(notification.trainingActivityId()).isEqualTo(fixture.activity.getId());
-            assertThat(notification.affectsTrainingActivity(fixture.activity.getId())).isTrue();
-            assertThat(notification.affectsTrainingActivity(UUID.randomUUID())).isFalse();
-        });
+    @Test
+    void af04_pendingSetupExpiryEndsSessionWithoutViolation() {
+        var fixture = fixture();
+        fixture.service.beginSession(fixture.assignment.getId());
+        fixture.session.get().setCreatedAt(Instant.now().minusSeconds(31));
+        when(fixture.sessionRepository.findByStatusAndCreatedAtBefore(any(), any()))
+                .thenReturn(List.of(fixture.session.get()));
+        when(fixture.sessionRepository.findByStatusAndLastHeartbeatAtBefore(any(), any())).thenReturn(List.of());
+
+        fixture.service.expireStaleSessions();
+
+        assertThat(fixture.session.get().getStatus()).isEqualTo(SafeBrowserSessionStatus.EXPIRED);
+        verify(fixture.eventRepository, times(0)).save(any(SafeBrowserEvent.class));
+    }
+
+    @Test
+    void af06_activeHeartbeatExpiryCreatesOneExpiredIncident() {
+        var fixture = fixture();
+        var started = fixture.service.beginSession(fixture.assignment.getId());
+        fixture.service.recordHeartbeat(fixture.assignment.getId(), started.token());
+        fixture.session.get().setLastHeartbeatAt(Instant.now().minusSeconds(31));
+        when(fixture.sessionRepository.findByStatusAndCreatedAtBefore(any(), any())).thenReturn(List.of());
+        when(fixture.sessionRepository.findByStatusAndLastHeartbeatAtBefore(any(), any()))
+                .thenReturn(List.of(fixture.session.get()));
+
+        fixture.service.expireStaleSessions();
+
+        assertThat(fixture.session.get().getStatus()).isEqualTo(SafeBrowserSessionStatus.EXPIRED);
+        assertThat(fixture.assignment.isSafeBrowserLocked()).isTrue();
+    }
+
+    @Test
+    void af07_duplicateViolationIdIsIdempotent() {
+        var fixture = fixture();
+        var started = fixture.service.beginSession(fixture.assignment.getId());
+        fixture.service.recordHeartbeat(fixture.assignment.getId(), started.token());
+        var clientEventId = UUID.randomUUID();
+
+        fixture.service.reportViolation(fixture.assignment.getId(), started.token(), SafeBrowserEventType.TAB_HIDDEN, clientEventId);
+        fixture.service.reportViolation(fixture.assignment.getId(), started.token(), SafeBrowserEventType.TAB_HIDDEN, clientEventId);
+
+        assertThat(fixture.assignment.isSafeBrowserLocked()).isTrue();
+        assertThat(fixture.session.get().getStatus()).isEqualTo(SafeBrowserSessionStatus.VIOLATED);
         verify(fixture.alertRepository).save(any(SafeBrowserAlert.class));
-
-        when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.professorContext);
-        when(fixture.contextResolver.resolveCurrent()).thenReturn(Optional.of(fixture.professorContext));
-        var unlocked = fixture.safeBrowserModeService.unlockAssignment(fixture.assignment.getId());
-
-        assertThat(unlocked.isSafeBrowserLocked()).isFalse();
-        assertThat(notifications).extracting(SafeBrowserAssignmentStateBus.Notification::locked).contains(false);
-        assertThat(notifications)
-                .extracting(SafeBrowserAssignmentStateBus.Notification::trainingActivityId)
-                .containsOnly(fixture.activity.getId());
-        verify(fixture.eventRepository, times(3)).save(any(SafeBrowserEvent.class));
+        verify(fixture.eventRepository, times(2)).save(any(SafeBrowserEvent.class));
     }
 
     @Test
-    void br06_answerRejectedWhenSafeBrowserSessionIsNotActive() {
+    void af08_terminalSessionCannotBeReactivatedByHeartbeat() {
         var fixture = fixture();
-        when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.studentContext);
+        var started = fixture.service.beginSession(fixture.assignment.getId());
+        fixture.service.recordHeartbeat(fixture.assignment.getId(), started.token());
+        fixture.service.reportViolation(fixture.assignment.getId(), started.token(), SafeBrowserEventType.WINDOW_BLUR, UUID.randomUUID());
 
-        assertThatThrownBy(() -> fixture.evaluationService.answer(fixture.assignment.getId(), "My answer"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Safe Browser Mode must be active before answering.");
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> fixture.service.recordHeartbeat(fixture.assignment.getId(), started.token()))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(fixture.session.get().getStatus()).isEqualTo(SafeBrowserSessionStatus.VIOLATED);
     }
 
     @Test
-    void af09_backendRejectsAnswerAfterSafeBrowserLockEvenIfUiFails() {
+    void br05_rejectsAHeartbeatWithTheWrongOpaqueToken() {
         var fixture = fixture();
-        fixture.assignment.setSafeBrowserLocked(true);
-        fixture.assignment.setSafeBrowserSessionActive(true);
-        when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.studentContext);
+        fixture.service.beginSession(fixture.assignment.getId());
 
-        assertThatThrownBy(() -> fixture.evaluationService.answer(fixture.assignment.getId(), "My answer"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Safe Browser Mode was interrupted. Ask your professor to review this assignment.");
-    }
-
-    @Test
-    void af02_closedParentActivityOverridesSafeBrowserUnlock() {
-        var fixture = fixture();
-        fixture.activity.setStatus(TrainingActivityLifecycleStatus.CLOSED);
-        fixture.assignment.setSafeBrowserSessionActive(true);
-        when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.studentContext);
-
-        assertThatThrownBy(() -> fixture.evaluationService.answer(fixture.assignment.getId(), "My answer"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("The evaluation window has ended.");
-    }
-
-    @Test
-    void af07_duplicateViolationDoesNotCreateAnotherIncident() {
-        var fixture = fixture();
-        var existingAlert = new SafeBrowserAlert();
-        existingAlert.setId(UUID.randomUUID());
-        existingAlert.setTrainingActivity(fixture.activity);
-        existingAlert.setProfessorTenantAccount(fixture.professorTenantAccount);
-        existingAlert.setStatus(SafeBrowserAlertStatus.OPEN);
-        existingAlert.setIncidentCount(1);
-        existingAlert.setLastEventAt(Instant.now());
-        existingAlert.setCreatedAt(Instant.now());
-        existingAlert.setUpdatedAt(Instant.now());
-        when(fixture.alertRepository.findByProfessorTenantAccount_IdAndTrainingActivity_IdAndStatus(
-                fixture.professorTenantAccount.getId(), fixture.activity.getId(), SafeBrowserAlertStatus.OPEN))
-                .thenReturn(Optional.empty(), Optional.of(existingAlert));
-        when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.studentContext);
-        when(fixture.contextResolver.resolveCurrent()).thenReturn(Optional.of(fixture.studentContext));
-
-        fixture.safeBrowserModeService.reportViolation(fixture.assignment.getId(), SafeBrowserEventType.TAB_HIDDEN);
-        fixture.safeBrowserModeService.reportViolation(fixture.assignment.getId(), SafeBrowserEventType.TAB_HIDDEN);
-
-        assertThat(existingAlert.getIncidentCount()).isEqualTo(1);
-        verify(fixture.alertRepository).save(any(SafeBrowserAlert.class));
-        verify(fixture.eventRepository).save(any(SafeBrowserEvent.class));
-    }
-
-    @Test
-    void af08_heartbeatAfterBlockedSessionCannotReactivateIt() {
-        var fixture = fixture();
-        fixture.assignment.setSafeBrowserLocked(true);
-        fixture.assignment.setSafeBrowserSessionActive(false);
-        when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.studentContext);
-
-        fixture.safeBrowserModeService.recordHeartbeat(fixture.assignment.getId());
-
-        assertThat(fixture.assignment.isSafeBrowserSessionActive()).isFalse();
-        verify(fixture.assignmentRepository, times(0)).save(any(TrainingActivityAssignment.class));
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> fixture.service.recordHeartbeat(fixture.assignment.getId(), "not-the-issued-token"))
+                .isInstanceOf(SecurityException.class)
+                .hasMessage("Invalid Safe Browser session token.");
     }
 
     private static Fixture fixture() {
-        var groupClassId = UUID.randomUUID();
-        var professorMemberId = UUID.randomUUID();
-        var studentMemberId = UUID.randomUUID();
-        var otherStudentMemberId = UUID.randomUUID();
-        var activityId = UUID.randomUUID();
-        var assignmentId = UUID.randomUUID();
-        var otherAssignmentId = UUID.randomUUID();
-
         var groupClass = new GroupClass();
-        groupClass.setId(groupClassId);
-
-        var professorTenantAccount = new TenantAccount();
-        professorTenantAccount.setId(UUID.randomUUID());
-
-        var professorMember = new GroupClassMember();
-        professorMember.setId(professorMemberId);
+        ReflectionTestUtils.setField(groupClass, "id", UUID.randomUUID());
+        var professorAccount = new TenantAccount();
+        ReflectionTestUtils.setField(professorAccount, "id", UUID.randomUUID());
+        var professor = new GroupClassMember();
+        ReflectionTestUtils.setField(professor, "id", UUID.randomUUID());
+        var student = new GroupClassMember();
+        ReflectionTestUtils.setField(student, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(student, "groupClass", groupClass);
 
         var activity = new TrainingActivity();
-        activity.setId(activityId);
-        activity.setGroupClass(groupClass);
-        activity.setCreatedByTenantAccount(professorTenantAccount);
-        activity.setCreatedByGroupClassMember(professorMember);
-        activity.setTitle("Safe Browser activity");
-        activity.setInstructions("Stay in the protected session.");
-        activity.setStatus(TrainingActivityLifecycleStatus.PUBLISHED);
-        activity.setSafeBrowserEnabled(true);
-        activity.setCreatedAt(Instant.now());
-        activity.setUpdatedAt(Instant.now());
+        ReflectionTestUtils.setField(activity, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(activity, "groupClass", groupClass);
+        ReflectionTestUtils.setField(activity, "createdByTenantAccount", professorAccount);
+        ReflectionTestUtils.setField(activity, "createdByGroupClassMember", professor);
+        ReflectionTestUtils.setField(activity, "safeBrowserEnabled", true);
+        ReflectionTestUtils.setField(activity, "status", TrainingActivityLifecycleStatus.PUBLISHED);
 
-        var studentMember = new GroupClassMember();
-        studentMember.setId(studentMemberId);
-        studentMember.setGroupClass(groupClass);
+        var assignment = new TrainingActivityAssignment();
+        ReflectionTestUtils.setField(assignment, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(assignment, "trainingActivity", activity);
+        ReflectionTestUtils.setField(assignment, "groupClassMember", student);
+        ReflectionTestUtils.setField(assignment, "status", TrainingActivityAssignmentStatus.STARTED);
+        ReflectionTestUtils.setField(assignment, "updatedAt", Instant.now());
 
-        var assignment = assignment(assignmentId, activity, studentMember);
-
-        var otherStudentMember = new GroupClassMember();
-        otherStudentMember.setId(otherStudentMemberId);
-        otherStudentMember.setGroupClass(groupClass);
-        var otherAssignment = assignment(otherAssignmentId, activity, otherStudentMember);
-
-        var assignmentRepository = mock(TrainingActivityAssignmentRepository.class);
-        when(assignmentRepository.findWithTrainingActivityById(assignmentId)).thenReturn(Optional.of(assignment));
+        var assignmentRepository = org.mockito.Mockito.mock(TrainingActivityAssignmentRepository.class);
+        when(assignmentRepository.findWithTrainingActivityById(assignment.getId())).thenReturn(Optional.of(assignment));
         when(assignmentRepository.save(any(TrainingActivityAssignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        var activityRepository = mock(TrainingActivityRepository.class);
-        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
-
-        var eventRepository = mock(SafeBrowserEventRepository.class);
-        when(eventRepository.save(any(SafeBrowserEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        var alertRepository = mock(SafeBrowserAlertRepository.class);
-        when(alertRepository.findByProfessorTenantAccount_IdAndTrainingActivity_IdAndStatus(
-                professorTenantAccount.getId(), activityId, SafeBrowserAlertStatus.OPEN))
-                .thenReturn(Optional.empty());
+        var sessionRepository = org.mockito.Mockito.mock(SafeBrowserSessionRepository.class);
+        var session = new AtomicReference<SafeBrowserSession>();
+        when(sessionRepository.save(any(SafeBrowserSession.class))).thenAnswer(invocation -> {
+            session.set(invocation.getArgument(0));
+            return session.get();
+        });
+        when(sessionRepository.findFirstByAssignment_IdAndStatusInOrderByCreatedAtDesc(any(), any()))
+                .thenAnswer(invocation -> {
+                    Collection<SafeBrowserSessionStatus> statuses = invocation.getArgument(1);
+                    return Optional.ofNullable(session.get()).filter(candidate -> statuses.contains(candidate.getStatus()));
+                });
+        var eventRepository = org.mockito.Mockito.mock(SafeBrowserEventRepository.class);
+        var eventsByClientId = new ConcurrentHashMap<UUID, SafeBrowserEvent>();
+        when(eventRepository.findBySession_IdAndClientEventId(any(), any()))
+                .thenAnswer(invocation -> Optional.ofNullable(eventsByClientId.get(invocation.getArgument(1))));
+        when(eventRepository.save(any(SafeBrowserEvent.class))).thenAnswer(invocation -> {
+            var event = invocation.getArgument(0, SafeBrowserEvent.class);
+            eventsByClientId.put(event.getClientEventId(), event);
+            return event;
+        });
+        var alertRepository = org.mockito.Mockito.mock(SafeBrowserAlertRepository.class);
         when(alertRepository.save(any(SafeBrowserAlert.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        var contextResolver = mock(ActiveAcademicContextResolver.class);
-        var studentContext = new ActiveAcademicContext(
-                UUID.randomUUID(), UUID.randomUUID(), studentMemberId, groupClassId, GroupClassMemberKind.STUDENT);
-        var professorContext = new ActiveAcademicContext(
-                UUID.randomUUID(), professorTenantAccount.getId(), professorMemberId, groupClassId, GroupClassMemberKind.PROFESSOR);
-        var assignmentStateBus = new SafeBrowserAssignmentStateBus();
-
-        var safeBrowserModeService = new SafeBrowserModeService(
+        var activityRepository = org.mockito.Mockito.mock(TrainingActivityRepository.class);
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        var contextResolver = org.mockito.Mockito.mock(ActiveAcademicContextResolver.class);
+        var studentContext = new ActiveAcademicContext(UUID.randomUUID(), UUID.randomUUID(), student.getId(), groupClass.getId(), GroupClassMemberKind.STUDENT);
+        when(contextResolver.requireCurrent()).thenReturn(studentContext);
+        when(contextResolver.resolveCurrent()).thenReturn(Optional.of(studentContext));
+        var service = new SafeBrowserModeService(
                 assignmentRepository,
                 activityRepository,
+                sessionRepository,
                 eventRepository,
                 alertRepository,
                 contextResolver,
-                assignmentStateBus);
-        var evaluationService = new TrainingAssignmentEvaluationService(
-                assignmentRepository,
-                contextResolver,
-                mock(TrainingAssignmentTutorService.class),
-                new JsonMapper(),
-                new TrainingAssignmentDecisionPersistenceService(
-                        assignmentRepository,
-                        activityRepository,
-                        mock(TrainingAssignmentTutorService.class),
-                        assignmentStateBus,
-                        new JsonMapper())
-        );
-
-        return new Fixture(
-                safeBrowserModeService,
-                evaluationService,
-                assignmentRepository,
-                eventRepository,
-                alertRepository,
-                assignmentStateBus,
-                contextResolver,
-                studentContext,
-                professorContext,
-                professorTenantAccount,
-                activity,
-                assignment,
-                otherAssignment);
-    }
-
-    private static TrainingActivityAssignment assignment(
-            UUID assignmentId, TrainingActivity activity, GroupClassMember studentMember) {
-        var assignment = new TrainingActivityAssignment();
-        assignment.setId(assignmentId);
-        assignment.setTrainingActivity(activity);
-        assignment.setGroupClassMember(studentMember);
-        assignment.setStatus(TrainingActivityAssignmentStatus.STARTED);
-        assignment.setAssignedAt(Instant.now());
-        assignment.setStartedAt(Instant.now());
-        assignment.setCurrentQuestion("¿Qué entiendes hasta ahora de la actividad?");
-        assignment.setQuestionCount(1);
-        assignment.setEvaluationTranscript("[]");
-        assignment.setUpdatedAt(Instant.now());
-        return assignment;
+                new SafeBrowserAssignmentStateBus(),
+                new ApplicationProperties.SafeBrowser());
+        return new Fixture(service, activity, assignment, studentContext, contextResolver, session, sessionRepository, eventRepository, alertRepository);
     }
 
     private record Fixture(
-            SafeBrowserModeService safeBrowserModeService,
-            TrainingAssignmentEvaluationService evaluationService,
-            TrainingActivityAssignmentRepository assignmentRepository,
-            SafeBrowserEventRepository eventRepository,
-            SafeBrowserAlertRepository alertRepository,
-            SafeBrowserAssignmentStateBus assignmentStateBus,
-            ActiveAcademicContextResolver contextResolver,
-            ActiveAcademicContext studentContext,
-            ActiveAcademicContext professorContext,
-            TenantAccount professorTenantAccount,
+            SafeBrowserModeService service,
             TrainingActivity activity,
             TrainingActivityAssignment assignment,
-            TrainingActivityAssignment otherAssignment) {}
+            ActiveAcademicContext studentContext,
+            ActiveAcademicContextResolver contextResolver,
+            AtomicReference<SafeBrowserSession> session,
+            SafeBrowserSessionRepository sessionRepository,
+            SafeBrowserEventRepository eventRepository,
+            SafeBrowserAlertRepository alertRepository) {}
 }

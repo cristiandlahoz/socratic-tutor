@@ -286,7 +286,7 @@ class TrainingAssignmentViewTest {
             assertThat(componentText(safeBrowserEntry(view))).contains("Safe Browser Mode fue interrumpido");
             assertThat(componentText(safeBrowserEntry(view))).doesNotContain("Safe Browser Mode activo");
             assertThat(composerState(view).modelAvailabilityStatus().peek()).isEqualTo(ModelAvailabilityStatus.OFFLINE);
-            verify(safeBrowserModeService, never()).startSession(any());
+            verify(safeBrowserModeService, never()).beginSession(any());
         }
         finally {
             UI.setCurrent(previousUi);
@@ -305,14 +305,16 @@ class TrainingAssignmentViewTest {
             var activity = (TrainingActivity) field(assignment, "trainingActivity");
             ReflectionTestUtils.setField(activity, "safeBrowserEnabled", true);
             when(evaluationService.readEvaluationTranscript(assignment)).thenReturn(List.of());
-            when(safeBrowserModeService.startSession(field(assignment, "id"))).thenAnswer(_ -> {
+            when(safeBrowserModeService.beginSession(field(assignment, "id")))
+                    .thenReturn(new SafeBrowserModeService.SessionStart(UUID.randomUUID(), "safe-browser-token"));
+            when(safeBrowserModeService.recordHeartbeat(field(assignment, "id"), "safe-browser-token")).thenAnswer(_ -> {
                 ReflectionTestUtils.setField(assignment, "safeBrowserSessionActive", true);
                 return assignment;
             });
             when(evaluationService.start(field(assignment, "id")))
                     .thenThrow(new AdaptiveTutorStartUnavailableException(
                             new IllegalStateException("The adaptive tutor must start with a question.")));
-            when(safeBrowserModeService.deactivateSession(field(assignment, "id"))).thenAnswer(_ -> {
+            when(safeBrowserModeService.deactivateSession(field(assignment, "id"), "safe-browser-token")).thenAnswer(_ -> {
                 ReflectionTestUtils.setField(assignment, "safeBrowserSessionActive", false);
                 return assignment;
             });
@@ -331,9 +333,10 @@ class TrainingAssignmentViewTest {
             assertThat((Boolean) field(assignment, "safeBrowserLocked")).isFalse();
             assertThat(componentText(startRecoveryNotice(view))).contains("No fue posible continuar la tutoría");
             assertThat(findButtonByText(startRecoveryNotice(view), "Reintentar Safe Browser Mode")).isNotNull();
-            verify(safeBrowserModeService).startSession(field(assignment, "id"));
+            verify(safeBrowserModeService).beginSession(field(assignment, "id"));
+            verify(safeBrowserModeService).recordHeartbeat(field(assignment, "id"), "safe-browser-token");
             verify(evaluationService).start(field(assignment, "id"));
-            verify(safeBrowserModeService).deactivateSession(field(assignment, "id"));
+            verify(safeBrowserModeService).deactivateSession(field(assignment, "id"), "safe-browser-token");
         }
         finally {
             UI.setCurrent(previousUi);

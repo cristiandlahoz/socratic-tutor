@@ -30,6 +30,10 @@ public class SafeBrowserEvent {
     private TrainingActivityAssignment assignment;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "safe_browser_session_id")
+    private SafeBrowserSession session;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "actor_group_class_member_id")
     private GroupClassMember actorGroupClassMember;
 
@@ -43,6 +47,15 @@ public class SafeBrowserEvent {
 
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
+
+    @Column(name = "client_event_id")
+    private UUID clientEventId;
+
+    @Column(name = "client_occurred_at")
+    private Instant clientOccurredAt;
+
+    @Column(name = "metadata")
+    private String metadata;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

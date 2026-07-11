@@ -84,6 +84,7 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     private String assignmentStartFailureMessage = "";
     private boolean activityClosedNoticeShown;
     private boolean lastClosedNonSubmittedBlocked;
+    private String safeBrowserSessionToken;
 
     public TrainingAssignmentView(
             TrainingAssignmentEvaluationService evaluationService,
@@ -569,7 +570,9 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
               root.$server.safeBrowserFullscreenResult(granted);
             });
             """);
-        installSafeBrowserRuntime();
+        if (safeBrowserSessionToken != null) {
+            installSafeBrowserRuntime(safeBrowserSessionToken);
+        }
     }
 
     @ClientCallable
@@ -591,12 +594,14 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
                 Notification.show("Acepta pantalla completa para iniciar Safe Browser Mode.");
                 return;
             }
-            assignment = safeBrowserModeService.startSession(assignmentId);
+            var session = safeBrowserModeService.beginSession(assignmentId);
+            safeBrowserSessionToken = session.token();
+            assignment = safeBrowserModeService.recordHeartbeat(assignmentId, safeBrowserSessionToken);
             safeBrowserSessionStarted = true;
             assignment = evaluationService.start(assignmentId);
             clearAssignmentStartFailure();
             renderAssignment();
-            installSafeBrowserRuntime();
+            installSafeBrowserRuntime(safeBrowserSessionToken);
         }
         catch (AdaptiveTutorStartUnavailableException exception) {
             if (safeBrowserSessionStarted) {
@@ -616,7 +621,9 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
 
     private void deactivateSafeBrowserSessionAfterStartFailure(RuntimeException originalException) {
         try {
-            assignment = safeBrowserModeService.deactivateSession(assignmentId);
+            if (safeBrowserSessionToken != null) {
+                assignment = safeBrowserModeService.deactivateSession(assignmentId, safeBrowserSessionToken);
+            }
         }
         catch (RuntimeException cleanupException) {
             LOGGER.warn(
@@ -692,9 +699,10 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
         assignmentStartFailureMessage = "";
     }
 
-    private void installSafeBrowserRuntime() {
+    private void installSafeBrowserRuntime(String sessionToken) {
         getElement().executeJs("""
             const root = this;
+            const sessionToken = $0;
             if (root.__safeBrowserInstalled) return;
             root.__safeBrowserInstalled = true;
             const STARTUP_GRACE_MS = 4000;
@@ -712,10 +720,11 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
               }
               return false;
             };
+            const eventId = () => crypto.randomUUID();
             const report = (type) => {
-              if (!suppressed(type)) root.$server.reportSafeBrowserViolation(type);
+              if (!suppressed(type)) root.$server.reportSafeBrowserViolation(type, sessionToken, eventId());
             };
-            const heartbeat = () => root.$server.recordSafeBrowserHeartbeat();
+            const heartbeat = () => root.$server.recordSafeBrowserHeartbeat(sessionToken);
             if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
               document.documentElement.requestFullscreen()
                 .then(() => {
@@ -758,7 +767,7 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
               root.__safeBrowserInstalled = false;
               root.__safeBrowserCleanup = undefined;
             };
-            """);
+            """, sessionToken);
     }
 
     private void detachSafeBrowserClientHooks() {
@@ -775,13 +784,14 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     }
 
     @ClientCallable
-    public void reportSafeBrowserViolation(String eventType) {
+    public void reportSafeBrowserViolation(String eventType, String sessionToken, String clientEventId) {
         if (assignmentId == null) {
             return;
         }
         try {
             invalidateActiveAnswerStream();
-            assignment = safeBrowserModeService.reportViolation(assignmentId, SafeBrowserEventType.valueOf(eventType));
+            assignment = safeBrowserModeService.reportViolation(
+                    assignmentId, sessionToken, SafeBrowserEventType.valueOf(eventType), UUID.fromString(clientEventId));
             renderAssignment();
         }
         catch (RuntimeException exception) {
@@ -790,11 +800,11 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     }
 
     @ClientCallable
-    public void recordSafeBrowserHeartbeat() {
+    public void recordSafeBrowserHeartbeat(String sessionToken) {
         if (assignmentId == null) {
             return;
         }
-        safeBrowserModeService.recordHeartbeat(assignmentId);
+        assignment = safeBrowserModeService.recordHeartbeat(assignmentId, sessionToken);
     }
 
     private void showCompletionDialog() {
