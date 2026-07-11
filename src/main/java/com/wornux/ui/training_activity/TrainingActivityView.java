@@ -144,7 +144,8 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         saveButton.addClickShortcut(Key.ENTER).listenOn(instructionField);
         saveButton.addClickListener(_ -> onSave());
         reviewButton.addClickListener(_ -> onReviewRequested());
-        safeBrowserField.setHelperText("Requiere pantalla completa y monitorea cambios de pestaña durante la evaluación.");
+        safeBrowserField.setHelperText(
+                "Requiere pantalla completa y detecta cambios de pestaña durante la evaluación. No controla el sistema operativo.");
         var actions = new HorizontalLayout(reviewButton, saveButton);
         actions.setPadding(false);
         var card = new Div(titleField, instructionField, safeBrowserField, actions);

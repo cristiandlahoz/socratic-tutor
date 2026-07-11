@@ -4,7 +4,7 @@
 
 **Goal:** As a professor, I want optional Safe Browser monitoring for an activity so that detectable loss of the controlled evaluation context blocks only the affected student's attempt and leaves an auditable incident I can review.
 
-**Status:** Pending  
+**Status:** In Progress
 **Date:** 2026-07-10
 
 > A use case cannot be marked as **Implemented** unless all criteria in the use-case implementation workflow are fulfilled.
@@ -243,6 +243,13 @@ The student opens a Safe Browser-required assignment and chooses **Iniciar evalu
 - [ ] AF-10 and AF-11 professor decisions/lifecycle covered.
 - [ ] AF-12 atomic event/session transition covered.
 - [ ] BR-01 through BR-20 covered.
+
+## Pending Dependencies and Partial Verification
+
+- **Implemented and automatedly covered in this checkpoint:** The existing assignment-scoped Safe Browser entry flow requires fullscreen before activation, monitors fullscreen/visibility/focus/unload signals, records an append-only incident, blocks only the affected assignment, exposes professor incident review/unlock, and rejects duplicate violation reports or stale heartbeats without reactivating a blocked session. The entry and configuration copy now explicitly explains the browser/operating-system limitation.
+- **UC-007 dependency:** UC-007 owns the durable tutor command and turn/job state machine. Its future start/answer commands must validate the current Safe Browser session before mutating a turn or creating an AI job (Main Flow steps 9 and 12; AF-9; BR-06 and BR-07). The current legacy synchronous evaluator has a compatibility guard, but it is not evidence for UC-007's durable-runtime acceptance.
+- **Remaining UC-005 work:** The normalized `safe_browser_session` aggregate, opaque token hashing/validation, `PENDING` setup expiry, client-event identifiers, and session-level idempotency remain unavailable in the current cumulative persistence model. Therefore the UC remains **In Progress** and no unchecked acceptance checklist item is claimed as complete.
+- **Manual verification blocker:** The local app cannot start for visual route review because the dev PostgreSQL Flyway history has V1 checksum `-322862748`, while the current cumulative V1 baseline resolves to `-1099346283`. Repairing or resetting that shared database is an explicit operator action and was not performed by this UC-005 checkpoint.
 
 ---
 

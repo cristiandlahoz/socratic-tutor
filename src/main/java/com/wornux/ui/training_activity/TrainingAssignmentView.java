@@ -496,14 +496,17 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
             fullscreenButton.getElement().setAttribute(SAFE_BROWSER_REENTRY_ATTRIBUTE, "true");
             fullscreenButton.getElement().setAttribute("hidden", "");
             safeBrowserEntry.add(
-                    new Paragraph("Safe Browser Mode activo. Mantén esta pestaña visible y la pantalla completa."),
+                    new Paragraph(
+                            "Safe Browser Mode activo. Mantén esta pestaña visible y la pantalla completa. "
+                                    + "Este modo detecta señales del navegador, pero no controla el sistema operativo."),
                     fullscreenButton);
             syncSafeBrowserReentryButton();
             return;
         }
         var instructions = new Paragraph(
-                "Esta actividad requiere Safe Browser Mode. Al iniciar, mantén la pestaña visible y acepta pantalla completa.");
-        var startButton = new Button("Start Safe Browser Mode", _ -> startSafeBrowserSession());
+                "Esta actividad requiere Safe Browser Mode. Al iniciar, acepta pantalla completa y mantén la pestaña visible. "
+                        + "Detectamos salida de pantalla completa, cambios de pestaña y pérdida de foco; este modo no controla el sistema operativo.");
+        var startButton = new Button("Iniciar evaluación protegida", _ -> startSafeBrowserSession());
         startButton.addThemeVariants(ButtonVariant.PRIMARY);
         safeBrowserEntry.add(instructions, startButton);
     }

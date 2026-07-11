@@ -43,7 +43,7 @@ import tools.jackson.databind.json.JsonMapper;
 class UC005SafeBrowserMode {
 
     @Test
-    void mainFlow_safeBrowserViolationLocksOnlyAffectedAssignmentAndProfessorCanUnlock() {
+    void mainFlow_protectedSetupViolationProfessorReviewAndNewSessionAllowance() {
         var fixture = fixture();
         var notifications = new ArrayList<SafeBrowserAssignmentStateBus.Notification>();
         fixture.assignmentStateBus.subscribe(notifications::add);
@@ -78,7 +78,7 @@ class UC005SafeBrowserMode {
     }
 
     @Test
-    void br15_answerRejectedWhenSafeBrowserSessionIsNotActive() {
+    void br06_answerRejectedWhenSafeBrowserSessionIsNotActive() {
         var fixture = fixture();
         when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.studentContext);
 
@@ -88,7 +88,7 @@ class UC005SafeBrowserMode {
     }
 
     @Test
-    void br30_backendRejectsAnswerAfterSafeBrowserLockEvenIfUiFails() {
+    void af09_backendRejectsAnswerAfterSafeBrowserLockEvenIfUiFails() {
         var fixture = fixture();
         fixture.assignment.setSafeBrowserLocked(true);
         fixture.assignment.setSafeBrowserSessionActive(true);
@@ -100,7 +100,7 @@ class UC005SafeBrowserMode {
     }
 
     @Test
-    void br11_closedParentActivityOverridesSafeBrowserUnlock() {
+    void af02_closedParentActivityOverridesSafeBrowserUnlock() {
         var fixture = fixture();
         fixture.activity.setStatus(TrainingActivityLifecycleStatus.CLOSED);
         fixture.assignment.setSafeBrowserSessionActive(true);
@@ -112,7 +112,7 @@ class UC005SafeBrowserMode {
     }
 
     @Test
-    void af22_repeatedViolationsKeepSingleOpenGroupedAlert() {
+    void af07_duplicateViolationDoesNotCreateAnotherIncident() {
         var fixture = fixture();
         var existingAlert = new SafeBrowserAlert();
         existingAlert.setId(UUID.randomUUID());
@@ -130,10 +130,24 @@ class UC005SafeBrowserMode {
         when(fixture.contextResolver.resolveCurrent()).thenReturn(Optional.of(fixture.studentContext));
 
         fixture.safeBrowserModeService.reportViolation(fixture.assignment.getId(), SafeBrowserEventType.TAB_HIDDEN);
-        fixture.safeBrowserModeService.reportViolation(fixture.assignment.getId(), SafeBrowserEventType.WINDOW_BLUR);
+        fixture.safeBrowserModeService.reportViolation(fixture.assignment.getId(), SafeBrowserEventType.TAB_HIDDEN);
 
-        assertThat(existingAlert.getIncidentCount()).isEqualTo(2);
-        verify(fixture.alertRepository, times(2)).save(any(SafeBrowserAlert.class));
+        assertThat(existingAlert.getIncidentCount()).isEqualTo(1);
+        verify(fixture.alertRepository).save(any(SafeBrowserAlert.class));
+        verify(fixture.eventRepository).save(any(SafeBrowserEvent.class));
+    }
+
+    @Test
+    void af08_heartbeatAfterBlockedSessionCannotReactivateIt() {
+        var fixture = fixture();
+        fixture.assignment.setSafeBrowserLocked(true);
+        fixture.assignment.setSafeBrowserSessionActive(false);
+        when(fixture.contextResolver.requireCurrent()).thenReturn(fixture.studentContext);
+
+        fixture.safeBrowserModeService.recordHeartbeat(fixture.assignment.getId());
+
+        assertThat(fixture.assignment.isSafeBrowserSessionActive()).isFalse();
+        verify(fixture.assignmentRepository, times(0)).save(any(TrainingActivityAssignment.class));
     }
 
     private static Fixture fixture() {

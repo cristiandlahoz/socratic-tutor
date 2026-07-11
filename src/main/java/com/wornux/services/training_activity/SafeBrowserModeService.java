@@ -94,6 +94,9 @@ public class SafeBrowserModeService {
             deactivateSafeBrowserSession(assignment, now);
             return;
         }
+        if (!assignment.isSafeBrowserSessionActive()) {
+            return;
+        }
         assignment.setSafeBrowserSessionActive(true);
         assignment.setSafeBrowserLastHeartbeatAt(now);
         assignment.setUpdatedAt(now);
@@ -105,6 +108,9 @@ public class SafeBrowserModeService {
         var assignment = requireCurrentStudentAssignment(assignmentId);
         if (!isViolation(eventType)) {
             throw new IllegalArgumentException("Unsupported Safe Browser violation type.");
+        }
+        if (assignment.isSafeBrowserLocked()) {
+            return assignment;
         }
         return lockAssignment(assignment, eventType, true);
     }
