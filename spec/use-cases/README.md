@@ -34,7 +34,7 @@ Do not repeatedly reimplement every prior use case. Re-run their acceptance/regr
 
 | ID | Title | Status | Primary actor | File |
 |----|-------|--------|---------------|------|
-| UC-003 | Training Activity Lifecycle | Pending | Professor | [use-case-003-training-activity-lifecycle.md](use-case-003-training-activity-lifecycle.md) |
+| UC-003 | Student Training Evaluation | Verified | Professor / Student | [use-case-003-student-training-evaluation.md](use-case-003-student-training-evaluation.md) |
 | UC-005 | Safe Browser Session | In Progress | Student / Professor reviewer | [use-case-005-safe-browser-mode.md](use-case-005-safe-browser-mode.md) |
 | UC-006 | Advisory AI Instruction Quality Review | In Progress | Professor | [use-case-006-ai-instruction-quality-review.md](use-case-006-ai-instruction-quality-review.md) |
 | UC-007 | Durable Adaptive Student Tutor Runtime | In Progress | Student | [use-case-007-adaptive-student-tutor-runtime.md](use-case-007-adaptive-student-tutor-runtime.md) |

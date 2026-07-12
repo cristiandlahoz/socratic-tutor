@@ -1,7 +1,10 @@
 package com.wornux.ui.training_activity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.vaadin.flow.component.Component;
@@ -84,6 +87,27 @@ class TrainingActivityDialogTest {
                 initialSnapshot);
 
         assertThat(confirmedReviewHash).isEmpty();
+    }
+
+    @Test
+    void editedDraftRequestsDurableReviewBeforeAttemptingUpdate() {
+        var activity = draftActivity();
+        var initialSnapshot = reviewSnapshot("persisted", InstructionReviewStatus.COMPLETED,
+                InstructionQualityStatus.NEEDS_IMPROVEMENT, false, List.of());
+        var reviewingSnapshot = reviewSnapshot("edited", InstructionReviewStatus.REVIEWING, null, false, List.of());
+        var dialog = dialog(activity, initialSnapshot);
+        TrainingActivityService trainingActivityService = field(dialog, "trainingActivityService");
+        when(trainingActivityService.reviewDraft(any())).thenReturn(reviewingSnapshot);
+
+        titleField(dialog).setValue("Edited title");
+        instructionField(dialog).setValue("Edited multiline instructions\nwith observable evaluation criteria.");
+        ReflectionTestUtils.invokeMethod(dialog, "onSaveClick");
+
+        verify(trainingActivityService).reviewDraft(any());
+        verify(trainingActivityService, never()).update(
+                any(), any(com.wornux.services.training_activity.TrainingActivitySaveCommand.class));
+        InstructionReviewSnapshotDto displayedReviewSnapshot = field(dialog, "displayedReviewSnapshot");
+        assertThat(displayedReviewSnapshot).isEqualTo(reviewingSnapshot);
     }
 
     @Test

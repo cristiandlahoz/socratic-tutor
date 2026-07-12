@@ -207,6 +207,7 @@ public class InstructionReviewJobWorker {
             recordTutorFailure(work, "MODEL_TIMEOUT");
         }
         catch (RejectedExecutionException | InterruptedException exception) {
+            if (modelFuture != null) modelFuture.cancel(true);
             if (exception instanceof InterruptedException) Thread.currentThread().interrupt();
             saturationCounter.increment();
             recordTutorFailure(work, "MODEL_UNAVAILABLE");
@@ -254,6 +255,9 @@ public class InstructionReviewJobWorker {
             recordFinalReportFailure(work, "MODEL_TIMEOUT");
         }
         catch (RejectedExecutionException | InterruptedException exception) {
+            if (modelFuture != null) {
+                modelFuture.cancel(true);
+            }
             if (exception instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }

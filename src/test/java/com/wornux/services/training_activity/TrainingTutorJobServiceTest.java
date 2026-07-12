@@ -166,6 +166,26 @@ class TrainingTutorJobServiceTest {
                 eq(fixture.assignment.getId()), any(), eq(report.getId()), anyLong(), any(), anyInt(), any(), any(), any());
     }
 
+    @Test
+    void multilineAcceptedAnswerCanReceiveTheTutorDecision() {
+        var fixture = fixture(1, 3, 4);
+        fixture.turn.setAnswerText("""
+                A runtime assertion checks the index before access.
+
+                ```c
+                assert(index < length);
+                ```
+                """);
+        var decision = new AdaptiveTutorDecision(TutorDecisionType.QUESTION, AnswerQuality.GOOD,
+                EvidenceStatus.PARTIAL_EVIDENCE, CoverageStatus.PARTIAL, PedagogicalMove.ASK_FOR_JUSTIFICATION,
+                false, List.of("runtime assertion"), List.of(), false,
+                "¿Por qué conviene validar antes del acceso?", "QUESTION");
+
+        assertThat(fixture.service.applySuccess(fixture.job.getId(), 4, decision)).isTrue();
+        assertThat(fixture.assignment.getStatus()).isEqualTo(TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
+        assertThat(fixture.job.getLastErrorCode()).isNull();
+    }
+
     private static Fixture fixture(int attempts, int maxAttempts, int generation) {
         var jobRepository = mock(TrainingActivityAiJobRepository.class);
         var assignmentRepository = mock(TrainingActivityAssignmentRepository.class);

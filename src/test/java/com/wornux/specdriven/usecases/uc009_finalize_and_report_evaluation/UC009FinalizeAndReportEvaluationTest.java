@@ -287,6 +287,50 @@ class UC009FinalizeAndReportEvaluationTest {
     }
 
     @Test
+    void af4_retryUsesThePostResetVersionAndCanApplyExactlyOnce() {
+        var fixture = reportFixture();
+        var report = fixture.job.getReport();
+        report.setStatus(TrainingActivityReportStatus.FAILED);
+        report.setVersion(6);
+        when(fixture.assignmentRepository.findLockedWithTrainingActivityById(fixture.job.getAssignment().getId()))
+                .thenReturn(Optional.of(fixture.job.getAssignment()));
+        when(fixture.assignmentRepository.findWithTrainingActivityById(fixture.job.getAssignment().getId()))
+                .thenReturn(Optional.of(fixture.job.getAssignment()));
+        when(fixture.reportRepository.findByAssignment_Id(fixture.job.getAssignment().getId())).thenReturn(Optional.of(report));
+        when(fixture.jobRepository.findTopByAssignment_IdAndJobTypeOrderByGenerationDesc(
+                fixture.job.getAssignment().getId(), TrainingActivityAiJobType.FINAL_REPORT)).thenReturn(Optional.of(fixture.job));
+        when(fixture.jobRepository.insertFinalReportRetryIfAbsent(any(), anyInt(), any(), any(), any(), anyLong(), anyString(),
+                anyInt(), anyInt(), any(), any(), any())).thenReturn(1);
+
+        assertThat(fixture.service.retryFailedFinalReport(fixture.job.getAssignment().getId())).isTrue();
+        verify(fixture.jobRepository).insertFinalReportRetryIfAbsent(any(), anyInt(), any(), any(), any(), eq(8L), anyString(),
+                anyInt(), anyInt(), any(), any(), any());
+
+        report.setVersion(7); // The persisted PENDING reset increments the optimistic version once.
+        var retryJob = new TrainingActivityAiJob();
+        retryJob.setId(UUID.randomUUID());
+        retryJob.setJobType(TrainingActivityAiJobType.FINAL_REPORT);
+        retryJob.setAssignment(fixture.job.getAssignment());
+        retryJob.setReport(report);
+        retryJob.setStatus(TrainingActivityAiJobStatus.RUNNING);
+        retryJob.setGeneration(5);
+        retryJob.setInputVersion(8);
+        retryJob.setLeaseUntil(Instant.now().plusSeconds(30));
+        when(fixture.jobRepository.claimTutor(eq(retryJob.getId()), any(), any(), any(), any())).thenReturn(1);
+        when(fixture.jobRepository.findById(retryJob.getId())).thenReturn(Optional.of(retryJob));
+
+        assertThat(fixture.service.claimFinalReport(retryJob.getId(), Instant.now(), Instant.now().plusSeconds(30))).isNotNull();
+        assertThat(report.getStatus()).isEqualTo(TrainingActivityReportStatus.GENERATING);
+
+        report.setVersion(8); // The claim's persisted GENERATING transition increments the version once more.
+        when(fixture.jobRepository.fenceFinalReportSuccess(eq(retryJob.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+                eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED), eq(5), any())).thenReturn(1);
+
+        assertThat(fixture.service.applyFinalReportSuccess(retryJob.getId(), 5, weakCandidate("respuesta limitada"))).isTrue();
+        assertThat(report.getStatus()).isEqualTo(TrainingActivityReportStatus.READY);
+    }
+
+    @Test
     void af9_closedActivityStillProjectsImmutableSubmittedReportAndOrderedTurns() {
         var assignmentRepository = mock(TrainingActivityAssignmentRepository.class);
         var reportRepository = mock(TrainingActivityReportRepository.class);

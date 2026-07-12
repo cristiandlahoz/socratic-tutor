@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -87,6 +88,7 @@ public class TrainingActivityDialog extends Div {
     private transient InstructionReviewSnapshotDto displayedReviewSnapshot;
     private String displayedReviewTitle = "";
     private String displayedReviewInstructions = "";
+    private final UUID reviewCandidateId = UUID.randomUUID();
 
     public TrainingActivityDialog(
             TrainingActivity activity,
@@ -336,12 +338,23 @@ public class TrainingActivityDialog extends Div {
         TrainingActivity updated;
         try {
             var currentSnapshot = trainingActivityService.getInstructionReviewSnapshot(original.getId());
+            if (!matchesActivitySnapshot(title, instruction)
+                    && !matchesDisplayedReviewConfirmation(title, instruction)) {
+                showInstructionReview(trainingActivityService.reviewDraft(new TrainingActivitySaveCommand(
+                        title,
+                        instruction,
+                        safeBrowserField.getValue(),
+                        "",
+                        reviewCandidateId)));
+                return;
+            }
             var confirmedReviewHash = confirmedReviewHashForSave(title, instruction, currentSnapshot);
             updated = trainingActivityService.update(original.getId(), new TrainingActivitySaveCommand(
                     title,
                     instruction,
                     safeBrowserField.getValue(),
-                    confirmedReviewHash));
+                    confirmedReviewHash,
+                    reviewCandidateId));
         }
         catch (InstructionQualityReviewException exception) {
             if (exception.getReviewSnapshot() != null) {
@@ -424,7 +437,7 @@ public class TrainingActivityDialog extends Div {
     }
 
     private void rememberDisplayedReviewConfirmation(InstructionReviewSnapshotDto reviewSnapshot) {
-        if (!requiresVisibleReviewConfirmation(reviewSnapshot)) {
+        if (reviewSnapshot == null) {
             clearDisplayedReviewConfirmation();
             return;
         }

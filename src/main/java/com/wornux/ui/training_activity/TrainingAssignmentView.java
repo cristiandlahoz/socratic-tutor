@@ -19,8 +19,11 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.router.BeforeEvent;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.shared.Registration;
 import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
@@ -47,7 +50,8 @@ import org.slf4j.LoggerFactory;
 @Route(value = "training-activity/assignments", layout = MainLayout.class)
 @PermitAll
 @RequiresPermission(AppPermission.TRAINING_ACTIVITY_ASSIGNMENT_VIEW)
-public class TrainingAssignmentView extends Composite<Div> implements HasUrlParameter<String> {
+public class TrainingAssignmentView extends Composite<Div>
+        implements HasUrlParameter<String>, BeforeEnterObserver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TrainingAssignmentView.class);
 
@@ -76,11 +80,13 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     private UUID assignmentId;
     private TrainingActivityAssignment assignment;
     private AutoCloseable assignmentStateSubscription;
+    private Registration assignmentRefreshPollRegistration;
     private String assignmentStartFailureMessage = "";
     private boolean activityClosedNoticeShown;
     private boolean lastClosedNonSubmittedBlocked;
     private String safeBrowserSessionToken;
     private UUID pendingAnswerSubmissionId;
+    private boolean assignmentAccessDenied;
 
     public TrainingAssignmentView(
             TrainingAssignmentEvaluationService evaluationService,
@@ -145,11 +151,13 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
             renderAssignment();
         }
         subscribeToAssignmentStateChanges(attachEvent.getUI());
+        startAssignmentRefreshPolling(attachEvent.getUI());
     }
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
         unsubscribeFromAssignmentStateChanges();
+        stopAssignmentRefreshPolling();
         detachSafeBrowserClientHooks();
         setAssignmentShellHidden(false);
         super.onDetach(detachEvent);
@@ -161,14 +169,52 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
             if (!notification.affectsAssignment(assignmentId)) {
                 return;
             }
-            ui.access(() -> {
-                assignment = evaluationService.getForCurrentStudent(assignmentId);
-                renderAssignment();
-                if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
-                    ui.navigate("student");
-                }
-            });
+            ui.access(() -> refreshAssignmentFromPersistence(ui));
         });
+    }
+
+    private void startAssignmentRefreshPolling(UI ui) {
+        stopAssignmentRefreshPolling();
+        assignmentRefreshPollRegistration = ui.addPollListener(_ -> refreshAssignmentFromPersistence(ui));
+        ui.setPollInterval(5_000);
+    }
+
+    private void stopAssignmentRefreshPolling() {
+        if (assignmentRefreshPollRegistration != null) {
+            assignmentRefreshPollRegistration.remove();
+            assignmentRefreshPollRegistration = null;
+        }
+        getUI().ifPresent(ui -> ui.setPollInterval(-1));
+    }
+
+    private void refreshAssignmentFromPersistence(UI ui) {
+        if (assignmentId == null) {
+            return;
+        }
+        try {
+            assignment = evaluationService.getForCurrentStudent(assignmentId);
+            renderAssignment();
+            if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
+                ui.navigate("student");
+            }
+        }
+        catch (IllegalArgumentException | SecurityException exception) {
+            denyAssignmentAccess(ui);
+        }
+    }
+
+    private void denyAssignmentAccess(UI ui) {
+        clearDeniedAssignmentAccess();
+        ui.navigate("no-access");
+    }
+
+    private void clearDeniedAssignmentAccess() {
+        assignmentId = null;
+        assignment = null;
+        unsubscribeFromAssignmentStateChanges();
+        stopAssignmentRefreshPolling();
+        detachSafeBrowserClientHooks();
+        Notification.show("No tienes acceso a esta actividad.");
     }
 
     private void unsubscribeFromAssignmentStateChanges() {
@@ -187,6 +233,7 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
     @Override
     public void setParameter(BeforeEvent event, String parameter) {
         try {
+            assignmentAccessDenied = false;
             assignmentId = UUID.fromString(parameter);
             activityClosedNoticeShown = false;
             lastClosedNonSubmittedBlocked = false;
@@ -195,8 +242,16 @@ public class TrainingAssignmentView extends Composite<Div> implements HasUrlPara
             renderAssignment();
         }
         catch (IllegalArgumentException | SecurityException exception) {
-            Notification.show(exception.getMessage());
-            UI.getCurrent().navigate("student");
+            clearDeniedAssignmentAccess();
+            assignmentAccessDenied = true;
+        }
+    }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (assignmentAccessDenied) {
+            assignmentAccessDenied = false;
+            event.forwardTo("no-access");
         }
     }
 

@@ -1,5 +1,6 @@
 package com.wornux.ui.training_activity;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -39,6 +40,67 @@ class TrainingAssignmentViewTest {
         }
         finally {
             UI.setCurrent(null);
+        }
+    }
+
+    @Test
+    void af1_deniedPersistedRefreshNavigatesToNoAccessWithoutRethrowingTheServiceException() {
+        var ui = new TrackingUi();
+        UI.setCurrent(ui);
+        try {
+            var evaluationService = mock(TrainingAssignmentEvaluationService.class);
+            var assignmentId = UUID.randomUUID();
+            var properties = new ApplicationProperties.Ai.Conversation();
+            properties.setContextWindowTokens(2000);
+            var view = new TrainingAssignmentView(evaluationService, mock(SafeBrowserModeService.class),
+                    new SafeBrowserAssignmentStateBus(), properties);
+            ReflectionTestUtils.setField(view, "assignmentId", assignmentId);
+            org.mockito.Mockito.when(evaluationService.getForCurrentStudent(assignmentId))
+                    .thenThrow(new SecurityException("Only students can answer assigned evaluations."));
+
+            ReflectionTestUtils.invokeMethod(view, "refreshAssignmentFromPersistence", ui);
+
+            assertThat(ui.navigatedTo).isEqualTo("no-access");
+            assertThat(ReflectionTestUtils.getField(view, "assignmentId")).isNull();
+        }
+        finally {
+            UI.setCurrent(null);
+        }
+    }
+
+    @Test
+    void af1_deniedInitialRouteForwardsBeforeTheAssignmentViewIsActivated() {
+        var ui = new UI();
+        UI.setCurrent(ui);
+        try {
+            var evaluationService = mock(TrainingAssignmentEvaluationService.class);
+            var assignmentId = UUID.randomUUID();
+            var properties = new ApplicationProperties.Ai.Conversation();
+            properties.setContextWindowTokens(2000);
+            var view = new TrainingAssignmentView(evaluationService, mock(SafeBrowserModeService.class),
+                    new SafeBrowserAssignmentStateBus(), properties);
+            org.mockito.Mockito.when(evaluationService.getForCurrentStudent(assignmentId))
+                    .thenThrow(new SecurityException("Only students can answer assigned evaluations."));
+            var beforeEvent = mock(com.vaadin.flow.router.BeforeEvent.class);
+            var beforeEnterEvent = mock(com.vaadin.flow.router.BeforeEnterEvent.class);
+
+            view.setParameter(beforeEvent, assignmentId.toString());
+            view.beforeEnter(beforeEnterEvent);
+
+            verify(beforeEnterEvent).forwardTo("no-access");
+            assertThat(ReflectionTestUtils.getField(view, "assignmentId")).isNull();
+        }
+        finally {
+            UI.setCurrent(null);
+        }
+    }
+
+    private static final class TrackingUi extends UI {
+        private String navigatedTo;
+
+        @Override
+        public void navigate(String location) {
+            navigatedTo = location;
         }
     }
 }

@@ -263,7 +263,7 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
       <section class="instruction-linter-editor__review" aria-live="polite">
         <div class="instruction-linter-editor__review-header">
           <span class="instruction-linter-editor__review-title">Revisión de instrucciones</span>
-          <span class="instruction-linter-editor__badge instruction-linter-editor__badge--${this.reviewStatus.toLowerCase()}">${this.reviewStatus}</span>
+          <span class="instruction-linter-editor__badge instruction-linter-editor__badge--reviewing">En curso</span>
           ${this.renderQualityBadge()}
         </div>
         <div class="instruction-linter-editor__loading">

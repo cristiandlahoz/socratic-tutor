@@ -166,7 +166,12 @@ public class TrainingAssignmentEvaluationService {
     }
 
     private void ensureAnswerable(TrainingActivityAssignment assignment) {
-        if (assignment.getStatus().isTerminal() || assignment.getTrainingActivity().getStatus() != TrainingActivityLifecycleStatus.PUBLISHED) {
+        var activity = assignment.getTrainingActivity();
+        var now = Instant.now();
+        if (assignment.getStatus().isTerminal()
+                || activity.getStatus() != TrainingActivityLifecycleStatus.PUBLISHED
+                || (activity.getOpensAt() != null && now.isBefore(activity.getOpensAt()))
+                || (activity.getClosesAt() != null && !now.isBefore(activity.getClosesAt()))) {
             throw new IllegalStateException("The evaluation assignment is no longer answerable.");
         }
         if (assignment.isSafeBrowserLocked()) {

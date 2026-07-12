@@ -170,7 +170,7 @@ public class TrainingTutorJobService {
                 return false;
             }
             var answeredTurn = turnRepository.findById(job.getTurn().getId()).orElseThrow();
-            if (answeredTurn.getAnswerText() == null || !answeredTurn.getAnswerText().matches(".*\\S.*")) {
+            if (answeredTurn.getAnswerText() == null || answeredTurn.getAnswerText().isBlank()) {
                 markStale(job);
                 return false;
             }
@@ -287,8 +287,9 @@ public class TrainingTutorJobService {
         var priorJob = jobRepository.findTopByAssignment_IdAndJobTypeOrderByGenerationDesc(
                 assignmentId, TrainingActivityAiJobType.FINAL_REPORT).orElseThrow();
         var now = Instant.now();
+        // saveAndFlush below advances the reset report to its next optimistic version; claiming then advances it once more.
         if (jobRepository.insertFinalReportRetryIfAbsent(UUID.randomUUID(), REPORT_PRIORITY,
-                assignment.getTrainingActivity().getId(), assignment.getId(), report.getId(), report.getVersion() + 1,
+                assignment.getTrainingActivity().getId(), assignment.getId(), report.getId(), report.getVersion() + 2,
                 "report:" + assignment.getId(), priorJob.getGeneration() + 1, MAX_ATTEMPTS, now, now, now) == 0) {
             return false;
         }

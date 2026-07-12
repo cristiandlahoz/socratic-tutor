@@ -368,9 +368,13 @@ public class SafeBrowserModeService {
     }
 
     private boolean isAnswerable(TrainingActivityAssignment assignment) {
+        var activity = assignment.getTrainingActivity();
+        var now = Instant.now();
         return assignment.getStatus() != TrainingActivityAssignmentStatus.SUBMITTED
                 && !assignment.getStatus().isTerminal()
-                && assignment.getTrainingActivity().getStatus() != TrainingActivityLifecycleStatus.CLOSED
+                && activity.getStatus() == TrainingActivityLifecycleStatus.PUBLISHED
+                && (activity.getOpensAt() == null || !now.isBefore(activity.getOpensAt()))
+                && (activity.getClosesAt() == null || now.isBefore(activity.getClosesAt()))
                 && !assignment.isSafeBrowserLocked();
     }
 
