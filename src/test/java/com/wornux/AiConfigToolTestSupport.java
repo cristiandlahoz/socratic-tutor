@@ -1,5 +1,6 @@
 package com.wornux;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -100,9 +101,10 @@ class AiConfigToolTestSupport {
     @Bean
     GuardClassifierService guardClassifierService() {
         var guardClassifierService = mock(GuardClassifierService.class);
-        var safe = new GuardCheck(GuardDecision.SAFE, GuardAction.ALLOW);
+        var safe = new GuardCheck(GuardDecision.SAFE, GuardAction.ALLOW, "", "");
         when(guardClassifierService.classify(anyList())).thenReturn(safe);
         when(guardClassifierService.classify(anyList(), anyString())).thenReturn(safe);
+        when(guardClassifierService.subjectContextFor(any())).thenReturn(java.util.Optional.empty());
         return guardClassifierService;
     }
 

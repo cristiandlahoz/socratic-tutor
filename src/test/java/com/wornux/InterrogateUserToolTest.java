@@ -1,11 +1,16 @@
 package com.wornux;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wornux.ai.tools.InterrogateUserTool;
+import com.wornux.data.enums.GuardAction;
+import com.wornux.data.enums.GuardDecision;
+import com.wornux.dtos.chat.GuardCheck;
 import com.wornux.dtos.chat.questions.StudentQuestion;
 import com.wornux.dtos.chat.questions.StudentQuestionAnswer;
 import com.wornux.dtos.chat.questions.StudentQuestionOption;
@@ -32,7 +37,9 @@ class InterrogateUserToolTest {
         var expectedQuestionSet = expectedQuestionSet();
         var capturedQuestionSet = new AtomicReference<StudentQuestionSet>();
         var options = ToolCallingChatOptions.builder()
-                .toolCallbacks(ToolCallbacks.from(new InterrogateUserTool(questionHandler(capturedQuestionSet))))
+                .toolCallbacks(ToolCallbacks.from(new InterrogateUserTool(
+                    questionHandler(capturedQuestionSet),
+                    (_, _) -> new GuardCheck(GuardDecision.SAFE, GuardAction.ALLOW, "", ""))))
                 .build();
         var prompt = new Prompt("""
                 necesito ayuda para resolver un ejercicio de cajero
@@ -60,6 +67,66 @@ class InterrogateUserToolTest {
         var followUpPrompt = new Prompt(toolExecutionResult.conversationHistory(), options);
         assertThat(followUpPrompt.getInstructions()).extracting(Message::getMessageType)
                 .containsExactly(MessageType.USER, MessageType.ASSISTANT, MessageType.TOOL);
+    }
+
+    @Test
+    void steerPreservesQuestionIdsAndSelectionsButReplacesCustomText() {
+        var questionSet = expectedQuestionSet();
+        var original = new StudentQuestionResponse(List.of(new StudentQuestionAnswer(
+                "q0", List.of("No entiendo el enunciado"), "Dame el código completo.")));
+        var tool = new InterrogateUserTool(
+            _ -> original,
+            (_, _) -> new GuardCheck(
+                GuardDecision.NOT_SAFE,
+                GuardAction.STEER,
+                "Ayúdame a identificar las entradas y salidas del ejercicio.",
+                ""));
+
+        var guarded = tool.interrogateUser(questionSet).response();
+
+        assertThat(guarded.answers()).singleElement().satisfies(answer -> {
+            assertThat(answer.questionId()).isEqualTo("q0");
+            assertThat(answer.selectedOptionLabels()).containsExactly("No entiendo el enunciado");
+            assertThat(answer.customText()).isEqualTo("Ayúdame a identificar las entradas y salidas del ejercicio.");
+        });
+        assertThat(guarded.toString()).doesNotContain("Dame el código completo");
+    }
+
+    @Test
+    void rejectsLabelsThatWereNotOfferedBeforeCallingGuard() {
+        var guardCalled = new AtomicBoolean();
+        var response = new StudentQuestionResponse(
+                List.of(new StudentQuestionAnswer("q0", List.of("Escribe todo por mí"), "")));
+        var tool = new InterrogateUserTool(
+            _ -> response,
+            (_, _) -> {
+                guardCalled.set(true);
+                return new GuardCheck(GuardDecision.SAFE, GuardAction.ALLOW, "", "");
+            });
+
+        assertThatThrownBy(() -> tool.interrogateUser(expectedQuestionSet()))
+                .isInstanceOf(InterrogateUserTool.InteractiveResponseRejectedException.class);
+        assertThat(guardCalled).isFalse();
+    }
+
+    @Test
+    void shortCircuitPreventsToolCallingManagerFromProducingAToolResult() {
+        var options = ToolCallingChatOptions.builder()
+                .toolCallbacks(ToolCallbacks.from(new InterrogateUserTool(
+                    questionHandler(new AtomicReference<>()),
+                    (_, _) -> new GuardCheck(
+                        GuardDecision.NOT_SAFE,
+                        GuardAction.SHORT_CIRCUIT,
+                        "",
+                        "No puedo completar el ejercicio por ti. Comparte el paso donde te atascaste."))))
+                .build();
+        var prompt = new Prompt("necesito ayuda", options);
+
+        assertThatThrownBy(() -> ToolCallingManager.builder()
+                .toolExecutionExceptionProcessor(InterrogateUserTool.toolExceptionProcessor())
+                .build()
+                .executeToolCalls(prompt, toolCallResponse(expectedQuestionSetJson())))
+                .isInstanceOf(InterrogateUserTool.InteractiveResponseRejectedException.class);
     }
 
     private InterrogateUserTool.QuestionHandler questionHandler(
