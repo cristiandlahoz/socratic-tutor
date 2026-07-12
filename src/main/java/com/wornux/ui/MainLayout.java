@@ -10,6 +10,8 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
+import com.vaadin.flow.component.slider.IntegerSlider;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.signals.Signal;
@@ -116,6 +118,7 @@ public class MainLayout extends AppLayout {
         currentAccount.map(user -> new ProfileDrawerCard(
             user,
             createThemePreferenceControl(state, viewModel),
+            createFontSizeControl(viewModel),
             activeContextHolder,
             contextDiscoveryService,
             contextSelectionService,
@@ -174,6 +177,31 @@ public class MainLayout extends AppLayout {
         className.addTo(toggle);
         toggle.setAriaLabel(ariaLabel);
         return toggle;
+    }
+
+    private Div createFontSizeControl(ConversationViewModel viewModel) {
+        var slider = new IntegerSlider("Tamaño de texto", 13, 19);
+        slider.setStep(1);
+        slider.setValue(viewModel.baseFontSize());
+        slider.setValueAlwaysVisible(true);
+        slider.setValueChangeMode(ValueChangeMode.EAGER);
+        slider.setWidthFull();
+        UiCss.PROFILE_DRAWER_CARD_FONT_SIZE_SLIDER.addTo(slider);
+        slider.addValueChangeListener(event -> {
+            if (event.isFromClient() && event.getValue() != null) {
+                viewModel.onBaseFontSizeChanged(event.getValue());
+            }
+        });
+
+        var marks = new Div();
+        UiCss.PROFILE_DRAWER_CARD_FONT_SIZE_MARKS.addTo(marks);
+        for (var size : new int[] { 13, 15, 17, 19 }) {
+            marks.add(new Span(Integer.toString(size)));
+        }
+
+        var control = new Div(slider, marks);
+        UiCss.PROFILE_DRAWER_CARD_FONT_SIZE.addTo(control);
+        return control;
     }
 
     private Div createThemePreferenceControl(ConversationState state, ConversationViewModel viewModel) {

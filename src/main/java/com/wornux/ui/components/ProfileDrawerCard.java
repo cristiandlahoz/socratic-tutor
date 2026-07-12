@@ -30,6 +30,7 @@ public class ProfileDrawerCard extends Component implements HasComponents {
     public ProfileDrawerCard(
             Account account,
             Component themeControl,
+            Component fontSizeControl,
             ActiveContextHolder activeContextHolder,
             ContextDiscoveryService contextDiscoveryService,
             ContextSelectionService contextSelectionService,
@@ -39,6 +40,7 @@ public class ProfileDrawerCard extends Component implements HasComponents {
         var menuContent = new Div(
                 createContextControl(account, activeContextHolder, contextDiscoveryService, contextSelectionService),
                 themeControl,
+                fontSizeControl,
                 createLogoutButton(logoutAction));
         UiCss.PROFILE_DRAWER_CARD_MENU_CONTENT.addTo(menuContent);
 

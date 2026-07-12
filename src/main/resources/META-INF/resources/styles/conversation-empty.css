@@ -45,7 +45,7 @@
   margin: 0;
   max-width: 14ch;
   font-family: "Boska-Regular", var(--aura-font-family);
-  font-size: clamp(2.2rem, 9.2vw, 3rem);
+  font-size: calc(var(--aura-font-size-xl) * 3);
   line-height: 0.94;
   font-weight: 400;
   letter-spacing: var(--display-letter-spacing);
@@ -65,7 +65,7 @@
   margin: 0;
   max-width: 32rem;
   font-family: "Satoshi-Regular", var(--aura-font-family);
-  font-size: clamp(0.96rem, 1.08vw, 1.02rem);
+  font-size: calc(var(--aura-font-size-m) * 1.25);
   line-height: 1.38;
   font-weight: var(--aura-font-weight-regular);
   color: var(--vaadin-text-color-secondary);

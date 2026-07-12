@@ -350,6 +350,44 @@ vaadin-combo-box.profile-drawer-card__context-select::part(field-button) {
   padding-right: 0;
 }
 
+.profile-drawer-card__font-size {
+  display: flex;
+  flex-direction: column;
+}
+
+vaadin-slider.profile-drawer-card__font-size-slider {
+  --vaadin-input-field-label-color: var(--composer-helper-color);
+  --vaadin-slider-bubble-font-size: var(--aura-font-size-xs);
+  --vaadin-slider-fill-background: var(--aura-accent-color);
+  --vaadin-slider-track-background: color-mix(in srgb, var(--composer-helper-color) 32%, transparent);
+}
+
+.profile-drawer-card__font-size-marks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -0.25rem;
+  color: var(--composer-helper-color);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-2xs);
+}
+
+.profile-drawer-card__font-size-marks > span {
+  position: relative;
+  min-width: 1rem;
+  padding-top: 0.35rem;
+  text-align: center;
+}
+
+.profile-drawer-card__font-size-marks > span::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 0.25rem;
+  background: currentColor;
+}
+
 .profile-drawer-card .theme-switcher__label {
   color: var(--composer-helper-color);
 }
