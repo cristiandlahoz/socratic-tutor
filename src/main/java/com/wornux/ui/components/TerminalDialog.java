@@ -1,6 +1,7 @@
 package com.wornux.ui.components;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.ModalityMode;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.wornux.ui.css.UiCss;
 
@@ -10,7 +11,7 @@ public class TerminalDialog extends Dialog {
 
     public TerminalDialog(String label, String title, String description, Component content) {
         UiCss.TERMINAL_DIALOG.addTo(this);
-        setModal(true);
+        setModality(ModalityMode.STRICT);
         setCloseOnEsc(true);
         setCloseOnOutsideClick(false);
 
