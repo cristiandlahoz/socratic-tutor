@@ -4,6 +4,7 @@ import '@vaadin/icon';
 import '@vaadin/icons';
 import '@vaadin/popover';
 import '@vaadin/text-area';
+import '@vaadin/tooltip';
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 
@@ -264,14 +265,30 @@ class CDebuggerPanel extends LitElement {
       <div class="c-runner-terminal-card">
         <span class="c-runner-terminal-title">Terminal</span>
         <div class="c-runner-terminal-body">
+          <div class="c-runner-stdin-label">
+            <span>stdin</span>
+            <button
+              id="stdin-help"
+              class="ui-icon-toggle c-runner-stdin-help"
+              type="button"
+              aria-label="Cómo ingresar datos en stdin"
+            >
+              <vaadin-icon icon="vaadin:info-circle" aria-hidden="true"></vaadin-icon>
+            </button>
+          </div>
           <vaadin-text-area
+            id="stdin-field"
             class="c-runner-stdin"
-            label="stdin"
-            placeholder="stdin antes de ejecutar, ej: 42"
+            accessible-name="stdin"
+            placeholder=${`Ej: '42' "hola mundo"`}
             .value=${this.stdin}
             ?disabled=${!this.controlsEnabled}
             @value-changed=${this.handleStdinChanged}
           ></vaadin-text-area>
+          <vaadin-tooltip
+            for="stdin-help"
+            text=${`Después de cambiar las entradas, vuelve a compilar y ejecutar. Cada entrada debe estar entre comillas simples ('') o dobles (""); scanf y los demás mecanismos de stdin de C las leen en orden.`}
+          ></vaadin-tooltip>
           <div class="c-runner-stdout-block">
             <span class="c-runner-terminal-label">stdout</span>
             <pre class="c-runner-stdout" data-empty=${stdoutEmpty ? 'true' : 'false'}>${stdoutEmpty ? 'No hay salida' : this.stdout}</pre>

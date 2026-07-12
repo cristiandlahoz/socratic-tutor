@@ -160,16 +160,20 @@ public final class DebuggerPanel extends Component implements HasSize {
         }
         var ui = UI.getCurrent();
         var source = currentSource;
-        var stdin = currentStdin;
+        CDebugRequest request;
+        try {
+            request = new CDebugRequest(source, "c17", "main.c", currentStdin);
+        } catch (IllegalArgumentException ex) {
+            setStatusText(ex.getMessage());
+            return;
+        }
         var jobId = startAsyncJob("Depurando...");
         if (ui == null) {
-            renderDebugJob(jobId, source, debugService.debug(new CDebugRequest(source, "c17", "main.c", stdin)), null);
+            renderDebugJob(jobId, source, debugService.debug(request), null);
             return;
         }
         CompletableFuture
-                .supplyAsync(
-                    () -> debugService.debug(new CDebugRequest(source, "c17", "main.c", stdin)),
-                    cRunnerExecutor)
+                .supplyAsync(() -> debugService.debug(request), cRunnerExecutor)
                 .whenComplete((result, ex) -> ui.access(() -> renderDebugJob(jobId, source, result, ex)));
     }
 
