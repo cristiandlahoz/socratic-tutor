@@ -35,6 +35,30 @@ public interface TrainingActivityAiJobRepository extends JpaRepository<TrainingA
             @Param("running") TrainingActivityAiJobStatus running, @Param("leaseUntil") Instant leaseUntil,
             @Param("now") Instant now);
 
+    @Modifying
+    @Query("""
+            update TrainingActivityAiJob job set job.status = :succeeded, job.leaseUntil = null,
+              job.lastErrorCode = null, job.updatedAt = :now
+            where job.id = :id and job.jobType = :jobType and job.status = :running
+              and job.generation = :generation and job.leaseUntil >= :now
+            """)
+    int fenceFinalReportSuccess(@Param("id") UUID id, @Param("jobType") TrainingActivityAiJobType jobType,
+            @Param("running") TrainingActivityAiJobStatus running, @Param("succeeded") TrainingActivityAiJobStatus succeeded,
+            @Param("generation") int generation, @Param("now") Instant now);
+
+    @Modifying
+    @Query("""
+            update TrainingActivityAiJob job set job.status = :targetStatus, job.leaseUntil = null, job.inputVersion = :nextInputVersion,
+              job.availableAt = :availableAt, job.lastErrorCode = :failureCode, job.updatedAt = :now
+            where job.id = :id and job.jobType = :jobType and job.status = :running
+              and job.generation = :generation and job.leaseUntil >= :now
+            """)
+    int fenceFinalReportFailure(@Param("id") UUID id, @Param("jobType") TrainingActivityAiJobType jobType,
+            @Param("running") TrainingActivityAiJobStatus running, @Param("targetStatus") TrainingActivityAiJobStatus targetStatus,
+            @Param("generation") int generation, @Param("availableAt") Instant availableAt,
+            @Param("failureCode") String failureCode, @Param("nextInputVersion") long nextInputVersion,
+            @Param("now") Instant now);
+
     @Query("select job from TrainingActivityAiJob job where job.jobType in :jobTypes and job.attemptCount < job.maxAttempts and ((job.status in :claimable and job.availableAt <= :now) or (job.status = :running and job.leaseUntil < :now)) order by job.priority asc, job.createdAt asc")
     List<TrainingActivityAiJob> findAvailableByTypes(
             @Param("jobTypes") List<TrainingActivityAiJobType> jobTypes,
@@ -49,6 +73,9 @@ public interface TrainingActivityAiJobRepository extends JpaRepository<TrainingA
     Optional<TrainingActivityAiJob> findFirstByAssignment_IdAndJobTypeInOrderByUpdatedAtDesc(
             UUID assignmentId, List<TrainingActivityAiJobType> jobTypes);
 
+    Optional<TrainingActivityAiJob> findTopByAssignment_IdAndJobTypeOrderByGenerationDesc(
+            UUID assignmentId, TrainingActivityAiJobType jobType);
+
     @Query("select job from TrainingActivityAiJob job where job.jobType in :jobTypes and job.status = :running and job.leaseUntil < :now and job.attemptCount >= job.maxAttempts")
     List<TrainingActivityAiJob> findExpiredAtAttemptLimit(@Param("jobTypes") List<TrainingActivityAiJobType> jobTypes,
             @Param("running") TrainingActivityAiJobStatus running, @Param("now") Instant now);
@@ -60,11 +87,26 @@ public interface TrainingActivityAiJobRepository extends JpaRepository<TrainingA
               attempt_count, max_attempts, available_at, created_at, updated_at)
             values (:id, :jobType, :priority, :activityId, :assignmentId, :turnId, :reportId, :inputVersion, :semanticKey,
               0, 'PENDING', 0, :maxAttempts, :availableAt, :createdAt, :updatedAt)
-            on conflict (semantic_key) do nothing
+            on conflict (semantic_key, generation) do nothing
             """, nativeQuery = true)
     int insertTutorJobIfAbsent(@Param("id") UUID id, @Param("jobType") String jobType, @Param("priority") int priority,
             @Param("activityId") UUID activityId, @Param("assignmentId") UUID assignmentId, @Param("turnId") UUID turnId,
             @Param("reportId") UUID reportId, @Param("inputVersion") long inputVersion, @Param("semanticKey") String semanticKey,
+            @Param("maxAttempts") int maxAttempts, @Param("availableAt") Instant availableAt,
+            @Param("createdAt") Instant createdAt, @Param("updatedAt") Instant updatedAt);
+
+    @Modifying
+    @Query(value = """
+            insert into training_activity_ai_job (id, job_type, priority, training_activity_id, training_activity_assignment_id,
+              training_activity_report_id, input_version, semantic_key, generation, status, attempt_count, max_attempts,
+              available_at, created_at, updated_at)
+            values (:id, 'FINAL_REPORT', :priority, :activityId, :assignmentId, :reportId, :inputVersion, :semanticKey,
+              :generation, 'PENDING', 0, :maxAttempts, :availableAt, :createdAt, :updatedAt)
+            on conflict (semantic_key, generation) do nothing
+            """, nativeQuery = true)
+    int insertFinalReportRetryIfAbsent(@Param("id") UUID id, @Param("priority") int priority,
+            @Param("activityId") UUID activityId, @Param("assignmentId") UUID assignmentId, @Param("reportId") UUID reportId,
+            @Param("inputVersion") long inputVersion, @Param("semanticKey") String semanticKey, @Param("generation") int generation,
             @Param("maxAttempts") int maxAttempts, @Param("availableAt") Instant availableAt,
             @Param("createdAt") Instant createdAt, @Param("updatedAt") Instant updatedAt);
 }

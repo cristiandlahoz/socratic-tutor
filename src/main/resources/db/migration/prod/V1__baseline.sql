@@ -419,7 +419,7 @@ create table training_activity_ai_job (
     last_error_code text null,
     created_at timestamptz not null default current_timestamp,
     updated_at timestamptz not null default current_timestamp,
-    constraint uk_training_activity_ai_job_semantic unique (semantic_key),
+    constraint uk_training_activity_ai_job_semantic_generation unique (semantic_key, generation),
     constraint chk_training_activity_ai_job_instruction_review check (
         job_type <> 'INSTRUCTION_REVIEW' or training_instruction_review_id is not null
     ),
@@ -569,6 +569,9 @@ create index idx_training_instruction_review_activity on training_instruction_re
 create index idx_training_instruction_review_lookup on training_instruction_review (candidate_id, group_class_id, requested_by_group_class_member_id, instructions_hash, model_name, rubric_version);
 create index idx_training_instruction_review_override_activity on training_instruction_review_override (training_activity_id, created_at desc);
 create index idx_training_activity_ai_job_available on training_activity_ai_job (status, available_at, priority, created_at);
+create unique index uk_training_activity_ai_job_live_semantic
+    on training_activity_ai_job (semantic_key)
+    where status in ('PENDING', 'RUNNING', 'RETRYABLE');
 create index idx_training_activity_turn_assignment_sequence on training_activity_turn (training_activity_assignment_id, sequence_number);
 create unique index uk_safe_browser_session_live_assignment on safe_browser_session(training_activity_assignment_id) where status in ('PENDING', 'ACTIVE');
 create unique index uk_safe_browser_event_session_client_event on safe_browser_event(safe_browser_session_id, client_event_id) where client_event_id is not null;

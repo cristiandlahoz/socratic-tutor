@@ -42,6 +42,7 @@ import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingAssignmentTutorService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.training_activity.TrainingActivitySaveCommand;
+import com.wornux.services.training_activity.TrainingActivityReportProjectionService;
 import com.wornux.ui.training_activity.instruction_review.InstructionLinterEditor;
 import com.wornux.ui.conversation.MessagesList;
 import com.wornux.ui.conversation.MessageItem;
@@ -70,9 +71,11 @@ public class TrainingActivityDialog extends Div {
     private final transient TrainingActivityService trainingActivityService;
     private final transient SafeBrowserModeService safeBrowserModeService;
     private final transient SafeBrowserAssignmentStateBus assignmentStateBus;
+    private final transient TrainingActivityReportProjectionService reportProjectionService;
     private final transient Consumer<TrainingActivity> onSave;
     private final transient Runnable onClose;
     private transient TrainingActivity activitySnapshot;
+    private transient java.util.UUID displayedReportAssignmentId;
 
     private final Div panel = new Div();
     private final TextField titleField;
@@ -90,12 +93,14 @@ public class TrainingActivityDialog extends Div {
             TrainingActivityService trainingActivityService,
             SafeBrowserModeService safeBrowserModeService,
             SafeBrowserAssignmentStateBus assignmentStateBus,
+            TrainingActivityReportProjectionService reportProjectionService,
             Consumer<TrainingActivity> onSave,
             Runnable onClose) {
         this.original = activity;
         this.trainingActivityService = trainingActivityService;
         this.safeBrowserModeService = safeBrowserModeService;
         this.assignmentStateBus = assignmentStateBus;
+        this.reportProjectionService = reportProjectionService;
         this.onSave = onSave;
         this.onClose = onClose;
         this.activitySnapshot = activity;
@@ -135,6 +140,17 @@ public class TrainingActivityDialog extends Div {
         renderActivityMode();
     }
 
+    /** Compatibility constructor retained for existing dialog-focused tests. */
+    public TrainingActivityDialog(
+            TrainingActivity activity,
+            TrainingActivityService trainingActivityService,
+            SafeBrowserModeService safeBrowserModeService,
+            SafeBrowserAssignmentStateBus assignmentStateBus,
+            Consumer<TrainingActivity> onSave,
+            Runnable onClose) {
+        this(activity, trainingActivityService, safeBrowserModeService, assignmentStateBus, null, onSave, onClose);
+    }
+
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
@@ -154,11 +170,16 @@ public class TrainingActivityDialog extends Div {
                 return;
             }
             ui.access(() -> {
-                if (!isAttached() || !activityMode) {
+                if (!isAttached()) {
                     return;
                 }
                 refreshActivitySnapshot();
-                renderActivityMode();
+                if (activityMode) {
+                    renderActivityMode();
+                }
+                else {
+                    refreshDisplayedReport();
+                }
             });
         });
     }
@@ -179,6 +200,7 @@ public class TrainingActivityDialog extends Div {
     private void renderActivityMode() {
         var activity = activitySnapshot;
         activityMode = true;
+        displayedReportAssignmentId = null;
         panel.removeAll();
         panel.removeClassName("training-activity-overlay-panel--report");
         panel.addClassName("training-activity-overlay-panel--activity");
@@ -451,7 +473,7 @@ public class TrainingActivityDialog extends Div {
 
     private Button reportButton(TrainingActivityAssignment assignment) {
         var button = new Button("Ver", _ -> renderReportMode(assignment));
-        button.setEnabled(assignment.getFinalReport() != null && !assignment.getFinalReport().isBlank());
+        button.setEnabled(assignment.getStatus() == com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus.SUBMITTED);
         button.setWidthFull();
         return button;
     }
@@ -489,12 +511,132 @@ public class TrainingActivityDialog extends Div {
     }
 
     private void renderReportMode(TrainingActivityAssignment assignment) {
+        if (reportProjectionService == null) {
+            renderLegacyReportMode(assignment);
+            return;
+        }
+        try {
+            renderReportMode(reportProjectionService.getForCurrentReviewer(assignment.getId()));
+        }
+        catch (RuntimeException exception) {
+            renderActivityMode();
+            Notification.show("No se pudo cargar el reporte de esta evaluación.");
+        }
+    }
+
+    private void renderLegacyReportMode(TrainingActivityAssignment assignment) {
         activityMode = false;
         panel.removeAll();
         panel.removeClassName("training-activity-overlay-panel--activity");
         panel.addClassName("training-activity-overlay-panel--report");
 
         panel.add(reportHeader(assignment), reportBody(assignment), reportFooter());
+    }
+
+    private void renderReportMode(TrainingActivityReportProjectionService.ReportProjection projection) {
+        activityMode = false;
+        displayedReportAssignmentId = projection.assignment().getId();
+        panel.removeAll();
+        panel.removeClassName("training-activity-overlay-panel--activity");
+        panel.addClassName("training-activity-overlay-panel--report");
+        panel.add(reportHeader(projection.assignment()), reportBody(projection), reportFooter());
+    }
+
+    private void refreshDisplayedReport() {
+        if (reportProjectionService == null || displayedReportAssignmentId == null) {
+            return;
+        }
+        try {
+            renderReportMode(reportProjectionService.getForCurrentReviewer(displayedReportAssignmentId));
+        }
+        catch (RuntimeException exception) {
+            Notification.show("No se pudo actualizar el reporte de esta evaluación.");
+        }
+    }
+
+    private Component reportBody(TrainingActivityReportProjectionService.ReportProjection projection) {
+        var content = new Div();
+        content.addClassName("training-activity-report-content");
+        switch (projection.status()) {
+            case PENDING -> content.add(new Paragraph("El reporte está pendiente de generación. La transcripción ya está disponible."));
+            case GENERATING -> content.add(new Paragraph("El reporte se está generando. La transcripción ya está disponible."));
+            case FAILED -> {
+                content.add(new Paragraph("El reporte no está disponible temporalmente. La transcripción permanece disponible."));
+                if (reportProjectionService != null) {
+                    var retry = new Button("Reintentar reporte", _ -> retryFailedReport(projection.assignment().getId()));
+                    retry.addThemeVariants(ButtonVariant.PRIMARY);
+                    content.add(retry);
+                }
+            }
+            case READY -> content.add(readyReport(projection));
+        }
+        content.add(transcriptSection(projection.turns().stream()
+                .filter(turn -> turn.answerText() != null)
+                .map(turn -> new ReportQuestion(turn.sequenceNumber(), turn.questionText(), turn.answerText()))
+                .toList()));
+        return content;
+    }
+
+    private void retryFailedReport(java.util.UUID assignmentId) {
+        try {
+            if (!reportProjectionService.retryFailedReport(assignmentId)) {
+                Notification.show("El reporte ya no está disponible para reintento.");
+                return;
+            }
+            renderReportMode(reportProjectionService.getForCurrentReviewer(assignmentId));
+        }
+        catch (RuntimeException exception) {
+            Notification.show("No se pudo programar el reintento del reporte.");
+        }
+    }
+
+    private Component readyReport(TrainingActivityReportProjectionService.ReportProjection projection) {
+        var report = new Div();
+        report.add(reportSection("Síntesis diagnóstica", List.of(projection.summary())));
+        report.add(reportSection("Estado de evidencia", List.of(evidenceStatusLabel(projection.evidenceStatus()))));
+        report.add(reportSection("Fortalezas observadas", projection.strengths().stream()
+                .map(finding -> findingText(finding, projection)).toList()));
+        report.add(reportSection("Aspectos a trabajar", projection.weaknesses().stream()
+                .map(finding -> findingText(finding, projection)).toList()));
+        report.add(reportSection("Evidencias observables", projection.observations().stream()
+                .map(finding -> findingText(finding, projection)).toList()));
+        report.add(reportSection("Recomendación docente", projection.recommendations()));
+        return report;
+    }
+
+    private String findingText(
+            com.wornux.data.entities.training_activity.TrainingActivityReportFinding finding,
+            TrainingActivityReportProjectionService.ReportProjection projection) {
+        var turnLabels = finding.evidenceReferences().stream()
+                .map(reference -> projection.turns().stream()
+                        .filter(turn -> turn.sequenceNumber() == reference.turnSequence())
+                        .findFirst()
+                        .map(turn -> "Turno %d".formatted(turn.sequenceNumber()))
+                        .orElse("Turno no disponible"))
+                .distinct()
+                .toList();
+        return "%s (%s)".formatted(finding.observation(), String.join(", ", turnLabels));
+    }
+
+    private Component reportSection(String heading, List<String> entries) {
+        var section = new Div(new H4(heading));
+        if (entries == null || entries.isEmpty()) {
+            section.add(new Paragraph("No hay observaciones respaldadas para esta sección."));
+            return section;
+        }
+        entries.forEach(entry -> section.add(new Paragraph(entry == null ? "" : entry)));
+        return section;
+    }
+
+    private String evidenceStatusLabel(com.wornux.data.entities.training_activity.EvidenceStatus evidenceStatus) {
+        if (evidenceStatus == null) {
+            return "La evidencia disponible es limitada; las conclusiones son necesariamente provisionales.";
+        }
+        return switch (evidenceStatus) {
+            case STRONG_EVIDENCE -> "La evidencia disponible permite conclusiones formativas con mayor confianza.";
+            case PARTIAL_EVIDENCE -> "La evidencia disponible permite conclusiones parciales y debe interpretarse con prudencia.";
+            case WEAK_EVIDENCE, NO_EVIDENCE -> "La evidencia disponible es limitada; las conclusiones son necesariamente provisionales.";
+        };
     }
 
     private Component reportHeader(TrainingActivityAssignment assignment) {

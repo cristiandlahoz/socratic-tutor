@@ -45,6 +45,7 @@ import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.training_activity.TrainingActivitySaveCommand;
+import com.wornux.services.training_activity.TrainingActivityReportProjectionService;
 import com.wornux.services.training_activity.instruction_review.InstructionQualityReviewException;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewSnapshotDto;
 import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewStatus;
@@ -72,6 +73,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     private final transient TrainingActivityService trainingActivityService;
     private final transient SafeBrowserModeService safeBrowserModeService;
     private final transient SafeBrowserAssignmentStateBus assignmentStateBus;
+    private final transient TrainingActivityReportProjectionService reportProjectionService;
     private final transient WorkspaceRoutingService workspaceRoutingService;
 
     private final TextField titleField = new TextField("Título");
@@ -93,15 +95,18 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     private UUID reviewCandidateId = UUID.randomUUID();
     private Registration reviewPollRegistration;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public TrainingActivityView(
             TrainingActivityService trainingActivityService,
             SafeBrowserModeService safeBrowserModeService,
             SafeBrowserAssignmentStateBus assignmentStateBus,
+            TrainingActivityReportProjectionService reportProjectionService,
             WorkspaceRoutingService workspaceRoutingService,
             AuthenticatedUserContextUtils authenticatedUserContextUtils) {
         this.trainingActivityService = trainingActivityService;
         this.safeBrowserModeService = safeBrowserModeService;
         this.assignmentStateBus = assignmentStateBus;
+        this.reportProjectionService = reportProjectionService;
         this.workspaceRoutingService = workspaceRoutingService;
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
 
@@ -120,6 +125,17 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
         content.add(pageContent);
         refreshGrid();
+    }
+
+    /** Compatibility constructor retained for existing UC-006 view fixtures. */
+    public TrainingActivityView(
+            TrainingActivityService trainingActivityService,
+            SafeBrowserModeService safeBrowserModeService,
+            SafeBrowserAssignmentStateBus assignmentStateBus,
+            WorkspaceRoutingService workspaceRoutingService,
+            AuthenticatedUserContextUtils authenticatedUserContextUtils) {
+        this(trainingActivityService, safeBrowserModeService, assignmentStateBus, null,
+                workspaceRoutingService, authenticatedUserContextUtils);
     }
 
     private Div buildHeader() {
@@ -644,6 +660,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
                 trainingActivityService,
                 safeBrowserModeService,
                 assignmentStateBus,
+                reportProjectionService,
                 this::onActivityUpdated,
                 () -> closeActivityDialog(clearAddressBarOnClose));
         getContent().add(activeDialog);

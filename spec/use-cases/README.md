@@ -39,7 +39,7 @@ Do not repeatedly reimplement every prior use case. Re-run their acceptance/regr
 | UC-006 | Advisory AI Instruction Quality Review | In Progress | Professor | [use-case-006-ai-instruction-quality-review.md](use-case-006-ai-instruction-quality-review.md) |
 | UC-007 | Durable Adaptive Student Tutor Runtime | In Progress | Student | [use-case-007-adaptive-student-tutor-runtime.md](use-case-007-adaptive-student-tutor-runtime.md) |
 | UC-008 | Publish and Deliver a Training Activity | In Progress | Professor | [use-case-008-publish-and-deliver-training-activity.md](use-case-008-publish-and-deliver-training-activity.md) |
-| UC-009 | Finalize and Report a Training Evaluation | Pending | Professor reviewer | [use-case-009-finalize-and-report-evaluation.md](use-case-009-finalize-and-report-evaluation.md) |
+| UC-009 | Finalize and Report a Training Evaluation | Verified | Professor reviewer | [use-case-009-finalize-and-report-evaluation.md](use-case-009-finalize-and-report-evaluation.md) |
 
 Missing UC numbers are reserved or belong to historical work; do not renumber approved identifiers merely to close gaps.
 

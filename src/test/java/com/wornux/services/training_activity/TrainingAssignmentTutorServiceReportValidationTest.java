@@ -5,14 +5,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.wornux.ai.prompt.PromptResources;
-import com.wornux.data.entities.academic.GroupClassMember;
-import com.wornux.data.entities.training_activity.AnswerQuality;
-import com.wornux.data.entities.training_activity.CoverageStatus;
 import com.wornux.data.entities.training_activity.EvidenceStatus;
-import com.wornux.data.entities.training_activity.PedagogicalMove;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
-import com.wornux.services.training_activity.TrainingAssignmentEvaluationService.EvaluationExchange;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -25,25 +20,28 @@ import org.springframework.test.util.ReflectionTestUtils;
 class TrainingAssignmentTutorServiceReportValidationTest {
 
     @Test
-    void finalReportFallsBackWhenModelReportOmitsRequiredTeacherSections() {
+    void finalReportUsesTheStructuredCandidateContract() {
         var service = new TrainingAssignmentTutorService(
-                _ -> response("{\"report\":\"## Síntesis diagnóstica\\nDiagnóstico breve.\"}"),
+                _ -> response("""
+                        {"evidenceStatus":"STRONG_EVIDENCE","summary":"La respuesta explica el concepto con un ejemplo.","strengths":[{"observation":"Explica el concepto.","evidenceReferences":[{"turnSequence":1,"answerExcerpt":"I am not sure."}]}],"weaknesses":[{"observation":"Puede ampliar la justificación.","evidenceReferences":[{"turnSequence":1}]}],"observations":[{"observation":"La respuesta contiene un ejemplo.","evidenceReferences":[{"turnSequence":1}]}],"recommendations":["Pedir una justificación adicional."]}
+                        """),
                 promptResources());
 
-        var report = service.finalReport(assignment(), transcript(), success());
+        var report = service.generateFinalReport(assignment(), List.of(new TrainingAssignmentTutorService.ReportTurn(
+                1, "What is a pointer?", "I am not sure.")), EvidenceStatus.STRONG_EVIDENCE);
 
         assertThat(report)
-                .contains("Reporte de evaluación")
-                .contains("## Evidencias observables")
-                .contains("## Limitaciones de esta evaluación")
-                .contains("## Recomendación docente")
-                .contains("## Transcripción")
-                .contains("I am not sure.");
+                .extracting(FinalReportCandidate::evidenceStatus, FinalReportCandidate::summary)
+                .containsExactly(EvidenceStatus.STRONG_EVIDENCE, "La respuesta explica el concepto con un ejemplo.");
+        assertThat(report.strengths()).singleElement().satisfies(finding ->
+                assertThat(finding.evidenceReferences()).extracting(FinalReportCandidate.EvidenceReference::turnSequence)
+                        .containsExactly(1));
     }
 
     private static PromptResources promptResources() {
         var promptResources = mock(PromptResources.class);
-        when(promptResources.reportPrompt()).thenReturn("Instructions: %s\nTitle: %s\nDecision: %s\nEvidence: %s\nLimits: %s\nTranscript:\n%s");
+        when(promptResources.reportPrompt()).thenReturn(
+                "Schema: %s\nInstructions: %s\nTitle: %s\nEvidence: %s\nTranscript:\n%s");
         return promptResources;
     }
 
@@ -53,34 +51,11 @@ class TrainingAssignmentTutorServiceReportValidationTest {
         ReflectionTestUtils.setField(activity, "title", "Pointers");
         ReflectionTestUtils.setField(activity, "instructions", "Evaluate whether the student understands pointers in C.");
 
-        var member = new GroupClassMember();
-        ReflectionTestUtils.setField(member, "id", UUID.randomUUID());
-
         var assignment = new TrainingActivityAssignment();
         ReflectionTestUtils.setField(assignment, "id", UUID.randomUUID());
         ReflectionTestUtils.setField(assignment, "trainingActivity", activity);
-        ReflectionTestUtils.setField(assignment, "groupClassMember", member);
         ReflectionTestUtils.setField(assignment, "updatedAt", Instant.now());
         return assignment;
-    }
-
-    private static List<EvaluationExchange> transcript() {
-        return List.of(new EvaluationExchange("What is a pointer?", "I am not sure."));
-    }
-
-    private static AdaptiveTutorDecision success() {
-        return new AdaptiveTutorDecision(
-                TutorDecisionType.COMPLETE_SUCCESS,
-                AnswerQuality.EXCELLENT,
-                EvidenceStatus.STRONG_EVIDENCE,
-                CoverageStatus.SUFFICIENT,
-                PedagogicalMove.COMPLETE_SUCCESSFULLY,
-                false,
-                List.of("understanding", "example"),
-                List.of(),
-                false,
-                "",
-                "Sufficient evidence.");
     }
 
     private static ChatResponse response(String text) {

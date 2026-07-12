@@ -2,6 +2,8 @@
 
 The training-activity workers publish Micrometer signals through Spring Boot Actuator's configured `MeterRegistry`. This application does **not** install production alert rules, notification destinations, or escalation routing. Exporting metrics and routing alerts to an external monitoring system are deployment responsibilities.
 
+Prometheus/Grafana setup, metric export configuration, alert-rule deployment, and paging/routing are explicitly out of scope for UC-009/SPEC-005 application code. The existing structured logs and Micrometer signals are the supported application boundary.
+
 ## Quick response path
 
 1. Check the notification backlog and the recent `poll.failures`, `delivery.failure`, and `delivery.exhausted` increases.

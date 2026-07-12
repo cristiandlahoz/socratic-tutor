@@ -1,7 +1,7 @@
 package com.wornux.data.entities.training_activity;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -32,10 +32,10 @@ public class TrainingActivityReport {
     @Enumerated(EnumType.STRING) @Column(nullable = false) private TrainingActivityReportStatus status;
     @Enumerated(EnumType.STRING) @Column(name = "evidence_status") private EvidenceStatus evidenceStatus;
     @Column private String summary;
-    @JdbcTypeCode(SqlTypes.JSON) @Column private Map<String, Object> strengths;
-    @JdbcTypeCode(SqlTypes.JSON) @Column private Map<String, Object> weaknesses;
-    @JdbcTypeCode(SqlTypes.JSON) @Column private Map<String, Object> observations;
-    @JdbcTypeCode(SqlTypes.JSON) @Column private Map<String, Object> recommendations;
+    @JdbcTypeCode(SqlTypes.JSON) @Column private List<TrainingActivityReportFinding> strengths;
+    @JdbcTypeCode(SqlTypes.JSON) @Column private List<TrainingActivityReportFinding> weaknesses;
+    @JdbcTypeCode(SqlTypes.JSON) @Column private List<TrainingActivityReportFinding> observations;
+    @JdbcTypeCode(SqlTypes.JSON) @Column private List<String> recommendations;
     @Column(name = "model_name", nullable = false) private String modelName;
     @Column(name = "prompt_version", nullable = false) private String promptVersion;
     @Column(name = "attempt_count", nullable = false) private int attemptCount;

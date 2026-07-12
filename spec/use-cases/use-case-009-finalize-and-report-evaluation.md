@@ -4,7 +4,7 @@
 
 **Goal:** As a professor, I want a reliable evidence-based report after a student submits an evaluation so that I can review strengths, weaknesses, observations, and the exact question-answer history without delaying the student's completion.
 
-**Status:** Pending  
+**Status:** Verified
 **Date:** 2026-07-10
 
 > A use case cannot be marked as **Implemented** unless all criteria in the use-case implementation workflow are fulfilled.
@@ -198,18 +198,18 @@ Every referenced turn must exist in the assignment and contain the cited evidenc
 
 ## Tests
 
-- [ ] Main Flow covered from atomic submission through background generation and professor review.
-- [ ] Student redirect is observed before a controllable report model is released.
-- [ ] AF-1 pending/generating UI covered without synchronous regeneration.
-- [ ] AF-2 and AF-3 transient/invalid model outputs preserve submission and turns.
-- [ ] AF-4 terminal failure and authorized retry covered.
-- [ ] AF-5 duplicate job/report idempotency covered.
-- [ ] AF-6 stale report result cannot overwrite current state.
-- [ ] AF-7 insufficient-evidence honesty and no invented claims covered.
-- [ ] AF-8 authorization and class scope covered.
-- [ ] AF-9 historical report preservation covered.
-- [ ] Turn list renders from structured rows even when report is pending/failed.
-- [ ] BR-01 through BR-18 covered.
+- [x] Main Flow covered from atomic submission through background generation and professor review.
+- [x] Student redirect is observed before a controllable report model is released.
+- [x] AF-1 pending/generating UI covered without synchronous regeneration.
+- [x] AF-2 and AF-3 transient/invalid model outputs preserve submission and turns.
+- [x] AF-4 terminal failure and authorized retry covered.
+- [x] AF-5 duplicate job/report idempotency covered.
+- [x] AF-6 stale report result cannot overwrite current state.
+- [x] AF-7 insufficient-evidence honesty and no invented claims covered.
+- [x] AF-8 authorization and class scope covered.
+- [x] AF-9 historical report preservation covered.
+- [x] Turn list renders from structured rows even when report is pending/failed.
+- [x] BR-01 through BR-18 covered.
 
 ---
 

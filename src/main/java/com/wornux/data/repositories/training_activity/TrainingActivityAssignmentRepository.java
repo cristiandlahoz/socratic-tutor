@@ -17,7 +17,8 @@ public interface TrainingActivityAssignmentRepository extends JpaRepository<Trai
     @EntityGraph(attributePaths = "trainingActivity")
     List<TrainingActivityAssignment> findByGroupClassMember_IdOrderByUpdatedAtDesc(UUID groupClassMemberId);
 
-    @EntityGraph(attributePaths = {"trainingActivity", "trainingActivity.groupClass", "groupClassMember", "groupClassMember.groupClass"})
+    @EntityGraph(attributePaths = {"trainingActivity", "trainingActivity.groupClass", "groupClassMember", "groupClassMember.groupClass",
+            "groupClassMember.tenantAccount", "groupClassMember.tenantAccount.account"})
     Optional<TrainingActivityAssignment> findWithTrainingActivityById(UUID id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

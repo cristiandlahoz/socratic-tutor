@@ -130,6 +130,23 @@ class TrainingTutorJobServiceTest {
     }
 
     @Test
+    void br22_safeBrowserHeartbeatVersionChangeDoesNotDiscardFirstQuestion() {
+        var fixture = fixture(1, 3, 4);
+        fixture.job.setJobType(TrainingActivityAiJobType.FIRST_QUESTION);
+        fixture.job.setTurn(null);
+        fixture.job.setInputVersion(1);
+        ReflectionTestUtils.setField(fixture.assignment, "status", TrainingActivityAssignmentStatus.STARTING);
+        ReflectionTestUtils.setField(fixture.assignment, "version", 5L);
+        var decision = new AdaptiveTutorDecision(TutorDecisionType.QUESTION, AnswerQuality.GOOD,
+                EvidenceStatus.PARTIAL_EVIDENCE, CoverageStatus.PARTIAL, PedagogicalMove.ASK_FOR_CLARITY,
+                false, List.of(), List.of(), false, "¿Cuál es el caso base?", "QUESTION");
+
+        assertThat(fixture.service.applySuccess(fixture.job.getId(), 4, decision)).isTrue();
+        assertThat(fixture.assignment.getStatus()).isEqualTo(TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
+        verify(fixture.turnRepository).save(any(TrainingActivityTurn.class));
+    }
+
+    @Test
     void br25_terminalDecisionUsesAtomicReportAndSemanticJobInsertion() {
         var fixture = fixture(1, 3, 4);
         fixture.turn.setAnswerText("accepted answer");

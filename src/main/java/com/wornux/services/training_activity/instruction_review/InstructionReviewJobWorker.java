@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import com.wornux.services.training_activity.TrainingTutorJobService;
+import com.wornux.services.training_activity.FinalReportCandidate;
 
 @Component
 public class InstructionReviewJobWorker {
@@ -47,6 +48,11 @@ public class InstructionReviewJobWorker {
     private final Counter tutorTimeoutCounter;
     private final Counter tutorStaleCounter;
     private final Timer tutorModelLatencyTimer;
+    private final Counter reportErrorCounter;
+    private final Counter reportRetryCounter;
+    private final Counter reportTerminalCounter;
+    private final Counter reportStaleCounter;
+    private final Timer reportModelLatencyTimer;
 
     public InstructionReviewJobWorker(AdvisoryInstructionReviewService reviewService, InstructionReviewService reviewEngine,
             TrainingTutorJobService tutorJobService,
@@ -84,6 +90,11 @@ public class InstructionReviewJobWorker {
         this.tutorTimeoutCounter = meterRegistry.counter("training.activity.tutor.timeout");
         this.tutorStaleCounter = meterRegistry.counter("training.activity.tutor.stale");
         this.tutorModelLatencyTimer = meterRegistry.timer("training.activity.tutor.model.latency");
+        this.reportErrorCounter = meterRegistry.counter("training.activity.report.error");
+        this.reportRetryCounter = meterRegistry.counter("training.activity.report.retry");
+        this.reportTerminalCounter = meterRegistry.counter("training.activity.report.terminal");
+        this.reportStaleCounter = meterRegistry.counter("training.activity.report.stale");
+        this.reportModelLatencyTimer = meterRegistry.timer("training.activity.report.model.latency");
         Gauge.builder("training.activity.instruction-review.worker.queue.depth", workerExecutor.getQueue(), java.util.Queue::size)
                 .register(meterRegistry);
         Gauge.builder("training.activity.instruction-review.model.queue.depth", modelExecutor.getQueue(), java.util.Queue::size)
@@ -102,7 +113,10 @@ public class InstructionReviewJobWorker {
         var now = Instant.now();
         var tutorIds = tutorJobService.availableTutorJobIds(now, capacity);
         tutorIds.forEach(id -> submitTutor(id));
-        var reviewCapacity = Math.max(0, capacity - tutorIds.size());
+        var reportCapacity = Math.max(0, capacity - tutorIds.size());
+        var reportIds = tutorJobService.availableFinalReportJobIds(now, reportCapacity);
+        reportIds.forEach(this::submitFinalReport);
+        var reviewCapacity = Math.max(0, reportCapacity - reportIds.size());
         if (reviewCapacity > 0) {
             reviewService.availableJobIds(now, reviewCapacity).forEach(this::submitReview);
         }
@@ -125,6 +139,16 @@ public class InstructionReviewJobWorker {
         catch (RejectedExecutionException exception) {
             saturationCounter.increment();
             LOGGER.warn("tutor worker submission rejected: jobId={}", id);
+        }
+    }
+
+    private void submitFinalReport(java.util.UUID id) {
+        try {
+            workerExecutor.execute(() -> processFinalReport(id));
+        }
+        catch (RejectedExecutionException exception) {
+            saturationCounter.increment();
+            LOGGER.warn("finalReport worker submission rejected: jobId={}", id);
         }
     }
 
@@ -206,6 +230,55 @@ public class InstructionReviewJobWorker {
         }
         else if (outcome.stale()) {
             tutorStaleCounter.increment();
+        }
+    }
+
+    private void processFinalReport(java.util.UUID jobId) {
+        var work = tutorJobService.claimFinalReport(jobId, Instant.now(), Instant.now().plusSeconds(tutorLeaseSeconds));
+        if (work == null) {
+            return;
+        }
+        Future<FinalReportCandidate> modelFuture = null;
+        var latencySample = Timer.start();
+        try {
+            modelFuture = modelExecutor.submit(() -> tutorJobService.callFinalReportModel(work));
+            if (!tutorJobService.applyFinalReportSuccess(work.jobId(), work.ownershipGeneration(),
+                    modelFuture.get(tutorDeadlineMs, TimeUnit.MILLISECONDS))) {
+                reportStaleCounter.increment();
+            }
+        }
+        catch (TimeoutException exception) {
+            if (modelFuture != null) {
+                modelFuture.cancel(true);
+            }
+            recordFinalReportFailure(work, "MODEL_TIMEOUT");
+        }
+        catch (RejectedExecutionException | InterruptedException exception) {
+            if (exception instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            saturationCounter.increment();
+            recordFinalReportFailure(work, "MODEL_UNAVAILABLE");
+        }
+        catch (Exception exception) {
+            recordFinalReportFailure(work, "MODEL_INVALID_OR_UNAVAILABLE");
+        }
+        finally {
+            latencySample.stop(reportModelLatencyTimer);
+        }
+    }
+
+    private void recordFinalReportFailure(TrainingTutorJobService.FinalReportWork work, String failureCode) {
+        reportErrorCounter.increment();
+        var outcome = tutorJobService.applyFinalReportFailure(work.jobId(), work.ownershipGeneration(), failureCode);
+        if (outcome.retryScheduled()) {
+            reportRetryCounter.increment();
+        }
+        else if (outcome.terminal()) {
+            reportTerminalCounter.increment();
+        }
+        else if (outcome.stale()) {
+            reportStaleCounter.increment();
         }
     }
 

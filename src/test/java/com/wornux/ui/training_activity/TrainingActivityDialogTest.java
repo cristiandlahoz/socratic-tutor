@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Div;
 import com.wornux.data.entities.academic.GroupClassMember;
+import com.wornux.data.entities.identity.Account;
+import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.data.entities.training_activity.InstructionQualityStatus;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
@@ -16,6 +18,7 @@ import com.wornux.data.entities.training_activity.instruction_review.Instruction
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingActivityService;
+import com.wornux.services.training_activity.TrainingActivityReportProjectionService;
 import com.wornux.services.training_activity.instruction_review.InstructionLintIssueDto;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewSnapshotDto;
 import com.wornux.ui.conversation.MessageItem;
@@ -189,8 +192,80 @@ class TrainingActivityDialogTest {
         assertThat(statusLabel).isEqualTo("Tutor no disponible temporalmente");
     }
 
+    @Test
+    void uc009_pendingReportShowsNonblockingStateAndCanonicalPersistedTurnCards() {
+        var activity = activity();
+        var assignment = assignment(activity);
+        var projection = new TrainingActivityReportProjectionService.ReportProjection(
+                assignment,
+                com.wornux.data.entities.training_activity.TrainingActivityReportStatus.PENDING,
+                null,
+                "",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                null,
+                List.of(new TrainingActivityReportProjectionService.TurnProjection(
+                        2, "¿Qué sucede en este caso?", "La respuesta completa sin truncar.")));
+
+        var content = (Div) ReflectionTestUtils.invokeMethod(dialog(activity), "reportBody", projection);
+
+        assertThat(findDescendant(content, com.vaadin.flow.component.html.Paragraph.class).getText())
+                .contains("pendiente de generación");
+        var cards = findDescendant(content, TrainingActivityReportCards.class);
+        assertThat(cards.getElement().getProperty("itemsJson"))
+                .contains("¿Qué sucede en este caso?")
+                .contains("La respuesta completa sin truncar.");
+    }
+
+    @Test
+    void uc009_reportRefreshesWhenBackgroundGenerationBecomesReady() {
+        var activity = activity();
+        var assignment = assignment(activity);
+        var reportProjectionService = mock(TrainingActivityReportProjectionService.class);
+        var pending = projection(assignment, com.wornux.data.entities.training_activity.TrainingActivityReportStatus.PENDING);
+        var ready = projection(assignment, com.wornux.data.entities.training_activity.TrainingActivityReportStatus.READY);
+        when(reportProjectionService.getForCurrentReviewer(assignment.getId())).thenReturn(ready);
+        var dialog = dialog(activity, reportProjectionService);
+
+        ReflectionTestUtils.invokeMethod(dialog, "renderReportMode", pending);
+        ReflectionTestUtils.invokeMethod(dialog, "refreshDisplayedReport");
+
+        var panel = (Div) ReflectionTestUtils.getField(dialog, "panel");
+        assertThat(descendants(panel)
+                .filter(com.vaadin.flow.component.html.H4.class::isInstance)
+                .map(component -> ((com.vaadin.flow.component.html.H4) component).getText()))
+                .contains("Síntesis diagnóstica");
+    }
+
+    @Test
+    void uc009_findingReferencesResolveOnlyAgainstAuthoritativeProjectionTurns() {
+        var activity = activity();
+        var assignment = assignment(activity);
+        var projection = new TrainingActivityReportProjectionService.ReportProjection(
+                assignment,
+                com.wornux.data.entities.training_activity.TrainingActivityReportStatus.READY,
+                com.wornux.data.entities.training_activity.EvidenceStatus.WEAK_EVIDENCE,
+                "La evidencia es limitada.",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                null,
+                List.of(new TrainingActivityReportProjectionService.TurnProjection(
+                        3, "Pregunta canónica", "Respuesta canónica")));
+        var finding = new com.wornux.data.entities.training_activity.TrainingActivityReportFinding(
+                "Limitación observada",
+                List.of(new com.wornux.data.entities.training_activity.TrainingActivityReportEvidenceReference(3)));
+
+        var text = (String) ReflectionTestUtils.invokeMethod(dialog(activity), "findingText", finding, projection);
+
+        assertThat(text).contains("Limitación observada").contains("Turno 3").doesNotContain("Respuesta canónica");
+    }
+
     private static TrainingActivityDialog dialog(TrainingActivity activity) {
-        return dialog(activity, null);
+        return dialog(activity, (InstructionReviewSnapshotDto) null);
     }
 
     private static TrainingActivityDialog dialog(TrainingActivity activity, InstructionReviewSnapshotDto reviewSnapshot) {
@@ -215,6 +290,44 @@ class TrainingActivityDialogTest {
                 () -> {});
     }
 
+    private static TrainingActivityDialog dialog(
+            TrainingActivity activity,
+            TrainingActivityReportProjectionService reportProjectionService) {
+        var trainingActivityService = mock(TrainingActivityService.class);
+        var safeBrowserModeService = mock(SafeBrowserModeService.class);
+        when(trainingActivityService.listAssignments(activity.getId())).thenReturn(List.of());
+        when(safeBrowserModeService.listOpenAlerts(activity.getId())).thenReturn(List.of());
+        return new TrainingActivityDialog(
+                activity,
+                trainingActivityService,
+                safeBrowserModeService,
+                new SafeBrowserAssignmentStateBus(),
+                reportProjectionService,
+                _ -> {},
+                () -> {});
+    }
+
+    private static TrainingActivityReportProjectionService.ReportProjection projection(
+            TrainingActivityAssignment assignment,
+            com.wornux.data.entities.training_activity.TrainingActivityReportStatus status) {
+        return new TrainingActivityReportProjectionService.ReportProjection(
+                assignment,
+                status,
+                status == com.wornux.data.entities.training_activity.TrainingActivityReportStatus.READY
+                        ? com.wornux.data.entities.training_activity.EvidenceStatus.STRONG_EVIDENCE
+                        : null,
+                status == com.wornux.data.entities.training_activity.TrainingActivityReportStatus.READY
+                        ? "Síntesis respaldada por evidencia."
+                        : "",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of("Continuar con práctica guiada."),
+                null,
+                List.of(new TrainingActivityReportProjectionService.TurnProjection(
+                        1, "¿Qué observaste?", "Una respuesta completa.")));
+    }
+
     private static TrainingActivity activity() {
         var activity = new TrainingActivity();
         ReflectionTestUtils.setField(activity, "id", UUID.randomUUID());
@@ -231,8 +344,14 @@ class TrainingActivityDialogTest {
     }
 
     private static TrainingActivityAssignment assignment(TrainingActivity activity) {
+        var account = new Account();
+        ReflectionTestUtils.setField(account, "firstName", "Student");
+        ReflectionTestUtils.setField(account, "lastName", "Example");
+        var tenantAccount = new TenantAccount();
+        ReflectionTestUtils.setField(tenantAccount, "account", account);
         var member = new GroupClassMember();
         ReflectionTestUtils.setField(member, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(member, "tenantAccount", tenantAccount);
 
         var assignment = new TrainingActivityAssignment();
         ReflectionTestUtils.setField(assignment, "id", UUID.randomUUID());
