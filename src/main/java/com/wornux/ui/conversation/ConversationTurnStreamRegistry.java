@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import com.vaadin.flow.signals.local.ValueSignal;
+import com.wornux.ai.tools.InterrogateUserTool;
 import com.wornux.dtos.chat.questions.StudentQuestionResponse;
 import com.wornux.dtos.chat.questions.StudentQuestionSet;
 import com.wornux.services.chat.ChatService;
@@ -186,6 +187,21 @@ class ConversationTurnStreamRegistry {
             Instant userCreatedAt,
             Instant responseCreatedAt,
             Throwable exception) {
+        var interactiveRejection = interactiveRejection(exception);
+        if (interactiveRejection != null) {
+            log.info(
+                "interactive_response_rejected turn_id={} conversation_id={}",
+                activeTurn.turnId,
+                activeTurn.conversationId);
+            synchronized (activeTurn) {
+                replaceMessage(
+                    activeTurn,
+                    responseCreatedAt,
+                    message -> message.withContent(interactiveRejection.directResponse()).stopLoading());
+            }
+            finishTurn(activeTurn, false, null);
+            return;
+        }
         logStreamFailure(activeTurn, exception);
         modelAvailabilityService.markOffline();
         if (exception instanceof ChatStreamTimeoutException) {
@@ -203,6 +219,15 @@ class ConversationTurnStreamRegistry {
                 message -> message.fallback("Lo siento, ocurrió un problema al generar la respuesta. Intenta nuevamente."));
         }
         finishTurn(activeTurn, false, null);
+    }
+
+    private InterrogateUserTool.InteractiveResponseRejectedException interactiveRejection(Throwable exception) {
+        for (Throwable cursor = exception; cursor != null; cursor = cursor.getCause()) {
+            if (cursor instanceof InterrogateUserTool.InteractiveResponseRejectedException rejection) {
+                return rejection;
+            }
+        }
+        return null;
     }
 
     private void finishStreamedMessage(ActiveTurn activeTurn, Instant responseCreatedAt, ChatService chatService) {

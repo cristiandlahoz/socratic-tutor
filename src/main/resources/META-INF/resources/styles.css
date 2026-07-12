@@ -1,4 +1,5 @@
 @import url("./styles/fonts.css");
+@import url("./styles/typeset.css");
 @import url("./styles/tokens.css");
 @import url("./styles/theme.css");
 @import url("./styles/utilities.css");
@@ -20,3 +21,23 @@
 @import url("./styles/workspace-view.css");
 @import url("./styles/role-management.css");
 @import url("./styles/responsive.css");
+
+.typeset {
+  --color-foreground: var(--vaadin-text-color);
+  --color-muted: var(--vaadin-background-container-strong);
+  --color-muted-foreground: var(--vaadin-text-color-secondary);
+  --color-border: var(--vaadin-border-color);
+  --color-primary: var(--aura-accent-text-color);
+  --color-ring: var(--vaadin-focus-ring-color);
+}
+
+.typeset-chat {
+  --color-foreground: light-dark(
+    var(--markdown-renderer-text-color, var(--message-prose-color, var(--vaadin-text-color))),
+    #eeeeea
+  );
+  --color-muted-foreground: light-dark(
+    var(--vaadin-text-color-secondary),
+    color-mix(in srgb, #eeeeea 72%, #0b0d0b)
+  );
+}

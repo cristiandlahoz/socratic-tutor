@@ -52,8 +52,8 @@ import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
-import com.wornux.services.email.EmailService;
-import com.wornux.services.email.EmailTemplateService;
+import com.wornux.infrastructure.email.SmtpEmailService;
+import com.wornux.infrastructure.email.ThymeleafEmailTemplateService;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
@@ -548,8 +548,8 @@ class UC006AiInstructionQualityReview {
                 activityRepository,
                 mock(TrainingActivityAssignmentRepository.class),
                 mock(GroupClassMemberRepository.class),
-                mock(EmailService.class),
-                mock(EmailTemplateService.class),
+                mock(SmtpEmailService.class),
+                mock(ThymeleafEmailTemplateService.class),
                 applicationProperties(),
                 contextResolver,
                 new TrainingActivityLaunchedBus(),
@@ -585,8 +585,8 @@ class UC006AiInstructionQualityReview {
                 activityRepository,
                 mock(TrainingActivityAssignmentRepository.class),
                 mock(GroupClassMemberRepository.class),
-                mock(EmailService.class),
-                mock(EmailTemplateService.class),
+                mock(SmtpEmailService.class),
+                mock(ThymeleafEmailTemplateService.class),
                 applicationProperties(),
                 contextResolver,
                 new TrainingActivityLaunchedBus(),
@@ -1166,8 +1166,8 @@ class UC006AiInstructionQualityReview {
                 activityRepository,
                 assignmentRepository,
                 groupClassMemberRepository,
-                mock(EmailService.class),
-                mock(EmailTemplateService.class),
+                mock(SmtpEmailService.class),
+                mock(ThymeleafEmailTemplateService.class),
                 applicationProperties(),
                 contextResolver,
                 new TrainingActivityLaunchedBus(),

@@ -8,6 +8,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.router.Location;
+import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.spring.annotation.RouteScope;
 import com.vaadin.flow.spring.annotation.RouteScopeOwner;
 import com.vaadin.flow.spring.annotation.SpringComponent;
@@ -39,8 +42,6 @@ public class ConversationViewModel implements Serializable {
     private final transient ConversationTitleService conversationTitleService;
     private final transient ThemePreferenceService themePreferenceService;
     private final transient ActiveAcademicContextResolver contextResolver;
-    private final transient ConversationNavigationOrchestrator navigationOrchestrator;
-    private final transient ConversationThemeOrchestrator themeOrchestrator;
     private final transient ConversationTurnOrchestrator turnOrchestrator;
     private final ConversationState state;
 
@@ -51,8 +52,6 @@ public class ConversationViewModel implements Serializable {
             ConversationTitleService conversationTitleService,
             ThemePreferenceService themePreferenceService,
             ActiveAcademicContextResolver contextResolver,
-            ConversationNavigationOrchestrator navigationOrchestrator,
-            ConversationThemeOrchestrator themeOrchestrator,
             @RouteScopeOwner(MainLayout.class) ConversationTurnOrchestrator turnOrchestrator,
             @RouteScopeOwner(MainLayout.class) ConversationState state) {
         this.chatService = chatService;
@@ -61,8 +60,6 @@ public class ConversationViewModel implements Serializable {
         this.conversationTitleService = conversationTitleService;
         this.themePreferenceService = themePreferenceService;
         this.contextResolver = contextResolver;
-        this.navigationOrchestrator = navigationOrchestrator;
-        this.themeOrchestrator = themeOrchestrator;
         this.turnOrchestrator = turnOrchestrator;
         this.state = state;
     }
@@ -85,7 +82,7 @@ public class ConversationViewModel implements Serializable {
 
     public void initializeShellState() {
         ensureThemePreferenceLoaded();
-        themeOrchestrator.applyThemePreference(state.themePreference().peek());
+        applyThemePreference(state.themePreference().peek());
         refreshConversationHistory();
     }
 
@@ -93,12 +90,12 @@ public class ConversationViewModel implements Serializable {
         var resolvedPreference = themePreferenceService.updateThemePreference(preference);
         state.themePreference().set(resolvedPreference);
         state.themePreferenceLoaded().set(true);
-        themeOrchestrator.applyThemePreference(resolvedPreference);
+        applyThemePreference(resolvedPreference);
     }
 
     RouteInitialization initializeFromRoute(String requestedThreadId, boolean refreshEvent) {
         ensureThemePreferenceLoaded();
-        themeOrchestrator.applyThemePreference(state.themePreference().peek());
+        applyThemePreference(state.themePreference().peek());
         state.setupRequired().set(contextResolver.resolveCurrent().isEmpty());
 
         if (refreshEvent && state.responseInProgress().peek()) {
@@ -135,11 +132,12 @@ public class ConversationViewModel implements Serializable {
     }
 
     public void onOpenConversation(UUID conversationId) {
-        navigationOrchestrator.openConversation(conversationId);
+        UI.getCurrent().navigate(ConversationView.class,
+            new RouteParameters(ConversationView.THREAD_ROUTE_PARAMETER, toPublicThreadId(conversationId)));
     }
 
     public void onStartNewConversation() {
-        navigationOrchestrator.openNewConversation();
+        UI.getCurrent().navigate(ConversationView.class);
     }
 
     public boolean onSubmitPrompt() {
@@ -242,9 +240,24 @@ public class ConversationViewModel implements Serializable {
         state.activeConversationId().set(conversation.id());
         state.clearUsage();
         state.clearCompactionStatus();
-        navigationOrchestrator.synchronizeAddressBar(state.activeConversationId().peek());
+        UI.getCurrent().getPage().getHistory().replaceState(null,
+            new Location(ConversationView.ROUTE + "/" + toPublicThreadId(state.activeConversationId().peek())));
         refreshConversationHistory();
         return new EnsuredConversation(state.activeConversationId().peek(), true, conversation.title());
+    }
+
+    private static void applyThemePreference(ThemePreference preference) {
+        var ui = UI.getCurrent();
+        if (ui == null) {
+            return;
+        }
+
+        var storageValue = (preference == null ? ThemePreference.SYSTEM : preference).storageValue();
+        ui.getElement().setAttribute("data-theme-preference", storageValue);
+        ui.getPage().executeJs("""
+                               document.documentElement.setAttribute('data-theme-preference', $0);
+                               document.body?.setAttribute('data-theme-preference', $0);
+                               """, storageValue);
     }
 
     static String toPublicThreadId(UUID conversationId) {

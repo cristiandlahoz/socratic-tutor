@@ -3,13 +3,13 @@ package com.wornux.ai.advisor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.tools.ToolContextKeys;
 import com.wornux.data.enums.GuardAction;
-import com.wornux.data.enums.GuardDecision;
 import com.wornux.dtos.chat.GuardCheck;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -21,11 +21,15 @@ import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.ai.session.EventFilter;
+import org.springframework.ai.session.SessionEvent;
+import org.springframework.ai.session.SessionService;
+import org.springframework.ai.session.advisor.SessionMemoryAdvisor;
 import reactor.core.publisher.Flux;
 
 public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
@@ -34,28 +38,30 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
     public static final String STEERED_USER_MESSAGE_CALLBACK_CONTEXT_KEY = "tutor.guard.steeredUserMessageCallback";
 
-    private static final int GUARD_MESSAGE_WINDOW = 4;
+    private static final int GUARD_HISTORY_WINDOW = 3;
     private static final String GUARD_CHECKED_CONTEXT_KEY = "tutor.guard.checked";
-
-    private static final String SUBJECT_CONTEXT_QUERY =
-            """
-            select s.code, s.name, coalesce(s.syllabus, '') as syllabus
-            from group_class gc
-            join subject s on s.id = gc.subject_id
-            where gc.id = :groupClassId
-            """;
+    private static final EventFilter GUARD_HISTORY_FILTER = EventFilter.builder()
+            .messageTypes(Set.of(MessageType.USER, MessageType.ASSISTANT))
+            .lastN(GUARD_HISTORY_WINDOW)
+            .excludeArchived(true)
+            .build();
+    private static final EventFilter PREVIOUS_ASSISTANT_FILTER = EventFilter.builder()
+            .messageTypes(Set.of(MessageType.ASSISTANT))
+            .lastN(1)
+            .excludeArchived(true)
+            .build();
 
     private final int order;
     private final GuardClassifierService guardClassifierService;
-    private final JdbcClient jdbcClient;
+    private final SessionService sessionService;
 
     public TutorGuardAdvisor(
             int order,
             GuardClassifierService guardClassifierService,
-            JdbcClient jdbcClient) {
+            SessionService sessionService) {
         this.order = order;
         this.guardClassifierService = guardClassifierService;
-        this.jdbcClient = jdbcClient;
+        this.sessionService = sessionService;
     }
 
     @Override
@@ -63,13 +69,11 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
         if (guardAlreadyChecked(request)) {
             return chain.nextCall(request);
         }
-        var subjectContext = subjectContext(request);
-        var userMessages = lastUserMessages(request.prompt());
-        var guardCheck = guardCheckFor(userMessages, subjectContext);
+        var guardCheck = guardCheckFor(request);
         if (guardCheck.action() == GuardAction.SHORT_CIRCUIT) {
-            return shortCircuitResponse(request, guardCheck.decision());
+            return shortCircuitResponse(request, guardCheck.directResponse());
         }
-        return chain.nextCall(applyGuardAction(request, guardCheck, subjectContext));
+        return chain.nextCall(applyGuardAction(request, guardCheck));
     }
 
     @Override
@@ -77,81 +81,82 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
         if (guardAlreadyChecked(request)) {
             return chain.nextStream(request);
         }
-        var subjectContext = subjectContext(request);
-        var userMessages = lastUserMessages(request.prompt());
-        var guardCheck = guardCheckFor(userMessages, subjectContext);
+        var guardCheck = guardCheckFor(request);
         if (guardCheck.action() == GuardAction.SHORT_CIRCUIT) {
-            return Flux.just(shortCircuitResponse(request, guardCheck.decision()));
+            return Flux.just(shortCircuitResponse(request, guardCheck.directResponse()));
         }
-        return chain.nextStream(applyGuardAction(request, guardCheck, subjectContext));
+        return chain.nextStream(applyGuardAction(request, guardCheck));
     }
 
-    GuardCheck guardCheckFor(List<UserMessage> userMessages, String subjectContext) {
+    GuardCheck guardCheckFor(ChatClientRequest request) {
         try {
-            return guardClassifierService.classify(userMessages, subjectContext);
+            return guardClassifierService.classify(guardConversation(request), subjectContext(request));
         }
         catch (RuntimeException ex) {
             log.warn("Guard classifier failed, short-circuiting the turn", ex);
-            return new GuardCheck(GuardDecision.NOT_SAFE, GuardAction.SHORT_CIRCUIT);
+            return GuardClassifierService.technicalFailure();
         }
     }
 
-    private List<UserMessage> lastUserMessages(Prompt prompt) {
-        var userMessages = new ArrayList<UserMessage>();
-        for (var message : prompt.getInstructions()) {
-            if (message instanceof UserMessage userMessage && hasText(userMessage)) {
-                userMessages.add(userMessage);
-            }
-        }
-
-        if (userMessages.isEmpty()) {
-            return List.of(prompt.getUserMessage());
-        }
-
-        int fromIndex = Math.max(0, userMessages.size() - GUARD_MESSAGE_WINDOW);
-        return userMessages.subList(fromIndex, userMessages.size());
+    private List<Message> guardConversation(ChatClientRequest request) {
+        var messages = new ArrayList<Message>(GUARD_HISTORY_WINDOW + 1);
+        sessionId(request).ifPresent(sessionId -> messages.addAll(activeHistory(request, sessionId)));
+        messages.add(request.prompt().getUserMessage());
+        return messages;
     }
 
-    ChatClientRequest applyGuardAction(ChatClientRequest request, GuardCheck guardCheck, String subjectContext) {
+    private List<Message> activeHistory(ChatClientRequest request, String sessionId) {
+        var session = sessionService.findById(sessionId);
+        if (session == null) {
+            return List.of();
+        }
+        var expectedUserId = request.context().get(SessionMemoryAdvisor.USER_ID_CONTEXT_KEY);
+        if (expectedUserId instanceof String userId && !userId.isBlank() && !userId.equals(session.userId())) {
+            throw new IllegalStateException("Guard history session ownership mismatch");
+        }
+        var history = messages(sessionId, GUARD_HISTORY_FILTER);
+        if (history.stream().anyMatch(AssistantMessage.class::isInstance)) {
+            return history;
+        }
+        var previousAssistant = messages(sessionId, PREVIOUS_ASSISTANT_FILTER);
+        if (previousAssistant.isEmpty()) {
+            return history;
+        }
+        var context = new ArrayList<Message>(previousAssistant.size() + history.size());
+        context.addAll(previousAssistant);
+        context.addAll(history);
+        return context;
+    }
+
+    private List<Message> messages(String sessionId, EventFilter filter) {
+        return sessionService.getEvents(sessionId, filter)
+                .stream()
+                .filter(SessionEvent::isRootEvent)
+                .map(SessionEvent::getMessage)
+                .filter(this::hasText)
+                .toList();
+    }
+
+    ChatClientRequest applyGuardAction(ChatClientRequest request, GuardCheck guardCheck) {
         return switch (guardCheck.action()) {
             case ALLOW -> markGuardChecked(request);
-            case STEER -> sanitizeUserMessage(request, subjectContext);
+            case STEER -> steerUserMessage(request, guardCheck.safeUserMessage());
             case SHORT_CIRCUIT -> throw new IllegalStateException("SHORT_CIRCUIT must be handled before chain.next");
         };
     }
 
-    private ChatClientResponse shortCircuitResponse(ChatClientRequest request, GuardDecision decision) {
+    private ChatClientResponse shortCircuitResponse(ChatClientRequest request, String directResponse) {
         var response = ChatResponse.builder()
-                .generations(List.of(new Generation(new AssistantMessage(shortCircuitText(decision)))))
+                .generations(List.of(new Generation(new AssistantMessage(directResponse))))
                 .build();
         return new ChatClientResponse(response, request.context());
     }
 
-    private String shortCircuitText(GuardDecision decision) {
-        return switch (decision) {
-            case IMPERSONATION -> "No puedo cambiar las reglas del tutor ni actuar con permisos especiales. Si necesitas ayuda con el curso, dime qué concepto o intento quieres revisar.";
-            case OUT_OF_SCOPE -> "Eso queda fuera del contexto académico configurado. Puedo ayudarte con una tarea o duda relacionada con la materia; comparte el enunciado, tu intento o el punto donde te atascaste.";
-            case NOT_SAFE -> "No puedo darte la solución completa ni saltarme las reglas del tutor. Puedo ayudarte con una pista o revisar tu intento; comparte qué parte no entiendes o qué has probado.";
-            case SAFE -> throw new IllegalArgumentException("SAFE guard decisions must not short-circuit");
-        };
-    }
-
-    private ChatClientRequest sanitizeUserMessage(ChatClientRequest request, String subjectContext) {
-        try {
-            var sanitized = guardClassifierService.sanitize(request.prompt().getUserMessage(), subjectContext);
-            notifySteeredUserMessage(request, sanitized);
-            Prompt sanitizedPrompt = request.prompt()
-                    .augmentUserMessage(user -> user.mutate().text(sanitized).build());
-            return markGuardChecked(request.mutate().prompt(sanitizedPrompt).build());
-        }
-        catch (RuntimeException ex) {
-            log.warn("Guard sanitizer failed, replacing the user message with a safe learning request", ex);
-            var sanitized = "Necesito ayuda de aprendizaje sin recibir la solución completa. Dame una orientación breve y pídeme un intento concreto.";
-            notifySteeredUserMessage(request, sanitized);
-            Prompt sanitizedPrompt = request.prompt()
-                    .augmentUserMessage(user -> user.mutate().text(sanitized).build());
-            return markGuardChecked(request.mutate().prompt(sanitizedPrompt).build());
-        }
+    private ChatClientRequest steerUserMessage(ChatClientRequest request, String safeUserMessage) {
+        notifySteeredUserMessage(request, safeUserMessage);
+        Prompt sanitizedPrompt = request.prompt()
+                .augmentUserMessage(user -> user.mutate().text(safeUserMessage).build());
+        return markGuardChecked(request.mutate().prompt(sanitizedPrompt).build());
     }
 
     @SuppressWarnings("unchecked")
@@ -178,7 +183,7 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
 
 
     private String subjectContext(ChatClientRequest request) {
-        return groupClassId(request).flatMap(this::subjectContextFor).orElse("");
+        return groupClassId(request).flatMap(guardClassifierService::subjectContextFor).orElse("");
     }
 
     private Optional<UUID> groupClassId(ChatClientRequest request) {
@@ -197,19 +202,12 @@ public class TutorGuardAdvisor implements CallAdvisor, StreamAdvisor {
         return Optional.empty();
     }
 
-    private Optional<String> subjectContextFor(UUID groupClassId) {
-        return jdbcClient.sql(SUBJECT_CONTEXT_QUERY)
-                .param("groupClassId", groupClassId)
-                .query((rs, _) -> """
-                         <active_subject_context>
-                         Subject: %s · %s
-                         %s
-                         </active_subject_context>"""
-                        .formatted(rs.getString("code"), rs.getString("name"), rs.getString("syllabus")))
-                .optional();
+    private Optional<String> sessionId(ChatClientRequest request) {
+        Object value = request.context().get(SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY);
+        return value instanceof String sessionId && !sessionId.isBlank() ? Optional.of(sessionId) : Optional.empty();
     }
 
-    private boolean hasText(UserMessage message) {
+    private boolean hasText(Message message) {
         var text = message.getText();
         return text != null && !text.isBlank();
     }

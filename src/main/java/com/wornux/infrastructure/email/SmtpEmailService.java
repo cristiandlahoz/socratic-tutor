@@ -3,7 +3,6 @@ package com.wornux.infrastructure.email;
 import com.wornux.config.ApplicationProperties;
 import com.wornux.services.email.EmailMessage;
 import com.wornux.services.email.EmailSendException;
-import com.wornux.services.email.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -11,7 +10,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
-public class SmtpEmailService implements EmailService {
+public class SmtpEmailService {
 
     private final JavaMailSender mailSender;
     private final ApplicationProperties.Email emailProperties;
@@ -21,7 +20,6 @@ public class SmtpEmailService implements EmailService {
         this.emailProperties = emailProperties;
     }
 
-    @Override
     public void send(EmailMessage message) {
         try {
             var mimeMessage = mailSender.createMimeMessage();

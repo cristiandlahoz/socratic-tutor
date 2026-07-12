@@ -6,6 +6,7 @@ import com.wornux.ai.advisor.UsageBasedCompactionAdvisor;
 import com.wornux.ai.guard.GuardClassifierService;
 import com.wornux.ai.prompt.PromptResources;
 import com.wornux.ai.session.TokenBudgetRecursiveSummarizationCompactionStrategy;
+import com.wornux.ai.tools.InterrogateUserTool;
 import com.wornux.ai.tools.RetrieveInformationTool;
 import com.wornux.services.chat.ChatSessionActivity;
 import com.wornux.services.chat.ChatSessionActivityBus;
@@ -24,6 +25,7 @@ import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.ai.tool.execution.ToolExecutionExceptionProcessor;
 
 @Configuration
 public class AIConfig {
@@ -65,7 +67,7 @@ public class AIConfig {
         var dynamicContextManagementAdvisor =
                 new DynamicContextManagementAdvisor(sessionMemoryAdvisor.getOrder() + 1, jdbcClient);
         var tutorGuardAdvisor =
-                new TutorGuardAdvisor(sessionMemoryAdvisor.getOrder() - 2, guardClassifierService, jdbcClient);
+                new TutorGuardAdvisor(sessionMemoryAdvisor.getOrder() - 2, guardClassifierService, sessionService);
 
         return builder.defaultSystem(promptResources.baseIdentitySystemResource())
                 .defaultOptions(OpenAiChatOptions.builder().temperature(0.6).topP(0.95).topK(20))
@@ -76,6 +78,11 @@ public class AIConfig {
                     dynamicContextManagementAdvisor)
                 .defaultTools(retrieveInformationTool)
                 .build();
+    }
+
+    @Bean
+    ToolExecutionExceptionProcessor tutorToolExceptionProcessor() {
+        return InterrogateUserTool.toolExceptionProcessor();
     }
 
     private CompactionStrategy loggingCompactionStrategy(

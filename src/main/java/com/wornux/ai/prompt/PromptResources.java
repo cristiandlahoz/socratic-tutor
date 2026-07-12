@@ -15,11 +15,7 @@ import org.springframework.util.StreamUtils;
 public class PromptResources {
 
     private static final String BASE_IDENTITY_SYSTEM = "classpath:/prompt/tutor/base-identity-system.st";
-    private static final String GUARD_NOT_SAFE = "classpath:/prompt/tutor/guardrail/guard-not-safe.st";
-    private static final String GUARD_IMPERSONATION = "classpath:/prompt/tutor/guardrail/guard-impersonation.st";
-    private static final String GUARD_OUT_OF_SCOPE = "classpath:/prompt/tutor/guardrail/guard-out-of-scope.st";
     private static final String GUARD_CLASSIFIER = "classpath:/prompt/tutor/guardrail/guard-classifier.st";
-    private static final String GUARD_SANITIZER = "classpath:/prompt/tutor/guardrail/guard-sanitizer.st";
     private static final String COMPACTION_SYSTEM = "classpath:/prompt/compaction/system.st";
     private static final String COMPACTION_USER = "classpath:/prompt/compaction/user.st";
     private static final String ADAPTIVE_TUTOR_SYSTEM = "classpath:/prompt/training_activity/adaptive-tutor-system.st";
@@ -47,24 +43,8 @@ public class PromptResources {
         return resource(BASE_IDENTITY_SYSTEM);
     }
 
-    public String guardNotSafe() {
-        return load(GUARD_NOT_SAFE);
-    }
-
-    public String guardImpersonation() {
-        return load(GUARD_IMPERSONATION);
-    }
-
-    public String guardOutOfScope() {
-        return load(GUARD_OUT_OF_SCOPE);
-    }
-
     public String guardClassifier() {
         return load(GUARD_CLASSIFIER);
-    }
-
-    public String guardSanitizer() {
-        return load(GUARD_SANITIZER);
     }
 
     public String compactionSystem() {
