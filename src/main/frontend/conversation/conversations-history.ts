@@ -356,9 +356,6 @@ class ConversationsHistory extends LitElement {
         width-aware-label.conversations-history-item-title {
           min-width: 0;
           display: block;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
           color: var(--vaadin-text-color-secondary);
           font-family: var(--aura-font-family);
           font-size: var(--aura-font-size-m);
