@@ -265,7 +265,7 @@ class CDebuggerPanel extends LitElement {
       <div class="c-runner-terminal-card">
         <span class="c-runner-terminal-title">Terminal</span>
         <div class="c-runner-terminal-body">
-          <div class="c-runner-stdin-label">
+          <div class="c-runner-terminal-label c-runner-stdin-label">
             <span>stdin</span>
             <button
               id="stdin-help"
@@ -277,7 +277,6 @@ class CDebuggerPanel extends LitElement {
             </button>
           </div>
           <vaadin-text-area
-            id="stdin-field"
             class="c-runner-stdin"
             accessible-name="stdin"
             placeholder=${`Ej: '42' "hola mundo"`}
