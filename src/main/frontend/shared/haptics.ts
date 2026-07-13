@@ -39,14 +39,15 @@ document.addEventListener('click', (event) => {
   if (target.closest?.('.c-runner-control-button')) {
     play('press');
   }
-  else if (target.closest?.('.conversation-view__debugger-toggle, .c-runner-panel-toggle')) {
-    play('whisper');
-  }
   else if (target.closest?.([
-    '.sidebar-actions__item-link',
+    '.conversation-view__debugger-toggle',
+    '.c-runner-panel-toggle',
     '.shell-drawer-toggle',
     '.shell-drawer-toggle-inside',
   ].join(', '))) {
+    play('whisper');
+  }
+  else if (target.closest?.('.sidebar-actions__item-link')) {
     haptic('toggle');
   }
 });

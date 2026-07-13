@@ -43,6 +43,9 @@ public final class UiCss {
     public static final CssClass PROFILE_DRAWER_CARD_CONTEXT_SUMMARY = css("profile-drawer-card__context-summary");
     public static final CssClass PROFILE_DRAWER_CARD_CONTEXT_VALUE = css("profile-drawer-card__context-value");
     public static final CssClass PROFILE_DRAWER_CARD_EMAIL = css("profile-drawer-card__email");
+    public static final CssClass PROFILE_DRAWER_CARD_FONT_SIZE = css("profile-drawer-card__font-size");
+    public static final CssClass PROFILE_DRAWER_CARD_FONT_SIZE_MARKS = css("profile-drawer-card__font-size-marks");
+    public static final CssClass PROFILE_DRAWER_CARD_FONT_SIZE_SLIDER = css("profile-drawer-card__font-size-slider");
     public static final CssClass PROFILE_DRAWER_CARD_HEADER = css("profile-drawer-card__header");
     public static final CssClass PROFILE_DRAWER_CARD_HEADER_CONTENT = css("profile-drawer-card__header-content");
     public static final CssClass PROFILE_DRAWER_CARD_IDENTITY = css("profile-drawer-card__identity");

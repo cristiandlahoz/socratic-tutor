@@ -19,7 +19,7 @@
         <java.version>25</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
 
-        <vaadin.version>25.1.0</vaadin.version>
+        <vaadin.version>25.2.0</vaadin.version>
         <spring-ai.version>2.0.0</spring-ai.version>
         <spring-ai-session.version>0.6.0-SNAPSHOT</spring-ai-session.version>
         <lombok.version>1.18.38</lombok.version>

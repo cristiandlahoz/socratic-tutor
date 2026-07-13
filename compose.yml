@@ -22,13 +22,13 @@ services:
       - "${DOCLING_PORT:-5001}:5001"
   app:
     profiles:
-      - app
+      - prod
     build:
       context: .
       dockerfile: ops/docker/app/Dockerfile
     environment:
       - "PORT=6543"
-      - "SPRING_PROFILES_ACTIVE=dev"
+      - "SPRING_PROFILES_ACTIVE=prod"
       - "SPRING_DOCKER_COMPOSE_LIFECYCLE_MANAGEMENT=none"
       - "DATABASE_URL=jdbc:postgresql://postgres:5432/socratic-tutor"
       - "DATABASE_USERNAME=postgres"

@@ -9,6 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "account")
@@ -33,6 +35,10 @@ public class Account {
 
     @Column(nullable = false)
     private boolean locked;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "ui_preferences", nullable = false, columnDefinition = "jsonb")
+    private AccountUiPreferences uiPreferences = new AccountUiPreferences();
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

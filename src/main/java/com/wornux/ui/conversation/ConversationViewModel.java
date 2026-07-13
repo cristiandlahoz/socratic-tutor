@@ -83,7 +83,16 @@ public class ConversationViewModel implements Serializable {
     public void initializeShellState() {
         ensureThemePreferenceLoaded();
         applyThemePreference(state.themePreference().peek());
+        applyBaseFontSize(themePreferenceService.getBaseFontSize());
         refreshConversationHistory();
+    }
+
+    public int baseFontSize() {
+        return themePreferenceService.getBaseFontSize();
+    }
+
+    public void onBaseFontSizeChanged(int value) {
+        applyBaseFontSize(themePreferenceService.updateBaseFontSize(value));
     }
 
     public void onThemePreferenceChanged(ThemePreference preference) {
@@ -244,6 +253,15 @@ public class ConversationViewModel implements Serializable {
             new Location(ConversationView.ROUTE + "/" + toPublicThreadId(state.activeConversationId().peek())));
         refreshConversationHistory();
         return new EnsuredConversation(state.activeConversationId().peek(), true, conversation.title());
+    }
+
+    private static void applyBaseFontSize(int value) {
+        var ui = UI.getCurrent();
+        if (ui != null) {
+            ui.getPage().executeJs(
+                    "document.documentElement.style.setProperty('--aura-base-font-size', $0)",
+                    Integer.toString(value));
+        }
     }
 
     private static void applyThemePreference(ThemePreference preference) {

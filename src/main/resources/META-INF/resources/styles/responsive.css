@@ -56,10 +56,6 @@
     font-size: var(--aura-font-size-xl);
   }
 
-  .conversation-empty__title {
-    font-size: clamp(2.5rem, 12vw, 3.5rem);
-  }
-
   .conversation-empty__layout {
     align-items: flex-start;
     flex-direction: column;

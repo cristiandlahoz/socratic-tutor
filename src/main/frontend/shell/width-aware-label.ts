@@ -13,6 +13,9 @@ class WidthAwareLabel extends HTMLElement {
   }
 
   connectedCallback(): void {
+    this.style.whiteSpace = 'nowrap';
+    this.style.overflow = 'hidden';
+    this.style.maskImage = 'linear-gradient(to right, black 70%, transparent)';
     this.applyText();
   }
 
