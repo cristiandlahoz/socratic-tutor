@@ -1,4 +1,3 @@
-import './braille-spinner.js';
 import './markdown-renderer.js';
 import { ensureDocumentStyle } from 'Frontend/shared/dom-utils.js';
 import { LitElement, html } from 'lit';
@@ -85,19 +84,13 @@ function ensureMessageItemStyles(): void {
       min-width: 0;
     }
 
-    message-item[loading] braille-spinner {
-      --thinking-spinner-size: clamp(0.75rem, 1vw, 0.975rem);
-      --thinking-spinner-weight: 400;
-      --thinking-spinner-color: var(--aura-accent-text-color);
-      --thinking-spinner-accent-color: var(--aura-red);
-
-      display: inline-block;
-      min-width: 2ch;
-      white-space: pre;
+    message-item[loading] solving-orb {
+      display: block;
+      flex: none;
     }
 
     message-item[loading] .message-item__loading-label {
-      color: var(--vaadin-text-color-secondary);
+      color: var(--aura-neutral);
       font-family: var(--aura-font-family);
       font-size: var(--aura-font-size-s);
       font-weight: var(--aura-font-weight-medium);
@@ -212,7 +205,7 @@ class MessageItem extends LitElement {
     if (this.loading) {
       return html`
         <span class="message-item__loading">
-          <braille-spinner .spinner=${this.thinkingSpinner}></braille-spinner>
+          <solving-orb></solving-orb>
           <span class="message-item__loading-label">${resolveLoadingLabel(this.loadingLabel)}</span>
         </span>
       `;

@@ -24,11 +24,14 @@ import com.wornux.services.chat.ChatSessionActivityBus;
 import com.wornux.services.chat.ChatStreamTimeoutException;
 import com.wornux.services.chat.ConversationTitleService;
 import com.wornux.services.chat.ConversationService;
+import com.wornux.services.chat.DevChatResponseStream;
 import com.wornux.services.chat.ModelAvailabilityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -40,14 +43,17 @@ class ConversationTurnStreamRegistry {
 
     private final ChatSessionActivityBus activityBus;
     private final ModelAvailabilityService modelAvailabilityService;
+    private final ObjectProvider<DevChatResponseStream> devResponseProvider;
     private final Map<UUID, ActiveTurn> activeTurns = new ConcurrentHashMap<>();
     private final Map<UUID, CopyOnWriteArrayList<Consumer<TurnSnapshot>>> subscribers = new ConcurrentHashMap<>();
 
     ConversationTurnStreamRegistry(
             ChatSessionActivityBus activityBus,
-            ModelAvailabilityService modelAvailabilityService) {
+            ModelAvailabilityService modelAvailabilityService,
+            ObjectProvider<DevChatResponseStream> devResponseProvider) {
         this.activityBus = activityBus;
         this.modelAvailabilityService = modelAvailabilityService;
+        this.devResponseProvider = devResponseProvider;
     }
 
     AutoCloseable subscribe(UUID conversationId, Consumer<TurnSnapshot> listener) {
@@ -77,7 +83,11 @@ class ConversationTurnStreamRegistry {
         }
 
         activeTurn.messages.addAll(context.state().messages().peek().stream().map(ValueSignal::peek).toList());
-        generateTitleForNewConversation(context, conversationService, conversationTitleService, refreshConversationHistory);
+        var devResponse = context.state().devResponseEnabled().peek() ? devResponseProvider.getIfAvailable() : null;
+        var modelResponse = devResponse == null;
+        if (modelResponse) {
+            generateTitleForNewConversation(context, conversationService, conversationTitleService, refreshConversationHistory);
+        }
         markTurnAsGenerating(activeTurn);
 
         var userMessage = MessageState.user(context.prompt(), Instant.now());
@@ -88,20 +98,28 @@ class ConversationTurnStreamRegistry {
         }
         activeTurn.broadcast(false, null);
 
-        var firstTokenReceived = new AtomicBoolean(false);
-        activeTurn.stream = chatService
-                .chatStream(
+        Flux<String> responseStream = modelResponse
+                ? chatService.chatStream(
                     context.turnId(),
                     context.prompt(),
                     context.conversationId(),
                     activeTurn::ask,
                     sanitized -> replaceUserMessage(activeTurn, userMessage.createdAt(), sanitized))
+                : devResponse.stream();
+        var firstTokenReceived = new AtomicBoolean(false);
+        activeTurn.stream = responseStream
                 .subscribeOn(Schedulers.boundedElastic())
                 .contextCapture()
                 .subscribe(
-                    token -> appendAssistantToken(activeTurn, firstTokenReceived, responseMessage.createdAt(), token),
-                    exception -> handleStreamFailure(activeTurn, userMessage.createdAt(), responseMessage.createdAt(), exception),
-                    () -> finishStreamedMessage(activeTurn, responseMessage.createdAt(), chatService));
+                    token -> appendAssistantToken(
+                        activeTurn, firstTokenReceived, responseMessage.createdAt(), token, modelResponse),
+                    exception -> handleStreamFailure(
+                        activeTurn,
+                        userMessage.createdAt(),
+                        responseMessage.createdAt(),
+                        exception,
+                        modelResponse),
+                    () -> finishStreamedMessage(activeTurn, responseMessage.createdAt(), chatService, modelResponse));
         return true;
     }
 
@@ -171,12 +189,15 @@ class ConversationTurnStreamRegistry {
             ActiveTurn activeTurn,
             AtomicBoolean firstTokenReceived,
             Instant responseCreatedAt,
-            String token) {
+            String token,
+            boolean modelResponse) {
         synchronized (activeTurn) {
             if (firstTokenReceived.compareAndSet(false, true)) {
                 replaceMessage(activeTurn, responseCreatedAt, message -> message.stopLoading());
             }
-            modelAvailabilityService.markConnected();
+            if (modelResponse) {
+                modelAvailabilityService.markConnected();
+            }
             replaceMessage(activeTurn, responseCreatedAt, message -> message.append(token));
         }
         activeTurn.broadcast(false, null);
@@ -186,7 +207,8 @@ class ConversationTurnStreamRegistry {
             ActiveTurn activeTurn,
             Instant userCreatedAt,
             Instant responseCreatedAt,
-            Throwable exception) {
+            Throwable exception,
+            boolean modelResponse) {
         var interactiveRejection = interactiveRejection(exception);
         if (interactiveRejection != null) {
             log.info(
@@ -203,7 +225,9 @@ class ConversationTurnStreamRegistry {
             return;
         }
         logStreamFailure(activeTurn, exception);
-        modelAvailabilityService.markOffline();
+        if (modelResponse) {
+            modelAvailabilityService.markOffline();
+        }
         if (exception instanceof ChatStreamTimeoutException) {
             synchronized (activeTurn) {
                 activeTurn.messages.removeIf(message -> message.createdAt().equals(userCreatedAt)
@@ -230,9 +254,17 @@ class ConversationTurnStreamRegistry {
         return null;
     }
 
-    private void finishStreamedMessage(ActiveTurn activeTurn, Instant responseCreatedAt, ChatService chatService) {
+    private void finishStreamedMessage(
+            ActiveTurn activeTurn,
+            Instant responseCreatedAt,
+            ChatService chatService,
+            boolean modelResponse) {
         synchronized (activeTurn) {
             replaceMessage(activeTurn, responseCreatedAt, MessageState::stopLoading);
+        }
+        if (!modelResponse) {
+            finishTurn(activeTurn, false, null);
+            return;
         }
         modelAvailabilityService.markConnected();
         activeTurn.stream = Mono.fromRunnable(() -> chatService.finalizeTurn(activeTurn.turnId, activeTurn.conversationId))

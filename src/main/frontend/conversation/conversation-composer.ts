@@ -28,6 +28,8 @@ class ConversationComposer extends LitElement {
     composerEnabled: { type: Boolean, attribute: 'composer-enabled' },
     sendAvailable: { type: Boolean, attribute: 'send-available' },
     modelStatus: { type: String, attribute: 'model-status' },
+    devResponseAvailable: { type: Boolean, attribute: 'dev-response-available' },
+    devResponseEnabled: { type: Boolean, attribute: 'dev-response-enabled' },
     usageInputTokens: { type: Number, attribute: 'usage-input-tokens' },
     usagePercent: { type: Number, attribute: 'usage-percent' },
     conversationCompacted: { type: Boolean, attribute: 'conversation-compacted' },
@@ -42,6 +44,8 @@ class ConversationComposer extends LitElement {
   declare composerEnabled: boolean;
   declare sendAvailable: boolean;
   declare modelStatus: ModelStatus;
+  declare devResponseAvailable: boolean;
+  declare devResponseEnabled: boolean;
   declare usageInputTokens: number;
   declare usagePercent: number;
   declare conversationCompacted: boolean;
@@ -57,6 +61,8 @@ class ConversationComposer extends LitElement {
     this.composerEnabled = true;
     this.sendAvailable = false;
     this.modelStatus = 'checking';
+    this.devResponseAvailable = false;
+    this.devResponseEnabled = false;
     this.usageInputTokens = -1;
     this.usagePercent = -1;
     this.conversationCompacted = false;
@@ -97,7 +103,10 @@ class ConversationComposer extends LitElement {
         ></textarea>
       </div>
       <span class="conversation-composer__helper" aria-live="polite">${this.helperText()}</span>
-      <span class=${this.modelStatusClass()} aria-live="polite">${this.modelStatusLabel()}</span>
+      <div class="conversation-composer__status-group">
+        <span class=${this.modelStatusClass()} aria-live="polite">${this.modelStatusLabel()}</span>
+        ${this.renderDevResponseToggle()}
+      </div>
       ${this.renderUsage()}
       <span class="conversation-composer__prompt-prefix" aria-hidden="true">~</span>
       ${this.renderSendControl()}
@@ -263,6 +272,38 @@ class ConversationComposer extends LitElement {
     `;
   }
 
+  private renderDevResponseToggle() {
+    if (!this.devResponseAvailable) {
+      return null;
+    }
+
+    const label = this.devResponseEnabled ? 'Desactivar modo de prueba' : 'Activar modo de prueba';
+    return html`
+      <button
+        class="conversation-composer__test-toggle"
+        type="button"
+        title=${label}
+        aria-label=${label}
+        aria-pressed=${this.devResponseEnabled}
+        ?disabled=${this.busy()}
+        @click=${this.toggleDevResponse}
+      >
+        <vaadin-icon src="/icons/test-mode.svg" aria-hidden="true"></vaadin-icon>
+      </button>
+    `;
+  }
+
+  private readonly toggleDevResponse = (): void => {
+    const enabled = !this.devResponseEnabled;
+    this.devResponseEnabled = enabled;
+    haptic('toggle');
+    this.dispatchEvent(new CustomEvent('toggle-dev-response', {
+      detail: { enabled },
+      bubbles: true,
+      composed: true,
+    }));
+  };
+
   private usageVisible(): boolean {
     return (this.usageInputTokens >= 0 && this.usagePercent >= 0) || this.conversationCompacted;
   }
@@ -298,6 +339,9 @@ class ConversationComposer extends LitElement {
   }
 
   private modelStatusLabel(): string {
+    if (this.devResponseEnabled) {
+      return 'Modo de prueba';
+    }
     switch (this.modelStatus) {
       case 'connected':
         return 'Connected';
@@ -310,7 +354,7 @@ class ConversationComposer extends LitElement {
   }
 
   private modelStatusClass(): string {
-    return `conversation-composer__model-status is-${this.modelStatus}`;
+    return `conversation-composer__model-status is-${this.devResponseEnabled ? 'test' : this.modelStatus}`;
   }
 }
 

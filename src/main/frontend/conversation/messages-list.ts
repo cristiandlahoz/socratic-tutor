@@ -1,11 +1,458 @@
 import './message-item.js';
 import { normalizeArrayProperty } from 'Frontend/shared/dom-utils.js';
 import { haptic } from 'Frontend/shared/haptics.js';
-import { LitElement, html } from 'lit';
+import { LitElement, css, html } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import type { BrailleSpinnerName } from './braille-spinners.js';
 
 type MessageVariant = 'user' | 'assistant';
+
+/*
+ * The thinking and solving orbs below are adapted from thinking-orbs:
+ * https://github.com/Jakubantalik/thinking-orbs
+ *
+ * MIT License
+ * Copyright (c) 2026 Jakub Antalik
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+type OrbDot = {
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+  opacity: number;
+};
+
+type OrbMove = {
+  axis: 0 | 1 | 2;
+  low: number;
+  high: number;
+  angle: number;
+};
+
+type SolveCycle = {
+  amounts: number[];
+  active: number;
+};
+
+const SOLVING_ORB_SIZE = 20;
+const SOLVING_ORB_SPEED = 1.95;
+const SOLVING_ORB_MOVE_COUNT = 14;
+const THINKING_ORB_DURATION_SECONDS = 2;
+const THINKING_ORB_SPEED = 3.12;
+
+function fibonacciDirection(index: number, count: number): [number, number, number] {
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const y = 1 - (2 * (index + 0.5)) / count;
+  const radius = Math.sqrt(1 - y * y);
+  const angle = index * goldenAngle;
+  return [radius * Math.cos(angle), y, radius * Math.sin(angle)];
+}
+
+function drawThinkingOrb(
+  context: CanvasRenderingContext2D,
+  time: number,
+  color: string,
+): void {
+  const center = SOLVING_ORB_SIZE / 2;
+  const scale = center * 0.78;
+  const tilt = 0.3;
+  const sineTilt = Math.sin(tilt);
+  const cosineTilt = Math.cos(tilt);
+  const radiusScale = (SOLVING_ORB_SIZE / 300) ** 0.6;
+  const dots: OrbDot[] = [];
+
+  const project = (x: number, y: number, z: number): [number, number, number] => {
+    const projectedY = y * cosineTilt - z * sineTilt;
+    const projectedZ = y * sineTilt + z * cosineTilt;
+    return [center + x * scale, center - projectedY * scale, projectedZ];
+  };
+
+  for (let index = 0; index < 8; index++) {
+    const [x, y, z] = fibonacciDirection(index, 8);
+    const [projectedX, projectedY, projectedZ] = project(x, y, z);
+    const depth = (projectedZ + 1) / 2;
+    dots.push({
+      x: projectedX,
+      y: projectedY,
+      z: projectedZ,
+      radius: 0.8 * radiusScale,
+      opacity: 0.1 + 0.22 * depth,
+    });
+  }
+
+  const planeTilt = 0.55;
+  const planeX = 1;
+  const planeZ = 0;
+  const tangentX = -planeZ * Math.sin(planeTilt);
+  const tangentY = Math.cos(planeTilt);
+  const tangentZ = planeX * Math.sin(planeTilt);
+  const normalX = -planeZ * tangentY;
+  const normalY = planeZ * tangentX - planeX * tangentZ;
+  const normalZ = planeX * tangentY;
+
+  for (let lane = 0; lane < 10; lane++) {
+    const laneOffset = (lane - 4.5) * 0.075;
+    const edge = Math.abs(lane - 4.5) / 4.5;
+    for (let segment = 0; segment < 20; segment++) {
+      const angle = (segment / 20) * Math.PI * 2;
+      const wobble =
+        0.16 * Math.sin(angle * 3 - time * 1.7 + lane * 0.22)
+        + 0.07 * Math.sin(angle * 5 + time * 1.1);
+      const offset = laneOffset + wobble;
+      const x = planeX * Math.cos(angle) + tangentX * Math.sin(angle) + normalX * offset;
+      const y = tangentY * Math.sin(angle) + normalY * offset;
+      const z = planeZ * Math.cos(angle) + tangentZ * Math.sin(angle) + normalZ * offset;
+      const length = Math.sqrt(x * x + y * y + z * z);
+      const [projectedX, projectedY, projectedZ] = project(
+        x / length,
+        y / length,
+        z / length,
+      );
+      const depth = (projectedZ + 1) / 2;
+
+      dots.push({
+        x: projectedX,
+        y: projectedY,
+        z: projectedZ,
+        radius: (1.1803 + 1.8241 * depth) * (1 - 0.25 * edge) * radiusScale,
+        opacity: 0.4 + 0.6 * depth,
+      });
+    }
+  }
+
+  dots.sort((left, right) => left.z - right.z);
+  for (const dot of dots) {
+    context.globalAlpha = dot.opacity;
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(dot.x, dot.y, Math.max(0.3, dot.radius), 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalAlpha = 1;
+}
+
+function orbHash(a: number, b: number): number {
+  const hash = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
+  return hash - Math.floor(hash);
+}
+
+function solvingMoves(): OrbMove[] {
+  return Array.from({ length: SOLVING_ORB_MOVE_COUNT }, (_, index) => {
+    const axis = Math.min(2, Math.floor(orbHash(index, 2.3) * 3)) as 0 | 1 | 2;
+    const low = -1 + 0.5 * Math.min(3, Math.floor(orbHash(index, 5.9) * 4));
+    const direction = orbHash(index, 7.7) < 0.5 ? 1 : -1;
+    return { axis, low, high: low + 0.5, angle: direction * Math.PI / 2 };
+  });
+}
+
+const SOLVING_MOVES = solvingMoves();
+
+function solveCycle(time: number): SolveCycle {
+  const slotDuration = 0.42;
+  const cycleTime = time % (2 * SOLVING_ORB_MOVE_COUNT * slotDuration + 1.2);
+  const amounts = new Array<number>(SOLVING_ORB_MOVE_COUNT).fill(0);
+  let active = -1;
+
+  if (cycleTime >= 2 * SOLVING_ORB_MOVE_COUNT * slotDuration) {
+    return { amounts, active };
+  }
+
+  const slot = Math.floor(cycleTime / slotDuration);
+  const progress = (cycleTime - slot * slotDuration) / slotDuration;
+  const easedProgress = 1 - (1 - Math.min(1, progress / 0.7)) ** 3;
+
+  if (slot < SOLVING_ORB_MOVE_COUNT) {
+    amounts.fill(1, 0, slot);
+    amounts[slot] = easedProgress;
+    active = slot;
+  } else {
+    const reverseSlot = 2 * SOLVING_ORB_MOVE_COUNT - 1 - slot;
+    amounts.fill(1, 0, reverseSlot);
+    amounts[reverseSlot] = 1 - easedProgress;
+    active = reverseSlot;
+  }
+
+  return { amounts, active };
+}
+
+function applySolvingMoves(
+  point: [number, number, number],
+  cycle: SolveCycle,
+): [number, number, number, boolean] {
+  let [x, y, z] = point;
+  let active = false;
+
+  for (let index = 0; index < SOLVING_MOVES.length; index++) {
+    if (cycle.amounts[index] <= 0) {
+      continue;
+    }
+
+    const move = SOLVING_MOVES[index];
+    const coordinate = move.axis === 0 ? x : move.axis === 1 ? y : z;
+    if (coordinate < move.low || coordinate >= move.high) {
+      continue;
+    }
+
+    active ||= index === cycle.active;
+    const angle = move.angle * cycle.amounts[index];
+    const cosine = Math.cos(angle);
+    const sine = Math.sin(angle);
+
+    if (move.axis === 0) {
+      const nextY = y * cosine - z * sine;
+      z = y * sine + z * cosine;
+      y = nextY;
+    } else if (move.axis === 1) {
+      const nextX = x * cosine + z * sine;
+      z = -x * sine + z * cosine;
+      x = nextX;
+    } else {
+      const nextX = x * cosine - y * sine;
+      y = x * sine + y * cosine;
+      x = nextX;
+    }
+  }
+
+  return [x, y, z, active];
+}
+
+function drawSolvingOrb(
+  context: CanvasRenderingContext2D,
+  time: number,
+  color: string,
+): void {
+  const center = SOLVING_ORB_SIZE / 2;
+  const scale = center * 0.82;
+  const yaw = time * 0.55;
+  const tilt = 0.35 + 0.1 * Math.sin(time * 0.9);
+  const sineTilt = Math.sin(tilt);
+  const cosineTilt = Math.cos(tilt);
+  const sineYaw = Math.sin(yaw);
+  const cosineYaw = Math.cos(yaw);
+  const radiusScale = (SOLVING_ORB_SIZE / 300) ** 0.6;
+  const cycle = solveCycle(time);
+  const dots: OrbDot[] = [];
+
+  for (let latitudeIndex = 0; latitudeIndex <= 4; latitudeIndex++) {
+    const latitude = -Math.PI / 2 + (latitudeIndex / 4) * Math.PI;
+    const cosineLatitude = Math.cos(latitude);
+    const sineLatitude = Math.sin(latitude);
+    const longitudeCount = Math.max(1, Math.round(Math.abs(cosineLatitude) * 12));
+
+    for (let longitudeIndex = 0; longitudeIndex < longitudeCount; longitudeIndex++) {
+      const longitude = (longitudeIndex / longitudeCount) * 2 * Math.PI;
+      const [x, y, z, active] = applySolvingMoves([
+        cosineLatitude * Math.cos(longitude),
+        sineLatitude,
+        cosineLatitude * Math.sin(longitude),
+      ], cycle);
+      const rotatedX = x * cosineYaw + z * sineYaw;
+      const rotatedZ = -x * sineYaw + z * cosineYaw;
+      const rotatedY = y * cosineTilt - rotatedZ * sineTilt;
+      const depthZ = y * sineTilt + rotatedZ * cosineTilt;
+      const depth = (depthZ + 1) / 2;
+
+      dots.push({
+        x: center + rotatedX * scale,
+        y: center - rotatedY * scale,
+        z: depthZ,
+        radius: (1.14 + 3.23 * depth + (active ? 0.57 : 0)) * radiusScale,
+        opacity: 0.38 + 0.54 * depth + (active ? 0.08 : 0),
+      });
+    }
+  }
+
+  dots.sort((left, right) => left.z - right.z);
+  for (const dot of dots) {
+    context.globalAlpha = Math.min(1, Math.max(0, dot.opacity));
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(dot.x, dot.y, Math.max(0.3, dot.radius), 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalAlpha = 1;
+}
+
+class SolvingOrb extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+      inline-size: 20px;
+      block-size: 20px;
+      flex: none;
+      color: var(--aura-neutral);
+    }
+
+    canvas {
+      display: block;
+      inline-size: 100%;
+      block-size: 100%;
+    }
+  `;
+
+  private animationFrame = 0;
+  private startedAt = 0;
+  private visible = true;
+  private intersectionObserver?: IntersectionObserver;
+  private readonly reducedMotionQuery = globalThis.matchMedia('(prefers-reduced-motion: reduce)');
+  private readonly systemThemeQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
+  private readonly themeObserver = new MutationObserver(() => this.drawCurrentFrame());
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    this.reducedMotionQuery.addEventListener('change', this.handleReducedMotionChange);
+    this.systemThemeQuery.addEventListener('change', this.handleThemeChange);
+    this.themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme-preference'],
+    });
+  }
+
+  disconnectedCallback(): void {
+    this.stopAnimation();
+    this.intersectionObserver?.disconnect();
+    this.themeObserver.disconnect();
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    this.reducedMotionQuery.removeEventListener('change', this.handleReducedMotionChange);
+    this.systemThemeQuery.removeEventListener('change', this.handleThemeChange);
+    super.disconnectedCallback();
+  }
+
+  protected firstUpdated(): void {
+    this.startedAt = globalThis.performance.now();
+    this.sizeCanvas();
+
+    if (this.reducedMotionQuery.matches) {
+      this.drawFrame(0.6);
+      return;
+    }
+
+    if (typeof globalThis.IntersectionObserver === 'function') {
+      this.intersectionObserver = new globalThis.IntersectionObserver(([entry]) => {
+        this.visible = entry.isIntersecting;
+        this.updateAnimationState();
+      });
+      this.intersectionObserver.observe(this);
+    }
+
+    this.drawCurrentFrame();
+    this.updateAnimationState();
+  }
+
+  protected render() {
+    return html`<canvas aria-hidden="true"></canvas>`;
+  }
+
+  private readonly handleVisibilityChange = (): void => this.updateAnimationState();
+
+  private readonly handleReducedMotionChange = (): void => {
+    if (this.reducedMotionQuery.matches) {
+      this.stopAnimation();
+      this.drawFrame(0.6);
+      return;
+    }
+    this.updateAnimationState();
+  };
+
+  private readonly handleThemeChange = (): void => this.drawCurrentFrame();
+
+  private sizeCanvas(): void {
+    const canvas = this.canvas();
+    if (!canvas) {
+      return;
+    }
+    const pixelRatio = Math.min(2, globalThis.devicePixelRatio || 1);
+    canvas.width = Math.round(SOLVING_ORB_SIZE * pixelRatio);
+    canvas.height = Math.round(SOLVING_ORB_SIZE * pixelRatio);
+  }
+
+  private updateAnimationState(): void {
+    if (
+      !this.reducedMotionQuery.matches
+      && this.visible
+      && document.visibilityState !== 'hidden'
+    ) {
+      this.startAnimation();
+    } else {
+      this.stopAnimation();
+    }
+  }
+
+  private startAnimation(): void {
+    if (this.animationFrame) {
+      return;
+    }
+
+    const animate = (): void => {
+      this.drawCurrentFrame();
+      this.animationFrame = globalThis.requestAnimationFrame(animate);
+    };
+    this.animationFrame = globalThis.requestAnimationFrame(animate);
+  }
+
+  private stopAnimation(): void {
+    if (!this.animationFrame) {
+      return;
+    }
+    globalThis.cancelAnimationFrame(this.animationFrame);
+    this.animationFrame = 0;
+  }
+
+  private drawCurrentFrame(): void {
+    const now = globalThis.performance.now();
+    const thinking = (now - this.startedAt) / 1000 < THINKING_ORB_DURATION_SECONDS;
+    const time = this.reducedMotionQuery.matches
+      ? 0.6
+      : now / 1000 * (thinking ? THINKING_ORB_SPEED : SOLVING_ORB_SPEED);
+    this.drawFrame(time, thinking);
+  }
+
+  private drawFrame(time: number, thinking = true): void {
+    const canvas = this.canvas();
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) {
+      return;
+    }
+
+    const pixelRatio = Math.min(2, globalThis.devicePixelRatio || 1);
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    context.clearRect(0, 0, SOLVING_ORB_SIZE, SOLVING_ORB_SIZE);
+    const color = getComputedStyle(this).color;
+    if (thinking) {
+      drawThinkingOrb(context, time, color);
+    } else {
+      drawSolvingOrb(context, time, color);
+    }
+  }
+
+  private canvas(): HTMLCanvasElement | null {
+    return this.renderRoot.querySelector('canvas');
+  }
+}
+
+if (!customElements.get('solving-orb')) {
+  customElements.define('solving-orb', SolvingOrb);
+}
 
 type MessageItemModel = {
   text?: string;

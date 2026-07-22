@@ -37,6 +37,8 @@ public class ConversationState implements Serializable {
     private final ValueSignal<Integer> usagePercent = new ValueSignal<>(null);
     private final ValueSignal<Boolean> conversationCompacted = new ValueSignal<>(false);
     private final ValueSignal<Boolean> setupRequired = new ValueSignal<>(false);
+    private final ValueSignal<Boolean> devResponseAvailable = new ValueSignal<>(false);
+    private final ValueSignal<Boolean> devResponseEnabled = new ValueSignal<>(false);
     private final ValueSignal<ModelAvailabilityStatus> modelAvailabilityStatus =
             new ValueSignal<>(ModelAvailabilityStatus.CHECKING);
     private final ValueSignal<String> setupMessage =
@@ -55,7 +57,8 @@ public class ConversationState implements Serializable {
         () -> !responseInProgress.get()
                 && pendingQuestionSet.get() == null
                 && !questionSubmissionInProgress.get()
-                && modelAvailabilityStatus.get() == ModelAvailabilityStatus.CONNECTED);
+                && (devResponseAvailable.get() && devResponseEnabled.get()
+                        || modelAvailabilityStatus.get() == ModelAvailabilityStatus.CONNECTED));
     private final Signal<Boolean> sendEnabled =
             Signal.computed(() -> Boolean.TRUE.equals(composerSubmitAllowed.get()) && !composerText.get().isBlank());
 
@@ -97,6 +100,14 @@ public class ConversationState implements Serializable {
 
     public ValueSignal<Boolean> setupRequired() {
         return setupRequired;
+    }
+
+    public ValueSignal<Boolean> devResponseEnabled() {
+        return devResponseEnabled;
+    }
+
+    public ValueSignal<Boolean> devResponseAvailable() {
+        return devResponseAvailable;
     }
 
     public ValueSignal<String> setupMessage() {

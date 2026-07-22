@@ -5,10 +5,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Instant;
 import java.util.List;
 
+import com.wornux.services.chat.ModelAvailabilityStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.MessageType;
 
 class ConversationStateTest {
+
+    @Test
+    void devResponseAllowsSubmittingWithoutAConnectedModel() {
+        var state = new ConversationState();
+        state.modelAvailabilityStatus().set(ModelAvailabilityStatus.OFFLINE);
+
+        assertThat(state.composerSubmitAllowed().peek()).isFalse();
+
+        state.devResponseAvailable().set(true);
+        state.devResponseEnabled().set(true);
+
+        assertThat(state.composerSubmitAllowed().peek()).isTrue();
+    }
 
     @Test
     void applyMessagesSnapshotPreservesSignalsWhenMessagesKeepIdentity() {

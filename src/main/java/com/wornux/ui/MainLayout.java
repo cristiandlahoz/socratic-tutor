@@ -21,6 +21,7 @@ import com.wornux.data.enums.ThemePreference;
 import com.wornux.security.authorization.ActiveContextHolder;
 import com.wornux.security.authorization.AuthorizationService;
 import com.wornux.security.authorization.RequiresPermission;
+import com.wornux.services.chat.DevChatResponseStream;
 import com.wornux.services.context.ContextDiscoveryService;
 import com.wornux.services.context.ContextSelectionService;
 import com.wornux.services.security.AuthenticatedUserContextUtils;
@@ -36,6 +37,7 @@ import com.wornux.ui.css.UiCss;
 import com.wornux.ui.navigation.NavigationEntry;
 import com.wornux.ui.navigation.NavigationRegistry;
 import jakarta.annotation.security.PermitAll;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.annotation.AnnotationUtils;
 
 @Layout
@@ -65,7 +67,8 @@ public class MainLayout extends AppLayout {
             ContextDiscoveryService contextDiscoveryService,
             ContextSelectionService contextSelectionService,
             NavigationRegistry navigationRegistry,
-            WorkspaceRoutingService workspaceRoutingService) {
+            WorkspaceRoutingService workspaceRoutingService,
+            ObjectProvider<DevChatResponseStream> devResponseProvider) {
         this.state = state;
         this.viewModel = viewModel;
         this.authenticatedUserContextUtils = authenticatedUserContextUtils;
@@ -76,6 +79,7 @@ public class MainLayout extends AppLayout {
         this.contextSelectionService = contextSelectionService;
         this.navigationRegistry = navigationRegistry;
         this.workspaceRoutingService = workspaceRoutingService;
+        state.devResponseAvailable().set(devResponseProvider.getIfAvailable() != null);
 
         setPrimarySection(Section.DRAWER);
         addToNavbar(createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE, "Abrir menú"));

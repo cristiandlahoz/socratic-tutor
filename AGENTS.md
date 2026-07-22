@@ -106,3 +106,5 @@ Use only for local visual verification / development testing:
 ## Vaadin UI debugging
 
 When making or reviewing UI/CSS changes, use the global `vaadin-view-debugging` skill. It defines the required agent-browser workflow for inspecting Vaadin web components, shadow DOM parts, Aura/base theme variables, computed styles, stale selectors, and dead CSS cleanup.
+
+If visual verification is blocked because Ollama or its models are unavailable, start the application with `make debug-ui`. This runs the `dev` profile with `--spring.ai.ollama.init.pull-model-strategy=never`, preventing startup from trying to contact Ollama to discover or pull models. Docker Compose remains enabled because PostgreSQL and the other supporting services are required. The override does not make model-backed features available.
