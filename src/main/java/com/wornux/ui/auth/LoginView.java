@@ -41,7 +41,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private Component createShell() {
-        var shell = new Div(createBrandPanel(), createFormPanel());
+        var shell = new Div(new LoginAsciify(createBrandPanel()), createFormPanel());
         UiCss.LOGIN_VIEW_SHELL.addTo(shell);
         return shell;
     }

@@ -8,6 +8,59 @@
   font-family: var(--aura-font-family);
 }
 
+login-asciify {
+  position: relative;
+  display: block;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+login-asciify > .login-view__brand {
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+.login-view__asciify-content,
+.login-view__asciify-art {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.login-view__asciify-art {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  color: color-mix(in srgb, var(--aura-accent-text-color) 38%, var(--vaadin-text-color-secondary));
+  font-family: "Stardom-Regular", var(--aura-font-family);
+  font-size: clamp(26rem, 34vw, 42rem);
+  line-height: 0.8;
+  background: radial-gradient(circle at 72% 54%, color-mix(in srgb, var(--aura-accent-text-color) 36%, transparent), transparent 78%);
+}
+
+.login-view__asciify-source,
+.login-view__asciify-output {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.login-view__asciify-source {
+  opacity: 0.001;
+  pointer-events: none;
+}
+
+.login-view__asciify-output {
+  z-index: 1;
+  pointer-events: none;
+}
+
 .login-view__shell {
   position: relative;
   isolation: isolate;
@@ -215,6 +268,8 @@
 }
 
 .login-view__panel {
+  position: relative;
+  isolation: isolate;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -224,10 +279,12 @@
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--vaadin-background-color) 28%, transparent), transparent 32%),
     color-mix(in srgb, var(--aura-app-background) 86%, var(--vaadin-background-color));
+  overflow: hidden;
 }
 
 .login-view__form-card {
   position: relative;
+  z-index: 2;
   width: min(100%, 27.75rem);
   margin-inline: auto;
   padding: 0;
@@ -426,6 +483,21 @@ html[data-theme-preference="light"] .login-view__cherry {
   .login-view__shell {
     min-height: 100%;
     grid-template-columns: 1fr;
+  }
+
+  login-asciify {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  login-asciify > .login-view__brand {
+    min-height: auto;
+  }
+
+  .login-view__asciify-source,
+  .login-view__asciify-output {
+    display: none;
   }
 
   .login-view__brand {
