@@ -26,6 +26,9 @@ public final class ConversationComposer extends Component implements HasSize {
         Signal.effect(this, () -> setComposerEnabled(Boolean.TRUE.equals(state.composerEnabled().get())));
         Signal.effect(this, () -> setSendAvailable(Boolean.TRUE.equals(state.composerSubmitAllowed().get())));
         Signal.effect(this, () -> setModelStatus(state.modelAvailabilityStatus().get()));
+        Signal.effect(this, () -> setDevResponseMode(
+            Boolean.TRUE.equals(state.devResponseAvailable().get()),
+            Boolean.TRUE.equals(state.devResponseEnabled().get())));
         Signal.effect(this, () -> setActivity(state.activity().get()));
         Signal.effect(this, () -> setTokenUsage(
             state.usageInputTokens().get(),
@@ -36,6 +39,8 @@ public final class ConversationComposer extends Component implements HasSize {
             state.composerText().set(event.getPrompt());
             submitHandler.submit();
         });
+        addToggleDevResponseListener(event -> state.devResponseEnabled()
+                .set(Boolean.TRUE.equals(state.devResponseAvailable().peek()) && event.isEnabled()));
     }
 
     public void setValue(String value) {
@@ -63,6 +68,11 @@ public final class ConversationComposer extends Component implements HasSize {
         getElement().setProperty("modelStatus", resolvedStatus.name().toLowerCase());
     }
 
+    public void setDevResponseMode(boolean available, boolean enabled) {
+        getElement().setProperty("devResponseAvailable", available);
+        getElement().setProperty("devResponseEnabled", available && enabled);
+    }
+
     public void setActivity(ChatSessionActivity activity) {
         var resolvedActivity = activity == null ? ChatSessionActivity.IDLE : activity;
         getElement().setProperty("activity", resolvedActivity.name().toLowerCase(java.util.Locale.ROOT));
@@ -76,6 +86,10 @@ public final class ConversationComposer extends Component implements HasSize {
 
     public Registration addSubmitPromptListener(ComponentEventListener<SubmitPromptEvent> listener) {
         return addListener(SubmitPromptEvent.class, listener);
+    }
+
+    public Registration addToggleDevResponseListener(ComponentEventListener<ToggleDevResponseEvent> listener) {
+        return addListener(ToggleDevResponseEvent.class, listener);
     }
 
     @FunctionalInterface
@@ -98,6 +112,24 @@ public final class ConversationComposer extends Component implements HasSize {
 
         public String getPrompt() {
             return prompt;
+        }
+    }
+
+    @DomEvent("toggle-dev-response")
+    public static final class ToggleDevResponseEvent extends ComponentEvent<ConversationComposer> {
+
+        private final boolean enabled;
+
+        public ToggleDevResponseEvent(
+                ConversationComposer source,
+                boolean fromClient,
+                @EventData("event.detail.enabled") boolean enabled) {
+            super(source, fromClient);
+            this.enabled = enabled;
+        }
+
+        public boolean isEnabled() {
+            return enabled;
         }
     }
 }
