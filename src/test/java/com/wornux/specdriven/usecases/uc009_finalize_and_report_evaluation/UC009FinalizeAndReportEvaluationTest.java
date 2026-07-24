@@ -2,6 +2,7 @@ package com.wornux.specdriven.usecases.uc009_finalize_and_report_evaluation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -37,6 +38,8 @@ import com.wornux.data.repositories.training_activity.TrainingActivityTurnReposi
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.training_activity.FinalReportCandidate;
+import com.wornux.services.training_activity.FinalReportCandidateValidationException;
+import com.wornux.services.training_activity.FinalReportCandidateValidationException.Reason;
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.TrainingActivityReportProjectionService;
 import com.wornux.services.training_activity.TrainingAssignmentTutorService;
@@ -73,7 +76,7 @@ class UC009FinalizeAndReportEvaluationTest {
     @Test
     void af6_reclaimedWorkerCannotPublishAfterItsGenerationFenceIsLost() {
         var fixture = reportFixture();
-        when(fixture.jobRepository.fenceFinalReportSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+        when(fixture.jobRepository.fenceSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
                 eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED), eq(4), any())).thenReturn(0);
 
         var applied = fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, weakCandidate("respuesta limitada"));
@@ -94,10 +97,7 @@ class UC009FinalizeAndReportEvaluationTest {
                 List.of(),
                 List.of("Solicitar una explicación concreta."));
 
-        assertThatThrownBy(() -> fixture.service.applyFinalReportSuccess(
-                fixture.job.getId(), 4, candidate))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("unsupported observation");
+        assertValidationFailure(fixture, candidate, Reason.INVALID_TURN_REFERENCE);
         assertThat(fixture.job.getReport().getStatus()).isEqualTo(TrainingActivityReportStatus.GENERATING);
         verify(fixture.reportRepository, never()).saveAndFlush(any());
     }
@@ -107,9 +107,7 @@ class UC009FinalizeAndReportEvaluationTest {
         var fixture = reportFixture();
         var candidate = weakCandidate("respuesta", List.of());
 
-        assertThatThrownBy(() -> fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("unsupported observation");
+        assertValidationFailure(fixture, candidate, Reason.MISSING_EVIDENCE_REFERENCE);
     }
 
     @Test
@@ -117,9 +115,7 @@ class UC009FinalizeAndReportEvaluationTest {
         var fixture = reportFixture();
         var candidate = weakCandidate("respuesta limitada", List.of(reference(2, null, "respuesta limitada")));
 
-        assertThatThrownBy(() -> fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("unsupported observation");
+        assertValidationFailure(fixture, candidate, Reason.INVALID_TURN_REFERENCE);
     }
 
     @Test
@@ -134,9 +130,7 @@ class UC009FinalizeAndReportEvaluationTest {
 
         assertThat(foreignTurn.getAssignment().getId()).isNotEqualTo(fixture.job.getAssignment().getId());
 
-        assertThatThrownBy(() -> fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("unsupported observation");
+        assertValidationFailure(fixture, candidate, Reason.INVALID_TURN_REFERENCE);
     }
 
     @Test
@@ -144,9 +138,7 @@ class UC009FinalizeAndReportEvaluationTest {
         var fixture = reportFixture();
         var candidate = weakCandidate("respuesta limitada", List.of(reference(1, "pregunta inventada", "respuesta limitada")));
 
-        assertThatThrownBy(() -> fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("unsupported observation");
+        assertValidationFailure(fixture, candidate, Reason.QUESTION_EXCERPT_MISMATCH);
     }
 
     @Test
@@ -155,7 +147,7 @@ class UC009FinalizeAndReportEvaluationTest {
         fixture.turn.setQuestionText("¿Qué\u00a0observaste?\n");
         fixture.turn.setAnswerText("respuesta\n\tlimitada");
         var candidate = weakCandidate("respuesta limitada", List.of(reference(1, "¿Qué observaste?", "respuesta limitada")));
-        when(fixture.jobRepository.fenceFinalReportSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+        when(fixture.jobRepository.fenceSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
                 eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED), eq(4), any())).thenReturn(1);
 
         assertThat(fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate)).isTrue();
@@ -168,7 +160,7 @@ class UC009FinalizeAndReportEvaluationTest {
         var fixture = reportFixture();
         fixture.turn.setAnswerText("no sé");
         var candidate = weakCandidate("La respuesta no permite concluir dominio.", List.of(reference(1, null, "no sé")));
-        when(fixture.jobRepository.fenceFinalReportSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+        when(fixture.jobRepository.fenceSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
                 eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED), eq(4), any())).thenReturn(1);
 
         assertThat(fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate)).isTrue();
@@ -180,7 +172,7 @@ class UC009FinalizeAndReportEvaluationTest {
         fixture.turn.setAnswerText("No, el for sin llaves compila cuando controla una sola instrucción.");
         var candidate = weakCandidate("El estudiante corrige la premisa sobre el bucle.",
                 List.of(reference(1, null, "for sin llaves compila")));
-        when(fixture.jobRepository.fenceFinalReportSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+        when(fixture.jobRepository.fenceSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
                 eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED), eq(4), any())).thenReturn(1);
 
         assertThat(fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate)).isTrue();
@@ -197,9 +189,197 @@ class UC009FinalizeAndReportEvaluationTest {
                 List.of(new FinalReportCandidate.ReportFinding("respuesta limitada", List.of(reference(1, null, "respuesta limitada")))),
                 List.of("Solicitar una explicación concreta."));
 
-        assertThatThrownBy(() -> fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Weak-evidence");
+        assertValidationFailure(fixture, candidate, Reason.WEAK_EVIDENCE_CONTRACT_MISMATCH);
+    }
+
+    @Test
+    void br11_answerExcerptMismatchIsRejectedWithItsSafeReason() {
+        var fixture = reportFixture();
+        var candidate = weakCandidate("respuesta limitada", List.of(reference(1, null, "respuesta inventada")));
+
+        assertValidationFailure(fixture, candidate, Reason.ANSWER_EXCERPT_MISMATCH);
+    }
+
+    @Test
+    void br11_nullCandidateIsRejectedWithItsSafeReason() {
+        var fixture = reportFixture();
+
+        assertValidationFailure(fixture, null, Reason.NULL_CANDIDATE);
+    }
+
+    @Test
+    void br11_missingEvidenceStatusIsRejectedWithItsSafeReason() {
+        var fixture = reportFixture();
+        var missingStatus = new FinalReportCandidate(
+                null,
+                "La evidencia es limitada y no permite una conclusión sólida.",
+                List.of(), List.of(), List.of(), List.of("Solicitar una explicación concreta."));
+
+        assertValidationFailure(fixture, missingStatus, Reason.MISSING_EVIDENCE_STATUS);
+    }
+
+    @Test
+    void af7_noEvidenceCandidateBecomesReadyWithTheAuthoritativeStatus() {
+        var fixture = reportFixture();
+        fixture.job.getAssignment().setEvidenceStatus(EvidenceStatus.NO_EVIDENCE);
+        when(fixture.jobRepository.fenceSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+                eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED), eq(4), any())).thenReturn(1);
+
+        var candidate = new FinalReportCandidate(
+                EvidenceStatus.NO_EVIDENCE,
+                "No hay evidencia observable suficiente para alcanzar una conclusión defendible.",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of("Repetir con una pregunta más acotada y solicitar razonamiento o un ejemplo concreto."));
+
+        assertThat(fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate)).isTrue();
+
+        assertThat(fixture.job.getReport().getStatus()).isEqualTo(TrainingActivityReportStatus.READY);
+        assertThat(fixture.job.getReport().getEvidenceStatus()).isEqualTo(EvidenceStatus.NO_EVIDENCE);
+        assertThat(fixture.job.getReport().getStrengths()).isEmpty();
+        assertThat(fixture.job.getReport().getWeaknesses()).isEmpty();
+        assertThat(fixture.job.getReport().getObservations()).isEmpty();
+        assertThat(fixture.job.getReport().getRecommendations()).containsExactly(
+                "Repetir con una pregunta más acotada y solicitar razonamiento o un ejemplo concreto.");
+    }
+
+    @Test
+    void af7_noEvidenceAcceptsExplicitAbsenceOrInsufficiencyStatements() {
+        for (var summary : List.of(
+                "No hay evidencia suficiente para una conclusión defendible.",
+                "Sin evidencia, no se puede concluir.",
+                "La evidencia es insuficiente para concluir.",
+                "La evidencia no permite concluir.",
+                "Insufficient evidence to reach a conclusion.",
+                "No evidence supports a conclusion.")) {
+            var fixture = noEvidenceReportFixture();
+            fixture.job.getAssignment().setEvidenceStatus(EvidenceStatus.NO_EVIDENCE);
+            when(fixture.jobRepository.fenceSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+                    eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED), eq(4), any())).thenReturn(1);
+
+            assertThat(fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, noEvidenceCandidate(summary))).isTrue();
+        }
+    }
+
+    @Test
+    void af7_noEvidenceRejectsAnyDiagnosticFinding() {
+        for (var candidate : List.of(
+                new FinalReportCandidate(EvidenceStatus.NO_EVIDENCE, "No hay evidencia suficiente para una conclusión defendible.",
+                        List.of(new FinalReportCandidate.ReportFinding("fortaleza", List.of())), List.of(), List.of(),
+                        List.of("Solicitar una respuesta explicada.")),
+                new FinalReportCandidate(EvidenceStatus.NO_EVIDENCE, "No hay evidencia suficiente para una conclusión defendible.",
+                        List.of(), List.of(new FinalReportCandidate.ReportFinding("debilidad", List.of())), List.of(),
+                        List.of("Solicitar una respuesta explicada.")),
+                new FinalReportCandidate(EvidenceStatus.NO_EVIDENCE, "No hay evidencia suficiente para una conclusión defendible.",
+                        List.of(), List.of(), List.of(new FinalReportCandidate.ReportFinding("observación", List.of())),
+                        List.of("Solicitar una respuesta explicada.")))) {
+            var fixture = noEvidenceReportFixture();
+            fixture.job.getAssignment().setEvidenceStatus(EvidenceStatus.NO_EVIDENCE);
+
+            assertValidationFailure(fixture, candidate, Reason.NO_EVIDENCE_CONTRACT_MISMATCH);
+        }
+    }
+
+    @Test
+    void af7_noEvidenceRequiresAStatementOfInsufficientEvidence() {
+        var fixture = noEvidenceReportFixture();
+        fixture.job.getAssignment().setEvidenceStatus(EvidenceStatus.NO_EVIDENCE);
+
+        assertValidationFailure(fixture, noEvidenceCandidate("El reporte no tiene datos concluyentes."),
+                Reason.NO_EVIDENCE_CONTRACT_MISMATCH);
+    }
+
+    @Test
+    void af7_noEvidenceRejectsMerelyLimitedEvidence() {
+        var fixture = noEvidenceReportFixture();
+        fixture.job.getAssignment().setEvidenceStatus(EvidenceStatus.NO_EVIDENCE);
+
+        assertValidationFailure(fixture, noEvidenceCandidate("La evidencia es limitada."),
+                Reason.NO_EVIDENCE_CONTRACT_MISMATCH);
+    }
+
+    @Test
+    void af7_noEvidenceRequiresConcreteRecommendations() {
+        var fixture = noEvidenceReportFixture();
+        fixture.job.getAssignment().setEvidenceStatus(EvidenceStatus.NO_EVIDENCE);
+        var candidate = new FinalReportCandidate(EvidenceStatus.NO_EVIDENCE,
+                "No hay evidencia suficiente para una conclusión defendible.", List.of(), List.of(), List.of(), List.of());
+
+        assertValidationFailure(fixture, candidate, Reason.MISSING_RECOMMENDATIONS);
+    }
+
+    @Test
+    void br11_evidenceStatusMismatchIsRejectedWithItsSafeReason() {
+        var fixture = reportFixture();
+        var candidate = new FinalReportCandidate(
+                EvidenceStatus.PARTIAL_EVIDENCE,
+                "La evidencia es limitada y no permite una conclusión sólida.",
+                List.of(), List.of(), List.of(), List.of("Solicitar una explicación concreta."));
+
+        assertValidationFailure(fixture, candidate, Reason.EVIDENCE_STATUS_MISMATCH);
+    }
+
+    @Test
+    void br11_invalidSummaryIsRejectedWithItsSafeReason() {
+        var fixture = reportFixture();
+        var candidate = new FinalReportCandidate(
+                EvidenceStatus.WEAK_EVIDENCE, " ", List.of(), List.of(), List.of(),
+                List.of("Solicitar una explicación concreta."));
+
+        assertValidationFailure(fixture, candidate, Reason.INVALID_SUMMARY);
+    }
+
+    @Test
+    void br11_missingFindingCollectionsAreRejectedWithTheirSafeReason() {
+        var fixture = reportFixture();
+        var candidate = new FinalReportCandidate(
+                EvidenceStatus.WEAK_EVIDENCE,
+                "La evidencia es limitada y no permite una conclusión sólida.",
+                null, List.of(), List.of(), List.of("Solicitar una explicación concreta."));
+
+        assertValidationFailure(fixture, candidate, Reason.MISSING_FINDING_COLLECTIONS);
+    }
+
+    @Test
+    void br11_missingRecommendationsAreRejectedWithTheirSafeReason() {
+        var fixture = reportFixture();
+        var candidate = new FinalReportCandidate(
+                EvidenceStatus.WEAK_EVIDENCE,
+                "La evidencia es limitada y no permite una conclusión sólida.",
+                List.of(), List.of(), List.of(), List.of());
+
+        assertValidationFailure(fixture, candidate, Reason.MISSING_RECOMMENDATIONS);
+    }
+
+    @Test
+    void br11_tooManyRecommendationsAreRejectedWithTheirSafeReason() {
+        var fixture = reportFixture();
+        var candidate = new FinalReportCandidate(
+                EvidenceStatus.WEAK_EVIDENCE,
+                "La evidencia es limitada y no permite una conclusión sólida.",
+                List.of(), List.of(), List.of(),
+                java.util.Collections.nCopies(9, "Solicitar una explicación concreta."));
+
+        assertValidationFailure(fixture, candidate, Reason.TOO_MANY_RECOMMENDATIONS);
+    }
+
+    @Test
+    void br11_invalidRecommendationIsRejectedWithItsSafeReason() {
+        var fixture = reportFixture();
+        var candidate = new FinalReportCandidate(
+                EvidenceStatus.WEAK_EVIDENCE,
+                "La evidencia es limitada y no permite una conclusión sólida.",
+                List.of(), List.of(), List.of(), List.of(" "));
+
+        assertValidationFailure(fixture, candidate, Reason.INVALID_RECOMMENDATION);
+    }
+
+    @Test
+    void br11_invalidFindingIsRejectedWithItsSafeReason() {
+        var fixture = reportFixture();
+
+        assertValidationFailure(fixture, weakCandidate(" "), Reason.FINDING_LIMIT_EXCEEDED_OR_INVALID_TEXT);
     }
 
     @Test
@@ -207,7 +387,7 @@ class UC009FinalizeAndReportEvaluationTest {
         var fixture = reportFixture();
         fixture.job.setAttemptCount(1);
         fixture.job.setMaxAttempts(3);
-        when(fixture.jobRepository.fenceFinalReportFailure(eq(fixture.job.getId()),
+        when(fixture.jobRepository.fenceFailure(eq(fixture.job.getId()),
                 eq(TrainingActivityAiJobType.FINAL_REPORT), eq(TrainingActivityAiJobStatus.RUNNING),
                 eq(TrainingActivityAiJobStatus.RETRYABLE), eq(4), any(), eq("MODEL_TIMEOUT"), eq(3L), any()))
                 .thenReturn(1);
@@ -225,7 +405,7 @@ class UC009FinalizeAndReportEvaluationTest {
         var fixture = reportFixture();
         fixture.job.setAttemptCount(3);
         fixture.job.setMaxAttempts(3);
-        when(fixture.jobRepository.fenceFinalReportFailure(eq(fixture.job.getId()),
+        when(fixture.jobRepository.fenceFailure(eq(fixture.job.getId()),
                 eq(TrainingActivityAiJobType.FINAL_REPORT), eq(TrainingActivityAiJobStatus.RUNNING),
                 eq(TrainingActivityAiJobStatus.FAILED), eq(4), any(), eq("INVALID_OUTPUT"), eq(1L), any()))
                 .thenReturn(1);
@@ -278,7 +458,7 @@ class UC009FinalizeAndReportEvaluationTest {
         fixture.job.getReport().setStatus(TrainingActivityReportStatus.GENERATING);
         fixture.job.getReport().setVersion(2);
         fixture.job.setInputVersion(2);
-        when(fixture.jobRepository.fenceFinalReportSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+        when(fixture.jobRepository.fenceSuccess(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
                 eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED), eq(4), any())).thenReturn(1);
 
         assertThat(fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, weakCandidate("respuesta limitada"))).isTrue();
@@ -316,14 +496,14 @@ class UC009FinalizeAndReportEvaluationTest {
         retryJob.setGeneration(5);
         retryJob.setInputVersion(8);
         retryJob.setLeaseUntil(Instant.now().plusSeconds(30));
-        when(fixture.jobRepository.claimTutor(eq(retryJob.getId()), any(), any(), any(), any())).thenReturn(1);
         when(fixture.jobRepository.findById(retryJob.getId())).thenReturn(Optional.of(retryJob));
+        when(fixture.jobRepository.claimNext(any(), any())).thenReturn(Optional.of(retryJob));
 
-        assertThat(fixture.service.claimFinalReport(retryJob.getId(), Instant.now(), Instant.now().plusSeconds(30))).isNotNull();
+        assertThat(fixture.service.claimNextWork(Instant.now(), Instant.now().plusSeconds(30)).finalReportWork()).isNotNull();
         assertThat(report.getStatus()).isEqualTo(TrainingActivityReportStatus.GENERATING);
 
         report.setVersion(8); // The claim's persisted GENERATING transition increments the version once more.
-        when(fixture.jobRepository.fenceFinalReportSuccess(eq(retryJob.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+        when(fixture.jobRepository.fenceSuccess(eq(retryJob.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
                 eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED), eq(5), any())).thenReturn(1);
 
         assertThat(fixture.service.applyFinalReportSuccess(retryJob.getId(), 5, weakCandidate("respuesta limitada"))).isTrue();
@@ -401,7 +581,14 @@ class UC009FinalizeAndReportEvaluationTest {
         when(turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(assignment.getId())).thenReturn(List.of(turn));
         var service = new TrainingTutorJobService(jobRepository, assignmentRepository, turnRepository, reportRepository,
                 mock(TrainingAssignmentTutorService.class), new SafeBrowserAssignmentStateBus());
-        return new ReportFixture(service, jobRepository, assignmentRepository, reportRepository, job, turn);
+        return new ReportFixture(service, jobRepository, assignmentRepository, turnRepository, reportRepository, job, turn);
+    }
+
+    private static ReportFixture noEvidenceReportFixture() {
+        var fixture = reportFixture();
+        when(fixture.turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(fixture.job.getAssignment().getId()))
+                .thenReturn(List.of());
+        return fixture;
     }
 
     private static TrainingActivityAssignment submittedAssignment(UUID groupClassId) {
@@ -435,13 +622,31 @@ class UC009FinalizeAndReportEvaluationTest {
                 List.of("Solicitar una explicación concreta."));
     }
 
+    private static FinalReportCandidate noEvidenceCandidate(String summary) {
+        return new FinalReportCandidate(EvidenceStatus.NO_EVIDENCE, summary, List.of(), List.of(), List.of(),
+                List.of("Solicitar una respuesta explicada para obtener evidencia."));
+    }
+
     private static FinalReportCandidate.EvidenceReference reference(
             int turnSequence, String questionExcerpt, String answerExcerpt) {
         return new FinalReportCandidate.EvidenceReference(turnSequence, questionExcerpt, answerExcerpt);
     }
 
+    private static void assertValidationFailure(
+            ReportFixture fixture, FinalReportCandidate candidate, Reason expectedReason) {
+        var exception = catchThrowableOfType(
+                () -> fixture.service.applyFinalReportSuccess(fixture.job.getId(), 4, candidate),
+                FinalReportCandidateValidationException.class);
+
+        assertThat(exception)
+                .hasMessage("Final report candidate failed canonical evidence validation.")
+                .hasNoCause();
+        assertThat(exception.reason()).isEqualTo(expectedReason);
+    }
+
     private record ReportFixture(TrainingTutorJobService service, TrainingActivityAiJobRepository jobRepository,
-                                 TrainingActivityAssignmentRepository assignmentRepository,
-                                 TrainingActivityReportRepository reportRepository, TrainingActivityAiJob job,
+                                  TrainingActivityAssignmentRepository assignmentRepository,
+                                  TrainingActivityTurnRepository turnRepository,
+                                  TrainingActivityReportRepository reportRepository, TrainingActivityAiJob job,
                                  TrainingActivityTurn turn) {}
 }

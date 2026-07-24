@@ -1,5 +1,7 @@
 package com.wornux.ui.training_activity.instruction_review;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vaadin.flow.component.AbstractSinglePropertyField;
@@ -7,6 +9,7 @@ import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewSnapshotDto;
+import com.wornux.ui.css.UiCss;
 
 @Tag("instruction-linter-editor")
 @JsModule("./training-activity/instruction-review/editor.ts")
@@ -17,6 +20,7 @@ public class InstructionLinterEditor extends AbstractSinglePropertyField<Instruc
     public InstructionLinterEditor() {
         super("value", "", false);
         setWidthFull();
+        UiCss.INSTRUCTION_LINTER_EDITOR.addTo(this);
         getElement().setProperty("label", "Instrucciones");
     }
 
@@ -45,11 +49,12 @@ public class InstructionLinterEditor extends AbstractSinglePropertyField<Instruc
     }
 
     public void resetReviewState() {
-        getElement().callJsFunction("resetReviewState", "server-reset");
         clearReview();
+        getElement().setProperty("reviewResetToken", UUID.randomUUID().toString());
     }
 
     public void setReviewing(boolean reviewing) {
         getElement().setProperty("reviewing", reviewing);
     }
+
 }

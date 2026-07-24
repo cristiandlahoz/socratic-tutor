@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { issueReplacementRange } from '../../../../main/frontend/training-activity/instruction-review/utils.js';
+import { hasInstructionReviewFeedback, issueReplacementRange } from '../../../../main/frontend/training-activity/instruction-review/utils.js';
 import type { InstructionLintIssue } from '../../../../main/frontend/training-activity/instruction-review/types.js';
 
 const currentValue = 'quiero que se hagan preguntas sobre arreglos';
@@ -53,4 +53,9 @@ test('issueReplacementRange treats full-sentence replacement with partial offset
 
   assert.deepEqual(range, { from: 0, to: value.length });
   assert.equal(`${value.slice(0, range.from)}${replacement}${value.slice(range.to)}`, replacement);
+});
+
+test('hasInstructionReviewFeedback hides the analysis line after a successful-save reset', () => {
+  assert.equal(hasInstructionReviewFeedback('IDLE', undefined, '', []), false);
+  assert.equal(hasInstructionReviewFeedback('UNAVAILABLE', undefined, 'La revisión de IA no está disponible.', []), true);
 });

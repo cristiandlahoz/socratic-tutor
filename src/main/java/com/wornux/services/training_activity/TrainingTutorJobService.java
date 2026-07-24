@@ -23,7 +23,6 @@ import com.wornux.data.repositories.training_activity.TrainingActivityAiJobRepos
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityReportRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityTurnRepository;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -57,54 +56,31 @@ public class TrainingTutorJobService {
     }
 
     @Transactional
-    public List<UUID> availableTutorJobIds(Instant now, int limit) {
-        reconcileExpiredTutorClaims(now);
-        return jobRepository.findAvailableByTypes(
-                        List.of(TrainingActivityAiJobType.FIRST_QUESTION, TrainingActivityAiJobType.NEXT_DECISION),
-                        List.of(TrainingActivityAiJobStatus.PENDING, TrainingActivityAiJobStatus.RETRYABLE),
-                        TrainingActivityAiJobStatus.RUNNING, now, PageRequest.of(0, limit))
-                .stream().map(TrainingActivityAiJob::getId).toList();
-    }
-
-    /** Reports share the UC-006 bounded worker but are selected only after live tutor work. */
-    @Transactional
-    public List<UUID> availableFinalReportJobIds(Instant now, int limit) {
-        reconcileExpiredReportClaims(now);
-        return jobRepository.findAvailable(
-                        TrainingActivityAiJobType.FINAL_REPORT,
-                        List.of(TrainingActivityAiJobStatus.PENDING, TrainingActivityAiJobStatus.RETRYABLE),
-                        TrainingActivityAiJobStatus.RUNNING,
-                        now,
-                        PageRequest.of(0, limit))
-                .stream().map(TrainingActivityAiJob::getId).toList();
-    }
-
-    @Transactional
-    public TutorWork claim(UUID jobId, Instant now, Instant leaseUntil) {
-        if (jobRepository.claimTutor(jobId, List.of(TrainingActivityAiJobStatus.PENDING, TrainingActivityAiJobStatus.RETRYABLE),
-                TrainingActivityAiJobStatus.RUNNING, leaseUntil, now) == 0) {
+    public ClaimedWork claimNextWork(Instant now, Instant leaseUntil) {
+        var job = jobRepository.claimNext(now, leaseUntil).orElse(null);
+        if (job == null) {
             return null;
         }
-        var job = jobRepository.findById(jobId).orElseThrow();
+        if (job.getJobType() == TrainingActivityAiJobType.FINAL_REPORT) {
+            return claimedFinalReportWork(job, now);
+        }
+        if (job.getJobType() == TrainingActivityAiJobType.INSTRUCTION_REVIEW) {
+            return new ClaimedWork(job, null, null);
+        }
         var assignment = assignmentRepository.findWithTrainingActivityById(job.getAssignment().getId()).orElseThrow();
         var turns = turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(assignment.getId());
-        assignment.setQuestionCount(turns.size());
-        assignment.setCurrentQuestion(job.getTurn() == null ? null : job.getTurn().getQuestionText());
         var transcript = turns.stream().filter(turn -> turn.getAnswerText() != null)
-                .map(turn -> new TrainingAssignmentEvaluationService.EvaluationExchange(turn.getQuestionText(), turn.getAnswerText())).toList();
-        var latestAnswer = job.getTurn() == null ? "" : job.getTurn().getAnswerText();
-        return new TutorWork(job.getId(), job.getJobType(), assignment, job.getTurn() == null ? null : job.getTurn().getId(),
-                job.getInputVersion(), job.getGeneration(), latestAnswer, transcript);
+                .map(turn -> new TrainingAssignmentEvaluationService.EvaluationExchange(
+                        turn.getQuestionText(), turn.getAnswerText())).toList();
+        var work = new TutorWork(job.getId(), job.getJobType(), assignment,
+                job.getTurn() == null ? null : job.getTurn().getId(), job.getInputVersion(), job.getGeneration(),
+                job.getTurn() == null ? "" : job.getTurn().getAnswerText(), transcript, turns.size(),
+                job.getTurn() == null ? null : job.getTurn().getQuestionText());
+        return new ClaimedWork(job, work, null);
     }
 
-    @Transactional
-    public FinalReportWork claimFinalReport(UUID jobId, Instant now, Instant leaseUntil) {
-        if (jobRepository.claimTutor(jobId, List.of(TrainingActivityAiJobStatus.PENDING, TrainingActivityAiJobStatus.RETRYABLE),
-                TrainingActivityAiJobStatus.RUNNING, leaseUntil, now) == 0) {
-            return null;
-        }
-        var job = jobRepository.findById(jobId).orElseThrow();
-        if (job.getJobType() != TrainingActivityAiJobType.FINAL_REPORT || job.getReport() == null) {
+    private ClaimedWork claimedFinalReportWork(TrainingActivityAiJob job, Instant now) {
+        if (job.getReport() == null || job.getAssignment() == null) {
             markStale(job);
             return null;
         }
@@ -116,6 +92,11 @@ public class TrainingTutorJobService {
                 || report.getStatus() == TrainingActivityReportStatus.FAILED
                 || (!recoveringExpiredLease && report.getVersion() + 1 != job.getInputVersion())
                 || (recoveringExpiredLease && report.getVersion() != job.getInputVersion())) {
+            if (recoveringExpiredLease) {
+                report.setStatus(TrainingActivityReportStatus.PENDING);
+                report.setUpdatedAt(now);
+                reportRepository.saveAndFlush(report);
+            }
             markStale(job);
             return null;
         }
@@ -130,16 +111,16 @@ public class TrainingTutorJobService {
         var turns = turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(assignment.getId()).stream()
                 .filter(turn -> turn.getAnswerText() != null)
                 .map(turn -> new TrainingAssignmentTutorService.ReportTurn(
-                        turn.getSequenceNumber(), turn.getQuestionText(), turn.getAnswerText()))
-                .toList();
-        return new FinalReportWork(job.getId(), job.getGeneration(), job.getInputVersion(), assignment, report.getId(), turns);
+                        turn.getSequenceNumber(), turn.getQuestionText(), turn.getAnswerText())).toList();
+        var work = new FinalReportWork(job.getId(), job.getGeneration(), job.getInputVersion(), assignment, report.getId(), turns);
+        return new ClaimedWork(job, null, work);
     }
 
     /** Called by the shared bounded worker outside any transaction. */
     public AdaptiveTutorDecision callModel(TutorWork work) {
         return work.type() == TrainingActivityAiJobType.FIRST_QUESTION
-                ? tutorService.firstDecision(work.assignment())
-                : tutorService.nextDecision(work.assignment(), work.latestAnswer(), work.transcript());
+                ? tutorService.firstDecision(work.assignment(), work.questionCount(), work.currentQuestion())
+                : tutorService.nextDecision(work.assignment(), work.latestAnswer(), work.transcript(), work.questionCount(), work.currentQuestion());
     }
 
     /** Called by the shared bounded worker outside any transaction. */
@@ -156,24 +137,33 @@ public class TrainingTutorJobService {
         var assignment = assignmentRepository.findLockedWithTrainingActivityById(job.getAssignment().getId()).orElseThrow();
         validateDecision(job.getJobType(), decision);
         var now = Instant.now();
+        TrainingActivityTurn answeredTurn = null;
         if (job.getJobType() == TrainingActivityAiJobType.FIRST_QUESTION) {
             if (assignment.getStatus() != TrainingActivityAssignmentStatus.STARTING) {
                 markStale(job);
                 return false;
             }
-            turnRepository.save(newQuestion(assignment, 1, decision.questionText(), now));
-            assignment.setStatus(TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
         }
         else {
             if (assignment.getStatus() != TrainingActivityAssignmentStatus.WAITING_FOR_TUTOR || job.getTurn() == null) {
                 markStale(job);
                 return false;
             }
-            var answeredTurn = turnRepository.findById(job.getTurn().getId()).orElseThrow();
+            answeredTurn = turnRepository.findById(job.getTurn().getId()).orElseThrow();
             if (answeredTurn.getAnswerText() == null || answeredTurn.getAnswerText().isBlank()) {
                 markStale(job);
                 return false;
             }
+        }
+        if (jobRepository.fenceSuccess(jobId, job.getJobType(), TrainingActivityAiJobStatus.RUNNING,
+                TrainingActivityAiJobStatus.SUCCEEDED, ownershipGeneration, now) == 0) {
+            return false;
+        }
+        if (job.getJobType() == TrainingActivityAiJobType.FIRST_QUESTION) {
+            turnRepository.save(newQuestion(assignment, 1, decision.questionText(), now));
+            assignment.setStatus(TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
+        }
+        else {
             applyDecision(answeredTurn, decision, now);
             if (decision.type() == TutorDecisionType.QUESTION) {
                 turnRepository.save(newQuestion(assignment, answeredTurn.getSequenceNumber() + 1, decision.questionText(), now));
@@ -185,10 +175,7 @@ public class TrainingTutorJobService {
         }
         assignment.setUpdatedAt(now);
         assignmentRepository.save(assignment);
-        job.setStatus(TrainingActivityAiJobStatus.SUCCEEDED);
-        job.setLeaseUntil(null);
-        job.setLastErrorCode(null);
-        job.setUpdatedAt(now);
+        closeActivityWhenAllAssignmentsAreTerminal(assignment, now);
         publishAfterCommit(assignment);
         return true;
     }
@@ -200,11 +187,13 @@ public class TrainingTutorJobService {
             return TutorFailureOutcome.staleOwnership();
         }
         var retry = job.getAttemptCount() < job.getMaxAttempts();
-        job.setStatus(retry ? TrainingActivityAiJobStatus.RETRYABLE : TrainingActivityAiJobStatus.FAILED);
-        job.setAvailableAt(Instant.now().plusSeconds(retry ? Math.max(5L, job.getAttemptCount() * 5L) : 0));
-        job.setLeaseUntil(null);
-        job.setLastErrorCode(failureCode);
-        job.setUpdatedAt(Instant.now());
+        var now = Instant.now();
+        if (jobRepository.fenceFailure(jobId, job.getJobType(), TrainingActivityAiJobStatus.RUNNING,
+                retry ? TrainingActivityAiJobStatus.RETRYABLE : TrainingActivityAiJobStatus.FAILED,
+                ownershipGeneration, now.plusSeconds(retry ? Math.max(5L, job.getAttemptCount() * 5L) : 0),
+                failureCode, job.getInputVersion(), now) == 0) {
+            return TutorFailureOutcome.staleOwnership();
+        }
         if (retry) {
             return TutorFailureOutcome.retry();
         }
@@ -218,18 +207,18 @@ public class TrainingTutorJobService {
         if (job.getJobType() != TrainingActivityAiJobType.FINAL_REPORT) {
             return TutorFailureOutcome.staleOwnership();
         }
+        var report = reportRepository.findById(job.getReport().getId()).orElseThrow();
+        if (report.getStatus() != TrainingActivityReportStatus.GENERATING || report.getVersion() != job.getInputVersion()) {
+            return TutorFailureOutcome.staleOwnership();
+        }
         var now = Instant.now();
         var retry = job.getAttemptCount() < job.getMaxAttempts();
         var targetStatus = retry ? TrainingActivityAiJobStatus.RETRYABLE : TrainingActivityAiJobStatus.FAILED;
         var availableAt = now.plusSeconds(retry ? Math.max(5L, job.getAttemptCount() * 5L) : 0);
-        if (jobRepository.fenceFinalReportFailure(jobId, TrainingActivityAiJobType.FINAL_REPORT,
+        if (jobRepository.fenceFailure(jobId, TrainingActivityAiJobType.FINAL_REPORT,
                 TrainingActivityAiJobStatus.RUNNING, targetStatus, ownershipGeneration, availableAt, failureCode,
                 job.getInputVersion() + (retry ? 2 : 0), now) == 0) {
             return TutorFailureOutcome.staleOwnership();
-        }
-        var report = reportRepository.findById(job.getReport().getId()).orElseThrow();
-        if (report.getStatus() != TrainingActivityReportStatus.GENERATING || report.getVersion() != job.getInputVersion()) {
-            throw new IllegalStateException("Final report state changed while applying its failure.");
         }
         report.setStatus(retry ? TrainingActivityReportStatus.PENDING : TrainingActivityReportStatus.FAILED);
         report.setAttemptCount(job.getAttemptCount());
@@ -237,6 +226,8 @@ public class TrainingTutorJobService {
         report.setCompletedAt(retry ? null : now);
         report.setUpdatedAt(now);
         reportRepository.saveAndFlush(report);
+        var assignment = assignmentRepository.findLockedWithTrainingActivityById(job.getAssignment().getId()).orElseThrow();
+        publishAfterCommit(assignment);
         return retry ? TutorFailureOutcome.retry() : TutorFailureOutcome.terminalFailure();
     }
 
@@ -256,7 +247,7 @@ public class TrainingTutorJobService {
         var turns = turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(assignment.getId());
         validateCandidateAgainstCanonicalTranscript(candidate, assignment, turns);
         var now = Instant.now();
-        if (jobRepository.fenceFinalReportSuccess(jobId, TrainingActivityAiJobType.FINAL_REPORT,
+        if (jobRepository.fenceSuccess(jobId, TrainingActivityAiJobType.FINAL_REPORT,
                 TrainingActivityAiJobStatus.RUNNING, TrainingActivityAiJobStatus.SUCCEEDED, ownershipGeneration, now) == 0) {
             return false;
         }
@@ -368,6 +359,9 @@ public class TrainingTutorJobService {
                         report.setCompletedAt(now);
                         report.setUpdatedAt(now);
                         reportRepository.save(report);
+                        var assignment = assignmentRepository.findLockedWithTrainingActivityById(job.getAssignment().getId())
+                                .orElseThrow();
+                        publishAfterCommit(assignment);
                     }
                 });
     }
@@ -383,6 +377,8 @@ public class TrainingTutorJobService {
         job.setLastErrorCode("STALE_RESULT");
         job.setUpdatedAt(Instant.now());
     }
+
+    public record ClaimedWork(TrainingActivityAiJob job, TutorWork tutorWork, FinalReportWork finalReportWork) { }
 
     private void transitionToTemporaryError(TrainingActivityAiJob job) {
         var assignment = assignmentRepository.findLockedWithTrainingActivityById(job.getAssignment().getId()).orElseThrow();
@@ -432,53 +428,122 @@ public class TrainingTutorJobService {
                 "report:" + assignment.getId(), MAX_ATTEMPTS, now, now, now);
     }
 
+    private void closeActivityWhenAllAssignmentsAreTerminal(TrainingActivityAssignment assignment, Instant now) {
+        if (!assignment.getStatus().isTerminal()) {
+            return;
+        }
+        var activity = assignment.getTrainingActivity();
+        if (activity.getStatus() != com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus.PUBLISHED) {
+            return;
+        }
+        var terminal = List.of(TrainingActivityAssignmentStatus.SUBMITTED, TrainingActivityAssignmentStatus.SKIPPED,
+                TrainingActivityAssignmentStatus.EXPIRED, TrainingActivityAssignmentStatus.EXCUSED);
+        if (assignmentRepository.countNonTerminal(activity.getId(), terminal) == 0) {
+            activity.setStatus(com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus.CLOSED);
+            activity.setClosesAt(now);
+            activity.setUpdatedAt(now);
+        }
+    }
+
     private void validateCandidateAgainstCanonicalTranscript(
             FinalReportCandidate candidate, TrainingActivityAssignment assignment, List<TrainingActivityTurn> turns) {
-        if (candidate == null || candidate.evidenceStatus() == null || candidate.evidenceStatus() == EvidenceStatus.NO_EVIDENCE
-                || candidate.evidenceStatus() != assignment.getEvidenceStatus() || invalidText(candidate.summary(), 2_000)
-                || candidate.strengths() == null || candidate.weaknesses() == null || candidate.observations() == null
-                || candidate.recommendations() == null || candidate.recommendations().isEmpty()
-                || candidate.recommendations().size() > 8) {
-            throw new IllegalArgumentException("The final report does not satisfy the structured evidence contract.");
+        if (candidate == null) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.NULL_CANDIDATE);
         }
-        var answeredTurns = turns.stream().filter(turn -> turn.getAnswerText() != null && !turn.getAnswerText().isBlank())
-                .collect(java.util.stream.Collectors.toMap(TrainingActivityTurn::getSequenceNumber, turn -> turn));
-        if (assignment.getEvidenceStatus() == EvidenceStatus.WEAK_EVIDENCE
-                && (!candidate.strengths().isEmpty() || !containsEvidenceLimitation(candidate.summary()))) {
-            throw new IllegalArgumentException("Weak-evidence reports must state their limitation and cannot claim strengths.");
+        if (candidate.evidenceStatus() == null) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.MISSING_EVIDENCE_STATUS);
         }
-        validateDiagnosticFindings(candidate.strengths(), answeredTurns);
-        validateDiagnosticFindings(candidate.weaknesses(), answeredTurns);
-        validateDiagnosticFindings(candidate.observations(), answeredTurns);
+        if (candidate.evidenceStatus() != assignment.getEvidenceStatus()) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.EVIDENCE_STATUS_MISMATCH);
+        }
+        if (invalidText(candidate.summary(), 2_000)) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.INVALID_SUMMARY);
+        }
+        if (candidate.strengths() == null || candidate.weaknesses() == null || candidate.observations() == null) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.MISSING_FINDING_COLLECTIONS);
+        }
+        if (candidate.recommendations() == null || candidate.recommendations().isEmpty()) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.MISSING_RECOMMENDATIONS);
+        }
+        if (candidate.recommendations().size() > 8) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.TOO_MANY_RECOMMENDATIONS);
+        }
+        if (candidate.evidenceStatus() == EvidenceStatus.NO_EVIDENCE) {
+            if (!candidate.strengths().isEmpty() || !candidate.weaknesses().isEmpty() || !candidate.observations().isEmpty()
+                    || !containsNoEvidenceConclusion(candidate.summary())) {
+                throw validationFailure(FinalReportCandidateValidationException.Reason.NO_EVIDENCE_CONTRACT_MISMATCH);
+            }
+        }
+        else {
+            var answeredTurns = turns.stream().filter(turn -> turn.getAnswerText() != null && !turn.getAnswerText().isBlank())
+                    .collect(java.util.stream.Collectors.toMap(TrainingActivityTurn::getSequenceNumber, turn -> turn));
+            if (assignment.getEvidenceStatus() == EvidenceStatus.WEAK_EVIDENCE
+                    && (!candidate.strengths().isEmpty() || !containsEvidenceLimitation(candidate.summary()))) {
+                throw validationFailure(FinalReportCandidateValidationException.Reason.WEAK_EVIDENCE_CONTRACT_MISMATCH);
+            }
+            validateDiagnosticFindings(candidate.strengths(), answeredTurns);
+            validateDiagnosticFindings(candidate.weaknesses(), answeredTurns);
+            validateDiagnosticFindings(candidate.observations(), answeredTurns);
+        }
         if (candidate.recommendations().stream().anyMatch(value -> invalidText(value, 800))) {
-            throw new IllegalArgumentException("The final report contains an invalid recommendation.");
+            throw validationFailure(FinalReportCandidateValidationException.Reason.INVALID_RECOMMENDATION);
         }
     }
 
     private void validateDiagnosticFindings(
             List<FinalReportCandidate.ReportFinding> findings, Map<Integer, TrainingActivityTurn> answeredTurns) {
-        if (findings.size() > 8 || findings.stream().anyMatch(finding -> finding == null
-                || invalidText(finding.observation(), 800) || finding.evidenceReferences() == null
-                || finding.evidenceReferences().isEmpty()
-                || finding.evidenceReferences().stream().anyMatch(reference -> !referencesPersistedCanonicalAnswer(reference, answeredTurns)))) {
-            throw new IllegalArgumentException("The final report contains an unsupported observation.");
+        if (findings.size() > 8 || findings.stream().anyMatch(finding -> finding == null || invalidText(finding.observation(), 800))) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.FINDING_LIMIT_EXCEEDED_OR_INVALID_TEXT);
+        }
+        for (var finding : findings) {
+            if (finding.evidenceReferences() == null || finding.evidenceReferences().isEmpty()) {
+                throw validationFailure(FinalReportCandidateValidationException.Reason.MISSING_EVIDENCE_REFERENCE);
+            }
+            for (var reference : finding.evidenceReferences()) {
+                validateEvidenceReference(reference, answeredTurns);
+            }
         }
     }
 
     private boolean containsEvidenceLimitation(String summary) {
         var normalized = summary == null ? "" : summary.toLowerCase(java.util.Locale.ROOT);
-        return normalized.contains("limitad") || normalized.contains("insuficient") || normalized.contains("no permite");
+        return normalized.contains("limitad") || normalized.contains("insuficient") || normalized.contains("no permite")
+                || normalized.contains("no hay evidencia") || normalized.contains("sin evidencia");
     }
 
-    private boolean referencesPersistedCanonicalAnswer(
+    private boolean containsNoEvidenceConclusion(String summary) {
+        var normalized = Normalizer.normalize(summary == null ? "" : summary, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("no hay evidencia") || normalized.contains("sin evidencia")
+                || normalized.contains("evidencia insuficiente") || normalized.contains("evidencia es insuficiente")
+                || normalized.contains("no permite concluir")
+                || normalized.contains("no evidence") || normalized.contains("insufficient evidence")
+                || normalized.contains("cannot conclude");
+    }
+
+    private void validateEvidenceReference(
             FinalReportCandidate.EvidenceReference reference, Map<Integer, TrainingActivityTurn> answeredTurns) {
-        if (reference == null || reference.turnSequence() == null || reference.turnSequence() < 1) {
-            return false;
+        if (reference == null) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.MISSING_EVIDENCE_REFERENCE);
+        }
+        if (reference.turnSequence() == null || reference.turnSequence() < 1) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.INVALID_TURN_REFERENCE);
         }
         var turn = answeredTurns.get(reference.turnSequence());
-        return turn != null
-                && matchesCanonicalExcerpt(reference.questionExcerpt(), turn.getQuestionText())
-                && matchesCanonicalExcerpt(reference.answerExcerpt(), turn.getAnswerText());
+        if (turn == null) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.INVALID_TURN_REFERENCE);
+        }
+        if (!matchesCanonicalExcerpt(reference.questionExcerpt(), turn.getQuestionText())) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.QUESTION_EXCERPT_MISMATCH);
+        }
+        if (!matchesCanonicalExcerpt(reference.answerExcerpt(), turn.getAnswerText())) {
+            throw validationFailure(FinalReportCandidateValidationException.Reason.ANSWER_EXCERPT_MISMATCH);
+        }
+    }
+
+    private FinalReportCandidateValidationException validationFailure(FinalReportCandidateValidationException.Reason reason) {
+        return new FinalReportCandidateValidationException(reason);
     }
 
     private boolean matchesCanonicalExcerpt(String excerpt, String canonicalText) {
@@ -545,8 +610,8 @@ public class TrainingTutorJobService {
         var notification = new SafeBrowserAssignmentStateBus.Notification(
                 assignment.getTrainingActivity().getId(), assignment.getId(), assignment.getGroupClassMember().getId(),
                 assignment.isSafeBrowserLocked(), false);
+        // All mutation entry points are transactional; an uncommitted state must never reach browser subscribers.
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            assignmentStateBus.publish(notification);
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -558,8 +623,9 @@ public class TrainingTutorJobService {
     }
 
     public record TutorWork(UUID jobId, TrainingActivityAiJobType type, TrainingActivityAssignment assignment,
-                            UUID turnId, long inputVersion, int ownershipGeneration, String latestAnswer,
-                            List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript) {}
+                             UUID turnId, long inputVersion, int ownershipGeneration, String latestAnswer,
+                             List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript,
+                             int questionCount, String currentQuestion) {}
     public record FinalReportWork(UUID jobId, int ownershipGeneration, long inputVersion,
                                   TrainingActivityAssignment assignment, UUID reportId,
                                   List<TrainingAssignmentTutorService.ReportTurn> turns) {}

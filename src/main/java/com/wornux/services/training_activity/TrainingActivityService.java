@@ -2,19 +2,15 @@ package com.wornux.services.training_activity;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus;
-import com.wornux.data.entities.training_activity.InstructionQualityStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityLifecycleStatus;
 import com.wornux.data.entities.identity.TenantAccount;
 import com.wornux.data.repositories.academic.GroupClassMemberRepository;
@@ -23,24 +19,17 @@ import com.wornux.data.repositories.training_activity.TrainingActivityRepository
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
 import com.wornux.services.context.SetupRequiredException;
-import com.wornux.services.email.EmailMessage;
-import com.wornux.services.email.EmailService;
-import com.wornux.services.email.EmailTemplateService;
-import com.wornux.services.email.TemplatedEmailMessage;
-import com.wornux.services.training_activity.instruction_review.InstructionQualityReviewException;
 import com.wornux.services.training_activity.instruction_review.AdvisoryInstructionReviewService;
-import com.wornux.services.training_activity.instruction_review.InstructionReviewCoordinator;
-import com.wornux.services.training_activity.instruction_review.InstructionReviewExecutionStatus;
+import com.wornux.services.training_activity.instruction_review.InstructionQualityReviewException;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewSnapshotDto;
-import com.wornux.services.training_activity.instruction_review.InstructionReviewUnavailableException;
 import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewStatus;
-import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewOverrideAction;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -56,13 +45,9 @@ public class TrainingActivityService {
     private final com.wornux.data.repositories.training_activity.OutboxEventRepository outboxEventRepository;
     private final com.wornux.data.repositories.training_activity.OutboxRecipientDeliveryRepository outboxRecipientDeliveryRepository;
     private final GroupClassMemberRepository groupClassMemberRepository;
-    private final EmailService emailService;
-    private final EmailTemplateService emailTemplateService;
-    private final ApplicationProperties.Email emailProperties;
     private final ActiveAcademicContextResolver contextResolver;
     private final TrainingActivityLaunchedBus activityLaunchedBus;
     private final SafeBrowserAssignmentStateBus assignmentStateBus;
-    private final InstructionReviewCoordinator instructionReviewCoordinator;
     private final AdvisoryInstructionReviewService advisoryInstructionReviewService;
     private final TrainingActivityService self;
 
@@ -73,13 +58,9 @@ public class TrainingActivityService {
             com.wornux.data.repositories.training_activity.OutboxEventRepository outboxEventRepository,
             com.wornux.data.repositories.training_activity.OutboxRecipientDeliveryRepository outboxRecipientDeliveryRepository,
             GroupClassMemberRepository groupClassMemberRepository,
-            EmailService emailService,
-            EmailTemplateService emailTemplateService,
-            ApplicationProperties applicationProperties,
             ActiveAcademicContextResolver contextResolver,
             TrainingActivityLaunchedBus activityLaunchedBus,
             SafeBrowserAssignmentStateBus assignmentStateBus,
-            InstructionReviewCoordinator instructionReviewCoordinator,
             AdvisoryInstructionReviewService advisoryInstructionReviewService,
             @Lazy TrainingActivityService self) {
         this.trainingActivityRepository = trainingActivityRepository;
@@ -87,51 +68,11 @@ public class TrainingActivityService {
         this.outboxEventRepository = outboxEventRepository;
         this.outboxRecipientDeliveryRepository = outboxRecipientDeliveryRepository;
         this.groupClassMemberRepository = groupClassMemberRepository;
-        this.emailService = emailService;
-        this.emailTemplateService = emailTemplateService;
-        this.emailProperties = applicationProperties.getEmail();
         this.contextResolver = contextResolver;
         this.activityLaunchedBus = activityLaunchedBus;
         this.assignmentStateBus = assignmentStateBus;
-        this.instructionReviewCoordinator = instructionReviewCoordinator;
         this.advisoryInstructionReviewService = advisoryInstructionReviewService;
         this.self = self;
-    }
-
-    public TrainingActivityService(
-            TrainingActivityRepository trainingActivityRepository,
-            TrainingActivityAssignmentRepository trainingActivityAssignmentRepository,
-            GroupClassMemberRepository groupClassMemberRepository,
-            EmailService emailService,
-            EmailTemplateService emailTemplateService,
-            ApplicationProperties applicationProperties,
-            ActiveAcademicContextResolver contextResolver,
-            TrainingActivityLaunchedBus activityLaunchedBus,
-            SafeBrowserAssignmentStateBus assignmentStateBus,
-            InstructionReviewCoordinator instructionReviewCoordinator,
-            AdvisoryInstructionReviewService advisoryInstructionReviewService,
-            @Lazy TrainingActivityService self) {
-        this(trainingActivityRepository, trainingActivityAssignmentRepository, null, null, groupClassMemberRepository,
-                emailService, emailTemplateService, applicationProperties, contextResolver, activityLaunchedBus,
-                assignmentStateBus, instructionReviewCoordinator, advisoryInstructionReviewService, self);
-    }
-
-    /** Compatibility constructor retained for existing isolated unit fixtures. */
-    public TrainingActivityService(
-            TrainingActivityRepository trainingActivityRepository,
-            TrainingActivityAssignmentRepository trainingActivityAssignmentRepository,
-            GroupClassMemberRepository groupClassMemberRepository,
-            EmailService emailService,
-            EmailTemplateService emailTemplateService,
-            ApplicationProperties applicationProperties,
-            ActiveAcademicContextResolver contextResolver,
-            TrainingActivityLaunchedBus activityLaunchedBus,
-            SafeBrowserAssignmentStateBus assignmentStateBus,
-            InstructionReviewCoordinator instructionReviewCoordinator,
-            @Lazy TrainingActivityService self) {
-        this(trainingActivityRepository, trainingActivityAssignmentRepository, groupClassMemberRepository,
-                emailService, emailTemplateService, applicationProperties, contextResolver, activityLaunchedBus,
-                assignmentStateBus, instructionReviewCoordinator, null, self);
     }
 
     @Transactional
@@ -171,22 +112,8 @@ public class TrainingActivityService {
         LOGGER.info("createPending built draft entity: activityId={}", activity.getId());
         validateRequiredFields(command);
         LOGGER.info("createPending passed required-fields validation: activityId={}", activity.getId());
-        if (advisoryInstructionReviewService == null) {
-            var decision = reviewAdvisory(null, command.title(), command.instructions());
-            ensureReviewAllowsSave(command, decision);
-            instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
-            return trainingActivityRepository.save(activity);
-        }
+        ensureReviewAllowsSave(command, context);
         var saved = trainingActivityRepository.save(activity);
-        if (advisoryInstructionReviewService != null) {
-            var candidateId = command.reviewCandidateId() == null ? saved.getId() : command.reviewCandidateId();
-            var snapshot = advisoryInstructionReviewService.request(
-                    candidateId, saved, context.groupClassId(), context.groupClassMemberId(), command.title(), command.instructions());
-            if (command.confirmedReviewHash() != null && !command.confirmedReviewHash().isBlank()) {
-                ensureAsyncReviewAllowsSave(command, snapshot);
-                advisoryInstructionReviewService.recordOverride(saved, context.groupClassMemberId(), command.instructions(), InstructionReviewOverrideAction.SAVE_DRAFT);
-            }
-        }
         LOGGER.info("createPending saved draft successfully: activityId={} status={}", saved.getId(), saved.getStatus());
         return saved;
     }
@@ -216,35 +143,6 @@ public class TrainingActivityService {
     }
 
     @Transactional
-    public TrainingActivity saveQuestions(UUID activityId, String questionsJson) {
-        throw new SetupRequiredException(
-                "Question persistence is not supported because the training activity model does not define it yet.");
-    }
-
-    @Transactional
-    public TrainingActivity markRunning(UUID activityId) {
-        throw new SetupRequiredException("Training activity execution is not supported yet.");
-    }
-
-    @Transactional
-    public TrainingActivity saveAnswers(UUID activityId, String answersJson) {
-        throw new SetupRequiredException(
-                "Answer persistence is not supported because the training activity assignment model does not define it yet.");
-    }
-
-    @Transactional
-    public TrainingActivity completeReport(UUID activityId, String reportMarkdown) {
-        throw new SetupRequiredException(
-                "Report persistence is not supported because the training activity model does not define it yet.");
-    }
-
-    @Transactional
-    public TrainingActivity markFailed(UUID activityId) {
-        throw new SetupRequiredException(
-                "Execution failure persistence is not supported because the training activity model does not define it yet.");
-    }
-
-    @Transactional
     @RequiresPermission(AppPermission.TRAINING_ACTIVITY_DELETE)
     public void delete(UUID activityId) {
         trainingActivityRepository.delete(self.get(activityId));
@@ -271,75 +169,42 @@ public class TrainingActivityService {
             throw new IllegalStateException("Only draft training activities can be updated.");
         }
         validateRequiredFields(command);
-        if (advisoryInstructionReviewService == null) {
-            var decision = reviewAdvisory(activity, command.title(), command.instructions());
-            ensureReviewAllowsSave(command, decision);
-            activity.setTitle(command.title());
-            activity.setInstructions(command.instructions());
-            activity.setSafeBrowserEnabled(command.safeBrowserEnabled());
-            activity.setUpdatedAt(Instant.now());
-            instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
-            return trainingActivityRepository.save(activity);
-        }
         var context = requireProfessorContext();
-        var snapshot = advisoryInstructionReviewService.request(
-                command.reviewCandidateId() == null ? activity.getId() : command.reviewCandidateId(),
-                activity,
-                context.groupClassId(),
-                context.groupClassMemberId(),
-                command.title(),
-                command.instructions());
-        ensureAsyncReviewAllowsSave(command, snapshot);
+        ensureReviewAllowsSave(command, context);
         activity.setTitle(command.title());
         activity.setInstructions(command.instructions());
         activity.setSafeBrowserEnabled(command.safeBrowserEnabled());
         activity.setUpdatedAt(Instant.now());
-        var saved = trainingActivityRepository.save(activity);
-        if (!snapshot.isSaveableGoodReview()) {
-            advisoryInstructionReviewService.recordOverride(
-                    saved, context.groupClassMemberId(), command.instructions(), InstructionReviewOverrideAction.SAVE_DRAFT);
-        }
-        return saved;
+        return trainingActivityRepository.save(activity);
     }
 
     @Transactional
     @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
     public int launch(UUID activityId) {
-        return launch(activityId, get(activityId).getVersion(), false);
+        return launch(activityId, get(activityId).getVersion());
     }
 
     @Transactional
     @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
-    public int launch(UUID activityId, boolean publishAnyway) {
-        return launch(activityId, get(activityId).getVersion(), publishAnyway);
-    }
-
-    @Transactional
-    @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
-    public int launch(UUID activityId, long expectedVersion, boolean publishAnyway) {
+    public int launch(UUID activityId, long expectedVersion) {
+        var context = requireProfessorContext();
         var activity = get(activityId);
+        if (!context.tenantAccountId().equals(activity.getCreatedByTenantAccount().getId())) {
+            throw new IllegalArgumentException("No puedes publicar una actividad creada por otro profesor.");
+        }
         if (activity.getStatus() == TrainingActivityLifecycleStatus.PUBLISHED) {
             return (int) trainingActivityAssignmentRepository.countByTrainingActivity_Id(activityId);
         }
         if (activity.getVersion() != expectedVersion) {
-            throw new IllegalStateException("The activity changed. Refresh the publication confirmation and try again.");
+            throw new IllegalStateException("La actividad cambió. Actualiza la página e inténtalo de nuevo.");
         }
         if (activity.getStatus() != TrainingActivityLifecycleStatus.DRAFT) {
             throw new IllegalStateException("Only draft training activities can be launched.");
         }
-        if (advisoryInstructionReviewService == null) {
-            refreshInstructionReviewAdvisory(activity);
-            ensureInstructionReviewAllowsLaunch(activity);
-        }
-        else {
-            var snapshot = advisoryInstructionReviewService.current(activity.getId(), activity.getInstructions());
-            if (!snapshot.isSaveableGoodReview() && !publishAnyway) {
-                throw new IllegalStateException("AI review is advisory. Confirm Publish anyway to continue.");
-            }
-            if (!snapshot.isSaveableGoodReview()) {
-                advisoryInstructionReviewService.recordOverride(activity, requireProfessorContext().groupClassMemberId(),
-                        activity.getInstructions(), InstructionReviewOverrideAction.PUBLISH);
-            }
+        if (trainingActivityRepository
+                .findFirstByCreatedByTenantAccount_IdAndStatus(context.tenantAccountId(), TrainingActivityLifecycleStatus.PUBLISHED)
+                .isPresent()) {
+            throw new IllegalStateException("Ya tienes una actividad en ejecución. Ciérrala antes de publicar otra.");
         }
         var now = Instant.now();
         var students = groupClassMemberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(
@@ -352,6 +217,17 @@ public class TrainingActivityService {
         if (students.isEmpty()) {
             throw new IllegalStateException("There are no eligible students to assign.");
         }
+
+        activity.setStatus(TrainingActivityLifecycleStatus.PUBLISHED);
+        activity.setPublishedAt(now);
+        activity.setUpdatedAt(now);
+        try {
+            trainingActivityRepository.saveAndFlush(activity);
+        }
+        catch (DataIntegrityViolationException exception) {
+            throw new IllegalStateException("Ya tienes una actividad en ejecución. Ciérrala antes de publicar otra.", exception);
+        }
+
         for (var student : students) {
             var assignment = new TrainingActivityAssignment();
             assignment.setId(UUID.randomUUID());
@@ -366,17 +242,12 @@ public class TrainingActivityService {
             trainingActivityAssignmentRepository.saveAll(assignments);
         }
 
-        activity.setStatus(TrainingActivityLifecycleStatus.PUBLISHED);
-        activity.setPublishedAt(now);
-        activity.setUpdatedAt(now);
-        trainingActivityRepository.save(activity);
-
         persistPublicationOutbox(activity, students, now);
 
         var notification = new TrainingActivityLaunchedBus.Notification(
                 activity.getId(),
                 activity.getGroupClass().getId(),
-                students.stream().map(GroupClassMember::getId).collect(Collectors.toUnmodifiableSet()));
+                students.stream().map(GroupClassMember::getId).collect(java.util.stream.Collectors.toUnmodifiableSet()));
         publishAfterCommit(notification);
         return students.size();
     }
@@ -419,7 +290,11 @@ public class TrainingActivityService {
     @Transactional
     @RequiresPermission(AppPermission.TRAINING_ACTIVITY_UPDATE)
     public TrainingActivity close(UUID activityId) {
+        var context = requireProfessorContext();
         var activity = get(activityId);
+        if (!context.tenantAccountId().equals(activity.getCreatedByTenantAccount().getId())) {
+            throw new IllegalArgumentException("No puedes cerrar una actividad creada por otro profesor.");
+        }
         if (activity.getStatus() != TrainingActivityLifecycleStatus.PUBLISHED) {
             throw new IllegalStateException("Only published training activities can be closed.");
         }
@@ -484,62 +359,11 @@ public class TrainingActivityService {
         });
     }
 
-    private List<EmailMessage> launchMessages(TrainingActivity activity, List<GroupClassMember> students) {
-        var studentHomeUrl = "%s/student".formatted(emailProperties.getInvitationBaseUrl());
-        var subject = "New formative activity: %s".formatted(activity.getTitle());
-        var plainText = launchPlainText(activity, studentHomeUrl);
-        return students.stream()
-                .map(student -> launchMessage(activity, student, subject, plainText, studentHomeUrl))
-                .toList();
-    }
-
-    private EmailMessage launchMessage(
-            TrainingActivity activity,
-            GroupClassMember student,
-            String subject,
-            String plainText,
-            String studentHomeUrl) {
-        var model = new HashMap<String, Object>();
-        model.put("headline", "Complete %s".formatted(activity.getTitle()));
-        model.put("intro", "A new formative activity is available for %s.".formatted(activity.getGroupClass().getName()));
-        model.put("activityTitle", activity.getTitle());
-        model.put("instructions", activity.getInstructions());
-        model.put("activityUrl", studentHomeUrl);
-
-        var toAddress = student.getTenantAccount().getAccount().getEmail();
-        var html = emailTemplateService
-                .render(new TemplatedEmailMessage(toAddress, subject, "training-activity-invitation", model));
-        return new EmailMessage(toAddress, subject, plainText, html);
-    }
-
-    private void sendAfterCommit(List<EmailMessage> messages) {
-        if (messages.isEmpty()) {
-            return;
-        }
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            send(messages);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                send(messages);
-            }
-        });
-    }
-
-    private void send(List<EmailMessage> messages) {
-        for (var message : messages) {
-            emailService.send(message);
-        }
-    }
-
     @Transactional(readOnly = true)
     public InstructionReviewSnapshotDto getInstructionReviewSnapshot(UUID activityId) {
         var activity = get(activityId);
-        return advisoryInstructionReviewService == null
-                ? instructionReviewCoordinator.snapshot(activity)
-                : advisoryInstructionReviewService.current(activityId, activity.getInstructions());
+        var context = requireProfessorContext();
+        return advisoryInstructionReviewService.current(context.groupClassMemberId(), activity.getTitle(), activity.getInstructions());
     }
 
     @Transactional
@@ -547,11 +371,8 @@ public class TrainingActivityService {
     public InstructionReviewSnapshotDto reviewDraft(TrainingActivitySaveCommand command) {
         validateRequiredFields(command);
         var context = requireProfessorContext();
-        if (advisoryInstructionReviewService != null) {
-            var candidateId = command.reviewCandidateId() == null ? UUID.randomUUID() : command.reviewCandidateId();
-            return advisoryInstructionReviewService.request(candidateId, null, context.groupClassId(), context.groupClassMemberId(), command.title(), command.instructions());
-        }
-        return reviewAdvisory(null, command.title(), command.instructions()).snapshot();
+        return advisoryInstructionReviewService.request(
+                context.groupClassMemberId(), command.title(), command.instructions());
     }
 
     private ActiveAcademicContext requireProfessorContext() {
@@ -570,40 +391,17 @@ public class TrainingActivityService {
         }
     }
 
-    private InstructionReviewCoordinator.ReviewBeforeSaveDecision reviewAdvisory(
-            TrainingActivity currentActivity,
-            String title,
-            String instructions) {
-        try {
-            return instructionReviewCoordinator.reviewBeforeSave(currentActivity, title, instructions);
+    private void ensureReviewAllowsSave(TrainingActivitySaveCommand command, ActiveAcademicContext context) {
+        var snapshot = advisoryInstructionReviewService.current(
+                context.groupClassMemberId(), command.title(), command.instructions());
+        if (snapshot == null) {
+            snapshot = advisoryInstructionReviewService.request(
+                    context.groupClassMemberId(), command.title(), command.instructions());
         }
-        catch (InstructionReviewUnavailableException exception) {
-            var snapshot = instructionReviewCoordinator.unavailableSnapshot(currentActivity, exception.getReviewResult());
-            return new InstructionReviewCoordinator.ReviewBeforeSaveDecision(snapshot, exception.getReviewResult(), false);
-        }
-    }
-
-    private void ensureReviewAllowsSave(
-            TrainingActivitySaveCommand command,
-            InstructionReviewCoordinator.ReviewBeforeSaveDecision decision) {
-        var snapshot = decision.snapshot();
-        if (snapshot != null && snapshot.canSave()) {
-            return;
-        }
-        if (confirmedCachedGoodReview(command, decision)) {
-            return;
-        }
-        throw new InstructionQualityReviewException(blockingReviewMessage(snapshot), decision.reviewResult(), snapshot);
-    }
-
-    private void ensureAsyncReviewAllowsSave(
-            TrainingActivitySaveCommand command,
-            InstructionReviewSnapshotDto snapshot) {
         if (snapshot.isSaveableGoodReview()) {
             return;
         }
-        var explicitCurrentOverride = command.confirmedReviewHash() != null
-                && command.confirmedReviewHash().equals(snapshot.reviewHash())
+        var explicitCurrentOverride = command.saveDespiteReview()
                 && snapshot.reviewStatus() != InstructionReviewStatus.IDLE
                 && snapshot.reviewStatus() != InstructionReviewStatus.REVIEWING
                 && snapshot.reviewStatus() != InstructionReviewStatus.LOCAL_INVALID
@@ -614,76 +412,6 @@ public class TrainingActivityService {
                     null,
                     snapshot);
         }
-    }
-
-    private boolean confirmedCachedGoodReview(
-            TrainingActivitySaveCommand command,
-            InstructionReviewCoordinator.ReviewBeforeSaveDecision decision) {
-        var snapshot = decision.snapshot();
-        var reviewResult = decision.reviewResult();
-        return snapshot != null
-                && reviewResult != null
-                && snapshot.requiresVisibleReviewConfirmation()
-                && snapshot.reviewHash() != null
-                && snapshot.reviewHash().equals(command.confirmedReviewHash())
-                && Boolean.TRUE.equals(reviewResult.validInstruction())
-                && reviewResult.qualityStatus() == InstructionQualityStatus.GOOD;
-    }
-
-    private String blockingReviewMessage(InstructionReviewSnapshotDto snapshot) {
-        if (snapshot != null && snapshot.message() != null && !snapshot.message().isBlank()) {
-            return snapshot.message();
-        }
-        return "Estas instrucciones no se pueden guardar todavía.";
-    }
-
-    private void ensureInstructionReviewAllowsLaunch(TrainingActivity activity) {
-        if (activity.getInstructionReviewStatus() == InstructionReviewStatus.UNAVAILABLE) {
-            throw new IllegalStateException(
-                    activity.getInstructionReviewMessage() == null || activity.getInstructionReviewMessage().isBlank()
-                            ? "No pudimos completar la revisión automática de instrucciones. Intenta guardar de nuevo."
-                            : activity.getInstructionReviewMessage());
-        }
-        if (!instructionReviewCoordinator.hasCurrentGoodInstructionReview(activity)) {
-            throw new IllegalStateException(
-                    activity.getInstructionReviewMessage() == null || activity.getInstructionReviewMessage().isBlank()
-                            ? "Lanzar la actividad requiere una revisión actual GOOD para las instrucciones guardadas."
-                            : activity.getInstructionReviewMessage());
-        }
-    }
-
-    private void refreshInstructionReviewAdvisory(TrainingActivity activity) {
-        try {
-            var decision = instructionReviewCoordinator.reviewBeforeSave(activity, activity.getTitle(), activity.getInstructions());
-            if (decision == null) {
-                return;
-            }
-            instructionReviewCoordinator.applyPersistedReview(activity, decision.snapshot(), decision.reviewResult());
-            trainingActivityRepository.save(activity);
-        }
-        catch (InstructionReviewUnavailableException exception) {
-            if (exception.getReviewResult() != null) {
-                var snapshot = instructionReviewCoordinator.unavailableSnapshot(activity, exception.getReviewResult());
-                instructionReviewCoordinator.applyPersistedReview(activity, snapshot, exception.getReviewResult());
-                trainingActivityRepository.save(activity);
-            }
-            LOGGER.warn("Launch review refresh failed because the instruction review is unavailable: activityId={}", activity.getId(), exception);
-        }
-    }
-
-    private String launchPlainText(TrainingActivity activity, String studentHomeUrl) {
-        return """
-               Hello,
-
-               A new formative activity is available for %s.
-
-               Title: %s
-               Instructions:
-               %s
-
-               Open your student home:
-               %s
-               """.formatted(activity.getGroupClass().getName(), activity.getTitle(), activity.getInstructions(), studentHomeUrl);
     }
 
 }

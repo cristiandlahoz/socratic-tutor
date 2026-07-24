@@ -12,7 +12,7 @@ import type {
   QualityStatus,
   ReviewStatus,
 } from './types.js';
-import { hasInlineRange, hasSuggestion, issueReplacementRange, normalizeSnapshot } from './utils.js';
+import { hasInlineRange, hasInstructionReviewFeedback, hasSuggestion, issueReplacementRange, normalizeSnapshot } from './utils.js';
 
 const HOVER_CARD_CLOSE_DELAY_MS = 140;
 
@@ -23,6 +23,7 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
   @property({ type: String }) value = '';
   @property({ type: String }) label = 'Instrucciones';
   @property({ type: String }) reviewSnapshot = '';
+  @property({ type: String }) reviewResetToken = '';
   @property({ type: Boolean }) stale = false;
   @property({ type: Boolean }) reviewing = false;
   @query('.instruction-linter-editor__editor')
@@ -33,11 +34,16 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
   private syncingEditorValue = false;
   private applyingServerSnapshot = false;
   private issueStates = new Map<string, IssuePresentationState>();
+  @state()
   private reviewStatus: ReviewStatus = 'IDLE';
+  @state()
   private qualityStatus?: QualityStatus;
+  @state()
   private message = '';
+  @state()
   private issues: InstructionLintIssue[] = [];
   private floatingCardEl?: HTMLDivElement;
+  private floatingCardPositionSheet: CSSStyleSheet | undefined;
   private hoverCardCloseTimeoutId: number | null = null;
   private pointerInsideIssue = false;
   private pointerInsideCard = false;
@@ -96,6 +102,7 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     document.removeEventListener('click', this.outsideClickListener);
     document.removeEventListener('keydown', this.escapeKeyListener);
     this.removeFloatingCardListeners();
+    this.removeFloatingCardPositionSheet();
     this.floatingCardEl?.remove();
     this.floatingCardEl = undefined;
     this.editorView?.destroy();
@@ -104,6 +111,10 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
   }
 
   protected willUpdate(changedProperties: Map<string, unknown>): void {
+    if (changedProperties.has('reviewResetToken')) {
+      this.resetReviewState('server-reset');
+      return;
+    }
     if (changedProperties.has('reviewSnapshot') && !this.applyingServerSnapshot) {
       const snapshot = normalizeSnapshot(this.reviewSnapshot);
       if (snapshot) {
@@ -235,6 +246,7 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     this.issueStates = new Map(this.issueStates);
     this.issueStates.set(issue.issueKey, 'APPLIED');
     this.closeHoverCard();
+    this.dispatchAcceptedSuggestion(issue);
     this.applyValue(nextValue, { stale: false });
   }
 
@@ -332,6 +344,10 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     if (this.applyingServerSnapshot) {
       return;
     }
+    this.dispatchEvent(new CustomEvent('suggestion-provenance-invalidated', {
+      bubbles: true,
+      composed: true,
+    }));
     this.value = newValue;
     if (!newValue.trim()) {
       this.resetReviewState('empty-input');
@@ -354,6 +370,23 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     }
   }
 
+  private dispatchAcceptedSuggestion(issue: InstructionLintIssue): void {
+    if (!this.parsedSnapshot?.reviewId || issue.startOffset == null || issue.endOffset == null) {
+      return;
+    }
+    this.dispatchEvent(new CustomEvent('suggestion-applied', {
+      detail: {
+        sourceReviewId: this.parsedSnapshot.reviewId,
+        issueKey: issue.issueKey,
+        startOffset: String(issue.startOffset),
+        endOffset: String(issue.endOffset),
+        replacement: issue.suggestedReplacement ?? '',
+      },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
   private showIssueCard(issue: InstructionLintIssue, view: EditorView): void {
     this.activeIssue = issue;
     this.clearHoverCardCloseTimer();
@@ -368,6 +401,7 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     this.pointerInsideCard = false;
     this.clearHoverCardCloseTimer();
     this.removeFloatingCardListeners();
+    this.removeFloatingCardPositionSheet();
     this.floatingCardEl?.remove();
     this.floatingCardEl = undefined;
   }
@@ -376,7 +410,7 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     if (!this.floatingCardEl) {
       this.floatingCardEl = document.createElement('div');
       this.floatingCardEl.className = 'instruction-linter-floating-card';
-      this.applyFloatingCardBaseStyles(this.floatingCardEl);
+      this.floatingCardEl.id = 'instruction-linter-floating-card';
       this.floatingCardEl.addEventListener('click', (event) => event.stopPropagation());
       this.floatingCardEl.addEventListener('mouseenter', this.floatingCardPointerEnterListener);
       this.floatingCardEl.addEventListener('mouseleave', this.floatingCardPointerLeaveListener);
@@ -390,9 +424,8 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     card.replaceChildren();
 
     const message = document.createElement('strong');
+    message.className = 'instruction-linter-floating-card__message';
     message.textContent = issue.message;
-    message.style.color = '#f9fafb';
-    message.style.lineHeight = '1.45';
     card.appendChild(message);
 
     if (!hasSuggestion(issue)) {
@@ -400,69 +433,25 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     }
 
     const label = document.createElement('div');
+    label.className = 'instruction-linter-floating-card__label';
     label.textContent = 'Sugerencia';
-    label.style.fontSize = '0.72rem';
-    label.style.fontWeight = '800';
-    label.style.color = '#cbd5e1';
-    label.style.textTransform = 'uppercase';
-    label.style.letterSpacing = '0.06em';
     card.appendChild(label);
 
     const suggestion = document.createElement('div');
+    suggestion.className = 'instruction-linter-floating-card__suggestion';
     suggestion.textContent = issue.suggestedReplacement ?? '';
-    suggestion.style.padding = '0.7rem';
-    suggestion.style.borderRadius = '0.625rem';
-    suggestion.style.background = 'rgba(255, 255, 255, 0.08)';
-    suggestion.style.color = '#f8fafc';
-    suggestion.style.whiteSpace = 'pre-wrap';
-    suggestion.style.wordBreak = 'break-word';
-    suggestion.style.fontFamily = "var(--vaadin-font-family-monospace, 'SFMono-Regular', Consolas, monospace)";
-    suggestion.style.fontSize = '0.86rem';
     card.appendChild(suggestion);
 
     const button = document.createElement('button');
     button.type = 'button';
+    button.className = 'instruction-linter-floating-card__button';
     button.textContent = 'Aplicar';
     button.disabled = this.reviewing;
-    button.style.justifySelf = 'start';
-    button.style.border = '1px solid rgba(59, 130, 246, 0.55)';
-    button.style.borderRadius = '0.625rem';
-    button.style.padding = '0.48rem 0.75rem';
-    button.style.background = 'rgba(37, 99, 235, 0.2)';
-    button.style.color = '#93c5fd';
-    button.style.cursor = 'pointer';
-    button.style.font = 'inherit';
-    button.style.fontWeight = '750';
-    button.addEventListener('mouseenter', () => {
-      button.style.background = 'rgba(37, 99, 235, 0.32)';
-      button.style.color = '#bfdbfe';
-    });
-    button.addEventListener('mouseleave', () => {
-      button.style.background = 'rgba(37, 99, 235, 0.2)';
-      button.style.color = '#93c5fd';
-    });
     button.addEventListener('click', (event) => {
       event.stopPropagation();
       this.applyRangeSuggestion(issue);
     });
     card.appendChild(button);
-  }
-
-  private applyFloatingCardBaseStyles(card: HTMLDivElement): void {
-    card.style.position = 'fixed';
-    card.style.zIndex = '100000';
-    card.style.display = 'grid';
-    card.style.gap = '0.65rem';
-    card.style.maxWidth = '460px';
-    card.style.padding = '0.95rem';
-    card.style.border = '1px solid rgba(148, 163, 184, 0.28)';
-    card.style.borderRadius = '14px';
-    card.style.background = '#0f172a';
-    card.style.color = 'white';
-    card.style.boxShadow = '0 18px 45px rgba(0, 0, 0, 0.35)';
-    card.style.pointerEvents = 'auto';
-    card.style.boxSizing = 'border-box';
-    card.style.overflow = 'visible';
   }
 
   private positionFloatingCard(issue: InstructionLintIssue, view: EditorView): void {
@@ -477,10 +466,6 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     const margin = 12;
     const gap = 10;
     const maxWidth = Math.min(460, window.innerWidth - margin * 2);
-    card.style.maxWidth = `${maxWidth}px`;
-    card.style.left = '0px';
-    card.style.top = '0px';
-
     const cardRect = card.getBoundingClientRect();
     let left = anchorRect.left;
     let top = anchorRect.top - cardRect.height - gap;
@@ -498,8 +483,20 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
       left = margin;
     }
 
-    card.style.left = `${left}px`;
-    card.style.top = `${top}px`;
+    this.setFloatingCardPosition(left, top, maxWidth);
+  }
+
+  private setFloatingCardPosition(left: number, top: number, maxWidth: number): void {
+    this.removeFloatingCardPositionSheet();
+    this.floatingCardPositionSheet = new CSSStyleSheet();
+    this.floatingCardPositionSheet.replaceSync(`
+      #instruction-linter-floating-card {
+        left: ${left}px;
+        top: ${top}px;
+        max-width: ${maxWidth}px;
+      }
+    `);
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, this.floatingCardPositionSheet];
   }
 
   private isRectVisible(rect: { top: number; right: number; bottom: number; left: number }): boolean {
@@ -519,6 +516,16 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
     document.removeEventListener('keydown', this.escapeKeyListener);
     window.removeEventListener('resize', this.repositionActiveCard);
     window.removeEventListener('scroll', this.repositionActiveCard, true);
+  }
+
+  private removeFloatingCardPositionSheet(): void {
+    if (!this.floatingCardPositionSheet) {
+      return;
+    }
+    document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+      (sheet) => sheet !== this.floatingCardPositionSheet,
+    );
+    this.floatingCardPositionSheet = undefined;
   }
 
   private scheduleHoverCardClose(): void {
@@ -559,6 +566,9 @@ export class InstructionLinterEditorElement extends LitElement implements IssueD
 
   private bottomAnalysisLine(): string {
     if (this.reviewing || this.showStaleMessage()) {
+      return '';
+    }
+    if (!hasInstructionReviewFeedback(this.reviewStatus, this.qualityStatus, this.message, this.visibleIssues)) {
       return '';
     }
     if ((this.reviewStatus === 'FAILED' || this.reviewStatus === 'UNAVAILABLE') && !this.message.trim()) {

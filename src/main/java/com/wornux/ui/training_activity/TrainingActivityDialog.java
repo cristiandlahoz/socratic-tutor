@@ -1,16 +1,12 @@
 package com.wornux.ui.training_activity;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
@@ -40,7 +36,6 @@ import com.wornux.services.training_activity.instruction_review.InstructionRevie
 import com.wornux.services.training_activity.instruction_review.InstructionReviewUnavailableException;
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
-import com.wornux.services.training_activity.TrainingAssignmentTutorService;
 import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.services.training_activity.TrainingActivitySaveCommand;
 import com.wornux.services.training_activity.TrainingActivityReportProjectionService;
@@ -51,22 +46,8 @@ import com.wornux.ui.css.UiCss;
 
 public class TrainingActivityDialog extends Div {
 
-    private static final ObjectMapper REPORT_OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
     private static final DateTimeFormatter REPORT_DATE_FORMATTER = DateTimeFormatter
             .ofPattern("dd MMM yyyy · HH:mm", Locale.of("es", "DO"));
-
-    private static final Pattern QUESTION_LABEL_PATTERN = Pattern.compile(
-            "^pregunta(?:\\s+(\\d+))?\\s*:?(.*)$",
-            Pattern.CASE_INSENSITIVE);
-
-    private static final Pattern STUDENT_ANSWER_LABEL_PATTERN = Pattern.compile(
-            "^respuesta\\s+del\\s+estudiante\\s*:?(.*)$",
-            Pattern.CASE_INSENSITIVE);
-
-    private static final Pattern TRANSCRIPT_HEADING_PATTERN = Pattern.compile(
-            "(?im)^\\s*#{0,6}\\s*(?:Transcripción|Transcripcion|Transcript|Evidencia disponible|Available evidence)\\s*$");
-    private static final Pattern INTERNAL_REPORT_METADATA_PATTERN = Pattern.compile(
-            "(?im)^\\s*(?:\"?(?:type|reason|metadata|answerQuality|answer_quality|evidenceStatus|evidence_status|coverageStatus|coverage_status|pedagogicalMove|pedagogical_move|shouldContinue|should_continue|coveredInstructionAspects|covered_instruction_aspects|missingInstructionAspects|missing_instruction_aspects|unproductivePatternDetected|unproductive_pattern_detected)\"?\\s*[:=].*|(?:TutorDecisionType|COMPLETE_SUCCESS|COMPLETE_INSUFFICIENT_EVIDENCE|FOLLOW_UP|ASK_FOR_CLARITY)\\s*)$");
 
     private final transient TrainingActivity original;
     private final transient TrainingActivityService trainingActivityService;
@@ -102,7 +83,7 @@ public class TrainingActivityDialog extends Div {
         this.trainingActivityService = trainingActivityService;
         this.safeBrowserModeService = safeBrowserModeService;
         this.assignmentStateBus = assignmentStateBus;
-        this.reportProjectionService = reportProjectionService;
+        this.reportProjectionService = Objects.requireNonNull(reportProjectionService, "reportProjectionService cannot be null");
         this.onSave = onSave;
         this.onClose = onClose;
         this.activitySnapshot = activity;
@@ -123,7 +104,7 @@ public class TrainingActivityDialog extends Div {
         instructionField = new InstructionLinterEditor();
         instructionField.setWidthFull();
         instructionField.setMinHeight("9rem");
-        instructionField.getElement().getStyle().set("margin-bottom", "var(--vaadin-padding-m, 1rem)");
+        UiCss.TRAINING_ACTIVITY_DIALOG_INSTRUCTIONS.addTo(instructionField);
         instructionField.setValue(activity.getInstructions());
         instructionField.addValueChangeListener(_ -> invalidateDisplayedReviewConfirmation());
         if (activity.getStatus() == TrainingActivityLifecycleStatus.DRAFT) {
@@ -140,17 +121,6 @@ public class TrainingActivityDialog extends Div {
 
         add(backdrop, panel);
         renderActivityMode();
-    }
-
-    /** Compatibility constructor retained for existing dialog-focused tests. */
-    public TrainingActivityDialog(
-            TrainingActivity activity,
-            TrainingActivityService trainingActivityService,
-            SafeBrowserModeService safeBrowserModeService,
-            SafeBrowserAssignmentStateBus assignmentStateBus,
-            Consumer<TrainingActivity> onSave,
-            Runnable onClose) {
-        this(activity, trainingActivityService, safeBrowserModeService, assignmentStateBus, null, onSave, onClose);
     }
 
     @Override
@@ -344,8 +314,7 @@ public class TrainingActivityDialog extends Div {
                         title,
                         instruction,
                         safeBrowserField.getValue(),
-                        "",
-                        reviewCandidateId)));
+                        false)));
                 return;
             }
             var confirmedReviewHash = confirmedReviewHashForSave(title, instruction, currentSnapshot);
@@ -353,8 +322,7 @@ public class TrainingActivityDialog extends Div {
                     title,
                     instruction,
                     safeBrowserField.getValue(),
-                    confirmedReviewHash,
-                    reviewCandidateId));
+                    confirmedReviewHash != null && !confirmedReviewHash.isBlank()));
         }
         catch (InstructionQualityReviewException exception) {
             if (exception.getReviewSnapshot() != null) {
@@ -380,7 +348,7 @@ public class TrainingActivityDialog extends Div {
         var snapshot = trainingActivityService.getInstructionReviewSnapshot(updated.getId());
         activitySnapshot = updated;
         showInstructionReview(snapshot);
-        Notification.show(saveMessage(snapshot));
+        Notification.show(saveMessage());
 
         if (onSave != null) {
             onSave.accept(updated);
@@ -452,10 +420,7 @@ public class TrainingActivityDialog extends Div {
         displayedReviewInstructions = "";
     }
 
-    private String saveMessage(InstructionReviewSnapshotDto snapshot) {
-        if (snapshot.reviewStatus() == InstructionReviewStatus.COMPLETED_FROM_CACHE) {
-            return "Actividad guardada con una revisión válida reutilizada para estas mismas instrucciones.";
-        }
+    private String saveMessage() {
         return "Actividad guardada";
     }
 
@@ -485,7 +450,7 @@ public class TrainingActivityDialog extends Div {
     }
 
     private Button reportButton(TrainingActivityAssignment assignment) {
-        var button = new Button("Ver", _ -> renderReportMode(assignment));
+        var button = new Button("Ver", _ -> renderReportMode(assignment.getId()));
         button.setEnabled(assignment.getStatus() == com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus.SUBMITTED);
         button.setWidthFull();
         return button;
@@ -523,27 +488,14 @@ public class TrainingActivityDialog extends Div {
         return text;
     }
 
-    private void renderReportMode(TrainingActivityAssignment assignment) {
-        if (reportProjectionService == null) {
-            renderLegacyReportMode(assignment);
-            return;
-        }
+    private void renderReportMode(java.util.UUID assignmentId) {
         try {
-            renderReportMode(reportProjectionService.getForCurrentReviewer(assignment.getId()));
+            renderReportMode(reportProjectionService.getForCurrentReviewer(assignmentId));
         }
         catch (RuntimeException exception) {
             renderActivityMode();
             Notification.show("No se pudo cargar el reporte de esta evaluación.");
         }
-    }
-
-    private void renderLegacyReportMode(TrainingActivityAssignment assignment) {
-        activityMode = false;
-        panel.removeAll();
-        panel.removeClassName("training-activity-overlay-panel--activity");
-        panel.addClassName("training-activity-overlay-panel--report");
-
-        panel.add(reportHeader(assignment), reportBody(assignment), reportFooter());
     }
 
     private void renderReportMode(TrainingActivityReportProjectionService.ReportProjection projection) {
@@ -556,7 +508,7 @@ public class TrainingActivityDialog extends Div {
     }
 
     private void refreshDisplayedReport() {
-        if (reportProjectionService == null || displayedReportAssignmentId == null) {
+        if (displayedReportAssignmentId == null) {
             return;
         }
         try {
@@ -575,18 +527,13 @@ public class TrainingActivityDialog extends Div {
             case GENERATING -> content.add(new Paragraph("El reporte se está generando. La transcripción ya está disponible."));
             case FAILED -> {
                 content.add(new Paragraph("El reporte no está disponible temporalmente. La transcripción permanece disponible."));
-                if (reportProjectionService != null) {
-                    var retry = new Button("Reintentar reporte", _ -> retryFailedReport(projection.assignment().getId()));
-                    retry.addThemeVariants(ButtonVariant.PRIMARY);
-                    content.add(retry);
-                }
+                var retry = new Button("Reintentar reporte", _ -> retryFailedReport(projection.assignment().getId()));
+                retry.addThemeVariants(ButtonVariant.PRIMARY);
+                content.add(retry);
             }
             case READY -> content.add(readyReport(projection));
         }
-        content.add(transcriptSection(projection.turns().stream()
-                .filter(turn -> turn.answerText() != null)
-                .map(turn -> new ReportQuestion(turn.sequenceNumber(), turn.questionText(), turn.answerText()))
-                .toList()));
+        content.add(transcriptSection(projection.turns().stream().filter(turn -> turn.answerText() != null).toList()));
         return content;
     }
 
@@ -665,12 +612,6 @@ public class TrainingActivityDialog extends Div {
         var meta = new Div(activity, status);
         meta.addClassName("training-activity-report-meta");
 
-        if (usesLegacyPromptVersion(assignment)) {
-            var legacyNote = new Span("Generado con una versión anterior del tutor; interpretarlo con cautela.");
-            legacyNote.addClassName("training-activity-report-legacy-note");
-            meta.add(legacyNote);
-        }
-
         var submittedAt = assignment.getSubmittedAt();
         if (submittedAt != null) {
             var submitted = new Span(submittedAt.atZone(ZoneId.systemDefault()).format(REPORT_DATE_FORMATTER));
@@ -683,297 +624,63 @@ public class TrainingActivityDialog extends Div {
         return header;
     }
 
-    private Component reportBody(TrainingActivityAssignment assignment) {
-        var report = sanitizeTeacherReport(assignment.getFinalReport());
-        var hasTranscriptHeading = hasTranscriptEvidenceHeading(report);
-        var transcript = extractTranscriptEvidence(report);
-        var questions = parseQuestions(hasTranscriptHeading ? transcript : report);
-        if (questions.isEmpty()) {
-            return fallbackReport(report, assignment);
-        }
-
-        var reportContent = new Div();
-        reportContent.addClassName("training-activity-report-content");
-
-        var narrative = hasTranscriptHeading ? extractReportNarrative(report) : "";
-        if (narrative.isBlank()) {
-            reportContent.add(reportTitle(extractReportTitle(report)));
-        }
-        else {
-            reportContent.add(markdownReport(narrative, assignment));
-        }
-        reportContent.add(transcriptSection(questions));
-        return reportContent;
-    }
-
-    private boolean hasTranscriptEvidenceHeading(String report) {
-        return report != null && !report.isBlank() && TRANSCRIPT_HEADING_PATTERN.matcher(report).find();
-    }
-
-    private String extractTranscriptEvidence(String report) {
-        if (report == null || report.isBlank()) {
-            return "";
-        }
-
-        var matcher = TRANSCRIPT_HEADING_PATTERN.matcher(report);
-        if (!matcher.find()) {
-            return "";
-        }
-        return report.substring(matcher.end()).trim();
-    }
-
-    private Component fallbackReport(String report, TrainingActivityAssignment assignment) {
-        var reportContent = new Div(markdownReport(report, assignment));
-        reportContent.addClassName("training-activity-report-content");
-
-        return reportContent;
-    }
-
-    private Component markdownReport(String report, TrainingActivityAssignment assignment) {
-        var reportList = new MessagesList();
-        reportList.setWidthFull();
-
-        var createdAt = assignment.getSubmittedAt() != null
-                ? assignment.getSubmittedAt()
-                : Instant.now();
-
-        var reportItem = new MessageItem(
-                report,
-                createdAt,
-                "Tutor Socrático",
-                MessageItem.Variant.ASSISTANT,
-                false,
-                false);
-
-        reportList.setItems(List.of(reportItem));
-        return reportList;
-    }
-
-    private boolean usesLegacyPromptVersion(TrainingActivityAssignment assignment) {
-        return assignment == null
-                || assignment.getTutorPromptVersion() == null
-                || !TrainingAssignmentTutorService.currentPromptVersionValue().equals(assignment.getTutorPromptVersion());
-    }
-
-    private String sanitizeTeacherReport(String report) {
-        if (report == null || report.isBlank()) {
-            return "";
-        }
-        return INTERNAL_REPORT_METADATA_PATTERN.matcher(report).replaceAll("").trim();
-    }
-
-    private List<ReportQuestion> parseQuestions(String report) {
-        if (report == null || report.isBlank()) {
-            return List.of();
-        }
-
-        var questions = new ArrayList<ReportQuestion>();
-        var prompt = new ArrayList<String>();
-        var answer = new ArrayList<String>();
-        Integer currentNumber = null;
-        var nextImplicitNumber = 1;
-        var readingAnswer = false;
-        var inCodeFence = false;
-
-        for (var rawLine : report.split("\\R", -1)) {
-            if (!inCodeFence) {
-                var normalizedLine = normalizeLabelLine(rawLine);
-                var questionMatcher = QUESTION_LABEL_PATTERN.matcher(normalizedLine);
-                if (questionMatcher.matches()) {
-                    addReportQuestion(questions, currentNumber, prompt, answer);
-                    currentNumber = questionMatcher.group(1) == null
-                            ? nextImplicitNumber
-                            : Integer.parseInt(questionMatcher.group(1));
-                    nextImplicitNumber = Math.max(nextImplicitNumber, currentNumber + 1);
-                    prompt.clear();
-                    answer.clear();
-                    readingAnswer = false;
-
-                    var inlineQuestion = questionMatcher.group(2) == null ? "" : questionMatcher.group(2).trim();
-                    if (!inlineQuestion.isBlank()) {
-                        prompt.add(inlineQuestion);
-                        inCodeFence = toggleCodeFence(inlineQuestion, inCodeFence);
-                    }
-                    continue;
-                }
-
-                if (currentNumber != null) {
-                    var answerMatcher = STUDENT_ANSWER_LABEL_PATTERN.matcher(normalizedLine);
-                    if (answerMatcher.matches()) {
-                        readingAnswer = true;
-                        var inlineAnswer = answerMatcher.group(1) == null ? "" : answerMatcher.group(1).trim();
-                        if (!inlineAnswer.isBlank()) {
-                            answer.add(inlineAnswer);
-                            inCodeFence = toggleCodeFence(inlineAnswer, inCodeFence);
-                        }
-                        continue;
-                    }
-                }
-            }
-
-            if (currentNumber == null) {
-                continue;
-            }
-
-            if (readingAnswer) {
-                answer.add(rawLine);
-            }
-            else {
-                prompt.add(rawLine);
-            }
-            inCodeFence = toggleCodeFence(rawLine, inCodeFence);
-        }
-
-        addReportQuestion(questions, currentNumber, prompt, answer);
-        return questions;
-    }
-
-    private String normalizeLabelLine(String rawLine) {
-        return rawLine.trim()
-                .replace("**", "")
-                .replaceFirst("^#{1,6}\\s*", "")
-                .replaceFirst("^[-*]\\s*", "")
-                .trim();
-    }
-
-    private boolean toggleCodeFence(String line, boolean inCodeFence) {
-        var markerCount = line.split("```", -1).length - 1;
-        return markerCount % 2 == 0 ? inCodeFence : !inCodeFence;
-    }
-
-    private void addReportQuestion(
-            List<ReportQuestion> questions,
-            Integer number,
-            List<String> promptLines,
-            List<String> answerLines) {
-        if (number == null) {
-            return;
-        }
-
-        var prompt = normalizeReportBlock(promptLines);
-        var answer = normalizeReportBlock(answerLines);
-        if (!prompt.isBlank() && !answer.isBlank()) {
-            questions.add(new ReportQuestion(number, prompt, answer));
-        }
-    }
-
-    private String normalizeReportBlock(List<String> lines) {
-        var start = 0;
-        var end = lines.size();
-
-        while (start < end && lines.get(start).isBlank()) {
-            start++;
-        }
-        while (end > start && lines.get(end - 1).isBlank()) {
-            end--;
-        }
-
-        return String.join("\n", lines.subList(start, end)).trim();
-    }
-
-    private String extractReportTitle(String report) {
-        if (report == null || report.isBlank()) {
-            return "Reporte de evaluación";
-        }
-
-        var preTranscript = report.split("(?im)^\\s*#{0,6}\\s*(?:Transcripción|Transcripcion|Transcript)\\s*$", 2)[0];
-        for (var rawLine : preTranscript.split("\\R")) {
-            var line = stripMarkdownDecorators(rawLine.trim());
-            if (line.isBlank()
-                    || line.regionMatches(true, 0, "Activity:", 0, "Activity:".length())
-                    || line.regionMatches(true, 0, "Actividad:", 0, "Actividad:".length())) {
-                continue;
-            }
-            return line;
-        }
-
-        return "Reporte de evaluación";
-    }
-
-    private String extractReportNarrative(String report) {
-        if (report == null || report.isBlank()) {
-            return "";
-        }
-
-        var narrativeLines = new ArrayList<String>();
-        var inCodeFence = false;
-        for (var rawLine : report.split("\\R", -1)) {
-            if (!inCodeFence) {
-                if (TRANSCRIPT_HEADING_PATTERN.matcher(rawLine).matches()) {
-                    break;
-                }
-            }
-            narrativeLines.add(rawLine);
-            inCodeFence = toggleCodeFence(rawLine, inCodeFence);
-        }
-
-        return removeTrailingTranscriptHeading(normalizeReportBlock(narrativeLines));
-    }
-
-    private String removeTrailingTranscriptHeading(String narrative) {
-        if (narrative.isBlank()) {
-            return "";
-        }
-        var lines = new ArrayList<>(List.of(narrative.split("\\R", -1)));
-        while (!lines.isEmpty() && lines.getLast().isBlank()) {
-            lines.removeLast();
-        }
-        if (!lines.isEmpty() && isDuplicateTranscriptHeading(lines.getLast())) {
-            lines.removeLast();
-        }
-        while (!lines.isEmpty() && lines.getLast().isBlank()) {
-            lines.removeLast();
-        }
-        return String.join("\n", lines).trim();
-    }
-
-    private boolean isDuplicateTranscriptHeading(String line) {
-        var normalized = stripMarkdownDecorators(line).toLowerCase(Locale.ROOT);
-        return normalized.equals("transcripción")
-                || normalized.equals("transcripcion")
-                || normalized.equals("transcript")
-                || normalized.equals("evidencia disponible")
-                || normalized.equals("available evidence");
-    }
-
-    private String stripMarkdownDecorators(String text) {
-        return text.replaceFirst("^#{1,6}\\s*", "")
-                .replaceAll("^\\*+|\\*+$", "")
-                .trim();
-    }
-
-    private Component reportTitle(String text) {
-        var title = new H4(text);
-        title.addClassName("training-activity-report-title");
-        return title;
-    }
-
-    private Component transcriptSection(List<ReportQuestion> questions) {
+    private Component transcriptSection(List<TrainingActivityReportProjectionService.TurnProjection> turns) {
         var title = new H4("Transcripción");
         title.addClassName("training-activity-transcript-title");
 
-        var section = new Div(title, reportCards(questions));
-        section.addClassName("training-activity-transcript-section");
+        var section = new Div(title);
+        section.addClassNames("training-activity-transcript-section", "training-activity-report-transcript");
+        turns.stream()
+                .map(this::questionConversationCard)
+                .forEach(section::add);
         return section;
     }
 
-    private Component reportCards(List<ReportQuestion> questions) {
-        var cards = new TrainingActivityReportCards();
-        cards.setItemsJson(writeReportQuestions(questions));
-        return cards;
+    private Component questionConversationCard(TrainingActivityReportProjectionService.TurnProjection turn) {
+        var title = new Span("Pregunta %d".formatted(turn.sequenceNumber()));
+        title.addClassName("training-activity-conversation-title");
+
+        var badge = new Span("RESPONDIDA");
+        badge.addClassName("training-activity-conversation-badge");
+
+        var header = new Div(title, badge);
+        header.addClassName("training-activity-conversation-card-header");
+
+        var body = new Div(
+                conversationMessage("Tutor Socrático", turn.questionText(), true),
+                conversationMessage("Estudiante", turn.answerText(), false));
+        body.addClassName("training-activity-conversation-body");
+
+        var card = new Div(header, body);
+        card.addClassName("training-activity-conversation-card");
+        return card;
+    }
+
+    private Component conversationMessage(String author, String text, boolean tutor) {
+        var authorLabel = new Span(author);
+        authorLabel.addClassName("training-activity-conversation-author");
+
+        var messages = new MessagesList();
+        messages.setWidthFull();
+        messages.setItems(List.of(new MessageItem(
+                text,
+                java.time.Instant.EPOCH,
+                author,
+                tutor ? MessageItem.Variant.ASSISTANT : MessageItem.Variant.USER,
+                false,
+                false)));
+        messages.addClassName("training-activity-conversation-messages");
+
+        var row = new Div(authorLabel, messages);
+        row.addClassName("training-activity-conversation-row");
+        row.addClassName(tutor
+                ? "training-activity-conversation-row--tutor"
+                : "training-activity-conversation-row--student");
+        return row;
     }
 
     private void refreshActivitySnapshot() {
         activitySnapshot = trainingActivityService.get(original.getId());
-    }
-
-    private String writeReportQuestions(List<ReportQuestion> questions) {
-        try {
-            return REPORT_OBJECT_MAPPER.writeValueAsString(questions == null ? List.of() : questions);
-        }
-        catch (JsonProcessingException exception) {
-            throw new IllegalStateException("Failed to serialize report questions", exception);
-        }
     }
 
     private Span createReportBadge(String text) {
@@ -1003,6 +710,4 @@ public class TrainingActivityDialog extends Div {
         }
     }
 
-    private record ReportQuestion(int number, String tutorPrompt, String studentAnswer) {
-    }
 }

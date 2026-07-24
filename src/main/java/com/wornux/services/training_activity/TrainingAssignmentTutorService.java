@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -55,14 +56,8 @@ public class TrainingAssignmentTutorService {
     @Value("${app.ai.adaptive-tutor.model:${spring.ai.openai.chat.model:}}")
     private String modelName;
 
-    @Value("${app.ai.adaptive-tutor.max-tokens:1200}")
-    private Integer maxTokens;
-
     @Value("${app.ai.adaptive-tutor.temperature:0.2}")
     private Double temperature;
-
-    @Value("${app.ai.adaptive-tutor.report-max-tokens:1800}")
-    private Integer reportMaxTokens;
 
     @Value("${app.ai.adaptive-tutor.report-temperature:0.1}")
     private Double reportTemperature;
@@ -91,8 +86,12 @@ public class TrainingAssignmentTutorService {
     }
 
     public AdaptiveTutorDecision firstDecision(TrainingActivityAssignment assignment) {
+        return firstDecision(assignment, 0, null);
+    }
+
+    public AdaptiveTutorDecision firstDecision(TrainingActivityAssignment assignment, int questionCount, String currentQuestion) {
         try {
-            return decision(assignment, "", List.of());
+            return decision(assignment, "", List.of(), questionCount, currentQuestion);
         }
         catch (RuntimeException exception) {
             if (allowLocalFallback) {
@@ -102,7 +101,7 @@ public class TrainingAssignmentTutorService {
                         fallbackDecision.type(),
                         assignment == null ? null : assignment.getId(),
                         assignment == null || assignment.getTrainingActivity() == null ? null : assignment.getTrainingActivity().getId(),
-                        assignment == null ? null : assignment.getQuestionCount(),
+                        questionCount,
                         currentModelName(),
                         exception.getMessage(),
                         exception);
@@ -112,7 +111,7 @@ public class TrainingAssignmentTutorService {
                     "Adaptive tutor first decision failed without fallback. assignmentId={} trainingActivityId={} questionCount={} model={} reason={}",
                     assignment == null ? null : assignment.getId(),
                     assignment == null || assignment.getTrainingActivity() == null ? null : assignment.getTrainingActivity().getId(),
-                    assignment == null ? null : assignment.getQuestionCount(),
+                    questionCount,
                     currentModelName(),
                     exception.getMessage(),
                     exception);
@@ -124,12 +123,23 @@ public class TrainingAssignmentTutorService {
             TrainingActivityAssignment assignment,
             String latestAnswer,
             List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript) {
+        var exchanges = transcript == null ? List.<TrainingAssignmentEvaluationService.EvaluationExchange>of() : transcript;
+        var currentQuestion = exchanges.isEmpty() ? null : exchanges.getLast().question();
+        return nextDecision(assignment, latestAnswer, exchanges, exchanges.size(), currentQuestion);
+    }
+
+    public AdaptiveTutorDecision nextDecision(
+            TrainingActivityAssignment assignment,
+            String latestAnswer,
+            List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript,
+            int questionCount,
+            String currentQuestion) {
         try {
-            return decision(assignment, latestAnswer, transcript == null ? List.of() : transcript);
+            return decision(assignment, latestAnswer, transcript, questionCount, currentQuestion);
         }
         catch (RuntimeException exception) {
             if (allowLocalFallback) {
-                var fallbackDecision = alreadyUsedLocalFallback(assignment)
+                var fallbackDecision = questionCount > 1
                         ? localFallbackCompletionDecision()
                         : localFallbackQuestionDecision();
                 LOGGER.warn(
@@ -137,7 +147,7 @@ public class TrainingAssignmentTutorService {
                         fallbackDecision.type(),
                         assignment == null ? null : assignment.getId(),
                         assignment == null || assignment.getTrainingActivity() == null ? null : assignment.getTrainingActivity().getId(),
-                        assignment == null ? null : assignment.getQuestionCount(),
+                        questionCount,
                         currentModelName(),
                         exception.getMessage(),
                         exception);
@@ -147,7 +157,7 @@ public class TrainingAssignmentTutorService {
                     "Adaptive tutor next decision failed without fallback. assignmentId={} trainingActivityId={} questionCount={} model={} reason={}",
                     assignment == null ? null : assignment.getId(),
                     assignment == null || assignment.getTrainingActivity() == null ? null : assignment.getTrainingActivity().getId(),
-                    assignment == null ? null : assignment.getQuestionCount(),
+                    questionCount,
                     currentModelName(),
                     exception.getMessage(),
                     exception);
@@ -159,20 +169,31 @@ public class TrainingAssignmentTutorService {
             TrainingActivityAssignment assignment,
             String latestAnswer,
             List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript) {
-        return streamDecision(assignment, latestAnswer, transcript == null ? List.of() : transcript)
+        var exchanges = transcript == null ? List.<TrainingAssignmentEvaluationService.EvaluationExchange>of() : transcript;
+        return nextDecisionStream(assignment, latestAnswer, exchanges, exchanges.size(),
+                exchanges.isEmpty() ? null : exchanges.getLast().question());
+    }
+
+    public Flux<AdaptiveTutorStreamEvent> nextDecisionStream(
+            TrainingActivityAssignment assignment,
+            String latestAnswer,
+            List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript,
+            int questionCount,
+            String currentQuestion) {
+        return streamDecision(assignment, latestAnswer, transcript, questionCount, currentQuestion)
                 .onErrorResume(exception -> {
                     if (!allowLocalFallback) {
                         LOGGER.warn(
                                 "Adaptive tutor next decision stream failed without fallback. assignmentId={} trainingActivityId={} questionCount={} model={} reason={}",
                                 assignment == null ? null : assignment.getId(),
                                 assignment == null || assignment.getTrainingActivity() == null ? null : assignment.getTrainingActivity().getId(),
-                                assignment == null ? null : assignment.getQuestionCount(),
+                                questionCount,
                                 currentModelName(),
                                 exception.getMessage(),
                                 exception);
                         return Flux.error(controlledFailure(asRuntimeException(exception)));
                     }
-                    var fallbackDecision = alreadyUsedLocalFallback(assignment)
+                    var fallbackDecision = questionCount > 1
                             ? localFallbackCompletionDecision()
                             : localFallbackQuestionDecision();
                     LOGGER.warn(
@@ -180,7 +201,7 @@ public class TrainingAssignmentTutorService {
                             fallbackDecision.type(),
                             assignment == null ? null : assignment.getId(),
                             assignment == null || assignment.getTrainingActivity() == null ? null : assignment.getTrainingActivity().getId(),
-                            assignment == null ? null : assignment.getQuestionCount(),
+                            questionCount,
                             currentModelName(),
                             exception.getMessage(),
                             exception);
@@ -191,12 +212,46 @@ public class TrainingAssignmentTutorService {
     /** Called by the bounded durable worker outside a database or Vaadin request transaction. */
     public FinalReportCandidate generateFinalReport(
             TrainingActivityAssignment assignment, List<ReportTurn> turns, EvidenceStatus authoritativeEvidenceStatus) {
-        var response = chatModel.call(buildReportPrompt(assignment, turns, authoritativeEvidenceStatus));
-        var candidate = finalReportOutputConverter.convert(extractStrictJsonObject(responseText(response)));
-        if (candidate == null) {
-            throw new IllegalStateException("Training report model returned no structured report.");
+        requireAuthoritativeFinalReportEvidenceStatus(authoritativeEvidenceStatus);
+        if (authoritativeEvidenceStatus == EvidenceStatus.NO_EVIDENCE) {
+            return noEvidenceFinalReport();
         }
-        return candidate;
+        var response = chatModel.call(buildReportPrompt(assignment, turns, authoritativeEvidenceStatus));
+        try {
+            var candidate = finalReportOutputConverter.convert(extractStrictJsonObject(responseText(response)));
+            if (candidate == null) {
+                throw new AdaptiveTutorModelOutputException(
+                        "EMPTY_FINAL_REPORT_OUTPUT", "Final report response did not contain a structured candidate.");
+            }
+            return candidate.withEvidenceStatus(authoritativeEvidenceStatus);
+        }
+        catch (AdaptiveTutorModelOutputException exception) {
+            if ("EMPTY_MODEL_RESPONSE".equals(exception.failureCode())) {
+                throw new AdaptiveTutorModelOutputException(
+                        "EMPTY_FINAL_REPORT_OUTPUT", "Final report response did not contain usable text.", exception);
+            }
+            throw exception;
+        }
+        catch (RuntimeException exception) {
+            throw new AdaptiveTutorModelOutputException(
+                    "MALFORMED_FINAL_REPORT_OUTPUT", "Final report response could not be parsed or converted.", exception);
+        }
+    }
+
+    private void requireAuthoritativeFinalReportEvidenceStatus(EvidenceStatus evidenceStatus) {
+        if (evidenceStatus == null) {
+            throw new FinalReportAuthorityException();
+        }
+    }
+
+    private FinalReportCandidate noEvidenceFinalReport() {
+        return new FinalReportCandidate(
+                EvidenceStatus.NO_EVIDENCE,
+                "No hay evidencia observable suficiente para alcanzar una conclusión defendible.",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of("Repetir con una pregunta más acotada y solicitar razonamiento o un ejemplo concreto."));
     }
 
     private String fallbackFinalReport(
@@ -296,10 +351,6 @@ public class TrainingAssignmentTutorService {
         return modelName == null || modelName.isBlank() ? "default" : modelName.trim();
     }
 
-    public static String currentPromptVersionValue() {
-        return PROMPT_VERSION;
-    }
-
     public String promptVersion() {
         return PROMPT_VERSION;
     }
@@ -307,20 +358,43 @@ public class TrainingAssignmentTutorService {
     private AdaptiveTutorDecision decision(
             TrainingActivityAssignment assignment,
             String latestAnswer,
-            List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript) {
+            List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript,
+            int questionCount,
+            String currentQuestion) {
         var evidence = AdaptiveTutorTranscriptEvidence.from(transcript);
-        var response = chatModel.call(buildPrompt(assignment, latestAnswer, transcript, evidence));
-        var decision = outputConverter.convert(extractJsonObject(responseText(response)));
-        return validateDecision(decision, evidence);
+        var startedAt = System.nanoTime();
+        ChatResponse response = null;
+        try {
+            response = chatModel.call(buildPrompt(assignment, latestAnswer, transcript, evidence, questionCount, currentQuestion));
+            var selection = selectUsableResponse(response);
+            logModelResponse(assignment, startedAt, selection, response);
+            try {
+                var decision = outputConverter.convert(extractJsonObject(selection.text()));
+                return validateDecision(decision, evidence);
+            }
+            catch (AdaptiveTutorModelOutputException exception) {
+                throw exception;
+            }
+            catch (RuntimeException exception) {
+                throw new AdaptiveTutorModelOutputException(
+                        "MALFORMED_MODEL_OUTPUT", "Adaptive tutor output could not be parsed or validated.", exception);
+            }
+        }
+        catch (RuntimeException exception) {
+            logModelFailure(assignment, startedAt, response, tutorFailureCode(exception));
+            throw exception;
+        }
     }
 
     private Flux<AdaptiveTutorStreamEvent> streamDecision(
             TrainingActivityAssignment assignment,
             String latestAnswer,
-            List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript) {
+            List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript,
+            int questionCount,
+            String currentQuestion) {
         return Flux.defer(() -> {
             var evidence = AdaptiveTutorTranscriptEvidence.from(transcript);
-            var prompt = buildPrompt(assignment, latestAnswer, transcript, evidence);
+            var prompt = buildPrompt(assignment, latestAnswer, transcript, evidence, questionCount, currentQuestion);
             var rawResponse = new StringBuilder();
             var emittedQuestionCharacters = new AtomicInteger();
             return chatModel.stream(prompt)
@@ -351,9 +425,12 @@ public class TrainingAssignmentTutorService {
             TrainingActivityAssignment assignment,
             String latestAnswer,
             List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript,
-            AdaptiveTutorTranscriptEvidence evidence) {
+            AdaptiveTutorTranscriptEvidence evidence,
+            int questionCount,
+            String currentQuestion) {
         return Prompt.builder()
-                .messages(new SystemMessage(promptResources.adaptiveTutorSystem()), new UserMessage(userPrompt(assignment, latestAnswer, transcript, evidence)))
+                .messages(new SystemMessage(promptResources.adaptiveTutorSystem()), new UserMessage(userPrompt(
+                        assignment, latestAnswer, transcript, evidence, questionCount, currentQuestion)))
                 .chatOptions(chatOptions().build())
                 .build();
     }
@@ -365,9 +442,7 @@ public class TrainingAssignmentTutorService {
                 finalReportOutputConverter.getFormat(),
                 escapePromptContent(textOrFallback(activity.getInstructions(), "Sin instrucciones")),
                 escapePromptContent(textOrFallback(activity.getTitle(), "Sin título")),
-                authoritativeEvidenceStatus == EvidenceStatus.WEAK_EVIDENCE
-                        ? "La evidencia es insuficiente para conclusiones sólidas; limita explícitamente toda conclusión."
-                        : "La evidencia debe describirse con prudencia y solo con referencias a turnos registrados.",
+                reportEvidenceConstraint(authoritativeEvidenceStatus),
                 reportTranscript(turns));
         return Prompt.builder()
                 .messages(
@@ -377,10 +452,19 @@ public class TrainingAssignmentTutorService {
                 .build();
     }
 
+    private String reportEvidenceConstraint(EvidenceStatus evidenceStatus) {
+        return switch (evidenceStatus) {
+            case NO_EVIDENCE -> "No existe evidencia observada. Indica que no hay base para una conclusión defendible; "
+                    + "deja vacías strengths, weaknesses y observations, y recomienda pasos concretos para obtener evidencia.";
+            case WEAK_EVIDENCE -> "La evidencia es insuficiente para conclusiones sólidas; limita explícitamente toda conclusión.";
+            case PARTIAL_EVIDENCE, STRONG_EVIDENCE ->
+                    "La evidencia debe describirse con prudencia y solo con referencias a turnos registrados.";
+        };
+    }
+
     private OpenAiChatOptions.Builder chatOptions() {
         var options = OpenAiChatOptions.builder()
-                .temperature(temperature == null ? 0.2 : temperature)
-                .maxTokens(maxTokens == null ? 1200 : maxTokens);
+                .temperature(temperature == null ? 0.2 : temperature);
         if (modelName != null && !modelName.isBlank()) {
             options.model(modelName);
         }
@@ -389,8 +473,7 @@ public class TrainingAssignmentTutorService {
 
     private OpenAiChatOptions.Builder reportChatOptions() {
         var options = OpenAiChatOptions.builder()
-                .temperature(reportTemperature == null ? 0.1 : reportTemperature)
-                .maxTokens(reportMaxTokens == null ? 1800 : reportMaxTokens);
+                .temperature(reportTemperature == null ? 0.1 : reportTemperature);
         if (modelName != null && !modelName.isBlank()) {
             options.model(modelName);
         }
@@ -401,20 +484,22 @@ public class TrainingAssignmentTutorService {
             TrainingActivityAssignment assignment,
             String latestAnswer,
             List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript,
-            AdaptiveTutorTranscriptEvidence evidence) {
+            AdaptiveTutorTranscriptEvidence evidence,
+            int questionCount,
+            String currentQuestion) {
         var activity = assignment.getTrainingActivity();
         return promptResources.adaptivePrompt().formatted(
                 outputConverter.getFormat(),
                 abbreviate(textOrFallback(activity.getTitle(), "Sin título"), 120),
                 abbreviate(textOrFallback(activity.getInstructions(), "Sin instrucciones"), 1_200),
                 assignment.getStatus(),
-                Math.max(1, assignment.getQuestionCount() + 1),
-                abbreviate(textOrFallback(assignment.getCurrentQuestion(), "Sin pregunta actual"), 220),
+                Math.max(1, questionCount + 1),
+                abbreviate(textOrFallback(currentQuestion, "Sin pregunta actual"), 220),
                 abbreviate(textOrFallback(latestAnswer, ""), 400),
                 transcriptMarkdown(transcript),
                 recentTranscriptSummary(transcript),
                 evidence.promptSummary(),
-                variationSeed(assignment),
+                variationSeed(assignment, questionCount),
                 latestAnswerSignals(latestAnswer),
                 recentQuestionOpenings(transcript));
     }
@@ -462,12 +547,13 @@ public class TrainingAssignmentTutorService {
                 LOCAL_FALLBACK_TERMINAL_REASON + " [LOCAL_FALLBACK_NOT_AI_GENERATED]");
     }
 
-    private boolean alreadyUsedLocalFallback(TrainingActivityAssignment assignment) {
-        return assignment != null && textOrFallback(assignment.getTutorDecisionReason(), "").startsWith(LOCAL_FALLBACK_REASON);
-    }
-
     private RuntimeException controlledFailure(RuntimeException exception) {
-        return new IllegalStateException(CONTROLLED_FAILURE_MESSAGE, exception);
+        if (exception instanceof AdaptiveTutorModelOutputException modelOutputException
+                && CONTROLLED_FAILURE_MESSAGE.equals(modelOutputException.getMessage())) {
+            return modelOutputException;
+        }
+        return new AdaptiveTutorModelOutputException(
+                tutorFailureCode(exception), CONTROLLED_FAILURE_MESSAGE, exception);
     }
 
     private RuntimeException asRuntimeException(Throwable throwable) {
@@ -477,13 +563,103 @@ public class TrainingAssignmentTutorService {
     }
 
     private String responseText(ChatResponse response) {
-        if (response == null || response.getResult() == null || response.getResult().getOutput() == null
-                || response.getResult().getOutput().getText() == null
-                || response.getResult().getOutput().getText().isBlank()) {
-            throw new IllegalStateException("Adaptive tutor model returned an empty response.");
-        }
-        return response.getResult().getOutput().getText();
+        return selectUsableResponse(response).text();
     }
+
+    private ModelResponseSelection selectUsableResponse(ChatResponse response) {
+        var results = response == null || response.getResults() == null ? List.<org.springframework.ai.chat.model.Generation>of()
+                : response.getResults();
+        for (var index = 0; index < results.size(); index++) {
+            var generation = results.get(index);
+            var output = generation == null ? null : generation.getOutput();
+            var text = output == null ? null : output.getText();
+            if (text == null || text.isBlank()) {
+                continue;
+            }
+            var metadata = generation.getMetadata();
+            var finishReason = metadata == null ? null : metadata.getFinishReason();
+            var filterMetadata = metadata == null || metadata.getContentFilters() == null
+                    ? "" : String.join(",", metadata.getContentFilters());
+            var filterCount = filterMetadata.isBlank() ? 0 : metadata.getContentFilters().size();
+            if (filterCount > 0 || isFilteredFinishReason(finishReason)) {
+                throw new AdaptiveTutorModelOutputException("FILTERED_OR_REFUSED", "Adaptive tutor output was filtered or refused.");
+            }
+            if ("length".equalsIgnoreCase(finishReason)) {
+                throw new AdaptiveTutorModelOutputException("MODEL_OUTPUT_TRUNCATED", "Adaptive tutor output was truncated.");
+            }
+            return new ModelResponseSelection(text, results.size(), index, finishReason, filterCount, filterMetadata);
+        }
+        var failureCode = results.stream().anyMatch(this::hasFilteredMetadata)
+                ? "FILTERED_OR_REFUSED"
+                : results.stream().anyMatch(this::hasLengthFinishReason)
+                        ? "MODEL_OUTPUT_TRUNCATED"
+                        : "EMPTY_MODEL_RESPONSE";
+        throw new AdaptiveTutorModelOutputException(failureCode, "Adaptive tutor response did not contain usable text.");
+    }
+
+    private boolean hasFilteredMetadata(org.springframework.ai.chat.model.Generation generation) {
+        if (generation == null || generation.getMetadata() == null) {
+            return false;
+        }
+        var metadata = generation.getMetadata();
+        return (metadata.getContentFilters() != null && !metadata.getContentFilters().isEmpty())
+                || isFilteredFinishReason(metadata.getFinishReason());
+    }
+
+    private boolean hasLengthFinishReason(org.springframework.ai.chat.model.Generation generation) {
+        return generation != null && generation.getMetadata() != null
+                && "length".equalsIgnoreCase(generation.getMetadata().getFinishReason());
+    }
+
+    private boolean isFilteredFinishReason(String finishReason) {
+        var normalized = textOrFallback(finishReason, "").toLowerCase(Locale.ROOT);
+        return normalized.contains("filter") || normalized.contains("refusal") || normalized.contains("blocked");
+    }
+
+    private void logModelResponse(
+            TrainingActivityAssignment assignment, long startedAt, ModelResponseSelection selection, ChatResponse response) {
+        var usage = response == null || response.getMetadata() == null ? null : response.getMetadata().getUsage();
+        LOGGER.info(
+                "adaptiveTutor.model_response assignmentId={} trainingActivityId={} correlationId={} durationMs={} resultCount={} selectedIndex={} textLength={} finishReason={} filterCount={} filterMetadata={} promptTokens={} completionTokens={} totalTokens={}",
+                assignment == null ? null : assignment.getId(),
+                assignment == null || assignment.getTrainingActivity() == null ? null : assignment.getTrainingActivity().getId(),
+                MDC.get("correlationId"),
+                (System.nanoTime() - startedAt) / 1_000_000,
+                selection.resultCount(), selection.selectedIndex(), selection.text().length(), selection.finishReason(),
+                selection.filterCount(), selection.filterMetadata(), usage == null ? null : usage.getPromptTokens(),
+                usage == null ? null : usage.getCompletionTokens(), usage == null ? null : usage.getTotalTokens());
+    }
+
+    private void logModelFailure(
+            TrainingActivityAssignment assignment, long startedAt, ChatResponse response, String failureCode) {
+        var results = response == null || response.getResults() == null ? List.<org.springframework.ai.chat.model.Generation>of()
+                : response.getResults();
+        var finishReasons = results.stream().map(generation -> generation == null || generation.getMetadata() == null
+                        ? null : generation.getMetadata().getFinishReason())
+                .filter(java.util.Objects::nonNull).toList();
+        var filterMetadata = results.stream().filter(generation -> generation != null && generation.getMetadata() != null)
+                .flatMap(generation -> generation.getMetadata().getContentFilters() == null
+                        ? java.util.stream.Stream.<String>empty()
+                        : generation.getMetadata().getContentFilters().stream())
+                .distinct().sorted().toList();
+        var usage = response == null || response.getMetadata() == null ? null : response.getMetadata().getUsage();
+        LOGGER.warn(
+                "adaptiveTutor.model_response_failure assignmentId={} trainingActivityId={} correlationId={} durationMs={} resultCount={} finishReasons={} filterMetadata={} promptTokens={} completionTokens={} totalTokens={} failureCode={}",
+                assignment == null ? null : assignment.getId(),
+                assignment == null || assignment.getTrainingActivity() == null ? null : assignment.getTrainingActivity().getId(),
+                MDC.get("correlationId"), (System.nanoTime() - startedAt) / 1_000_000, results.size(), finishReasons,
+                filterMetadata, usage == null ? null : usage.getPromptTokens(),
+                usage == null ? null : usage.getCompletionTokens(), usage == null ? null : usage.getTotalTokens(), failureCode);
+    }
+
+    private String tutorFailureCode(Throwable exception) {
+        return exception instanceof AdaptiveTutorModelOutputException modelOutputException
+                ? modelOutputException.failureCode()
+                : "MODEL_UNAVAILABLE";
+    }
+
+    private record ModelResponseSelection(
+            String text, int resultCount, int selectedIndex, String finishReason, int filterCount, String filterMetadata) {}
 
     private String responseTextChunk(ChatResponse response) {
         if (response == null || response.getResult() == null || response.getResult().getOutput() == null) {
@@ -502,7 +678,8 @@ public class TrainingAssignmentTutorService {
         var firstBrace = text.indexOf('{');
         var lastBrace = text.lastIndexOf('}');
         if (firstBrace < 0 || lastBrace <= firstBrace) {
-            throw new IllegalArgumentException("The adaptive tutor output does not contain a JSON object");
+            throw new AdaptiveTutorModelOutputException(
+                    "MALFORMED_MODEL_OUTPUT", "The adaptive tutor output does not contain a JSON object");
         }
         return text.substring(firstBrace, lastBrace + 1);
     }
@@ -623,7 +800,7 @@ public class TrainingAssignmentTutorService {
                 signals.length());
     }
 
-    private String variationSeed(TrainingActivityAssignment assignment) {
+    private String variationSeed(TrainingActivityAssignment assignment, int questionCount) {
         var assignmentId = assignment == null || assignment.getId() == null
                 ? "assignment-na"
                 : assignment.getId().toString().substring(0, 8);
@@ -631,7 +808,7 @@ public class TrainingAssignmentTutorService {
                 || assignment.getGroupClassMember().getId() == null
                         ? "student-na"
                         : assignment.getGroupClassMember().getId().toString().substring(0, 8);
-        return "%s-%s-q%d".formatted(assignmentId, memberId, Math.max(1, assignment == null ? 1 : assignment.getQuestionCount() + 1));
+        return "%s-%s-q%d".formatted(assignmentId, memberId, Math.max(1, questionCount + 1));
     }
 
     private String transcriptMarkdown(List<TrainingAssignmentEvaluationService.EvaluationExchange> transcript) {

@@ -1,0 +1,78 @@
+.instruction-linter-floating-card {
+  position: fixed;
+  z-index: 100000;
+  display: grid;
+  gap: var(--vaadin-gap-s, 0.5rem);
+  width: min(28.75rem, calc(100vw - 1.5rem));
+  padding: var(--vaadin-padding-m, 1rem);
+  box-sizing: border-box;
+  overflow: visible;
+  color: var(--vaadin-text-color);
+  background: var(--aura-surface-color-solid);
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-l, 0.875rem);
+  box-shadow: var(--aura-shadow-m);
+  pointer-events: auto;
+}
+
+.instruction-linter-floating-card__message {
+  color: var(--vaadin-text-color);
+  font-weight: var(--aura-font-weight-semibold, 650);
+  line-height: 1.45;
+}
+
+.instruction-linter-floating-card__label {
+  color: var(--vaadin-text-color-secondary);
+  font-size: var(--aura-font-size-xs, 0.75rem);
+  font-weight: var(--aura-font-weight-semibold, 650);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.instruction-linter-floating-card__suggestion {
+  padding: var(--vaadin-padding-s, 0.75rem);
+  overflow-wrap: anywhere;
+  color: var(--vaadin-text-color);
+  background: color-mix(in srgb, var(--vaadin-text-color) 6%, var(--vaadin-background-container));
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  font-family: var(--aura-font-family-monospace, ui-monospace, monospace);
+  font-size: var(--aura-font-size-s, 0.875rem);
+  white-space: pre-wrap;
+}
+
+.instruction-linter-floating-card__button {
+  justify-self: start;
+  padding: 0.48rem 0.75rem;
+  color: light-dark(#082c42, #ffdf72);
+  background: light-dark(
+    color-mix(in srgb, white 88%, #d7e0e2),
+    color-mix(in srgb, #ffdf72 10%, var(--vaadin-background-container))
+  );
+  border: var(--vaadin-input-field-border-width, 1px) solid light-dark(
+    color-mix(in srgb, #082c42 24%, #d7e0e2),
+    color-mix(in srgb, #ffdf72 48%, var(--vaadin-border-color))
+  );
+  border-radius: var(--vaadin-radius-m, 0.625rem);
+  cursor: pointer;
+  font: inherit;
+  font-weight: var(--aura-font-weight-semibold, 650);
+}
+
+.instruction-linter-floating-card__button:hover:not(:disabled) {
+  background: light-dark(
+    color-mix(in srgb, white 82%, #c9d6da),
+    color-mix(in srgb, #ffdf72 16%, var(--vaadin-background-container))
+  );
+}
+
+.instruction-linter-floating-card__button:focus-visible {
+  outline: 2px solid var(--vaadin-focus-ring-color);
+  outline-offset: 2px;
+}
+
+.instruction-linter-floating-card__button:disabled {
+  color: color-mix(in srgb, var(--vaadin-text-color) 38%, transparent);
+  background: color-mix(in srgb, var(--vaadin-text-color) 4%, var(--vaadin-background-container));
+  border-color: color-mix(in srgb, var(--vaadin-text-color) 18%, var(--vaadin-border-color));
+  cursor: default;
+}

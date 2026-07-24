@@ -8,6 +8,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -28,8 +32,48 @@ import com.wornux.services.training_activity.ActivityPublicationNotificationMetr
 import com.wornux.services.training_activity.RecipientNotificationTransport;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 
 class ActivityPublicationNotificationWorkerTest {
+
+    @Test
+    void notificationPollDefaultsToFifteenSecondsWhileAllowingPropertyOverride() throws NoSuchMethodException {
+        var scheduled = ActivityPublicationNotificationWorker.class
+                .getDeclaredMethod("poll")
+                .getAnnotation(Scheduled.class);
+
+        assertThat(scheduled.fixedDelayString()).isEqualTo("${app.email.activity-notification.poll-ms:15000}");
+    }
+
+    @Test
+    void notificationPollLogsRoutineCompletionAtDebug() {
+        var notificationService = mock(ActivityPublicationNotificationService.class);
+        when(notificationService.availableEventIds(any())).thenReturn(List.of());
+        when(notificationService.backlog()).thenReturn(new ActivityPublicationNotificationService.BacklogSnapshot(0, 0));
+        var logger = (Logger) LoggerFactory.getLogger(ActivityPublicationNotificationWorker.class);
+        var appender = new ListAppender<ILoggingEvent>();
+        var originalLevel = logger.getLevel();
+        appender.start();
+        logger.addAppender(appender);
+        logger.setLevel(Level.DEBUG);
+
+        try {
+            new ActivityPublicationNotificationWorker(notificationService, new ActivityPublicationNotificationMetrics(new SimpleMeterRegistry()))
+                    .poll();
+
+            var completion = appender.list.stream()
+                    .filter(event -> event.getFormattedMessage().startsWith("Notification outbox poll completed:"))
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(completion.getLevel()).isEqualTo(Level.DEBUG);
+        }
+        finally {
+            logger.setLevel(originalLevel);
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
 
     @Test
     void af8_uncertainSmtpOutcomeIsAuditedAndNeverAutomaticallyRetried() {

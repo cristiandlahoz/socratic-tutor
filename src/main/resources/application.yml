@@ -99,7 +99,7 @@ app:
       lease-seconds: ${ADAPTIVE_TUTOR_LEASE_SECONDS:75}
     instruction-review:
       model: ${INSTRUCTION_REVIEW_MODEL:${app.ai.switzerland-knife.model}}
-      max-tokens: ${INSTRUCTION_REVIEW_MAX_TOKENS:192}
+      max-tokens: ${INSTRUCTION_REVIEW_MAX_TOKENS:900}
       temperature: ${INSTRUCTION_REVIEW_TEMPERATURE:0.0}
       deadline-ms: ${INSTRUCTION_REVIEW_DEADLINE_MS:15000}
       lease-seconds: ${INSTRUCTION_REVIEW_LEASE_SECONDS:30}

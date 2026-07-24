@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.wornux.config.ApplicationProperties;
 import com.wornux.data.entities.academic.GroupClass;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.academic.GroupClassMemberKind;
@@ -30,15 +29,9 @@ import com.wornux.data.repositories.training_activity.OutboxEventRepository;
 import com.wornux.data.repositories.training_activity.OutboxRecipientDeliveryRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityAssignmentRepository;
 import com.wornux.data.repositories.training_activity.TrainingActivityRepository;
-import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewOverrideAction;
 import com.wornux.data.entities.training_activity.instruction_review.InstructionReviewStatus;
-import com.wornux.data.repositories.training_activity.TrainingActivityAiJobRepository;
-import com.wornux.data.repositories.training_activity.instruction_review.TrainingInstructionReviewOverrideRepository;
-import com.wornux.data.repositories.training_activity.instruction_review.TrainingInstructionReviewRepository;
 import com.wornux.services.context.ActiveAcademicContext;
 import com.wornux.services.context.ActiveAcademicContextResolver;
-import com.wornux.services.email.EmailService;
-import com.wornux.services.email.EmailTemplateService;
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.TrainingActivityLaunchedBus;
 import com.wornux.services.training_activity.TrainingActivitySaveCommand;
@@ -46,8 +39,6 @@ import com.wornux.services.training_activity.TrainingActivityService;
 import com.wornux.security.authorization.RequiresPermission;
 import com.wornux.security.permission.AppPermission;
 import com.wornux.services.training_activity.instruction_review.AdvisoryInstructionReviewService;
-import com.wornux.services.training_activity.instruction_review.InstructionReviewCoordinator;
-import com.wornux.services.training_activity.instruction_review.InstructionReviewService;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewSnapshotDto;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +54,7 @@ class UC008PublishAndDeliverTrainingActivity {
                 .getAnnotation(RequiresPermission.class).value()).isEqualTo(AppPermission.TRAINING_ACTIVITY_UPDATE);
         assertThat(TrainingActivityService.class.getMethod("delete", UUID.class)
                 .getAnnotation(RequiresPermission.class).value()).isEqualTo(AppPermission.TRAINING_ACTIVITY_DELETE);
-        assertThat(TrainingActivityService.class.getMethod("launch", UUID.class, long.class, boolean.class)
+        assertThat(TrainingActivityService.class.getMethod("launch", UUID.class, long.class)
                 .getAnnotation(RequiresPermission.class).value()).isEqualTo(AppPermission.TRAINING_ACTIVITY_UPDATE);
         assertThat(TrainingActivityService.class.getMethod("close", UUID.class)
                 .getAnnotation(RequiresPermission.class).value()).isEqualTo(AppPermission.TRAINING_ACTIVITY_UPDATE);
@@ -78,9 +69,8 @@ class UC008PublishAndDeliverTrainingActivity {
         when(fixture.activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
         when(fixture.memberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(activity.getGroupClass().getId()))
                 .thenReturn(List.of(student));
-        when(fixture.advisory.current(activity.getId(), activity.getInstructions())).thenReturn(goodReview(activity));
 
-        var assigned = fixture.service.launch(activity.getId(), activity.getVersion(), false);
+        var assigned = fixture.service.launch(activity.getId(), activity.getVersion());
 
         assertThat(assigned).isEqualTo(1);
         assertThat(activity.getStatus()).isEqualTo(TrainingActivityLifecycleStatus.PUBLISHED);
@@ -88,7 +78,6 @@ class UC008PublishAndDeliverTrainingActivity {
         verify(fixture.assignmentRepository).saveAll(anyList());
         verify(fixture.eventRepository).save(any(OutboxEvent.class));
         verify(fixture.deliveryRepository).saveAll(anyList());
-        verify(fixture.emailService, never()).send(any());
     }
 
     @Test
@@ -99,9 +88,8 @@ class UC008PublishAndDeliverTrainingActivity {
         when(fixture.activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
         when(fixture.memberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(activity.getGroupClass().getId()))
                 .thenReturn(List.of());
-        when(fixture.advisory.current(activity.getId(), activity.getInstructions())).thenReturn(goodReview(activity));
 
-        assertThatThrownBy(() -> fixture.service.launch(activity.getId(), activity.getVersion(), false))
+        assertThatThrownBy(() -> fixture.service.launch(activity.getId(), activity.getVersion()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("no eligible students");
 
@@ -119,25 +107,8 @@ class UC008PublishAndDeliverTrainingActivity {
         when(fixture.activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
         when(fixture.assignmentRepository.countByTrainingActivity_Id(activity.getId())).thenReturn(2L);
 
-        assertThat(fixture.service.launch(activity.getId(), activity.getVersion(), false)).isEqualTo(2);
+        assertThat(fixture.service.launch(activity.getId(), activity.getVersion())).isEqualTo(2);
         verify(fixture.eventRepository, never()).save(any(OutboxEvent.class));
-    }
-
-    @Test
-    void af3_publishAnywayRecordsAnOverrideForTheCurrentInstructionsBeforePublication() {
-        var fixture = fixture();
-        var activity = draftActivity();
-        inContext(fixture, activity);
-        var student = student(activity.getGroupClass());
-        when(fixture.activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
-        when(fixture.memberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(activity.getGroupClass().getId()))
-                .thenReturn(List.of(student));
-        when(fixture.advisory.current(activity.getId(), activity.getInstructions())).thenReturn(neededReview(activity));
-
-        fixture.service.launch(activity.getId(), activity.getVersion(), true);
-
-        verify(fixture.advisory).recordOverride(activity, fixture.context.groupClassMemberId(),
-                activity.getInstructions(), InstructionReviewOverrideAction.PUBLISH);
     }
 
     @Test
@@ -148,31 +119,78 @@ class UC008PublishAndDeliverTrainingActivity {
         activity.setVersion(3);
         when(fixture.activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
 
-        assertThatThrownBy(() -> fixture.service.launch(activity.getId(), 2, false))
+        assertThatThrownBy(() -> fixture.service.launch(activity.getId(), 2))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("changed");
+                .hasMessageContaining("cambió");
 
         verify(fixture.assignmentRepository, never()).saveAll(anyList());
         verify(fixture.eventRepository, never()).save(any(OutboxEvent.class));
     }
 
     @Test
-    void af3_missingReviewRecordsAPublishOverrideForTheCurrentInstructionHash() {
-        var reviewRepository = mock(TrainingInstructionReviewRepository.class);
-        var overrideRepository = mock(TrainingInstructionReviewOverrideRepository.class);
-        var reviewEngine = mock(InstructionReviewService.class);
-        when(reviewEngine.hashNormalizedInstructions(any())).thenReturn("current-instruction-hash");
-        when(reviewEngine.currentModelName()).thenReturn("review-model");
-        when(reviewEngine.promptVersion()).thenReturn("rubric-v1");
-        when(reviewRepository.findFirstByTrainingActivity_IdAndInstructionsHashAndModelNameAndRubricVersionOrderByRequestedAtDesc(
-                any(), any(), any(), any())).thenReturn(Optional.empty());
+    void af2_secondActiveActivityForTheSameProfessorIsRejectedBeforeAnySideEffects() {
+        var fixture = fixture();
         var activity = draftActivity();
+        inContext(fixture, activity);
+        var activeActivity = draftActivity();
+        activeActivity.setStatus(TrainingActivityLifecycleStatus.PUBLISHED);
+        activeActivity.getCreatedByTenantAccount().setId(fixture.context.tenantAccountId());
+        when(fixture.activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(fixture.activityRepository.findFirstByCreatedByTenantAccount_IdAndStatus(
+                fixture.context.tenantAccountId(), TrainingActivityLifecycleStatus.PUBLISHED)).thenReturn(Optional.of(activeActivity));
 
-        new AdvisoryInstructionReviewService(reviewRepository, overrideRepository,
-                mock(TrainingActivityAiJobRepository.class), reviewEngine)
-                .recordOverride(activity, UUID.randomUUID(), activity.getInstructions(), InstructionReviewOverrideAction.PUBLISH);
+        assertThatThrownBy(() -> fixture.service.launch(activity.getId(), activity.getVersion()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Ya tienes una actividad en ejecución. Ciérrala antes de publicar otra.");
 
-        verify(overrideRepository).save(any());
+        assertThat(activity.getStatus()).isEqualTo(TrainingActivityLifecycleStatus.DRAFT);
+        verify(fixture.assignmentRepository, never()).saveAll(anyList());
+        verify(fixture.eventRepository, never()).save(any(OutboxEvent.class));
+        verify(fixture.deliveryRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void af2_closedActivitiesDoNotBlockAnotherLaunchForTheSameProfessor() {
+        var fixture = fixture();
+        var activity = draftActivity();
+        inContext(fixture, activity);
+        var student = student(activity.getGroupClass());
+        when(fixture.activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(fixture.activityRepository.findFirstByCreatedByTenantAccount_IdAndStatus(
+                fixture.context.tenantAccountId(), TrainingActivityLifecycleStatus.PUBLISHED)).thenReturn(Optional.empty());
+        when(fixture.memberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(activity.getGroupClass().getId()))
+                .thenReturn(List.of(student));
+
+        assertThat(fixture.service.launch(activity.getId(), activity.getVersion())).isEqualTo(1);
+        assertThat(activity.getStatus()).isEqualTo(TrainingActivityLifecycleStatus.PUBLISHED);
+    }
+
+    @Test
+    void af2_ownerCanCloseAnActivityAndPublishTheNextOne() {
+        var fixture = fixture();
+        var activeActivity = draftActivity();
+        inContext(fixture, activeActivity);
+        activeActivity.setStatus(TrainingActivityLifecycleStatus.PUBLISHED);
+        var nextActivity = draftActivity();
+        inContext(fixture, nextActivity);
+        var student = student(nextActivity.getGroupClass());
+        when(fixture.activityRepository.findById(activeActivity.getId())).thenReturn(Optional.of(activeActivity));
+        when(fixture.assignmentRepository.findByTrainingActivity_IdAndStatusNot(
+                activeActivity.getId(), com.wornux.data.entities.training_activity.TrainingActivityAssignmentStatus.SUBMITTED))
+                .thenReturn(List.of());
+        when(fixture.assignmentRepository.findByTrainingActivity_IdOrderByUpdatedAtDesc(activeActivity.getId())).thenReturn(List.of());
+
+        fixture.service.close(activeActivity.getId());
+
+        assertThat(activeActivity.getStatus()).isEqualTo(TrainingActivityLifecycleStatus.CLOSED);
+        when(fixture.activityRepository.findById(nextActivity.getId())).thenReturn(Optional.of(nextActivity));
+        when(fixture.activityRepository.findFirstByCreatedByTenantAccount_IdAndStatus(
+                fixture.context.tenantAccountId(), TrainingActivityLifecycleStatus.PUBLISHED)).thenReturn(Optional.empty());
+        when(fixture.memberRepository.findByGroupClass_IdAndLockedFalseOrderByJoinedAtAsc(nextActivity.getGroupClass().getId()))
+                .thenReturn(List.of(student));
+
+        assertThat(fixture.service.launch(nextActivity.getId(), nextActivity.getVersion())).isEqualTo(1);
+        assertThat(nextActivity.getStatus()).isEqualTo(TrainingActivityLifecycleStatus.PUBLISHED);
     }
 
     private static Fixture fixture() {
@@ -190,19 +208,11 @@ class UC008PublishAndDeliverTrainingActivity {
         when(assignmentRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
         when(eventRepository.save(any(OutboxEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(deliveryRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-        var emailService = mock(EmailService.class);
         var service = new TrainingActivityService(activityRepository, assignmentRepository, eventRepository, deliveryRepository,
-                memberRepository, emailService, mock(EmailTemplateService.class), applicationProperties(), contextResolver,
-                new TrainingActivityLaunchedBus(), mock(SafeBrowserAssignmentStateBus.class), mock(InstructionReviewCoordinator.class),
-                advisory, null);
+                memberRepository, contextResolver,
+                new TrainingActivityLaunchedBus(), mock(SafeBrowserAssignmentStateBus.class), advisory, null);
         return new Fixture(service, activityRepository, assignmentRepository, memberRepository, eventRepository, deliveryRepository,
-                advisory, context, emailService);
-    }
-
-    private static ApplicationProperties applicationProperties() {
-        var properties = new ApplicationProperties();
-        properties.getEmail().setInvitationBaseUrl("http://localhost:3321");
-        return properties;
+                advisory, context);
     }
 
     private static TrainingActivity draftActivity() {
@@ -224,6 +234,7 @@ class UC008PublishAndDeliverTrainingActivity {
 
     private static void inContext(Fixture fixture, TrainingActivity activity) {
         activity.getGroupClass().setId(fixture.context.groupClassId());
+        activity.getCreatedByTenantAccount().setId(fixture.context.tenantAccountId());
     }
 
     private static GroupClassMember student(GroupClass groupClass) {
@@ -236,12 +247,12 @@ class UC008PublishAndDeliverTrainingActivity {
 
     private static InstructionReviewSnapshotDto goodReview(TrainingActivity activity) {
         return new InstructionReviewSnapshotDto(activity.getId(), "current-hash", InstructionReviewStatus.COMPLETED,
-                InstructionQualityStatus.GOOD, true, "Ready", false, false, List.of(), "", Instant.now());
+                InstructionQualityStatus.GOOD, true, "Ready", false, List.of(), "", Instant.now());
     }
 
     private static InstructionReviewSnapshotDto neededReview(TrainingActivity activity) {
         return new InstructionReviewSnapshotDto(activity.getId(), "current-hash", InstructionReviewStatus.COMPLETED,
-                InstructionQualityStatus.NEEDS_IMPROVEMENT, false, "Needs work", false, false, List.of(), "", Instant.now());
+                InstructionQualityStatus.NEEDS_IMPROVEMENT, false, "Needs work", false, List.of(), "", Instant.now());
     }
 
     private record Fixture(
@@ -252,7 +263,6 @@ class UC008PublishAndDeliverTrainingActivity {
             OutboxEventRepository eventRepository,
             OutboxRecipientDeliveryRepository deliveryRepository,
             AdvisoryInstructionReviewService advisory,
-            ActiveAcademicContext context,
-            EmailService emailService) {
+            ActiveAcademicContext context) {
     }
 }

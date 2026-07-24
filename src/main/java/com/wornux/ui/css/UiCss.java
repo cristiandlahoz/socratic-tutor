@@ -194,12 +194,15 @@ public final class UiCss {
     public static final CssClass TRAINING_ACTIVITY_FORM_CARD = css("training-activity-form-card");
     public static final CssClass TRAINING_ACTIVITY_GRID_CARD = css("training-activity-grid-card");
     public static final CssClass TRAINING_ACTIVITY_HEADER = css("training-activity-header");
+    public static final CssClass TRAINING_ACTIVITY_MAIN_GRID = css("training-activity-main-grid");
+    public static final CssClass INSTRUCTION_LINTER_EDITOR = css("instruction-linter-editor");
     public static final CssClass TRAINING_ACTIVITY_OVERLAY = css("training-activity-overlay");
     public static final CssClass TRAINING_ACTIVITY_OVERLAY_BACKDROP = css("training-activity-overlay-backdrop");
     public static final CssClass TRAINING_ACTIVITY_OVERLAY_FOOTER = css("training-activity-overlay-footer");
     public static final CssClass TRAINING_ACTIVITY_OVERLAY_PANEL = css("training-activity-overlay-panel");
     public static final CssClass TRAINING_ACTIVITY_SAVE_CONFIRMATION = css("training-activity-save-confirmation");
     public static final CssClass TRAINING_ACTIVITY_VIEW = css("training-activity-view");
+    public static final CssClass TRAINING_ACTIVITY_DIALOG_INSTRUCTIONS = css("training-activity-dialog-instructions");
     public static final CssClass LOGIN_VIEW = css("login-view");
     public static final CssClass LOGIN_VIEW_BRAND = css("login-view__brand");
     public static final CssClass LOGIN_VIEW_BRAND_COPY = css("login-view__brand-copy");

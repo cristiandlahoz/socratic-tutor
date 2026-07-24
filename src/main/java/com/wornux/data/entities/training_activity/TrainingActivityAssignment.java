@@ -4,10 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.wornux.data.entities.academic.GroupClassMember;
-import com.wornux.data.entities.training_activity.AnswerQuality;
-import com.wornux.data.entities.training_activity.CoverageStatus;
 import com.wornux.data.entities.training_activity.EvidenceStatus;
-import com.wornux.data.entities.training_activity.PedagogicalMove;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,7 +14,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
@@ -62,25 +58,6 @@ public class TrainingActivityAssignment {
 
     @Column(name = "completion_reason")
     private String completionReason;
-
-    // Non-authoritative compatibility projection for legacy UI/report components.
-    // UC-007 persists the transcript exclusively in training_activity_turn.
-    @Transient private String currentQuestion;
-    @Transient private int questionCount;
-    @Transient private String evaluationTranscript = "[]";
-    @Transient private String finalReport;
-    @Transient private String lastTutorDecisionJson;
-    @Transient private AnswerQuality tutorAnswerQuality;
-    @Transient private EvidenceStatus tutorEvidenceStatus;
-    @Transient private CoverageStatus tutorCoverageStatus;
-    @Transient private PedagogicalMove tutorPedagogicalMove;
-    @Transient private String coveredInstructionAspectsJson;
-    @Transient private String missingInstructionAspectsJson;
-    @Transient private boolean unproductivePatternDetected;
-    @Transient private boolean insufficientEvidence;
-    @Transient private String tutorDecisionReason;
-    @Transient private String tutorModelName;
-    @Transient private String tutorPromptVersion;
 
     @Column(name = "safe_browser_locked", nullable = false)
     private boolean safeBrowserLocked;

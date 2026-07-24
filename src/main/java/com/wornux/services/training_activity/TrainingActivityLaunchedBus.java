@@ -7,9 +7,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class TrainingActivityLaunchedBus {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TrainingActivityLaunchedBus.class);
 
     private final List<Consumer<Notification>> listeners = new CopyOnWriteArrayList<>();
 
@@ -20,7 +23,13 @@ public class TrainingActivityLaunchedBus {
 
     public void publish(Notification notification) {
         for (var listener : listeners) {
-            listener.accept(notification);
+            try {
+                listener.accept(notification);
+            }
+            catch (RuntimeException exception) {
+                LOGGER.warn("Training activity launch listener failed: activityId={}",
+                        notification.trainingActivityId(), exception);
+            }
         }
     }
 

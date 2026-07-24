@@ -8,13 +8,17 @@ import com.wornux.data.entities.training_activity.EvidenceStatus;
 
 /** Untrusted structured output from the report model. It is validated before persistence. */
 public record FinalReportCandidate(
-        @JsonProperty(required = true) @JsonPropertyDescription("WEAK_EVIDENCE, PARTIAL_EVIDENCE, or STRONG_EVIDENCE only.")
+        @JsonPropertyDescription("Optional model-provided value. The service replaces it with the assignment's authoritative evidence status.")
         EvidenceStatus evidenceStatus,
         @JsonProperty(required = true) @JsonPropertyDescription("Concise evidence-grounded summary for the professor.") String summary,
         @JsonProperty(required = true) List<ReportFinding> strengths,
         @JsonProperty(required = true) List<ReportFinding> weaknesses,
         @JsonProperty(required = true) List<ReportFinding> observations,
         @JsonProperty(required = true) List<String> recommendations) {
+
+    public FinalReportCandidate withEvidenceStatus(EvidenceStatus evidenceStatus) {
+        return new FinalReportCandidate(evidenceStatus, summary, strengths, weaknesses, observations, recommendations);
+    }
 
     public record ReportFinding(
             @JsonProperty(required = true) String observation,

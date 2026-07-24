@@ -88,6 +88,39 @@ class TrainingAssignmentEvaluationServiceTest {
                 .hasMessage("The response submission id was already used for a different answer.");
     }
 
+    @Test
+    void startForStudentQueuesTheFirstQuestionOnlyOnce() {
+        var fixture = fixture();
+        ReflectionTestUtils.setField(fixture.assignment, "status", TrainingActivityAssignmentStatus.ASSIGNED);
+        when(fixture.turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(fixture.assignmentId)).thenReturn(List.of());
+
+        fixture.service.startForStudent(fixture.assignmentId, fixture.assignment.getGroupClassMember().getId());
+        fixture.service.startForStudent(fixture.assignmentId, fixture.assignment.getGroupClassMember().getId());
+
+        assertThat(fixture.assignment.getStatus()).isEqualTo(TrainingActivityAssignmentStatus.STARTING);
+        verify(fixture.jobRepository).insertTutorJobIfAbsent(any(), eq("FIRST_QUESTION"), anyInt(), any(), any(), any(), any(),
+                anyLong(), eq("first:" + fixture.assignmentId), anyInt(), any(), any(), any());
+    }
+
+    @Test
+    void canonicalSnapshotDerivesTranscriptCurrentQuestionAndCountFromDurableTurns() {
+        var fixture = fixture();
+        var answered = question(fixture.assignment);
+        answered.setAnswerText("Porque termina al encontrar null.");
+        var current = question(fixture.assignment);
+        current.setSequenceNumber(2);
+        current.setQuestionText("¿Qué condición detiene el recorrido?");
+        when(fixture.turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(fixture.assignmentId))
+                .thenReturn(List.of(answered, current));
+
+        var snapshot = fixture.service.getForCurrentStudent(fixture.assignmentId);
+
+        assertThat(snapshot.questionCount()).isEqualTo(2);
+        assertThat(snapshot.currentQuestion()).isEqualTo("¿Qué condición detiene el recorrido?");
+        assertThat(snapshot.transcript()).extracting(TrainingAssignmentEvaluationService.EvaluationExchange::answer)
+                .containsExactly("Porque termina al encontrar null.");
+    }
+
     private static TrainingActivityTurn question(TrainingActivityAssignment assignment) {
         var turn = new TrainingActivityTurn();
         turn.setId(UUID.randomUUID());
@@ -115,6 +148,7 @@ class TrainingAssignmentEvaluationServiceTest {
         ReflectionTestUtils.setField(assignment, "updatedAt", Instant.now());
         var assignmentRepository = mock(TrainingActivityAssignmentRepository.class);
         when(assignmentRepository.findLockedWithTrainingActivityById(assignmentId)).thenReturn(Optional.of(assignment));
+        when(assignmentRepository.findWithTrainingActivityById(assignmentId)).thenReturn(Optional.of(assignment));
         when(assignmentRepository.save(any())).thenAnswer(call -> call.getArgument(0));
         when(assignmentRepository.saveAndFlush(any())).thenAnswer(call -> call.getArgument(0));
         var turnRepository = mock(TrainingActivityTurnRepository.class);
@@ -122,7 +156,8 @@ class TrainingAssignmentEvaluationServiceTest {
         var contextResolver = mock(ActiveAcademicContextResolver.class);
         when(contextResolver.requireCurrent()).thenReturn(new ActiveAcademicContext(UUID.randomUUID(), UUID.randomUUID(), memberId,
                 UUID.randomUUID(), GroupClassMemberKind.STUDENT));
-        return new Fixture(new TrainingAssignmentEvaluationService(assignmentRepository, turnRepository, jobRepository, contextResolver),
+        return new Fixture(new TrainingAssignmentEvaluationService(assignmentRepository, turnRepository, jobRepository, contextResolver,
+                mock(TrainingTutorJobService.class)),
                 assignmentRepository, turnRepository, jobRepository, assignmentId, UUID.randomUUID(), assignment);
     }
 

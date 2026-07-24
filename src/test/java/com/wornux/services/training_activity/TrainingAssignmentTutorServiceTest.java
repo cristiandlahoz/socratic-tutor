@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.metadata.ChatGenerationMetadata;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -64,14 +65,35 @@ class TrainingAssignmentTutorServiceTest {
     }
 
     @Test
+    void nextDecisionSelectsTheFirstUsableGenerationInsteadOfMisclassifyingTheFirstBlankOne() {
+        var service = new TrainingAssignmentTutorService(
+                modelReturningGenerations("   ", questionJson("¿Qué evidencia respalda esa conclusión?")), promptResources());
+
+        var decision = service.nextDecision(assignment(), "Creo que es correcto.", transcript());
+
+        assertThat(decision.questionText()).isEqualTo("¿Qué evidencia respalda esa conclusión?");
+    }
+
+    @Test
+    void lengthFinishedResponseUsesTheTruncationFailureCode() {
+        var service = new TrainingAssignmentTutorService(
+                _ -> response("{\"type\":\"QUESTION\"}", "length"), promptResources());
+
+        var failure = org.assertj.core.api.Assertions.catchThrowable(
+                () -> service.nextDecision(assignment(), "Creo que es correcto.", transcript()));
+
+        assertThat(failure).isInstanceOf(AdaptiveTutorModelOutputException.class);
+        assertThat(((AdaptiveTutorModelOutputException) failure).failureCode()).isEqualTo("MODEL_OUTPUT_TRUNCATED");
+    }
+
+    @Test
     void nextDecisionCompletesInsufficientEvidenceAfterFallbackAlreadyUsed() {
         var service = localFallbackEnabledService(modelReturning("   "));
         var assignment = assignment();
 
-        var fallbackQuestion = service.nextDecision(assignment, "I am not sure.", transcript());
-        ReflectionTestUtils.setField(assignment, "tutorDecisionReason", fallbackQuestion.reason());
+        var fallbackQuestion = service.nextDecision(assignment, "I am not sure.", transcript(), 1, "Initial fallback question");
 
-        var decision = service.nextDecision(assignment, "I need another hint.", transcript());
+        var decision = service.nextDecision(assignment, "I need another hint.", transcript(), 2, fallbackQuestion.questionText());
 
         assertThat(decision.type()).isEqualTo(TutorDecisionType.COMPLETE_INSUFFICIENT_EVIDENCE);
         assertThat(decision.shouldContinue()).isFalse();
@@ -119,6 +141,19 @@ class TrainingAssignmentTutorServiceTest {
         assertThat(promptText).contains("### Pregunta 2");
         assertThat(promptText).contains("### Pregunta 3");
         assertThat(promptText).doesNotContain("Grounding:");
+    }
+
+    @Test
+    void decisionPromptLeavesMaxTokensToTheProvider() {
+        var capturedPrompt = new AtomicReference<Prompt>();
+        var service = new TrainingAssignmentTutorService(prompt -> {
+            capturedPrompt.set(prompt);
+            return response(questionJson("¿Qué evidencia respalda esa conclusión?"));
+        }, promptResources());
+
+        service.firstDecision(assignment());
+
+        assertThat(capturedPrompt.get().getOptions().getMaxTokens()).isNull();
     }
 
     @Test
@@ -210,8 +245,6 @@ class TrainingAssignmentTutorServiceTest {
         ReflectionTestUtils.setField(assignment, "trainingActivity", activity);
         ReflectionTestUtils.setField(assignment, "groupClassMember", member);
         ReflectionTestUtils.setField(assignment, "status", TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
-        ReflectionTestUtils.setField(assignment, "currentQuestion", "What is a pointer?");
-        ReflectionTestUtils.setField(assignment, "questionCount", 1);
         return assignment;
     }
 
@@ -228,6 +261,12 @@ class TrainingAssignmentTutorServiceTest {
 
     private static ChatModel modelReturning(String text) {
         return _ -> response(text);
+    }
+
+    private static ChatModel modelReturningGenerations(String... texts) {
+        return _ -> new ChatResponse(java.util.Arrays.stream(texts)
+                .map(text -> new Generation(new AssistantMessage(text)))
+                .toList());
     }
 
     private static PromptResources promptResources() {
@@ -268,6 +307,11 @@ class TrainingAssignmentTutorServiceTest {
 
     private static ChatResponse response(String text) {
         return new ChatResponse(List.of(new Generation(new AssistantMessage(text))));
+    }
+
+    private static ChatResponse response(String text, String finishReason) {
+        return new ChatResponse(List.of(new Generation(
+                new AssistantMessage(text), ChatGenerationMetadata.builder().finishReason(finishReason).build())));
     }
 
     private static String questionJson(String question) {

@@ -10,30 +10,26 @@ import com.wornux.data.entities.training_activity.TrainingActivityAiJobStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityAiJobType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface TrainingActivityAiJobRepository extends JpaRepository<TrainingActivityAiJob, UUID> {
-    @Query("select job from TrainingActivityAiJob job where job.jobType = :jobType and job.attemptCount < job.maxAttempts and ((job.status in :claimable and job.availableAt <= :now) or (job.status = :running and job.leaseUntil < :now)) order by job.priority asc, job.createdAt asc")
-    List<TrainingActivityAiJob> findAvailable(
-            @Param("jobType") TrainingActivityAiJobType jobType,
-            @Param("claimable") List<TrainingActivityAiJobStatus> claimable,
-            @Param("running") TrainingActivityAiJobStatus running,
-            @Param("now") Instant now,
-            Pageable pageable);
-
-    @Modifying
-    @Query("update TrainingActivityAiJob job set job.status = :running, job.leaseUntil = :leaseUntil, job.attemptCount = job.attemptCount + 1, job.updatedAt = :now where job.id = :id and ((job.status in :claimable and job.availableAt <= :now) or (job.status = :running and job.leaseUntil < :now))")
-    int claim(@Param("id") UUID id, @Param("claimable") List<TrainingActivityAiJobStatus> claimable,
-            @Param("running") TrainingActivityAiJobStatus running, @Param("leaseUntil") Instant leaseUntil,
-            @Param("now") Instant now);
-
-    @Modifying
-    @Query("update TrainingActivityAiJob job set job.status = :running, job.leaseUntil = :leaseUntil, job.attemptCount = job.attemptCount + 1, job.generation = job.generation + 1, job.updatedAt = :now where job.id = :id and job.attemptCount < job.maxAttempts and ((job.status in :claimable and job.availableAt <= :now) or (job.status = :running and job.leaseUntil < :now))")
-    int claimTutor(@Param("id") UUID id, @Param("claimable") List<TrainingActivityAiJobStatus> claimable,
-            @Param("running") TrainingActivityAiJobStatus running, @Param("leaseUntil") Instant leaseUntil,
-            @Param("now") Instant now);
+    @Query(value = """
+            with candidate as (
+              select id from training_activity_ai_job
+              where attempt_count < max_attempts
+                and ((status in ('PENDING', 'RETRYABLE') and available_at <= :now)
+                  or (status = 'RUNNING' and lease_until < :now))
+              order by (priority - extract(epoch from (:now - created_at)) / 60) asc, created_at asc
+              for update skip locked limit 1
+            )
+            update training_activity_ai_job job
+            set status = 'RUNNING', lease_until = :leaseUntil, attempt_count = attempt_count + 1,
+                generation = generation + 1, updated_at = :now
+            from candidate where job.id = candidate.id
+            returning job.*
+            """, nativeQuery = true)
+    Optional<TrainingActivityAiJob> claimNext(@Param("now") Instant now, @Param("leaseUntil") Instant leaseUntil);
 
     @Modifying
     @Query("""
@@ -42,7 +38,7 @@ public interface TrainingActivityAiJobRepository extends JpaRepository<TrainingA
             where job.id = :id and job.jobType = :jobType and job.status = :running
               and job.generation = :generation and job.leaseUntil >= :now
             """)
-    int fenceFinalReportSuccess(@Param("id") UUID id, @Param("jobType") TrainingActivityAiJobType jobType,
+    int fenceSuccess(@Param("id") UUID id, @Param("jobType") TrainingActivityAiJobType jobType,
             @Param("running") TrainingActivityAiJobStatus running, @Param("succeeded") TrainingActivityAiJobStatus succeeded,
             @Param("generation") int generation, @Param("now") Instant now);
 
@@ -53,22 +49,16 @@ public interface TrainingActivityAiJobRepository extends JpaRepository<TrainingA
             where job.id = :id and job.jobType = :jobType and job.status = :running
               and job.generation = :generation and job.leaseUntil >= :now
             """)
-    int fenceFinalReportFailure(@Param("id") UUID id, @Param("jobType") TrainingActivityAiJobType jobType,
+    int fenceFailure(@Param("id") UUID id, @Param("jobType") TrainingActivityAiJobType jobType,
             @Param("running") TrainingActivityAiJobStatus running, @Param("targetStatus") TrainingActivityAiJobStatus targetStatus,
             @Param("generation") int generation, @Param("availableAt") Instant availableAt,
             @Param("failureCode") String failureCode, @Param("nextInputVersion") long nextInputVersion,
             @Param("now") Instant now);
 
-    @Query("select job from TrainingActivityAiJob job where job.jobType in :jobTypes and job.attemptCount < job.maxAttempts and ((job.status in :claimable and job.availableAt <= :now) or (job.status = :running and job.leaseUntil < :now)) order by job.priority asc, job.createdAt asc")
-    List<TrainingActivityAiJob> findAvailableByTypes(
-            @Param("jobTypes") List<TrainingActivityAiJobType> jobTypes,
-            @Param("claimable") List<TrainingActivityAiJobStatus> claimable,
-            @Param("running") TrainingActivityAiJobStatus running,
-            @Param("now") Instant now,
-            Pageable pageable);
-
     Optional<TrainingActivityAiJob> findFirstBySemanticKeyAndStatusInOrderByCreatedAtDesc(
             String semanticKey, List<TrainingActivityAiJobStatus> statuses);
+
+    Optional<TrainingActivityAiJob> findTopBySemanticKeyOrderByGenerationDesc(String semanticKey);
 
     Optional<TrainingActivityAiJob> findFirstByAssignment_IdAndJobTypeInOrderByUpdatedAtDesc(
             UUID assignmentId, List<TrainingActivityAiJobType> jobTypes);

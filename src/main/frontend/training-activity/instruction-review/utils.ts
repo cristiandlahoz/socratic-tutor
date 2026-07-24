@@ -1,6 +1,6 @@
 import type { Text } from '@codemirror/state';
 
-import type { InstructionLintIssue, InstructionReviewSnapshot } from './types.js';
+import type { InstructionLintIssue, InstructionReviewSnapshot, QualityStatus, ReviewStatus } from './types.js';
 
 const MIN_WHOLE_REPLACEMENT_PREFIX_CHARS = 12;
 
@@ -27,6 +27,15 @@ export function issueReplacementRange(issue: InstructionLintIssue, value: string
     return { from: 0, to: value.length };
   }
   return { from, to };
+}
+
+export function hasInstructionReviewFeedback(
+  reviewStatus: ReviewStatus,
+  qualityStatus: QualityStatus | undefined,
+  message: string,
+  issues: InstructionLintIssue[],
+): boolean {
+  return reviewStatus !== 'IDLE' || qualityStatus !== undefined || message.trim() !== '' || issues.length > 0;
 }
 
 export function hasInlineRange(issue: InstructionLintIssue | undefined | null): issue is InstructionLintIssue {

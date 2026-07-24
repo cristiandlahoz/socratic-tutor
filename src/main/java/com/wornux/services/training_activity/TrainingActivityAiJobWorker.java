@@ -1,12 +1,20 @@
-package com.wornux.services.training_activity.instruction_review;
+package com.wornux.services.training_activity;
 
 import java.time.Instant;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wornux.data.entities.training_activity.TrainingActivityAiJobType;
+import com.wornux.services.training_activity.instruction_review.AdvisoryInstructionReviewService;
+import com.wornux.services.training_activity.instruction_review.InstructionReviewModelOutputException;
+import com.wornux.services.training_activity.instruction_review.InstructionReviewResult;
+import com.wornux.services.training_activity.instruction_review.InstructionReviewService;
+import com.wornux.services.training_activity.instruction_review.InstructionReviewUnavailableException;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -20,13 +28,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import com.wornux.services.training_activity.TrainingTutorJobService;
-import com.wornux.services.training_activity.FinalReportCandidate;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Component
-public class InstructionReviewJobWorker {
-    private static final Logger LOGGER = LoggerFactory.getLogger(InstructionReviewJobWorker.class);
+public class TrainingActivityAiJobWorker {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TrainingActivityAiJobWorker.class);
     private static final long RESULT_APPLICATION_WINDOW_MS = 5_000;
+    private static final int MAX_ASYNC_WRAPPER_DEPTH = 4;
 
     private final AdvisoryInstructionReviewService reviewService;
     private final InstructionReviewService reviewEngine;
@@ -54,7 +62,7 @@ public class InstructionReviewJobWorker {
     private final Counter reportStaleCounter;
     private final Timer reportModelLatencyTimer;
 
-    public InstructionReviewJobWorker(AdvisoryInstructionReviewService reviewService, InstructionReviewService reviewEngine,
+    public TrainingActivityAiJobWorker(AdvisoryInstructionReviewService reviewService, InstructionReviewService reviewEngine,
             TrainingTutorJobService tutorJobService,
             @Qualifier("instructionReviewWorkerExecutor") ThreadPoolExecutor workerExecutor,
             @Qualifier("instructionReviewModelExecutor") ThreadPoolExecutor modelExecutor,
@@ -110,15 +118,21 @@ public class InstructionReviewJobWorker {
                     workerExecutor.getActiveCount(), workerExecutor.getQueue().size());
             return;
         }
-        var now = Instant.now();
-        var tutorIds = tutorJobService.availableTutorJobIds(now, capacity);
-        tutorIds.forEach(id -> submitTutor(id));
-        var reportCapacity = Math.max(0, capacity - tutorIds.size());
-        var reportIds = tutorJobService.availableFinalReportJobIds(now, reportCapacity);
-        reportIds.forEach(this::submitFinalReport);
-        var reviewCapacity = Math.max(0, reportCapacity - reportIds.size());
-        if (reviewCapacity > 0) {
-            reviewService.availableJobIds(now, reviewCapacity).forEach(this::submitReview);
+        for (var index = 0; index < capacity; index++) {
+            var claimed = tutorJobService.claimNextWork(Instant.now(), Instant.now().plusSeconds(tutorLeaseSeconds));
+            if (claimed == null) {
+                continue;
+            }
+            var job = claimed.job();
+            if (job.getJobType() == TrainingActivityAiJobType.INSTRUCTION_REVIEW) {
+                submitReview(job.getId());
+            }
+            else if (job.getJobType() == TrainingActivityAiJobType.FINAL_REPORT) {
+                submitFinalReport(claimed.finalReportWork());
+            }
+            else {
+                submitTutor(claimed.tutorWork());
+            }
         }
     }
 
@@ -132,35 +146,34 @@ public class InstructionReviewJobWorker {
             }
     }
 
-    private void submitTutor(java.util.UUID id) {
+    private void submitTutor(TrainingTutorJobService.TutorWork work) {
         try {
-            workerExecutor.execute(() -> processTutor(id));
+            workerExecutor.execute(() -> processTutor(work));
         }
         catch (RejectedExecutionException exception) {
             saturationCounter.increment();
-            LOGGER.warn("tutor worker submission rejected: jobId={}", id);
+            LOGGER.warn("tutor worker submission rejected: jobId={}", work.jobId());
         }
     }
 
-    private void submitFinalReport(java.util.UUID id) {
+    private void submitFinalReport(TrainingTutorJobService.FinalReportWork work) {
         try {
-            workerExecutor.execute(() -> processFinalReport(id));
+            workerExecutor.execute(() -> processFinalReport(work));
         }
         catch (RejectedExecutionException exception) {
             saturationCounter.increment();
-            LOGGER.warn("finalReport worker submission rejected: jobId={}", id);
+            LOGGER.warn("finalReport worker submission rejected: jobId={}", work.jobId());
         }
     }
 
     private void process(java.util.UUID jobId) {
-        var work = reviewService.claim(jobId, Instant.now(), Instant.now().plusSeconds(leaseSeconds));
-        if (work == null) return;
+        var work = reviewService.work(jobId);
         Future<InstructionReviewResult> modelFuture = null;
         var latencySample = Timer.start();
         try {
             modelFuture = modelExecutor.submit(() -> reviewEngine.review(work.title(), work.instructions()));
             var result = modelFuture.get(deadlineMs, TimeUnit.MILLISECONDS);
-            reviewService.applySuccess(work.jobId(), result);
+            reviewService.applySuccess(work, result);
         }
         catch (TimeoutException exception) {
             if (modelFuture != null) {
@@ -169,29 +182,30 @@ public class InstructionReviewJobWorker {
             LOGGER.warn("instructionReview model call timed out and was cancelled: jobId={} deadlineMs={}",
                     work.jobId(), deadlineMs);
             timeoutCounter.increment();
-            recordFailure(work.jobId(), "MODEL_TIMEOUT");
+            recordFailure(work, "MODEL_TIMEOUT");
         }
         catch (RejectedExecutionException exception) {
             saturationCounter.increment();
-            recordFailure(work.jobId(), "MODEL_UNAVAILABLE");
+            recordFailure(work, "MODEL_UNAVAILABLE");
         }
         catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            recordFailure(work.jobId(), "MODEL_UNAVAILABLE");
+            recordFailure(work, "MODEL_UNAVAILABLE");
+        }
+        catch (ExecutionException exception) {
+            var failureCode = reviewFailureCode(exception);
+            LOGGER.warn("instructionReview model call failed: jobId={} failureCode={}", work.jobId(), failureCode);
+            recordFailure(work, failureCode);
         }
         catch (Exception exception) {
-            recordFailure(work.jobId(), "MODEL_UNAVAILABLE");
+            recordFailure(work, "MODEL_UNAVAILABLE");
         }
         finally {
             latencySample.stop(modelLatencyTimer);
         }
     }
 
-    private void processTutor(java.util.UUID jobId) {
-        var work = tutorJobService.claim(jobId, Instant.now(), Instant.now().plusSeconds(tutorLeaseSeconds));
-        if (work == null) {
-            return;
-        }
+    private void processTutor(TrainingTutorJobService.TutorWork work) {
         Future<com.wornux.services.training_activity.AdaptiveTutorDecision> modelFuture = null;
         var latencySample = Timer.start();
         try {
@@ -213,7 +227,7 @@ public class InstructionReviewJobWorker {
             recordTutorFailure(work, "MODEL_UNAVAILABLE");
         }
         catch (Exception exception) {
-            recordTutorFailure(work, "MODEL_INVALID_OR_UNAVAILABLE");
+            recordTutorFailure(work, tutorFailureCode(exception));
         }
         finally {
             latencySample.stop(tutorModelLatencyTimer);
@@ -223,6 +237,8 @@ public class InstructionReviewJobWorker {
     private void recordTutorFailure(TrainingTutorJobService.TutorWork work, String failureCode) {
         tutorErrorCounter.increment();
         var outcome = tutorJobService.applyFailure(work.jobId(), work.ownershipGeneration(), failureCode);
+        LOGGER.warn("adaptiveTutor.job_failure jobId={} assignmentId={} failureCode={} retryScheduled={} terminal={} stale={}",
+                work.jobId(), work.assignment().getId(), failureCode, outcome.retryScheduled(), outcome.terminal(), outcome.stale());
         if (outcome.retryScheduled()) {
             tutorRetryCounter.increment();
         }
@@ -234,11 +250,7 @@ public class InstructionReviewJobWorker {
         }
     }
 
-    private void processFinalReport(java.util.UUID jobId) {
-        var work = tutorJobService.claimFinalReport(jobId, Instant.now(), Instant.now().plusSeconds(tutorLeaseSeconds));
-        if (work == null) {
-            return;
-        }
+    private void processFinalReport(TrainingTutorJobService.FinalReportWork work) {
         Future<FinalReportCandidate> modelFuture = null;
         var latencySample = Timer.start();
         try {
@@ -252,7 +264,7 @@ public class InstructionReviewJobWorker {
             if (modelFuture != null) {
                 modelFuture.cancel(true);
             }
-            recordFinalReportFailure(work, "MODEL_TIMEOUT");
+            recordFinalReportFailure(work, "MODEL_TIMEOUT", exception);
         }
         catch (RejectedExecutionException | InterruptedException exception) {
             if (modelFuture != null) {
@@ -262,19 +274,24 @@ public class InstructionReviewJobWorker {
                 Thread.currentThread().interrupt();
             }
             saturationCounter.increment();
-            recordFinalReportFailure(work, "MODEL_UNAVAILABLE");
+            recordFinalReportFailure(work, "MODEL_UNAVAILABLE", exception);
         }
         catch (Exception exception) {
-            recordFinalReportFailure(work, "MODEL_INVALID_OR_UNAVAILABLE");
+            recordFinalReportFailure(work, finalReportFailureCode(exception), exception);
         }
         finally {
             latencySample.stop(reportModelLatencyTimer);
         }
     }
 
-    private void recordFinalReportFailure(TrainingTutorJobService.FinalReportWork work, String failureCode) {
+    private void recordFinalReportFailure(TrainingTutorJobService.FinalReportWork work, String failureCode, Throwable exception) {
         reportErrorCounter.increment();
         var outcome = tutorJobService.applyFinalReportFailure(work.jobId(), work.ownershipGeneration(), failureCode);
+        var cause = unwrapAsyncFailure(exception);
+        LOGGER.warn("adaptiveTutor.final_report_failure jobId={} assignmentId={} failureCode={} retryScheduled={} terminal={} stale={} rootExceptionClass={}",
+                work.jobId(), work.assignment() == null ? null : work.assignment().getId(), failureCode,
+                outcome.retryScheduled(), outcome.terminal(), outcome.stale(),
+                cause == null ? null : cause.getClass().getName());
         if (outcome.retryScheduled()) {
             reportRetryCounter.increment();
         }
@@ -286,11 +303,78 @@ public class InstructionReviewJobWorker {
         }
     }
 
-    private void recordFailure(java.util.UUID jobId, String failureCode) {
+    private String finalReportFailureCode(Throwable exception) {
+        var cause = unwrapAsyncFailure(exception);
+        if (cause instanceof FinalReportCandidateValidationException validationException) {
+            return "INVALID_FINAL_REPORT_EVIDENCE_" + validationException.reason().name();
+        }
+        if (cause instanceof FinalReportAuthorityException) {
+            return FinalReportAuthorityException.FAILURE_CODE;
+        }
+        if (cause instanceof AdaptiveTutorModelOutputException modelOutputException
+                && modelOutputException.failureCode() != null && !modelOutputException.failureCode().isBlank()) {
+            return modelOutputException.failureCode();
+        }
+        return "MODEL_INVALID_OR_UNAVAILABLE";
+    }
+
+    private void recordFailure(AdvisoryInstructionReviewService.ReviewWork work, String failureCode) {
         errorCounter.increment();
-        if (reviewService.applyFailure(jobId, failureCode)) {
+        if (reviewService.applyFailure(work, failureCode)) {
             retryCounter.increment();
         }
+    }
+
+    private String reviewFailureCode(ExecutionException exception) {
+        var cause = unwrapAsyncFailure(exception);
+        if (cause instanceof InstructionReviewModelOutputException modelOutputException) {
+            return failureCode(modelOutputException, "MODEL_OUTPUT_INVALID");
+        }
+        if (cause instanceof InstructionReviewUnavailableException unavailableException) {
+            return failureCode(unavailableException, "MODEL_UNAVAILABLE");
+        }
+        return "MODEL_UNAVAILABLE";
+    }
+
+    private String tutorFailureCode(Throwable exception) {
+        var cause = unwrapAsyncFailure(exception);
+        if (cause instanceof AdaptiveTutorModelOutputException modelOutputException) {
+            return modelOutputException.failureCode();
+        }
+        if (containsPersistenceConstraintFailure(cause)) {
+            return "PERSISTENCE_CONSTRAINT_RETRY";
+        }
+        return "MODEL_UNAVAILABLE";
+    }
+
+    private boolean containsPersistenceConstraintFailure(Throwable exception) {
+        var current = exception;
+        for (var depth = 0; current != null && depth < MAX_ASYNC_WRAPPER_DEPTH * 2; depth++) {
+            if (current instanceof DataIntegrityViolationException
+                    || current instanceof org.hibernate.exception.ConstraintViolationException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private Throwable unwrapAsyncFailure(Throwable exception) {
+        var current = exception;
+        for (var depth = 0; depth < MAX_ASYNC_WRAPPER_DEPTH
+                && (current instanceof ExecutionException || current instanceof CompletionException); depth++) {
+            var cause = current.getCause();
+            if (cause == null) {
+                return current;
+            }
+            current = cause;
+        }
+        return current;
+    }
+
+    private String failureCode(InstructionReviewUnavailableException exception, String fallback) {
+        var result = exception.getReviewResult();
+        return result == null || result.executionStatus() == null ? fallback : result.executionStatus().name();
     }
 
     private int workerCapacity() {

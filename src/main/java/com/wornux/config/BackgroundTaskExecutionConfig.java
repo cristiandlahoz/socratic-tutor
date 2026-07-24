@@ -28,6 +28,11 @@ public class BackgroundTaskExecutionConfig {
     }
 
     @Bean(destroyMethod = "shutdown")
+    public ThreadPoolExecutor assignmentStartExecutor() {
+        return boundedExecutor(2, 32, "assignment-start-");
+    }
+
+    @Bean(destroyMethod = "shutdown")
     public ThreadPoolExecutor instructionReviewWorkerExecutor() {
         return boundedExecutor(2, 8, "instruction-review-worker-");
     }

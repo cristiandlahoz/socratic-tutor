@@ -138,7 +138,7 @@ class UC003StudentTrainingEvaluation {
         var reloaded = fixture.evaluationService.getForCurrentStudent(fixture.assignment.getId());
         fixture.evaluationService.submitAnswer(fixture.assignment.getId(), "Respuesta conservada", fixture.submissionId);
 
-        assertThat(reloaded.getCurrentQuestion()).isNull();
+        assertThat(reloaded.currentQuestion()).isNull();
         verify(fixture.turnRepository, never()).save(any());
         verify(fixture.jobRepository, never()).insertTutorJobIfAbsent(any(), anyString(), anyInt(), any(), any(), any(), any(),
                 anyLong(), anyString(), anyInt(), any(), any(), any());
@@ -217,7 +217,8 @@ class UC003StudentTrainingEvaluation {
         var contextResolver = mock(ActiveAcademicContextResolver.class);
         when(contextResolver.requireCurrent()).thenReturn(new ActiveAcademicContext(UUID.randomUUID(), UUID.randomUUID(), memberId,
                 groupClassId, GroupClassMemberKind.STUDENT));
-        return new Fixture(new TrainingAssignmentEvaluationService(assignmentRepository, turnRepository, jobRepository, contextResolver),
+        return new Fixture(new TrainingAssignmentEvaluationService(assignmentRepository, turnRepository, jobRepository, contextResolver,
+                mock(TrainingTutorJobService.class)),
                 assignmentRepository, turnRepository, jobRepository, contextResolver, activity, assignment, turn, groupClassId,
                 UUID.randomUUID());
     }

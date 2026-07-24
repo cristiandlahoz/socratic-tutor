@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.hibernate.LazyInitializationException;
 import org.junit.jupiter.api.Tag;
@@ -14,6 +17,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -66,6 +70,60 @@ class TrainingActivityAssignmentRepositoryIntegrationTest {
         assertThat(assignment.getTrainingActivity().getStatus().name()).isEqualTo("PUBLISHED");
         assertThat(assignment.getTrainingActivity().getTitle()).isEqualTo("Pointers");
         assertThat(assignment.getGroupClassMember().getId()).isEqualTo(fixture.studentMemberId());
+    }
+
+    @Test
+    void rejectsASecondPublishedActivityForTheSameProfessor() {
+        var fixture = insertFixture();
+
+        assertThatThrownBy(() -> insertActivity(
+                UUID.randomUUID(), fixture.groupClassId(), fixture.tenantAccountId(), "PUBLISHED"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        assertThat(publishedActivityCount(fixture.tenantAccountId())).isEqualTo(1);
+    }
+
+    @Test
+    void allowsAnotherActivityAfterTheFirstIsClosed() {
+        var fixture = insertFixture();
+        jdbcTemplate.update("update training_activity set status = 'CLOSED' where id = ?", fixture.trainingActivityId());
+
+        insertActivity(UUID.randomUUID(), fixture.groupClassId(), fixture.tenantAccountId(), "PUBLISHED");
+
+        assertThat(publishedActivityCount(fixture.tenantAccountId())).isEqualTo(1);
+    }
+
+    @Test
+    void allowsDifferentProfessorsToHaveIndependentPublishedActivities() {
+        var fixture = insertFixture();
+        var otherProfessorTenantAccountId = insertTenantAccount(fixture);
+
+        insertActivity(UUID.randomUUID(), fixture.groupClassId(), otherProfessorTenantAccountId, "PUBLISHED");
+
+        assertThat(publishedActivityCount(fixture.tenantAccountId())).isEqualTo(1);
+        assertThat(publishedActivityCount(otherProfessorTenantAccountId)).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentPublicationAttemptsCannotCreateTwoPublishedActivitiesForOneProfessor() throws Exception {
+        var fixture = insertFixture();
+        jdbcTemplate.update("update training_activity set status = 'CLOSED' where id = ?", fixture.trainingActivityId());
+        var ready = new CountDownLatch(2);
+        var start = new CountDownLatch(1);
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            var first = executor.submit(() -> tryInsertPublishedActivity(fixture, ready, start));
+            var second = executor.submit(() -> tryInsertPublishedActivity(fixture, ready, start));
+
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+
+            assertThat((first.get(10, TimeUnit.SECONDS) ? 1 : 0) + (second.get(10, TimeUnit.SECONDS) ? 1 : 0)).isEqualTo(1);
+            assertThat(publishedActivityCount(fixture.tenantAccountId())).isEqualTo(1);
+        }
+        finally {
+            executor.shutdownNow();
+        }
     }
 
     private FixtureIds insertFixture() {
@@ -164,10 +222,83 @@ class TrainingActivityAssignmentRepositoryIntegrationTest {
                 now,
                 now,
                 now);
-        return new FixtureIds(assignmentId, studentMemberId);
+        return new FixtureIds(tenantId, tenantAccountId, groupClassId, trainingActivityId, assignmentId, studentMemberId);
     }
 
-    private record FixtureIds(UUID assignmentId, UUID studentMemberId) {}
+    private UUID insertTenantAccount(FixtureIds fixture) {
+        var accountId = UUID.randomUUID();
+        var tenantAccountId = UUID.randomUUID();
+        var now = java.sql.Timestamp.from(java.time.Instant.now());
+        jdbcTemplate.update(
+                "insert into account (id, email, password_hash, created_at, updated_at) values (?, ?, ?, ?, ?)",
+                accountId,
+                "professor-" + accountId + "@example.test",
+                "hash",
+                now,
+                now);
+        jdbcTemplate.update(
+                "insert into tenant_account (id, tenant_id, account_id, locked, joined_at, updated_at) values (?, ?, ?, false, ?, ?)",
+                tenantAccountId,
+                fixture.tenantId(),
+                accountId,
+                now,
+                now);
+        jdbcTemplate.update(
+                "insert into group_class_member (id, group_class_id, tenant_account_id, member_kind, locked, joined_at, updated_at) values (?, ?, ?, 'PROFESSOR', false, ?, ?)",
+                UUID.randomUUID(),
+                fixture.groupClassId(),
+                tenantAccountId,
+                now,
+                now);
+        return tenantAccountId;
+    }
+
+    private void insertActivity(UUID activityId, UUID groupClassId, UUID tenantAccountId, String status) {
+        var now = java.sql.Timestamp.from(java.time.Instant.now());
+        jdbcTemplate.update(
+                "insert into training_activity (id, group_class_id, created_by_tenant_account_id, title, instructions, status, safe_browser_enabled, created_at, updated_at) values (?, ?, ?, ?, ?, ?, false, ?, ?)",
+                activityId,
+                groupClassId,
+                tenantAccountId,
+                "Activity " + activityId,
+                "Describe pointer traversal.",
+                status,
+                now,
+                now);
+    }
+
+    private boolean tryInsertPublishedActivity(FixtureIds fixture, CountDownLatch ready, CountDownLatch start) {
+        ready.countDown();
+        try {
+            if (!start.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timed out waiting to start publication.");
+            }
+            insertActivity(UUID.randomUUID(), fixture.groupClassId(), fixture.tenantAccountId(), "PUBLISHED");
+            return true;
+        }
+        catch (DataIntegrityViolationException exception) {
+            return false;
+        }
+        catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while publishing.", exception);
+        }
+    }
+
+    private int publishedActivityCount(UUID tenantAccountId) {
+        return jdbcTemplate.queryForObject(
+                "select count(*) from training_activity where created_by_tenant_account_id = ? and status = 'PUBLISHED'",
+                Integer.class,
+                tenantAccountId);
+    }
+
+    private record FixtureIds(
+            UUID tenantId,
+            UUID tenantAccountId,
+            UUID groupClassId,
+            UUID trainingActivityId,
+            UUID assignmentId,
+            UUID studentMemberId) {}
 
     @SpringBootConfiguration
     @EnableAutoConfiguration

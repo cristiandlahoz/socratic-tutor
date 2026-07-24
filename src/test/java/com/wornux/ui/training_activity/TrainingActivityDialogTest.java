@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Span;
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.identity.Account;
 import com.wornux.data.entities.identity.TenantAccount;
@@ -37,13 +38,27 @@ import org.springframework.test.util.ReflectionTestUtils;
 class TrainingActivityDialogTest {
 
     @Test
+    void reportDialogRequiresTheCanonicalProjectionService() {
+        assertThat(TrainingActivityDialog.class.getDeclaredConstructors())
+                .allSatisfy(constructor -> assertThat(constructor.getParameterTypes())
+                        .contains(TrainingActivityReportProjectionService.class));
+    }
+
+    @Test
+    void draftDialogUsesTheNamedInstructionReviewSpacingClass() {
+        var dialog = dialog(draftActivity(), reviewSnapshot("persisted", InstructionReviewStatus.IDLE, null, false, List.of()));
+
+        assertThat(instructionField(dialog).getClassNames()).contains("training-activity-dialog-instructions");
+    }
+
+    @Test
     void confirmedReviewHashForSaveUsesDisplayedSnapshotAfterRejectedSave() {
         var activity = draftActivity();
         var initialSnapshot = reviewSnapshot("persisted", InstructionReviewStatus.IDLE, null, false, List.of());
         var dialog = dialog(activity, initialSnapshot);
         var confirmableSnapshot = reviewSnapshot(
                 "displayed-review-hash",
-                InstructionReviewStatus.COMPLETED_FROM_CACHE,
+                InstructionReviewStatus.COMPLETED,
                 InstructionQualityStatus.GOOD,
                 true,
                 List.of(issue()));
@@ -69,7 +84,7 @@ class TrainingActivityDialogTest {
         var dialog = dialog(activity, initialSnapshot);
         var confirmableSnapshot = reviewSnapshot(
                 "displayed-review-hash",
-                InstructionReviewStatus.COMPLETED_FROM_CACHE,
+                InstructionReviewStatus.COMPLETED,
                 InstructionQualityStatus.GOOD,
                 true,
                 List.of(issue()));
@@ -111,97 +126,42 @@ class TrainingActivityDialogTest {
     }
 
     @Test
-    void reportBodyKeepsNarrativeWhenTranscriptCardsAreParsed() {
+    void reportBodyGroupsCanonicalTurnsWithTutorFirstMarkdownMessages() {
         var activity = activity();
         var assignment = assignment(activity);
-        ReflectionTestUtils.setField(assignment, "finalReport", """
-                Reporte de evaluación
-
-                ## Síntesis diagnóstica
-                La estudiante identifica la idea general de los punteros.
-
-                ## Lectura por intercambio
-                Pregunta 1: la respuesta es breve, pero incluye una definición observable.
-
-                ## Transcripción
-
-                ### Pregunta 1
-                ¿Qué es un puntero?
-                **Respuesta del estudiante:**
-                Una variable que guarda una dirección.
-                """);
         var dialog = dialog(activity);
 
-        var content = (Div) ReflectionTestUtils.invokeMethod(dialog, "reportBody", assignment);
+        var content = (Div) ReflectionTestUtils.invokeMethod(dialog, "reportBody", new TrainingActivityReportProjectionService.ReportProjection(
+                assignment,
+                com.wornux.data.entities.training_activity.TrainingActivityReportStatus.READY,
+                com.wornux.data.entities.training_activity.EvidenceStatus.STRONG_EVIDENCE,
+                "La estudiante identifica la idea general de los punteros.",
+                List.of(), List.of(), List.of(), List.of(), null,
+                List.of(new TrainingActivityReportProjectionService.TurnProjection(
+                        1, "¿Qué es un puntero?", "Una variable que guarda una dirección.\n\n```c\nint *pointer;\n```"))));
 
-        var reportList = findDescendant(content, MessagesList.class);
-        var reportCards = findDescendant(content, TrainingActivityReportCards.class);
+        var cards = descendants(content)
+                .filter(component -> component.getClassNames().contains("training-activity-conversation-card"))
+                .toList();
+        var reportLists = descendants(content)
+                .filter(MessagesList.class::isInstance)
+                .map(MessagesList.class::cast)
+                .toList();
 
-        assertThat(reportList).isNotNull();
-        assertThat(reportList.getItems()).singleElement().satisfies(item -> {
-            assertThat(messageText(item)).contains("La estudiante identifica la idea general");
-            assertThat(messageText(item)).contains("## Lectura por intercambio");
-            assertThat(messageText(item)).contains("Pregunta 1: la respuesta es breve");
-            assertThat(messageText(item)).doesNotContain("## Transcripción");
+        assertThat(cards).hasSize(1);
+        assertThat(descendants(content).map(component -> component.getElement().getTag()))
+                .doesNotContain("training-activity-report-cards");
+        assertThat(descendants(cards.getFirst()).filter(Span.class::isInstance).map(Span.class::cast).map(Span::getText))
+                .contains("Pregunta 1", "RESPONDIDA", "Tutor Socrático", "Estudiante");
+        assertThat(reportLists).hasSize(2);
+        assertThat(reportLists.getFirst().getItems()).singleElement().satisfies(message -> {
+            assertThat(messageText(message)).isEqualTo("¿Qué es un puntero?");
+            assertThat(message.getVariant()).isEqualTo("assistant");
         });
-        assertThat(reportCards).isNotNull();
-        assertThat(reportCards.getElement().getProperty("itemsJson"))
-                .contains("¿Qué es un puntero?")
-                .contains("Una variable que guarda una dirección.");
-    }
-
-    @Test
-    void sanitizeTeacherReportRemovesInternalMetadataVariantsAndCompletionEnums() {
-        var dialog = dialog(activity());
-
-        var sanitized = (String) ReflectionTestUtils.invokeMethod(dialog, "sanitizeTeacherReport", """
-                type: COMPLETE
-                reason: FOLLOW_UP
-                metadata: TutorDecisionType
-                pedagogicalMove: ASK_FOR_CLARITY
-                shouldContinue: true
-                coveredInstructionAspects: ["loops"]
-                missingInstructionAspects: ["evidence"]
-                unproductivePatternDetected: false
-                answer_quality: GOOD
-                evidence_status: PARTIAL_EVIDENCE
-                coverage_status: PARTIAL
-                pedagogical_move: ASK_FOR_CLARITY
-                should_continue: true
-                covered_instruction_aspects: ["loops"]
-                missing_instruction_aspects: ["evidence"]
-                unproductive_pattern_detected: false
-                "answerQuality": "GOOD"
-                "coverageStatus": "PARTIAL"
-                "should_continue": true
-                "pedagogical_move": "ASK_FOR_CLARITY"
-                ## Síntesis diagnóstica
-                Reporte limpio.
-                The complete narrative should stay visible to the teacher.
-                """);
-
-        assertThat(sanitized)
-                .contains("## Síntesis diagnóstica")
-                .contains("The complete narrative should stay visible to the teacher.")
-                .doesNotContain("type:")
-                .doesNotContain("reason:")
-                .doesNotContain("metadata:")
-                .doesNotContain("pedagogicalMove")
-                .doesNotContain("shouldContinue")
-                .doesNotContain("coveredInstructionAspects")
-                .doesNotContain("missingInstructionAspects")
-                .doesNotContain("unproductivePatternDetected")
-                .doesNotContain("answer_quality")
-                .doesNotContain("evidence_status")
-                .doesNotContain("coverage_status")
-                .doesNotContain("pedagogical_move")
-                .doesNotContain("should_continue")
-                .doesNotContain("covered_instruction_aspects")
-                .doesNotContain("missing_instruction_aspects")
-                .doesNotContain("unproductive_pattern_detected")
-                .doesNotContain("FOLLOW_UP")
-                .doesNotContain("ASK_FOR_CLARITY")
-                .doesNotContain("TutorDecisionType");
+        assertThat(reportLists.getLast().getItems()).singleElement().satisfies(message -> {
+            assertThat(messageText(message)).isEqualTo("Una variable que guarda una dirección.\n\n```c\nint *pointer;\n```");
+            assertThat(message.getVariant()).isEqualTo("user");
+        });
     }
 
     @Test
@@ -217,7 +177,7 @@ class TrainingActivityDialogTest {
     }
 
     @Test
-    void uc009_pendingReportShowsNonblockingStateAndCanonicalPersistedTurnCards() {
+    void uc009_pendingReportShowsNonblockingStateAndCanonicalPersistedTurns() {
         var activity = activity();
         var assignment = assignment(activity);
         var projection = new TrainingActivityReportProjectionService.ReportProjection(
@@ -237,10 +197,19 @@ class TrainingActivityDialogTest {
 
         assertThat(findDescendant(content, com.vaadin.flow.component.html.Paragraph.class).getText())
                 .contains("pendiente de generación");
-        var cards = findDescendant(content, TrainingActivityReportCards.class);
-        assertThat(cards.getElement().getProperty("itemsJson"))
-                .contains("¿Qué sucede en este caso?")
-                .contains("La respuesta completa sin truncar.");
+        var cards = descendants(content)
+                .filter(component -> component.getClassNames().contains("training-activity-conversation-card"))
+                .toList();
+        var transcript = descendants(content)
+                .filter(MessagesList.class::isInstance)
+                .map(MessagesList.class::cast)
+                .toList();
+        assertThat(cards).hasSize(1);
+        assertThat(transcript).hasSize(2);
+        assertThat(transcript.getFirst().getItems()).extracting(TrainingActivityDialogTest::messageText)
+                .containsExactly("¿Qué sucede en este caso?");
+        assertThat(transcript.getLast().getItems()).extracting(TrainingActivityDialogTest::messageText)
+                .containsExactly("La respuesta completa sin truncar.");
     }
 
     @Test
@@ -310,6 +279,7 @@ class TrainingActivityDialogTest {
                 trainingActivityService,
                 safeBrowserModeService,
                 new SafeBrowserAssignmentStateBus(),
+                mock(TrainingActivityReportProjectionService.class),
                 _ -> {},
                 () -> {});
     }
@@ -417,7 +387,6 @@ class TrainingActivityDialogTest {
                 canSave,
                 "message",
                 false,
-                reviewStatus == InstructionReviewStatus.COMPLETED_FROM_CACHE,
                 issues,
                 "",
                 Instant.now());

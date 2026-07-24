@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Composite;
@@ -36,6 +37,7 @@ import com.wornux.services.training_activity.AdaptiveTutorStartUnavailableExcept
 import com.wornux.services.training_activity.SafeBrowserAssignmentStateBus;
 import com.wornux.services.training_activity.SafeBrowserModeService;
 import com.wornux.services.training_activity.TrainingAssignmentEvaluationService;
+import com.wornux.services.training_activity.TrainingActivityAssignmentSnapshot;
 import com.wornux.ui.MainLayout;
 import com.wornux.ui.conversation.MessagesList;
 import com.wornux.ui.conversation.MessageItem;
@@ -44,6 +46,7 @@ import com.wornux.ui.conversation.ConversationState;
 import com.wornux.ui.css.UiCss;
 import com.wornux.ui.student.StudentWorkspaceView;
 import jakarta.annotation.security.PermitAll;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,13 +66,14 @@ public class TrainingAssignmentView extends Composite<Div>
     private static final String ANSWER_PLACEHOLDER = "Escribe tu respuesta aquí...";
     private static final String SUBMITTED_PLACEHOLDER = "Actividad finalizada";
     private static final String SUBMITTED_MESSAGE =
-            "La actividad formativa ha finalizado. Tu profesor ya puede revisar el reporte.";
+            "La actividad formativa ha culminado, muchas gracias!";
     private static final String LOCKED_MESSAGE =
             "Safe Browser Mode fue interrumpido. Tu profesor debe revisar o desbloquear esta asignación.";
 
     private final TrainingAssignmentEvaluationService evaluationService;
     private final SafeBrowserModeService safeBrowserModeService;
     private final SafeBrowserAssignmentStateBus assignmentStateBus;
+    private final Executor assignmentStartExecutor;
     private final MessagesList messageList = new MessagesList();
     private final ConversationState composerState = new ConversationState();
     private final ConversationComposer composer;
@@ -79,6 +83,7 @@ public class TrainingAssignmentView extends Composite<Div>
     private final Div inputShell = new Div();
     private UUID assignmentId;
     private TrainingActivityAssignment assignment;
+    private TrainingActivityAssignmentSnapshot assignmentSnapshot;
     private AutoCloseable assignmentStateSubscription;
     private Registration assignmentRefreshPollRegistration;
     private String assignmentStartFailureMessage = "";
@@ -87,15 +92,20 @@ public class TrainingAssignmentView extends Composite<Div>
     private String safeBrowserSessionToken;
     private UUID pendingAnswerSubmissionId;
     private boolean assignmentAccessDenied;
+    private boolean assignmentStartInFlight;
+    private boolean completionDialogShown;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public TrainingAssignmentView(
             TrainingAssignmentEvaluationService evaluationService,
             SafeBrowserModeService safeBrowserModeService,
             SafeBrowserAssignmentStateBus assignmentStateBus,
-            ApplicationProperties.Ai.Conversation chatProperties) {
+            ApplicationProperties.Ai.Conversation chatProperties,
+            @Qualifier("assignmentStartExecutor") Executor assignmentStartExecutor) {
         this.evaluationService = evaluationService;
         this.safeBrowserModeService = safeBrowserModeService;
         this.assignmentStateBus = assignmentStateBus;
+        this.assignmentStartExecutor = assignmentStartExecutor;
 
         configureReviewAppBar();
 
@@ -131,7 +141,10 @@ public class TrainingAssignmentView extends Composite<Div>
         var title = new Span("Revisión de actividad finalizada");
         UiCss.CONVERSATION_REVIEW_APP_BAR_TITLE.addTo(title);
 
-        var backButton = new Button("Volver al panel de estudiante", _ -> UI.getCurrent().navigate(StudentWorkspaceView.class));
+        var backButton = new Button("Volver al panel de estudiante", _ -> {
+            setAssignmentShellHidden(false);
+            UI.getCurrent().navigate(StudentWorkspaceView.class);
+        });
         backButton.setIcon(VaadinIcon.ARROW_LEFT.create());
         backButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         UiCss.CONVERSATION_REVIEW_APP_BAR_BACK_BUTTON.addTo(backButton);
@@ -184,7 +197,6 @@ public class TrainingAssignmentView extends Composite<Div>
             assignmentRefreshPollRegistration.remove();
             assignmentRefreshPollRegistration = null;
         }
-        getUI().ifPresent(ui -> ui.setPollInterval(-1));
     }
 
     private void refreshAssignmentFromPersistence(UI ui) {
@@ -192,10 +204,11 @@ public class TrainingAssignmentView extends Composite<Div>
             return;
         }
         try {
-            assignment = evaluationService.getForCurrentStudent(assignmentId);
+            var wasSubmitted = isSubmittedReview(assignment);
+            replaceAssignment(evaluationService.getForCurrentStudent(assignmentId));
             renderAssignment();
-            if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
-                ui.navigate("student");
+            if (!wasSubmitted && isSubmittedReview(assignment)) {
+                openCompletionDialog();
             }
         }
         catch (IllegalArgumentException | SecurityException exception) {
@@ -211,6 +224,7 @@ public class TrainingAssignmentView extends Composite<Div>
     private void clearDeniedAssignmentAccess() {
         assignmentId = null;
         assignment = null;
+        assignmentSnapshot = null;
         unsubscribeFromAssignmentStateChanges();
         stopAssignmentRefreshPolling();
         detachSafeBrowserClientHooks();
@@ -237,8 +251,10 @@ public class TrainingAssignmentView extends Composite<Div>
             assignmentId = UUID.fromString(parameter);
             activityClosedNoticeShown = false;
             lastClosedNonSubmittedBlocked = false;
+            assignmentStartInFlight = false;
+            completionDialogShown = false;
             clearAssignmentStartFailure();
-            assignment = evaluationService.getForCurrentStudent(assignmentId);
+            replaceAssignment(evaluationService.getForCurrentStudent(assignmentId));
             renderAssignment();
         }
         catch (IllegalArgumentException | SecurityException exception) {
@@ -256,9 +272,12 @@ public class TrainingAssignmentView extends Composite<Div>
     }
 
     private void renderAssignment() {
+        if (assignment != null && assignmentSnapshot == null) {
+            assignmentSnapshot = new TrainingActivityAssignmentSnapshot(assignment, List.of(), null, 0);
+        }
         if (assignment != null
-                && assignment.getCurrentQuestion() != null
-                && !assignment.getCurrentQuestion().isBlank()) {
+                && assignmentSnapshot.currentQuestion() != null
+                && !assignmentSnapshot.currentQuestion().isBlank()) {
             clearAssignmentStartFailure();
         }
         var reviewMode = isSubmittedReview(assignment);
@@ -287,6 +306,7 @@ public class TrainingAssignmentView extends Composite<Div>
         inputShell.setVisible(true);
         clearComposer();
         updateComposerState();
+        startNonSafeBrowserAssignment();
     }
 
     private void submitAnswer() {
@@ -303,7 +323,7 @@ public class TrainingAssignmentView extends Composite<Div>
             if (pendingAnswerSubmissionId == null) {
                 pendingAnswerSubmissionId = UUID.randomUUID();
             }
-            assignment = evaluationService.submitAnswer(assignmentId, answer, pendingAnswerSubmissionId);
+            replaceAssignment(evaluationService.submitAnswer(assignmentId, answer, pendingAnswerSubmissionId));
             pendingAnswerSubmissionId = null;
             clearComposer();
             renderAssignment();
@@ -337,11 +357,10 @@ public class TrainingAssignmentView extends Composite<Div>
                 && assignment.getStatus() != TrainingActivityAssignmentStatus.SUBMITTED;
     }
 
-    private void setAssignmentShellHidden(boolean hidden) {
-        getElement().executeJs(
-                "this.closest('vaadin-app-layout')?.classList.toggle($0, $1)",
-                ASSIGNMENT_SHELL_CLASS,
-                hidden);
+    protected void setAssignmentShellHidden(boolean hidden) {
+        getUI().ifPresent(ui -> ui.getPage().executeJs(
+                "document.querySelector('vaadin-app-layout')?.classList.toggle($0, $1)",
+                ASSIGNMENT_SHELL_CLASS, hidden));
     }
 
     private void renderSafeBrowserEntry() {
@@ -467,8 +486,9 @@ public class TrainingAssignmentView extends Composite<Div>
             var session = safeBrowserModeService.beginSession(assignmentId);
             safeBrowserSessionToken = session.token();
             assignment = safeBrowserModeService.recordHeartbeat(assignmentId, safeBrowserSessionToken);
+            assignmentSnapshot = evaluationService.snapshot(assignment);
             safeBrowserSessionStarted = true;
-            assignment = evaluationService.start(assignmentId);
+            replaceAssignment(evaluationService.start(assignmentId));
             clearAssignmentStartFailure();
             renderAssignment();
             installSafeBrowserRuntime(safeBrowserSessionToken);
@@ -493,6 +513,7 @@ public class TrainingAssignmentView extends Composite<Div>
         try {
             if (safeBrowserSessionToken != null) {
                 assignment = safeBrowserModeService.deactivateSession(assignmentId, safeBrowserSessionToken);
+                assignmentSnapshot = evaluationService.snapshot(assignment);
             }
         }
         catch (RuntimeException cleanupException) {
@@ -508,20 +529,12 @@ public class TrainingAssignmentView extends Composite<Div>
 
     private void renderStartRecoveryNotice() {
         startRecoveryNotice.removeAll();
-        var awaitingStart = assignment != null && assignment.getStatus() == TrainingActivityAssignmentStatus.ASSIGNED
-                && !assignment.getTrainingActivity().isSafeBrowserEnabled();
         var temporaryTutorFailure = assignment != null
                 && assignment.getStatus() == TrainingActivityAssignmentStatus.TEMPORARILY_UNAVAILABLE;
-        var visible = awaitingStart || temporaryTutorFailure
+        var visible = temporaryTutorFailure
                 || (assignmentStartFailureMessage != null && !assignmentStartFailureMessage.isBlank());
         startRecoveryNotice.setVisible(visible);
         if (!visible) {
-            return;
-        }
-        if (awaitingStart) {
-            var startButton = new Button("Comenzar", _ -> retryAssignmentStart());
-            startButton.addThemeVariants(ButtonVariant.PRIMARY);
-            startRecoveryNotice.add(new Paragraph("Cuando estés listo, comienza la evaluación."), startButton);
             return;
         }
         if (temporaryTutorFailure) {
@@ -563,8 +576,7 @@ public class TrainingAssignmentView extends Composite<Div>
                 startSafeBrowserSession();
                 return;
             }
-            assignment = evaluationService.start(assignmentId);
-            renderAssignment();
+            startNonSafeBrowserAssignment();
         }
         catch (AdaptiveTutorStartUnavailableException exception) {
             showRecoverableStartFailure(exception);
@@ -573,12 +585,67 @@ public class TrainingAssignmentView extends Composite<Div>
         }
     }
 
+    private void startNonSafeBrowserAssignment() {
+        if (assignmentStartInFlight
+                || assignmentId == null
+                || assignment == null
+                || assignment.getTrainingActivity().isSafeBrowserEnabled()
+                || assignment.getStatus() != TrainingActivityAssignmentStatus.ASSIGNED
+                || !assignmentStartFailureMessage.isBlank()) {
+            return;
+        }
+        var targetAssignmentId = assignmentId;
+        var studentMemberId = assignment.getGroupClassMember().getId();
+        var ui = getUI().orElse(null);
+        if (ui == null) {
+            return;
+        }
+        assignmentStartInFlight = true;
+        try {
+            assignmentStartExecutor.execute(() -> startNonSafeBrowserAssignment(targetAssignmentId, studentMemberId, ui));
+        }
+        catch (RuntimeException exception) {
+            assignmentStartInFlight = false;
+            showRecoverableStartFailure(exception);
+            renderAssignment();
+        }
+    }
+
+    private void startNonSafeBrowserAssignment(UUID targetAssignmentId, UUID studentMemberId, UI ui) {
+        try {
+            var started = evaluationService.startForStudent(targetAssignmentId, studentMemberId);
+            ui.access(() -> applyNonSafeBrowserStart(targetAssignmentId, started, null));
+        }
+        catch (RuntimeException exception) {
+            ui.access(() -> applyNonSafeBrowserStart(targetAssignmentId, null, exception));
+        }
+    }
+
+    private void applyNonSafeBrowserStart(
+            UUID targetAssignmentId,
+            TrainingActivityAssignmentSnapshot started,
+            RuntimeException failure) {
+        if (!isAttached() || !targetAssignmentId.equals(assignmentId)) {
+            assignmentStartInFlight = false;
+            return;
+        }
+        assignmentStartInFlight = false;
+        if (failure != null) {
+            showRecoverableStartFailure(failure);
+            renderAssignment();
+            return;
+        }
+        replaceAssignment(started);
+        clearAssignmentStartFailure();
+        renderAssignment();
+    }
+
     private void retryTutor() {
         if (assignmentId == null) {
             return;
         }
         try {
-            assignment = evaluationService.retryTutor(assignmentId);
+            replaceAssignment(evaluationService.retryTutor(assignmentId));
             renderAssignment();
         }
         catch (RuntimeException exception) {
@@ -586,8 +653,8 @@ public class TrainingAssignmentView extends Composite<Div>
         }
     }
 
-    private void showRecoverableStartFailure(AdaptiveTutorStartUnavailableException exception) {
-        assignmentStartFailureMessage = exception.getMessage();
+    private void showRecoverableStartFailure(RuntimeException exception) {
+        assignmentStartFailureMessage = resolveSubmissionFailureMessage(exception);
         LOGGER.warn(
                 "Training assignment start remains recoverable and retryable: assignmentId={} reason={}",
                 assignmentId,
@@ -691,6 +758,7 @@ public class TrainingAssignmentView extends Composite<Div>
         try {
             assignment = safeBrowserModeService.reportViolation(
                     assignmentId, sessionToken, SafeBrowserEventType.valueOf(eventType), UUID.fromString(clientEventId));
+            assignmentSnapshot = evaluationService.snapshot(assignment);
             renderAssignment();
         }
         catch (RuntimeException exception) {
@@ -704,6 +772,7 @@ public class TrainingAssignmentView extends Composite<Div>
             return;
         }
         assignment = safeBrowserModeService.recordHeartbeat(assignmentId, sessionToken);
+        assignmentSnapshot = evaluationService.snapshot(assignment);
     }
 
     private void showCompletionDialog() {
@@ -711,14 +780,24 @@ public class TrainingAssignmentView extends Composite<Div>
         dialog.setHeaderTitle("Actividad finalizada");
         dialog.add(new Paragraph(SUBMITTED_MESSAGE));
 
-        var homeButton = new Button("Volver al inicio", _ -> {
+        var continueButton = new Button("Seguir viendo", _ -> dialog.close());
+        var homeButton = new Button("Volver al panel estudiantil", _ -> {
             dialog.close();
-            UI.getCurrent().getPage().setLocation("/student");
+            setAssignmentShellHidden(false);
+            UI.getCurrent().navigate(StudentWorkspaceView.class);
         });
         homeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        dialog.getFooter().add(homeButton);
+        dialog.getFooter().add(continueButton, homeButton);
         dialog.open();
         onDialogOpened(dialog);
+    }
+
+    public void openCompletionDialog() {
+        if (completionDialogShown || !isSubmittedReview(assignment)) {
+            return;
+        }
+        completionDialogShown = true;
+        showCompletionDialog();
     }
 
     private void maybeShowClosedActivityDialog(boolean closedNonSubmittedBlocked) {
@@ -732,6 +811,7 @@ public class TrainingAssignmentView extends Composite<Div>
 
         var backButton = new Button("Volver al panel estudiantil", _ -> {
             dialog.close();
+            setAssignmentShellHidden(false);
             UI.getCurrent().navigate(StudentWorkspaceView.class);
         });
         backButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -753,8 +833,8 @@ public class TrainingAssignmentView extends Composite<Div>
         return assignment != null
                 && assignment.getStatus() != TrainingActivityAssignmentStatus.SUBMITTED
                 && !isBlocked(assignment)
-                && assignment.getCurrentQuestion() != null
-                && !assignment.getCurrentQuestion().isBlank()
+                && assignmentSnapshot.currentQuestion() != null
+                && !assignmentSnapshot.currentQuestion().isBlank()
                 && (!assignment.getTrainingActivity().isSafeBrowserEnabled() || assignment.isSafeBrowserSessionActive());
     }
 
@@ -783,13 +863,13 @@ public class TrainingAssignmentView extends Composite<Div>
         var messageTime = assignment.getStartedAt() != null ? assignment.getStartedAt() : assignment.getAssignedAt();
         var offset = 0;
 
-        for (var exchange : evaluationService.readEvaluationTranscript(assignment)) {
+        for (var exchange : assignmentSnapshot.transcript()) {
             messages.add(assistantMessage(exchange.question(), messageTime.plusMillis(offset++)));
             messages.add(userMessage(exchange.answer(), messageTime.plusMillis(offset++)));
         }
 
-        if (assignment.getCurrentQuestion() != null && !assignment.getCurrentQuestion().isBlank()) {
-            messages.add(assistantMessage(assignment.getCurrentQuestion(), messageTime.plusMillis(offset++)));
+        if (assignmentSnapshot.currentQuestion() != null && !assignmentSnapshot.currentQuestion().isBlank()) {
+            messages.add(assistantMessage(assignmentSnapshot.currentQuestion(), messageTime.plusMillis(offset++)));
         }
 
         if (assignment.getStatus() == TrainingActivityAssignmentStatus.SUBMITTED) {
@@ -834,5 +914,10 @@ public class TrainingAssignmentView extends Composite<Div>
 
     private MessageItem userMessage(String content, Instant createdAt) {
         return new MessageItem(content, createdAt, STUDENT_NAME, MessageItem.Variant.USER, false, false);
+    }
+
+    private void replaceAssignment(TrainingActivityAssignmentSnapshot snapshot) {
+        assignmentSnapshot = snapshot;
+        assignment = snapshot.assignment();
     }
 }

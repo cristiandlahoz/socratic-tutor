@@ -15,17 +15,32 @@ public record InstructionReviewSnapshotDto(
         boolean canSave,
         String message,
         boolean modelCalled,
-        boolean fromCache,
         List<InstructionLintIssueDto> issues,
         String recreatedInstructions,
-        Instant reviewedAt) {
+        Instant reviewedAt,
+        UUID reviewId) {
+
+    public InstructionReviewSnapshotDto(
+            UUID activityId,
+            String reviewHash,
+            InstructionReviewStatus reviewStatus,
+            InstructionQualityStatus qualityStatus,
+            boolean canSave,
+            String message,
+            boolean modelCalled,
+            List<InstructionLintIssueDto> issues,
+            String recreatedInstructions,
+            Instant reviewedAt) {
+        this(activityId, reviewHash, reviewStatus, qualityStatus, canSave, message, modelCalled, issues,
+                recreatedInstructions, reviewedAt, null);
+    }
 
     public boolean isSaveableGoodReview() {
         return canSave && qualityStatus == InstructionQualityStatus.GOOD;
     }
 
     public boolean requiresVisibleReviewConfirmation() {
-        return reviewStatus == InstructionReviewStatus.COMPLETED_FROM_CACHE
+        return reviewStatus == InstructionReviewStatus.COMPLETED
                 && qualityStatus == InstructionQualityStatus.GOOD
                 && issues != null
                 && !issues.isEmpty();

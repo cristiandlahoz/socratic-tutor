@@ -29,6 +29,7 @@ export type InstructionLintIssue = {
 
 export type InstructionReviewSnapshot = {
   activityId?: string;
+  reviewId?: string;
   reviewHash?: string;
   reviewStatus?: ReviewStatus;
   qualityStatus?: QualityStatus | null;

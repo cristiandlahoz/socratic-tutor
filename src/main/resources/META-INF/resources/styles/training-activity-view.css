@@ -84,6 +84,10 @@
   width: 100%;
   min-width: 0;
   min-height: 0;
+  --vaadin-grid-row-selected-background-color: light-dark(
+    color-mix(in srgb, #082c42 9%, var(--vaadin-background-container)),
+    color-mix(in srgb, #ffdf72 14%, var(--vaadin-background-container))
+  );
 }
 
 .training-activity-actions-row {
@@ -288,10 +292,10 @@
   overflow-x: hidden;
 }
 
-.training-activity-overlay-body instruction-linter-editor {
+.training-activity-dialog-instructions {
   display: block;
   width: 100%;
-  margin-bottom: var(--vaadin-padding-m, 1rem);
+  margin-block-end: var(--vaadin-padding-m, 1rem);
 }
 
 .training-activity-overlay-body vaadin-checkbox {
@@ -342,7 +346,7 @@
 .training-activity-report-content {
   display: flex;
   flex-direction: column;
-  gap: var(--vaadin-padding-l, 1.5rem);
+  gap: var(--vaadin-padding-m, 1rem);
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
@@ -350,7 +354,6 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding-block: var(--vaadin-padding-m, 1rem);
-  font-family: var(--aura-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace);
 }
 
 .training-activity-report-meta {
@@ -379,22 +382,6 @@
   line-height: 1;
 }
 
-.training-activity-conversation-card {
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
-  border-radius: var(--vaadin-radius-m, 12px);
-  background: color-mix(in srgb, var(--vaadin-background-container-strong) 84%, var(--aura-app-background));
-  box-shadow: var(--aura-shadow-xs, 0 10px 30px rgba(0, 0, 0, 0.08));
-}
-
-.training-activity-conversation-author {
-  color: var(--vaadin-tertiary-text-color, color-mix(in srgb, var(--vaadin-text-color) 58%, transparent));
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
 .training-activity-report-title {
   margin: 0;
   color: var(--vaadin-text-color);
@@ -412,18 +399,8 @@
   min-width: 0;
 }
 
-training-activity-report-cards {
-  display: flex;
-  flex-direction: column;
+.training-activity-report-transcript {
   gap: var(--vaadin-padding-m, 1rem);
-}
-
-.training-activity-transcript-title {
-  margin: 0;
-  color: var(--vaadin-text-color);
-  font-size: var(--aura-font-size-m, 1rem);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .training-activity-conversation-card {
@@ -431,6 +408,10 @@ training-activity-report-cards {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
+  border-radius: var(--vaadin-radius-m, 12px);
+  background: color-mix(in srgb, var(--vaadin-background-container-strong) 84%, var(--aura-app-background));
+  box-shadow: var(--aura-shadow-xs);
 }
 
 .training-activity-conversation-card::before {
@@ -449,7 +430,7 @@ training-activity-report-cards {
   justify-content: space-between;
   gap: var(--vaadin-gap-m, 1rem);
   padding: var(--vaadin-padding-s, 0.75rem) var(--vaadin-padding-m, 1rem);
-  border-bottom: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color, rgba(0, 0, 0, 0.12));
+  border-bottom: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color);
 }
 
 .training-activity-conversation-title {
@@ -466,10 +447,10 @@ training-activity-report-cards {
   width: fit-content;
   min-height: 1.35rem;
   padding: 0.125rem 0.5rem;
-  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 34%, var(--vaadin-border-color));
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--aura-accent-text-color) 34%, var(--vaadin-border-color));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 8%, transparent);
-  color: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 82%, var(--vaadin-text-color));
+  background: color-mix(in srgb, var(--aura-accent-text-color) 8%, transparent);
+  color: color-mix(in srgb, var(--aura-accent-text-color) 82%, var(--vaadin-text-color));
   font-size: 0.68rem;
   font-weight: 750;
   letter-spacing: 0.08em;
@@ -493,38 +474,55 @@ training-activity-report-cards {
   min-width: 0;
 }
 
-.training-activity-conversation-row--student {
-  align-self: flex-end;
-  align-items: flex-end;
-  text-align: right;
-}
-
 .training-activity-conversation-row--tutor {
   align-self: flex-start;
   align-items: flex-start;
   text-align: left;
 }
 
-.training-activity-conversation-message {
+.training-activity-conversation-row--student {
+  align-self: flex-end;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.training-activity-conversation-author {
+  color: var(--vaadin-tertiary-text-color, color-mix(in srgb, var(--vaadin-text-color) 58%, transparent));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.training-activity-conversation-messages .messages-list__items {
+  gap: 0;
+}
+
+.training-activity-conversation-row--tutor message-item[variant="assistant"] {
   width: 100%;
-  margin: 0;
   padding: var(--vaadin-padding-s, 0.75rem) var(--vaadin-padding-m, 1rem);
-  border: var(--vaadin-input-field-border-width, 1px) solid var(--vaadin-border-color-secondary, var(--vaadin-border-color));
+  border: var(--vaadin-input-field-border-width, 1px) solid color-mix(in srgb, var(--aura-accent-text-color) 20%, var(--vaadin-border-color));
   border-radius: var(--vaadin-radius-s, 8px);
-  background: var(--vaadin-background-container);
-  color: var(--vaadin-text-color);
-  font-size: var(--aura-font-size-s, 0.875rem);
+  background: color-mix(in srgb, var(--aura-accent-text-color) 5%, var(--vaadin-background-container));
+}
+
+.training-activity-conversation-row--student message-item[variant="user"] {
+  --message-item-font-size: var(--aura-font-size-s, 0.875rem);
+  --message-item-user-max-inline-size: 100%;
+}
+
+.training-activity-conversation-messages message-item {
+  --message-item-font-size: var(--aura-font-size-s, 0.875rem);
   line-height: 1.55;
-  white-space: pre-wrap;
 }
 
-.training-activity-conversation-message--student {
-  color: color-mix(in srgb, var(--vaadin-text-color) 88%, var(--aura-accent-text-color, var(--vaadin-primary-color)));
-}
-
-.training-activity-conversation-message--tutor {
-  border-color: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 20%, var(--vaadin-border-color));
-  background: color-mix(in srgb, var(--aura-accent-text-color, var(--vaadin-primary-color, #007b92)) 5%, var(--vaadin-background-container));
+.training-activity-transcript-title {
+  margin: 0;
+  color: var(--vaadin-text-color);
+  font-size: var(--aura-font-size-m, 1rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .training-activity-report-footer {
@@ -562,6 +560,7 @@ training-activity-report-cards {
   .training-activity-conversation-row {
     width: min(88%, 42rem);
   }
+
 }
 
 @media (max-width: 560px) {

@@ -29,64 +29,6 @@ export const instructionLinterStyles = css`
     line-height: 1.45;
   }
 
-  .instruction-linter-hover-card {
-    position: absolute;
-    z-index: 50;
-    display: grid;
-    gap: 0.65rem;
-    min-width: min(30rem, calc(100vw - 2rem));
-    max-width: min(34rem, calc(100vw - 2rem));
-    padding: 0.95rem;
-    border: 1px solid rgba(148, 163, 184, 0.28);
-    border-radius: 0.875rem;
-    background: #111827;
-    color: #f9fafb;
-    box-shadow:
-      0 22px 60px rgba(0, 0, 0, 0.42),
-      0 0 0 1px rgba(255, 255, 255, 0.04);
-  }
-
-  .instruction-linter-hover-card strong {
-    color: #f9fafb;
-    line-height: 1.45;
-  }
-
-  .instruction-linter-hover-card__label {
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: #cbd5e1;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  .instruction-linter-hover-card__suggestion {
-    padding: 0.7rem;
-    border-radius: 0.625rem;
-    background: rgba(255, 255, 255, 0.08);
-    color: #f8fafc;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-family: var(--vaadin-font-family-monospace, 'SFMono-Regular', Consolas, monospace);
-    font-size: 0.86rem;
-  }
-
-  .instruction-linter-hover-card__button {
-    justify-self: start;
-    border: 1px solid rgba(59, 130, 246, 0.55);
-    border-radius: 0.625rem;
-    padding: 0.48rem 0.75rem;
-    background: rgba(37, 99, 235, 0.2);
-    color: #93c5fd;
-    cursor: pointer;
-    font: inherit;
-    font-weight: 750;
-  }
-
-  .instruction-linter-hover-card__button:hover {
-    background: rgba(37, 99, 235, 0.32);
-    color: #bfdbfe;
-  }
-
   .instruction-linter-editor__review {
     display: grid;
     gap: 0.65rem;

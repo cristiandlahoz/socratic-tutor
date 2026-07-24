@@ -3,7 +3,6 @@ package com.wornux.data.entities.training_activity;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.wornux.data.entities.training_activity.instruction_review.TrainingInstructionReview;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +16,9 @@ public class TrainingActivityAiJob {
     @Enumerated(EnumType.STRING) @Column(name = "job_type", nullable = false) private TrainingActivityAiJobType jobType;
     @Column(nullable = false) private int priority;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_activity_id") private TrainingActivity trainingActivity;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_instruction_review_id") private TrainingInstructionReview instructionReview;
+    @Column(name = "review_professor_id") private UUID reviewProfessorId;
+    @Column(name = "review_title") private String reviewTitle;
+    @Column(name = "review_instructions", columnDefinition = "text") private String reviewInstructions;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_activity_assignment_id") private TrainingActivityAssignment assignment;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_activity_turn_id") private TrainingActivityTurn turn;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "training_activity_report_id") private TrainingActivityReport report;

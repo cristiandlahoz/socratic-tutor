@@ -80,7 +80,6 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
     private final InstructionLinterEditor instructionField = new InstructionLinterEditor();
     private final Checkbox safeBrowserField = new Checkbox("Safe Browser Mode");
     private final Button saveButton = new Button("Guardar borrador");
-    private final Button reviewButton = new Button("Revisar instrucción");
     private final Button deleteButton = new Button("Eliminar");
     private final Button launchButton = new Button("Publicar actividad");
     private final Grid<TrainingActivity> grid = new Grid<>(TrainingActivity.class, false);
@@ -127,17 +126,6 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         refreshGrid();
     }
 
-    /** Compatibility constructor retained for existing UC-006 view fixtures. */
-    public TrainingActivityView(
-            TrainingActivityService trainingActivityService,
-            SafeBrowserModeService safeBrowserModeService,
-            SafeBrowserAssignmentStateBus assignmentStateBus,
-            WorkspaceRoutingService workspaceRoutingService,
-            AuthenticatedUserContextUtils authenticatedUserContextUtils) {
-        this(trainingActivityService, safeBrowserModeService, assignmentStateBus, null,
-                workspaceRoutingService, authenticatedUserContextUtils);
-    }
-
     private Div buildHeader() {
         var title = new H2("Actividades formativas");
         var description = new Span(
@@ -157,14 +145,12 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         instructionField.addValueChangeListener(_ -> invalidateLocalReview());
         saveButton.addThemeVariants(ButtonVariant.PRIMARY);
         saveButton.setIcon(new Icon(VaadinIcon.PLUS));
+        saveButton.setWidthFull();
         saveButton.addClickShortcut(Key.ENTER).listenOn(instructionField);
         saveButton.addClickListener(_ -> onSave());
-        reviewButton.addClickListener(_ -> onReviewRequested());
         safeBrowserField.setHelperText(
                 "Requiere pantalla completa y detecta cambios de pestaña durante la evaluación. No controla el sistema operativo.");
-        var actions = new HorizontalLayout(reviewButton, saveButton);
-        actions.setPadding(false);
-        var card = new Div(titleField, instructionField, safeBrowserField, actions);
+        var card = new Div(titleField, instructionField, safeBrowserField, saveButton);
         UiCss.TRAINING_ACTIVITY_FORM_CARD.addTo(card);
         return card;
     }
@@ -206,7 +192,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
 
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
-        grid.addClassName("training-activity-main-grid");
+        UiCss.TRAINING_ACTIVITY_MAIN_GRID.addTo(grid);
         grid.setWidthFull();
         grid.setHeightFull();
 
@@ -283,16 +269,6 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         persistDraft(title, instruction, "");
     }
 
-    private void onReviewRequested() {
-        var title = titleField.getValue().trim();
-        var instruction = instructionField.getValue().trim();
-        if (title.isBlank() || instruction.isBlank()) {
-            Notification.show("Completa el título y las instrucciones antes de revisar");
-            return;
-        }
-        reviewDraft(title, instruction);
-    }
-
     private void confirmSaveAnyway(String title, String instruction) {
         var dialog = new ConfirmDialog();
         dialog.setHeader("La revisión de IA es solo una recomendación");
@@ -301,14 +277,14 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         dialog.setCancelText("Volver a editar");
         dialog.setConfirmText("Guardar de todos modos");
         dialog.addConfirmListener(_ -> persistDraft(title, instruction, lastReviewSnapshot.reviewHash()));
-        dialog.open();
+        openConfirmation(dialog);
     }
 
     private void reviewDraft(String title, String instruction) {
         var command = new TrainingActivitySaveCommand(
                 title,
                 instruction,
-                safeBrowserField.getValue(), "", reviewCandidateId);
+                safeBrowserField.getValue(), false);
 
         reviewInProgress = true;
         saveButton.setEnabled(false);
@@ -373,9 +349,9 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
                     title,
                     instruction,
                     safeBrowserField.getValue(),
-                    confirmedReviewHash,
-                    reviewCandidateId));
+                    confirmedReviewHash != null && !confirmedReviewHash.isBlank()));
             LOGGER.info("Draft save persisted activityId={}", saved.getId());
+            resetDraftFormAfterSuccessfulPersistence();
             var snapshot = trainingActivityService.getInstructionReviewSnapshot(saved.getId());
             LOGGER.info(
                     "Draft save retrieved review snapshot: activityId={} reviewStatus={} qualityStatus={} canSave={}",
@@ -384,13 +360,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
                     snapshot.qualityStatus(),
                     snapshot.canSave());
             refreshGrid();
-            Notification.show(saveMessage(snapshot));
-            titleField.clear();
-            instructionField.clear();
-            instructionField.resetReviewState();
-            safeBrowserField.clear();
-            reviewCandidateId = UUID.randomUUID();
-            clearLocalReview();
+            Notification.show(saveMessage());
             updateSaveButtonText();
         }
         catch (RuntimeException exception) {
@@ -402,6 +372,15 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
             saveButton.setEnabled(true);
             updateSaveButtonText();
         }
+    }
+
+    private void resetDraftFormAfterSuccessfulPersistence() {
+        titleField.clear();
+        instructionField.clear();
+        instructionField.resetReviewState();
+        safeBrowserField.clear();
+        reviewCandidateId = UUID.randomUUID();
+        clearLocalReview();
     }
 
     private void handleSaveException(Throwable throwable) {
@@ -520,7 +499,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         }
         try {
             var snapshot = trainingActivityService.reviewDraft(new TrainingActivitySaveCommand(
-                    title, instructions, safeBrowserField.getValue(), "", reviewCandidateId));
+                    title, instructions, safeBrowserField.getValue(), false));
             handleReviewCompleted(title, instructions, snapshot, null);
         }
         catch (RuntimeException exception) {
@@ -551,43 +530,18 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         if (activity == null) {
             return;
         }
-        try {
-            var snapshot = trainingActivityService.getInstructionReviewSnapshot(activity.getId());
-            confirmPublication(activity, !snapshot.isSaveableGoodReview());
-        }
-        catch (RuntimeException exception) {
-            Notification.show(exception.getMessage());
-        }
+        publish(activity);
     }
 
-    private void confirmPublication(TrainingActivity activity, boolean publishAnyway) {
-        var eligibleStudents = trainingActivityService.eligibleStudentCount(activity.getId());
-        var dialog = new ConfirmDialog();
-        dialog.setHeader("Confirmar publicación");
-        dialog.setText("La definición quedará inmutable. Se asignará a %d estudiante(s). Safe Browser: %s. Revisión de instrucciones: %s."
-                .formatted(eligibleStudents, activity.isSafeBrowserEnabled() ? "requerido" : "no requerido",
-                        publishAnyway ? "requiere tu confirmación explícita" : "favorable"));
-        dialog.setCancelable(true);
-        dialog.setCancelText("Volver a editar");
-        dialog.setConfirmText(publishAnyway ? "Publicar de todos modos" : "Publicar actividad");
-        dialog.addConfirmListener(_ -> publish(activity, publishAnyway));
+    private void openConfirmation(ConfirmDialog dialog) {
+        getContent().add(dialog);
+        dialog.addClosedListener(_ -> getContent().remove(dialog));
         dialog.open();
     }
 
-    private void confirmPublishAnyway(TrainingActivity activity) {
-        var dialog = new ConfirmDialog();
-        dialog.setHeader("La revisión de IA no es favorable");
-        dialog.setText("Puedes volver a editar o publicar de todos modos. La decisión quedará registrada.");
-        dialog.setCancelable(true);
-        dialog.setCancelText("Volver a editar");
-        dialog.setConfirmText("Publicar de todos modos");
-        dialog.addConfirmListener(_ -> confirmPublication(activity, true));
-        dialog.open();
-    }
-
-    private void publish(TrainingActivity activity, boolean publishAnyway) {
+    private void publish(TrainingActivity activity) {
         try {
-            var launchedStudents = trainingActivityService.launch(activity.getId(), activity.getVersion(), publishAnyway);
+            var launchedStudents = trainingActivityService.launch(activity.getId(), activity.getVersion());
             Notification.show("Actividad formativa publicada para %d estudiantes".formatted(launchedStudents));
             refreshGrid();
         }
@@ -682,10 +636,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
             ui -> ui.getPage().getHistory().replaceState(null, new Location("training-activities", QueryParameters.empty())));
     }
 
-    private String saveMessage(InstructionReviewSnapshotDto snapshot) {
-        if (snapshot.reviewStatus() == InstructionReviewStatus.COMPLETED_FROM_CACHE) {
-            return "Borrador guardado con una revisión válida reutilizada para estas mismas instrucciones.";
-        }
+    private String saveMessage() {
         return "Actividad guardada";
     }
 }

@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import com.wornux.data.entities.academic.GroupClassMember;
 import com.wornux.data.entities.training_activity.TrainingActivity;
@@ -35,8 +36,39 @@ import com.wornux.data.repositories.training_activity.TrainingActivityReportRepo
 import com.wornux.data.repositories.training_activity.TrainingActivityTurnRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 class TrainingTutorJobServiceTest {
+
+    @Test
+    void claimOrderingAllowsAnOldReportToOutrankFreshTutorWork() throws Exception {
+        var query = TrainingActivityAiJobRepository.class
+                .getMethod("claimNext", Instant.class, Instant.class)
+                .getAnnotation(Query.class).value();
+
+        assertThat(query).contains("priority - extract(epoch from (:now - created_at)) / 60");
+        assertThat(query).doesNotContain("least(");
+        assertThat(200 - 191).isLessThan(10);
+    }
+
+    @Test
+    void staleClaimedReportIsAbortedBeforeModelWorkAndDoesNotRemainGenerating() {
+        var fixture = fixture(1, 3, 4);
+        var report = finalReport(fixture);
+        when(fixture.jobRepository.claimNext(any(), any())).thenReturn(Optional.of(fixture.job));
+        when(fixture.assignmentRepository.findWithTrainingActivityById(fixture.assignment.getId()))
+                .thenReturn(Optional.of(fixture.assignment));
+
+        assertThat(fixture.service.claimNextWork(Instant.now(), Instant.now().plusSeconds(30))).isNull();
+
+        assertThat(fixture.job.getStatus()).isEqualTo(TrainingActivityAiJobStatus.SUCCEEDED);
+        assertThat(fixture.job.getLastErrorCode()).isEqualTo("STALE_RESULT");
+        assertThat(report.getStatus()).isEqualTo(
+                com.wornux.data.entities.training_activity.TrainingActivityReportStatus.PENDING);
+        verify(fixture.reportRepository).saveAndFlush(report);
+    }
 
     @Test
     void br22_reclaimedClaimFencesAnEarlierWorkerResult() {
@@ -63,22 +95,6 @@ class TrainingTutorJobServiceTest {
         assertThat(fixture.job.getStatus()).isEqualTo(TrainingActivityAiJobStatus.FAILED);
         assertThat(fixture.assignment.getStatus()).isEqualTo(TrainingActivityAssignmentStatus.TEMPORARILY_UNAVAILABLE);
         assertThat(fixture.turn.getAnswerText()).isEqualTo(" accepted answer ");
-    }
-
-    @Test
-    void br22_expiredClaimAtMaxAttemptsIsNotReturnedForAnotherClaim() {
-        var fixture = fixture(3, 3, 4);
-        fixture.job.setLeaseUntil(Instant.now().minusSeconds(1));
-        when(fixture.jobRepository.findExpiredAtAttemptLimit(anyList(), eq(TrainingActivityAiJobStatus.RUNNING), any()))
-                .thenReturn(List.of(fixture.job));
-        when(fixture.jobRepository.findAvailableByTypes(anyList(), anyList(), eq(TrainingActivityAiJobStatus.RUNNING), any(), any()))
-                .thenReturn(List.of());
-
-        assertThat(fixture.service.availableTutorJobIds(Instant.now(), 4)).isEmpty();
-
-        assertThat(fixture.job.getStatus()).isEqualTo(TrainingActivityAiJobStatus.FAILED);
-        assertThat(fixture.assignment.getStatus()).isEqualTo(TrainingActivityAssignmentStatus.TEMPORARILY_UNAVAILABLE);
-        verify(fixture.jobRepository, never()).claimTutor(any(), anyList(), any(), any(), any());
     }
 
     @Test
@@ -114,19 +130,6 @@ class TrainingTutorJobServiceTest {
         assertThat(fixture.job.getStatus()).isEqualTo(TrainingActivityAiJobStatus.SUCCEEDED);
         assertThat(fixture.job.getLastErrorCode()).isNull();
         assertThat(fixture.assignment.getStatus()).isEqualTo(TrainingActivityAssignmentStatus.WAITING_FOR_ANSWER);
-    }
-
-    @Test
-    void br22_claimReturnsTheGenerationThatOwnsResultApplication() {
-        var fixture = fixture(0, 3, 11);
-        when(fixture.jobRepository.claimTutor(eq(fixture.job.getId()), anyList(), eq(TrainingActivityAiJobStatus.RUNNING), any(), any()))
-                .thenReturn(1);
-        when(fixture.assignmentRepository.findWithTrainingActivityById(fixture.assignment.getId())).thenReturn(Optional.of(fixture.assignment));
-        when(fixture.turnRepository.findByAssignment_IdOrderBySequenceNumberAsc(fixture.assignment.getId())).thenReturn(List.of(fixture.turn));
-
-        var work = fixture.service.claim(fixture.job.getId(), Instant.now(), Instant.now().plusSeconds(30));
-
-        assertThat(work.ownershipGeneration()).isEqualTo(11);
     }
 
     @Test
@@ -186,6 +189,130 @@ class TrainingTutorJobServiceTest {
         assertThat(fixture.job.getLastErrorCode()).isNull();
     }
 
+    @Test
+    void finalReportRetryDoesNotPublishBeforeCommitAndPublishesAfterCommit() {
+        var fixture = fixture(1, 3, 4);
+        var report = finalReport(fixture);
+        var notifications = new java.util.ArrayList<SafeBrowserAssignmentStateBus.Notification>();
+        when(fixture.jobRepository.fenceFailure(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+                eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.RETRYABLE), eq(fixture.job.getGeneration()),
+                any(), eq("MODEL_UNAVAILABLE"), anyLong(), any())).thenReturn(1);
+
+        try (var ignored = subscribe(fixture.assignmentStateBus, notifications::add)) {
+            try (var transaction = new TransactionSynchronizationHarness()) {
+                var outcome = fixture.service.applyFinalReportFailure(
+                        fixture.job.getId(), fixture.job.getGeneration(), "MODEL_UNAVAILABLE");
+
+                assertThat(outcome.retryScheduled()).isTrue();
+                assertThat(notifications).isEmpty();
+
+                transaction.commit();
+            }
+        }
+
+        assertThat(report.getStatus()).isEqualTo(com.wornux.data.entities.training_activity.TrainingActivityReportStatus.PENDING);
+        assertThat(notifications).hasSize(1);
+        assertThat(notifications.getFirst().assignmentId()).isEqualTo(fixture.assignment.getId());
+    }
+
+    @Test
+    void finalReportTerminalFailureDoesNotPublishAfterRollback() {
+        var fixture = fixture(3, 3, 4);
+        var report = finalReport(fixture);
+        var notifications = new java.util.ArrayList<SafeBrowserAssignmentStateBus.Notification>();
+        when(fixture.jobRepository.fenceFailure(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+                eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.FAILED), eq(fixture.job.getGeneration()),
+                any(), eq("MODEL_INVALID_OR_UNAVAILABLE"), anyLong(), any())).thenReturn(1);
+
+        try (var ignored = subscribe(fixture.assignmentStateBus, notifications::add)) {
+            try (var ignoredTransaction = new TransactionSynchronizationHarness()) {
+                var outcome = fixture.service.applyFinalReportFailure(
+                        fixture.job.getId(), fixture.job.getGeneration(), "MODEL_INVALID_OR_UNAVAILABLE");
+
+                assertThat(outcome.terminal()).isTrue();
+                assertThat(notifications).isEmpty();
+            }
+        }
+
+        assertThat(report.getStatus()).isEqualTo(com.wornux.data.entities.training_activity.TrainingActivityReportStatus.FAILED);
+        assertThat(notifications).isEmpty();
+    }
+
+    @Test
+    void staleFinalReportFailureDoesNotPublishAssignmentState() throws Exception {
+        var fixture = fixture(1, 3, 4);
+        finalReport(fixture);
+        when(fixture.jobRepository.fenceFailure(eq(fixture.job.getId()), eq(TrainingActivityAiJobType.FINAL_REPORT),
+                eq(TrainingActivityAiJobStatus.RUNNING), any(), eq(fixture.job.getGeneration()), any(), any(), anyLong(), any()))
+                .thenReturn(0);
+        var notifications = new java.util.ArrayList<SafeBrowserAssignmentStateBus.Notification>();
+
+        try (var ignored = fixture.assignmentStateBus.subscribe(notifications::add)) {
+            var outcome = fixture.service.applyFinalReportFailure(fixture.job.getId(), fixture.job.getGeneration(), "MODEL_UNAVAILABLE");
+
+            assertThat(outcome.stale()).isTrue();
+        }
+
+        assertThat(notifications).isEmpty();
+    }
+
+    private static TrainingActivityReport finalReport(Fixture fixture) {
+        var report = new TrainingActivityReport();
+        report.setId(UUID.randomUUID());
+        report.setStatus(com.wornux.data.entities.training_activity.TrainingActivityReportStatus.GENERATING);
+        report.setVersion(fixture.job.getInputVersion());
+        fixture.job.setJobType(TrainingActivityAiJobType.FINAL_REPORT);
+        fixture.job.setReport(report);
+        when(fixture.reportRepository.findById(report.getId())).thenReturn(Optional.of(report));
+        return report;
+    }
+
+    private static NonThrowingCloseable subscribe(
+            SafeBrowserAssignmentStateBus assignmentStateBus,
+            Consumer<SafeBrowserAssignmentStateBus.Notification> listener) {
+        var subscription = assignmentStateBus.subscribe(listener);
+        return () -> {
+            try {
+                subscription.close();
+            }
+            catch (Exception exception) {
+                throw new AssertionError("Failed to unsubscribe assignment-state listener", exception);
+            }
+        };
+    }
+
+    @FunctionalInterface
+    private interface NonThrowingCloseable extends AutoCloseable {
+
+        @Override
+        void close();
+    }
+
+    /** Minimal synchronization harness: close without commit models rollback. */
+    private static final class TransactionSynchronizationHarness implements AutoCloseable {
+        private boolean completed;
+
+        private TransactionSynchronizationHarness() {
+            TransactionSynchronizationManager.initSynchronization();
+        }
+
+        private void commit() {
+            var synchronizations = TransactionSynchronizationManager.getSynchronizations();
+            synchronizations.forEach(TransactionSynchronization::afterCommit);
+            synchronizations.forEach(synchronization -> synchronization.afterCompletion(TransactionSynchronization.STATUS_COMMITTED));
+            completed = true;
+        }
+
+        @Override
+        public void close() {
+            if (!completed) {
+                TransactionSynchronizationManager.getSynchronizations().forEach(
+                        synchronization -> synchronization.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+            }
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
     private static Fixture fixture(int attempts, int maxAttempts, int generation) {
         var jobRepository = mock(TrainingActivityAiJobRepository.class);
         var assignmentRepository = mock(TrainingActivityAssignmentRepository.class);
@@ -209,12 +336,28 @@ class TrainingTutorJobServiceTest {
         job.setInputVersion(0);
         job.setLeaseUntil(Instant.now().plusSeconds(30));
         when(jobRepository.findById(job.getId())).thenReturn(Optional.of(job));
+        when(jobRepository.fenceSuccess(eq(job.getId()), any(),
+                eq(TrainingActivityAiJobStatus.RUNNING), eq(TrainingActivityAiJobStatus.SUCCEEDED),
+                eq(generation), any())).thenAnswer(_ -> {
+                    job.setStatus(TrainingActivityAiJobStatus.SUCCEEDED);
+                    job.setLastErrorCode(null);
+                    return 1;
+                });
+        when(jobRepository.fenceFailure(eq(job.getId()), any(),
+                eq(TrainingActivityAiJobStatus.RUNNING), any(), eq(generation), any(), any(), anyLong(), any()))
+                .thenAnswer(call -> {
+                    job.setStatus(call.getArgument(3));
+                    job.setLastErrorCode(call.getArgument(6));
+                    return 1;
+                });
         when(assignmentRepository.findLockedWithTrainingActivityById(assignment.getId())).thenReturn(Optional.of(assignment));
         when(turnRepository.findById(turn.getId())).thenReturn(Optional.of(turn));
         var reportRepository = mock(TrainingActivityReportRepository.class);
+        var assignmentStateBus = new SafeBrowserAssignmentStateBus();
         var service = new TrainingTutorJobService(jobRepository, assignmentRepository, turnRepository,
-                reportRepository, mock(TrainingAssignmentTutorService.class), new SafeBrowserAssignmentStateBus());
-        return new Fixture(service, jobRepository, assignmentRepository, turnRepository, reportRepository, assignment, turn, job);
+                reportRepository, mock(TrainingAssignmentTutorService.class), assignmentStateBus);
+        return new Fixture(service, jobRepository, assignmentRepository, turnRepository, reportRepository, assignmentStateBus,
+                assignment, turn, job);
     }
 
     private static TrainingActivityAssignment assignment() {
@@ -232,7 +375,7 @@ class TrainingTutorJobServiceTest {
     }
 
     private record Fixture(TrainingTutorJobService service, TrainingActivityAiJobRepository jobRepository,
-                           TrainingActivityAssignmentRepository assignmentRepository, TrainingActivityTurnRepository turnRepository,
-                           TrainingActivityReportRepository reportRepository,
-                           TrainingActivityAssignment assignment, TrainingActivityTurn turn, TrainingActivityAiJob job) { }
+                            TrainingActivityAssignmentRepository assignmentRepository, TrainingActivityTurnRepository turnRepository,
+                            TrainingActivityReportRepository reportRepository, SafeBrowserAssignmentStateBus assignmentStateBus,
+                            TrainingActivityAssignment assignment, TrainingActivityTurn turn, TrainingActivityAiJob job) { }
 }

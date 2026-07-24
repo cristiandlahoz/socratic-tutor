@@ -21,13 +21,13 @@ public class ActivityPublicationNotificationWorker {
         this.metrics = metrics;
     }
 
-    @Scheduled(fixedDelayString = "${app.email.activity-notification.poll-ms:1000}")
+    @Scheduled(fixedDelayString = "${app.email.activity-notification.poll-ms:15000}")
     public void poll() {
         metrics.recordPoll();
         metrics.recordProcessing(() -> {
             try {
                 var eventIds = notificationService.availableEventIds(Instant.now());
-                LOGGER.info("Notification outbox poll completed: eventCount={}", eventIds.size());
+                LOGGER.debug("Notification outbox poll completed: eventCount={}", eventIds.size());
                 eventIds.forEach(this::deliverEventSafely);
                 metrics.updateBacklog(notificationService.backlog());
             }

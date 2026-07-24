@@ -37,7 +37,7 @@ import com.wornux.services.training_activity.TrainingAssignmentEvaluationService
 import com.wornux.services.training_activity.TrainingAssignmentTutorService;
 import com.wornux.services.training_activity.TrainingTutorJobService;
 import com.wornux.services.training_activity.instruction_review.AdvisoryInstructionReviewService;
-import com.wornux.services.training_activity.instruction_review.InstructionReviewJobWorker;
+import com.wornux.services.training_activity.TrainingActivityAiJobWorker;
 import com.wornux.services.training_activity.instruction_review.InstructionReviewService;
 import com.wornux.ui.training_activity.TrainingAssignmentView;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -89,7 +89,7 @@ class UC009FinalizeAndReportEvaluationIntegrationTest {
     @Autowired private TrainingActivityAssignmentRepository assignmentRepository;
     @Autowired private TrainingActivityReportRepository reportRepository;
     @Autowired private TrainingActivityReportProjectionService reportProjectionService;
-    @Autowired private InstructionReviewJobWorker worker;
+    @Autowired private TrainingActivityAiJobWorker worker;
     @Autowired private SafeBrowserAssignmentStateBus assignmentStateBus;
     @Autowired private ActiveAcademicContextResolver contextResolver;
     @Autowired private LatchControlledChatModel chatModel;
@@ -114,10 +114,11 @@ class UC009FinalizeAndReportEvaluationIntegrationTest {
         var studentUi = new TrackingUi();
         UI.setCurrent(studentUi);
         var studentView = new TrainingAssignmentView(evaluationService, org.mockito.Mockito.mock(SafeBrowserModeService.class),
-                assignmentStateBus, conversationProperties());
+                assignmentStateBus, conversationProperties(), Runnable::run);
         org.springframework.test.util.ReflectionTestUtils.setField(studentView, "assignmentId", fixture.assignmentId());
-        org.springframework.test.util.ReflectionTestUtils.setField(
-                studentView, "assignment", evaluationService.getForCurrentStudent(fixture.assignmentId()));
+        var studentSnapshot = evaluationService.getForCurrentStudent(fixture.assignmentId());
+        org.springframework.test.util.ReflectionTestUtils.setField(studentView, "assignment", studentSnapshot.assignment());
+        org.springframework.test.util.ReflectionTestUtils.setField(studentView, "assignmentSnapshot", studentSnapshot);
         org.springframework.test.util.ReflectionTestUtils.invokeMethod(studentView, "subscribeToAssignmentStateChanges", studentUi);
 
         var commandResult = evaluationService.submitAnswer(
@@ -126,7 +127,9 @@ class UC009FinalizeAndReportEvaluationIntegrationTest {
         assertThat(commandResult.getStatus()).isEqualTo(TrainingActivityAssignmentStatus.WAITING_FOR_TUTOR);
         worker.poll();
         await("terminal tutor decision", () -> assignmentStatus(fixture.assignmentId()) == TrainingActivityAssignmentStatus.SUBMITTED);
-        await("student navigation", () -> "student".equals(studentUi.navigatedTo()));
+        await("student completion handoff", () -> Boolean.TRUE.equals(
+                org.springframework.test.util.ReflectionTestUtils.getField(studentView, "completionDialogShown")));
+        assertThat(studentUi.navigatedTo()).isNull();
 
         var pendingReport = reportRepository.findByAssignment_Id(fixture.assignmentId()).orElseThrow();
         var finalReportJobCount = jdbcTemplate.queryForObject("""
@@ -316,7 +319,7 @@ class UC009FinalizeAndReportEvaluationIntegrationTest {
     @EnableConfigurationProperties({OpenAiCommonProperties.class, OpenAiChatProperties.class})
     @Import({TestBeans.class, PromptResources.class, SafeBrowserAssignmentStateBus.class,
             TrainingAssignmentTutorService.class, TrainingTutorJobService.class, TrainingAssignmentEvaluationService.class,
-            TrainingActivityReportProjectionService.class, InstructionReviewJobWorker.class})
+            TrainingActivityReportProjectionService.class, TrainingActivityAiJobWorker.class})
     static class TestApp {}
 
     @TestConfiguration(proxyBeanMethods = false)
@@ -414,8 +417,15 @@ class UC009FinalizeAndReportEvaluationIntegrationTest {
 
         @Override
         public Future<Void> access(Command command) {
-            command.execute();
-            return CompletableFuture.completedFuture(null);
+            var previous = UI.getCurrent();
+            UI.setCurrent(this);
+            try {
+                command.execute();
+                return CompletableFuture.completedFuture(null);
+            }
+            finally {
+                UI.setCurrent(previous);
+            }
         }
 
         @Override

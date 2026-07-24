@@ -8,7 +8,6 @@ public enum InstructionReviewStatus {
     PENDING,
     REVIEWING,
     COMPLETED,
-    COMPLETED_FROM_CACHE,
     SKIPPED_NO_CHANGES,
     FAILED,
     UNAVAILABLE,
