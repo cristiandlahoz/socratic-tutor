@@ -94,6 +94,7 @@ app:
       initial-delay-ms: ${AI_MODEL_AVAILABILITY_INITIAL_DELAY_MS:1000}
     adaptive-tutor:
       model: ${ADAPTIVE_TUTOR_MODEL:${spring.ai.openai.chat.model}}
+      report-max-tokens: ${ADAPTIVE_TUTOR_REPORT_MAX_TOKENS:1400}
       allow-local-fallback: ${ADAPTIVE_TUTOR_ALLOW_LOCAL_FALLBACK:false}
       deadline-ms: ${ADAPTIVE_TUTOR_DEADLINE_MS:60000}
       lease-seconds: ${ADAPTIVE_TUTOR_LEASE_SECONDS:75}

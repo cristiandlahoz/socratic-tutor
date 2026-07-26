@@ -36,13 +36,16 @@ class TrainingAssignmentTutorServiceReportValidationTest {
         assertThat(report)
                 .extracting(FinalReportCandidate::evidenceStatus, FinalReportCandidate::summary)
                 .containsExactly(EvidenceStatus.STRONG_EVIDENCE, "La respuesta explica el concepto con un ejemplo.");
-        assertThat(report.strengths()).singleElement().satisfies(finding ->
-                assertThat(finding.evidenceReferences()).extracting(FinalReportCandidate.EvidenceReference::turnSequence)
-                        .containsExactly(1));
+        assertThat(report.strengths()).singleElement().satisfies(finding -> {
+            assertThat(finding.evidenceReferences()).extracting(FinalReportCandidate.EvidenceReference::turnSequence)
+                    .containsExactly(1);
+            assertThat(finding.evidenceReferences()).singleElement().satisfies(reference ->
+                    assertThat(reference.answerExcerpt()).isNull());
+        });
     }
 
     @Test
-    void finalReportPromptLeavesMaxTokensToTheProvider() {
+    void finalReportPromptCapsGenerationBelowTheSharedHttpTimeout() {
         var capturedPrompt = new AtomicReference<Prompt>();
         var service = new TrainingAssignmentTutorService(prompt -> {
             capturedPrompt.set(prompt);
@@ -54,7 +57,12 @@ class TrainingAssignmentTutorServiceReportValidationTest {
         service.generateFinalReport(assignment(), List.of(new TrainingAssignmentTutorService.ReportTurn(
                 1, "What is a pointer?", "It stores an address.")), EvidenceStatus.STRONG_EVIDENCE);
 
-        assertThat(capturedPrompt.get().getOptions().getMaxTokens()).isNull();
+        assertThat(capturedPrompt.get().getOptions().getMaxTokens()).isEqualTo(1400);
+        var outputSchema = ((org.springframework.ai.openai.OpenAiChatOptions) capturedPrompt.get().getOptions())
+                .getOutputSchema();
+        assertThat(outputSchema)
+                .contains("turnSequence")
+                .doesNotContain("evidenceStatus", "questionExcerpt", "answerExcerpt");
     }
 
     @Test

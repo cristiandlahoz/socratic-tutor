@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -184,12 +185,24 @@ class TrainingAssignmentViewTest extends BrowserlessTest {
 
             ReflectionTestUtils.invokeMethod(view, "maybeShowClosedActivityDialog", true);
 
+            assertThat(view.openedDialog.getParent()).contains(view.getContent());
             $(Button.class).from(view.openedDialog).first().click();
 
-            assertThat(ui.page.executeJsCalls).containsExactly(new JsCall(
-                    "document.querySelector('vaadin-app-layout')?.classList.toggle($0, $1)",
-                    List.of("assignment-shell-hidden", false)));
-            assertThat(events).containsExactly("js:assignment-shell-hidden:false", "navigate:StudentWorkspaceView");
+            assertThat(ui.page.executeJsCalls).containsExactly(
+                    new JsCall(
+                            "document.body.scrollTop = 0; document.documentElement.scrollTop = 0;",
+                            List.of()),
+                    new JsCall(
+                            "document.querySelector('vaadin-app-layout')?.classList.toggle($0, $1)",
+                            List.of("assignment-shell-hidden", false)));
+            assertThat(events).containsExactly(
+                    "js:body-scroll-reset", "js:assignment-shell-hidden:false");
+
+            ComponentUtil.fireEvent(view.openedDialog, new Dialog.ClosedEvent(view.openedDialog, true));
+
+            assertThat(view.openedDialog.getParent()).isEmpty();
+            assertThat(events).containsExactly(
+                    "js:body-scroll-reset", "js:assignment-shell-hidden:false", "navigate:StudentWorkspaceView");
         }
         finally {
             UI.setCurrent(null);
@@ -307,8 +320,50 @@ class TrainingAssignmentViewTest extends BrowserlessTest {
                     .contains("La actividad formativa ha culminado, muchas gracias!");
             assertThat(buttons).extracting(Button::getText)
                     .containsExactly("Seguir viendo", "Volver al panel estudiantil");
+            assertThat(view.openedDialog.getParent()).contains(view.getContent());
+            assertThat(view.openedDialog.getElement().hasAttribute("data-assignment-dialog-host")).isTrue();
+            events.clear();
             buttons.getLast().click();
-            assertThat(events).containsExactly("js:assignment-shell-hidden:false", "navigate:StudentWorkspaceView");
+            assertThat(events).containsExactly(
+                    "js:body-scroll-reset", "js:assignment-shell-hidden:false");
+
+            ComponentUtil.fireEvent(view.openedDialog, new Dialog.ClosedEvent(view.openedDialog, true));
+
+            assertThat(view.openedDialog.getParent()).isEmpty();
+            assertThat(events).containsExactly(
+                    "js:body-scroll-reset", "js:assignment-shell-hidden:false", "navigate:StudentWorkspaceView");
+        }
+        finally {
+            UI.setCurrent(null);
+        }
+    }
+
+    @Test
+    void completionDialogContinueOnlyClosesTheOverlayAndRestoresTheAssignmentShell() {
+        var events = new ArrayList<String>();
+        var ui = new OrderedTrackingUi(events);
+        UI.setCurrent(ui);
+        try {
+            var view = new CompletionDialogView(mock(TrainingAssignmentEvaluationService.class));
+            var assignment = assignedNonSafeBrowserAssignment();
+            ReflectionTestUtils.setField(assignment, "status", TrainingActivityAssignmentStatus.SUBMITTED);
+            ReflectionTestUtils.setField(view, "assignment", assignment);
+            ui.add(view);
+
+            view.openCompletionDialog();
+            events.clear();
+            $(Button.class).from(view.openedDialog).all().getFirst().click();
+
+            assertThat(view.openedDialog.isOpened()).isFalse();
+            assertThat(view.openedDialog.getParent()).contains(view.getContent());
+            assertThat(events).containsExactly(
+                    "js:body-scroll-reset", "js:assignment-shell-hidden:false");
+
+            ComponentUtil.fireEvent(view.openedDialog, new Dialog.ClosedEvent(view.openedDialog, true));
+
+            assertThat(view.openedDialog.getParent()).isEmpty();
+            assertThat(events).containsExactly(
+                    "js:body-scroll-reset", "js:assignment-shell-hidden:false");
         }
         finally {
             UI.setCurrent(null);
@@ -391,7 +446,12 @@ class TrainingAssignmentViewTest extends BrowserlessTest {
         @Override
         public PendingJavaScriptResult executeJs(String expression, Object... parameters) {
             executeJsCalls.add(new JsCall(expression, List.of(parameters)));
-            events.add("js:%s:%s".formatted(parameters[0], parameters[1]));
+            if (parameters.length == 0) {
+                events.add("js:body-scroll-reset");
+            }
+            else {
+                events.add("js:%s:%s".formatted(parameters[0], parameters[1]));
+            }
             return null;
         }
     }

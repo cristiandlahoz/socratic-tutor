@@ -26,6 +26,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.shared.Registration;
 import com.wornux.data.entities.training_activity.InstructionQualityStatus;
 import com.wornux.data.entities.training_activity.TrainingActivity;
 import com.wornux.data.entities.training_activity.TrainingActivityAssignment;
@@ -70,6 +71,7 @@ public class TrainingActivityDialog extends Div {
     private String displayedReviewTitle = "";
     private String displayedReviewInstructions = "";
     private final UUID reviewCandidateId = UUID.randomUUID();
+    private Registration reviewPollRegistration;
 
     public TrainingActivityDialog(
             TrainingActivity activity,
@@ -127,10 +129,14 @@ public class TrainingActivityDialog extends Div {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         subscribeToAssignmentStateChanges(attachEvent.getUI());
+        if (hasPendingDisplayedReview()) {
+            startReviewPolling();
+        }
     }
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
+        stopReviewPolling();
         unsubscribeFromAssignmentStateChanges();
         super.onDetach(detachEvent);
     }
@@ -310,12 +316,15 @@ public class TrainingActivityDialog extends Div {
             var currentSnapshot = trainingActivityService.getInstructionReviewSnapshot(original.getId());
             if (!matchesActivitySnapshot(title, instruction)
                     && !matchesDisplayedReviewConfirmation(title, instruction)) {
-                showInstructionReview(trainingActivityService.reviewDraft(new TrainingActivitySaveCommand(
+                currentSnapshot = trainingActivityService.reviewDraft(new TrainingActivitySaveCommand(
                         title,
                         instruction,
                         safeBrowserField.getValue(),
-                        false)));
-                return;
+                        false));
+                showInstructionReview(currentSnapshot);
+                if (!currentSnapshot.isSaveableGoodReview()) {
+                    return;
+                }
             }
             var confirmedReviewHash = confirmedReviewHashForSave(title, instruction, currentSnapshot);
             updated = trainingActivityService.update(original.getId(), new TrainingActivitySaveCommand(
@@ -415,9 +424,59 @@ public class TrainingActivityDialog extends Div {
     }
 
     private void clearDisplayedReviewConfirmation() {
+        stopReviewPolling();
         displayedReviewSnapshot = null;
         displayedReviewTitle = "";
         displayedReviewInstructions = "";
+    }
+
+    private boolean hasPendingDisplayedReview() {
+        return displayedReviewSnapshot != null
+                && displayedReviewSnapshot.reviewStatus() == InstructionReviewStatus.REVIEWING;
+    }
+
+    private void startReviewPolling() {
+        getUI().ifPresent(ui -> {
+            if (reviewPollRegistration == null) {
+                reviewPollRegistration = ui.addPollListener(_ -> refreshPendingReview());
+            }
+            ui.setPollInterval(1_000);
+        });
+    }
+
+    private void refreshPendingReview() {
+        if (!hasPendingDisplayedReview()) {
+            stopReviewPolling();
+            return;
+        }
+        var title = titleField.getValue().trim();
+        var instructions = instructionField.getValue().trim();
+        if (!matchesDisplayedReviewConfirmation(title, instructions)) {
+            clearDisplayedReviewConfirmation();
+            instructionField.markReviewStale();
+            return;
+        }
+        try {
+            showInstructionReview(trainingActivityService.reviewDraft(new TrainingActivitySaveCommand(
+                    title,
+                    instructions,
+                    safeBrowserField.getValue(),
+                    false)));
+        }
+        catch (RuntimeException exception) {
+            stopReviewPolling();
+            instructionField.setReviewing(false);
+            Notification.show("No pudimos actualizar la revisión de instrucciones. Inténtalo de nuevo.");
+        }
+    }
+
+    private void stopReviewPolling() {
+        if (reviewPollRegistration == null) {
+            return;
+        }
+        reviewPollRegistration.remove();
+        reviewPollRegistration = null;
+        getUI().ifPresent(ui -> ui.setPollInterval(-1));
     }
 
     private String saveMessage() {
@@ -442,6 +501,12 @@ public class TrainingActivityDialog extends Div {
     public void showInstructionReview(InstructionReviewSnapshotDto reviewSnapshot) {
         rememberDisplayedReviewConfirmation(reviewSnapshot);
         instructionField.setReviewSnapshot(reviewSnapshot);
+        if (hasPendingDisplayedReview()) {
+            startReviewPolling();
+        }
+        else {
+            stopReviewPolling();
+        }
     }
 
     private String studentName(TrainingActivityAssignment assignment) {
@@ -704,6 +769,7 @@ public class TrainingActivityDialog extends Div {
     }
 
     public void close() {
+        stopReviewPolling();
         unsubscribeFromAssignmentStateChanges();
         if (onClose != null) {
             onClose.run();

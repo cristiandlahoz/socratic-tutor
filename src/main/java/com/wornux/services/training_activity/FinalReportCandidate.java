@@ -2,14 +2,14 @@ package com.wornux.services.training_activity;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.wornux.data.entities.training_activity.EvidenceStatus;
 
 /** Untrusted structured output from the report model. It is validated before persistence. */
 public record FinalReportCandidate(
-        @JsonPropertyDescription("Optional model-provided value. The service replaces it with the assignment's authoritative evidence status.")
-        EvidenceStatus evidenceStatus,
+        @JsonIgnore EvidenceStatus evidenceStatus,
         @JsonProperty(required = true) @JsonPropertyDescription("Concise evidence-grounded summary for the professor.") String summary,
         @JsonProperty(required = true) List<ReportFinding> strengths,
         @JsonProperty(required = true) List<ReportFinding> weaknesses,
@@ -30,6 +30,6 @@ public record FinalReportCandidate(
      */
     public record EvidenceReference(
             @JsonProperty(required = true) Integer turnSequence,
-            String questionExcerpt,
-            String answerExcerpt) {}
+            @JsonIgnore String questionExcerpt,
+            @JsonIgnore String answerExcerpt) {}
 }

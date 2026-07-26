@@ -59,6 +59,9 @@ public class TrainingAssignmentTutorService {
     @Value("${app.ai.adaptive-tutor.temperature:0.2}")
     private Double temperature;
 
+    @Value("${app.ai.adaptive-tutor.report-max-tokens:1400}")
+    private Integer reportMaxTokens;
+
     @Value("${app.ai.adaptive-tutor.report-temperature:0.1}")
     private Double reportTemperature;
 
@@ -473,7 +476,8 @@ public class TrainingAssignmentTutorService {
 
     private OpenAiChatOptions.Builder reportChatOptions() {
         var options = OpenAiChatOptions.builder()
-                .temperature(reportTemperature == null ? 0.1 : reportTemperature);
+                .temperature(reportTemperature == null ? 0.1 : reportTemperature)
+                .maxTokens(reportMaxTokens == null ? 1400 : reportMaxTokens);
         if (modelName != null && !modelName.isBlank()) {
             options.model(modelName);
         }

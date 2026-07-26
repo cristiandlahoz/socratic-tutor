@@ -11,6 +11,7 @@ import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.UIDetachedException;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -58,7 +59,10 @@ public class TrainingAssignmentView extends Composite<Div>
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TrainingAssignmentView.class);
 
+    private static final String ASSIGNMENT_DIALOG_HOST_ATTRIBUTE = "data-assignment-dialog-host";
     private static final String ASSIGNMENT_SHELL_CLASS = "assignment-shell-hidden";
+    private static final String RESET_BODY_SCROLL_JS =
+            "document.body.scrollTop = 0; document.documentElement.scrollTop = 0;";
     private static final String SAFE_BROWSER_REENTRY_ATTRIBUTE = "data-safe-browser-reentry";
     private static final String TUTOR_NAME = "Tutor Socrático";
     private static final String STUDENT_NAME = "Tú";
@@ -179,10 +183,19 @@ public class TrainingAssignmentView extends Composite<Div>
     private void subscribeToAssignmentStateChanges(UI ui) {
         unsubscribeFromAssignmentStateChanges();
         assignmentStateSubscription = assignmentStateBus.subscribe(notification -> {
-            if (!notification.affectsAssignment(assignmentId)) {
+            if (!notification.affectsAssignment(assignmentId) || !isAttached() || !ui.isAttached()) {
                 return;
             }
-            ui.access(() -> refreshAssignmentFromPersistence(ui));
+            try {
+                ui.access(() -> {
+                    if (isAttached()) {
+                        refreshAssignmentFromPersistence(ui);
+                    }
+                });
+            }
+            catch (UIDetachedException _) {
+                // Navigation won the race with a background state publication.
+            }
         });
     }
 
@@ -780,16 +793,43 @@ public class TrainingAssignmentView extends Composite<Div>
         dialog.setHeaderTitle("Actividad finalizada");
         dialog.add(new Paragraph(SUBMITTED_MESSAGE));
 
-        var continueButton = new Button("Seguir viendo", _ -> dialog.close());
-        var homeButton = new Button("Volver al panel estudiantil", _ -> {
-            dialog.close();
-            setAssignmentShellHidden(false);
-            UI.getCurrent().navigate(StudentWorkspaceView.class);
-        });
+        var continueButton = new Button("Seguir viendo", _ -> closeCompletionDialog(dialog));
+        var homeButton = new Button("Volver al panel estudiantil", _ -> closeThenNavigateToStudentWorkspace(dialog));
         homeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         dialog.getFooter().add(continueButton, homeButton);
+        setAssignmentShellHidden(false);
+        openAssignmentDialog(dialog);
+    }
+
+    private void openAssignmentDialog(Dialog dialog) {
+        dialog.getElement().setAttribute(ASSIGNMENT_DIALOG_HOST_ATTRIBUTE, "");
+        getContent().add(dialog);
+        dialog.addClosedListener(_ -> getContent().remove(dialog));
         dialog.open();
         onDialogOpened(dialog);
+    }
+
+    private void closeCompletionDialog(Dialog dialog) {
+        var ui = UI.getCurrent();
+        resetBodyScroll(ui);
+        setAssignmentShellHidden(false);
+        dialog.close();
+    }
+
+    private void closeThenNavigateToStudentWorkspace(Dialog dialog) {
+        var ui = UI.getCurrent();
+        resetBodyScroll(ui);
+        setAssignmentShellHidden(false);
+        dialog.addClosedListener(_ -> {
+            if (isAttached() && ui.isAttached()) {
+                ui.navigate(StudentWorkspaceView.class);
+            }
+        });
+        dialog.close();
+    }
+
+    private void resetBodyScroll(UI ui) {
+        ui.getPage().executeJs(RESET_BODY_SCROLL_JS);
     }
 
     public void openCompletionDialog() {
@@ -809,15 +849,11 @@ public class TrainingAssignmentView extends Composite<Div>
         dialog.setHeaderTitle("Actividad finalizada");
         dialog.add(new Paragraph("La actividad formativa terminó. Ya puedes volver al panel estudiantil."));
 
-        var backButton = new Button("Volver al panel estudiantil", _ -> {
-            dialog.close();
-            setAssignmentShellHidden(false);
-            UI.getCurrent().navigate(StudentWorkspaceView.class);
-        });
+        var backButton = new Button(
+                "Volver al panel estudiantil", _ -> closeThenNavigateToStudentWorkspace(dialog));
         backButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         dialog.getFooter().add(backButton);
-        dialog.open();
-        onDialogOpened(dialog);
+        openAssignmentDialog(dialog);
     }
 
     protected void onDialogOpened(Dialog dialog) {

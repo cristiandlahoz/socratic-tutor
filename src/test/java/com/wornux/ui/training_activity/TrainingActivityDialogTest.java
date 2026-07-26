@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -123,6 +124,32 @@ class TrainingActivityDialogTest {
                 any(), any(com.wornux.services.training_activity.TrainingActivitySaveCommand.class));
         InstructionReviewSnapshotDto displayedReviewSnapshot = field(dialog, "displayedReviewSnapshot");
         assertThat(displayedReviewSnapshot).isEqualTo(reviewingSnapshot);
+    }
+
+    @Test
+    void pollingRefreshesAnEditedDraftReviewAfterTheModelCompletes() {
+        var activity = draftActivity();
+        var initialSnapshot = reviewSnapshot("persisted", InstructionReviewStatus.COMPLETED,
+                InstructionQualityStatus.NEEDS_IMPROVEMENT, false, List.of());
+        var reviewingSnapshot = reviewSnapshot("edited", InstructionReviewStatus.REVIEWING, null, false, List.of());
+        var completedSnapshot = reviewSnapshot(
+                "edited",
+                InstructionReviewStatus.COMPLETED,
+                InstructionQualityStatus.GOOD,
+                true,
+                List.of(issue()));
+        var dialog = dialog(activity, initialSnapshot);
+        TrainingActivityService trainingActivityService = field(dialog, "trainingActivityService");
+        when(trainingActivityService.reviewDraft(any())).thenReturn(reviewingSnapshot, completedSnapshot);
+
+        titleField(dialog).setValue("Edited title");
+        instructionField(dialog).setValue("Edited multiline instructions with observable evaluation criteria.");
+        ReflectionTestUtils.invokeMethod(dialog, "onSaveClick");
+        ReflectionTestUtils.invokeMethod(dialog, "refreshPendingReview");
+
+        InstructionReviewSnapshotDto displayedReviewSnapshot = field(dialog, "displayedReviewSnapshot");
+        assertThat(displayedReviewSnapshot).isEqualTo(completedSnapshot);
+        verify(trainingActivityService, times(2)).reviewDraft(any());
     }
 
     @Test

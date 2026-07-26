@@ -1,6 +1,8 @@
 package com.wornux.services.training_activity.instruction_review;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,7 +13,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.wornux.data.entities.training_activity.InstructionQualityStatus;
 import com.wornux.data.entities.training_activity.TrainingActivityAiJob;
+import com.wornux.data.entities.training_activity.TrainingActivityAiJobType;
 import com.wornux.data.repositories.training_activity.TrainingActivityAiJobRepository;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +36,57 @@ class AdvisoryInstructionReviewServiceTest {
 
         assertThat(second).isSameAs(first);
         verify(jobs).save(org.mockito.ArgumentMatchers.any(TrainingActivityAiJob.class));
+    }
+
+    @Test
+    void exactAcceptedSuggestionIsCachedAsSaveableWithoutAnotherModelJob() {
+        var jobs = mock(TrainingActivityAiJobRepository.class);
+        var engine = mock(InstructionReviewService.class);
+        var source = "Diseña una evaluación de C.";
+        var accepted = "Diseña una evaluación de C con cinco preguntas de dificultad media.";
+        when(engine.hashInstructions(any(String.class))).thenAnswer(invocation ->
+                invocation.<String>getArgument(0).contains(accepted) ? "accepted-hash" : "source-hash");
+        when(jobs.fenceSuccess(any(), any(), any(), any(), anyInt(), any())).thenReturn(1);
+        var service = new AdvisoryInstructionReviewService(jobs, engine);
+        var professor = UUID.randomUUID();
+        var job = new TrainingActivityAiJob();
+        job.setId(UUID.randomUUID());
+        job.setGeneration(2);
+        job.setJobType(TrainingActivityAiJobType.INSTRUCTION_REVIEW);
+        job.setReviewProfessorId(professor);
+        job.setReviewTitle("Evaluación de C");
+        job.setReviewInstructions(source);
+        var result = new InstructionReviewResult(
+                true,
+                InstructionQualityStatus.NEEDS_IMPROVEMENT,
+                false,
+                false,
+                "Conviene precisar cantidad y dificultad.",
+                "NEEDS_IMPROVEMENT",
+                List.of(new InstructionReviewIssue(
+                        "specificity",
+                        InstructionReviewIssueSeverity.WARNING,
+                        "SPECIFICITY",
+                        source,
+                        0,
+                        source.length(),
+                        "Falta precisión.",
+                        "Permite generar una evaluación consistente.",
+                        accepted,
+                        "Añade cantidad y dificultad.")),
+                accepted,
+                "accepted-hash",
+                "source-hash",
+                java.time.Instant.now(),
+                "test-model",
+                "test-rubric");
+
+        assertThat(service.applySuccess(service.work(job), result)).isTrue();
+
+        var derived = service.current(professor, "Evaluación de C", accepted);
+        assertThat(derived).isNotNull();
+        assertThat(derived.isSaveableGoodReview()).isTrue();
+        assertThat(derived.issues()).isEmpty();
     }
 
     @Test

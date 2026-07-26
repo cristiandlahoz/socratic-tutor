@@ -557,7 +557,7 @@ class MessagesList extends LitElement {
   }
 
   setItems(items: unknown): void {
-    this.updateItems(normalizeItems(items), 'force');
+    this.updateItems(normalizeItems(items), 'auto');
   }
 
   scrollToBottom(): void {

@@ -1,5 +1,7 @@
 package com.wornux.data.entities.training_activity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 public enum PedagogicalMove {
     REFOCUS,
     REPHRASE,
@@ -11,5 +13,13 @@ public enum PedagogicalMove {
     MOVE_TO_NEXT_ASPECT,
     TRANSFER_TO_NEW_CASE,
     COMPLETE_SUCCESSFULLY,
-    COMPLETE_WITH_INSUFFICIENT_EVIDENCE
+    COMPLETE_WITH_INSUFFICIENT_EVIDENCE;
+
+    @JsonCreator
+    public static PedagogicalMove fromModelValue(String value) {
+        if ("ASK_FOR_CLARIFICATION".equals(value)) {
+            return ASK_FOR_CLARITY;
+        }
+        return valueOf(value);
+    }
 }

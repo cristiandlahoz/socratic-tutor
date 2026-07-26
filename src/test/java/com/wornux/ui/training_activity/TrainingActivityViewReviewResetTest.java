@@ -3,6 +3,7 @@ package com.wornux.ui.training_activity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -28,6 +29,28 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class TrainingActivityViewReviewResetTest extends BrowserlessTest {
+
+    @Test
+    void saveClickPersistsImmediatelyWhenTheAppliedSuggestionHasACachedGoodReview() {
+        var service = mock(TrainingActivityService.class);
+        var savedActivity = draftActivity();
+        var derivedReview = reviewSnapshot();
+        when(service.listAll()).thenReturn(List.of());
+        when(service.reviewDraft(any())).thenReturn(derivedReview);
+        when(service.createPending(any())).thenReturn(savedActivity);
+        when(service.getInstructionReviewSnapshot(savedActivity.getId())).thenReturn(derivedReview);
+        var view = view(service);
+
+        titleField(view).setValue("Actividad con sugerencia aplicada");
+        instructionField(view).setValue("Diseña cinco preguntas de dificultad media.");
+
+        ReflectionTestUtils.invokeMethod(view, "onSave");
+
+        verify(service).reviewDraft(any());
+        verify(service).createPending(any());
+        assertThat(titleField(view).getValue()).isEmpty();
+        assertThat(instructionField(view).getValue()).isEmpty();
+    }
 
     @Test
     void successfulDraftSaveClearsTheInstructionReviewUiState() {

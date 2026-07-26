@@ -38,6 +38,10 @@ export function editorTheme(): Extension {
       padding: 'var(--vaadin-padding-s, 0.75rem)',
       fontFamily: 'var(--aura-font-family, var(--vaadin-font-family), system-ui, sans-serif)',
       fontSize: 'var(--aura-font-size-m, 0.9375rem)',
+      caretColor: 'var(--vaadin-text-color)',
+    },
+    '.cm-cursor, .cm-dropCursor': {
+      borderLeftColor: 'var(--vaadin-text-color)',
     },
     '.cm-gutters': {
       display: 'none !important',

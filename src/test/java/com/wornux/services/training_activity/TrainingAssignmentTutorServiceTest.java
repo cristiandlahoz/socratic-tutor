@@ -121,6 +121,17 @@ class TrainingAssignmentTutorServiceTest {
     }
 
     @Test
+    void nextDecisionAcceptsTheModelsClarificationAlias() {
+        var responseJson = questionJson("¿Puedes aclarar qué almacena el puntero?")
+                .replace("ASK_FOR_CLARITY", "ASK_FOR_CLARIFICATION");
+        var service = new TrainingAssignmentTutorService(modelReturning(responseJson), promptResources());
+
+        var decision = service.nextDecision(assignment(), "No estoy seguro.", transcript());
+
+        assertThat(decision.pedagogicalMove()).isEqualTo(PedagogicalMove.ASK_FOR_CLARITY);
+    }
+
+    @Test
     void nextDecisionPromptUsesVariationSeedAndRecentEvidenceSummary() {
         var capturedPrompt = new AtomicReference<Prompt>();
         var service = localFallbackEnabledService(new ChatModel() {

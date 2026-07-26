@@ -259,7 +259,10 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
             return;
         }
         if (!reviewMatchesCurrentInput(title, instruction)) {
-            reviewDraft(title, instruction);
+            var snapshot = reviewDraft(title, instruction);
+            if (isSaveableGoodReview(snapshot)) {
+                persistDraft(title, instruction, "");
+            }
             return;
         }
         if (!isSaveableGoodReview(lastReviewSnapshot)) {
@@ -280,7 +283,7 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         openConfirmation(dialog);
     }
 
-    private void reviewDraft(String title, String instruction) {
+    private InstructionReviewSnapshotDto reviewDraft(String title, String instruction) {
         var command = new TrainingActivitySaveCommand(
                 title,
                 instruction,
@@ -292,10 +295,13 @@ public class TrainingActivityView extends Composite<Div> implements BeforeEnterO
         instructionField.setReviewing(true);
 
         try {
-            handleReviewCompleted(title, instruction, trainingActivityService.reviewDraft(command), null);
+            var snapshot = trainingActivityService.reviewDraft(command);
+            handleReviewCompleted(title, instruction, snapshot, null);
+            return snapshot;
         }
         catch (RuntimeException exception) {
             handleReviewCompleted(title, instruction, null, exception);
+            return null;
         }
     }
 

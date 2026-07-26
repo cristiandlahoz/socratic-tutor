@@ -106,6 +106,7 @@ public class AdvisoryInstructionReviewService {
                 result.validInstruction() ? InstructionReviewStatus.COMPLETED : InstructionReviewStatus.LOCAL_INVALID,
                 result.qualityStatus(), result.isGood(), result.summary(), issues(result.issues()),
                 result.improvedInstructions(), result.reviewedAt()));
+        cacheExactAcceptedSuggestion(work, result);
         return true;
     }
 
@@ -142,6 +143,55 @@ public class AdvisoryInstructionReviewService {
                         issue.startOffset(), issue.endOffset(), issue.message(), issue.whyItMatters(),
                         issue.suggestedReplacement(), issue.suggestionReason()))
                 .toList();
+    }
+
+    private void cacheExactAcceptedSuggestion(ReviewWork work, InstructionReviewResult result) {
+        var actionableIssues = (result.issues() == null ? List.<InstructionReviewIssue>of() : result.issues()).stream()
+                .filter(issue -> issue != null
+                        && issue.startOffset() != null
+                        && issue.endOffset() != null
+                        && issue.suggestedReplacement() != null
+                        && !issue.suggestedReplacement().isBlank())
+                .toList();
+        if (actionableIssues.size() != 1) {
+            return;
+        }
+        var acceptedInstructions = applySuggestion(work.instructions(), actionableIssues.getFirst());
+        if (acceptedInstructions == null || acceptedInstructions.isBlank()) {
+            return;
+        }
+        var acceptedKey = key(work.key().professorId(), work.title(), acceptedInstructions);
+        reviews.put(acceptedKey, snapshot(
+                acceptedKey,
+                InstructionReviewStatus.COMPLETED,
+                InstructionQualityStatus.GOOD,
+                true,
+                "Sugerencia aplicada; no es necesario revisar nuevamente.",
+                List.of(),
+                acceptedInstructions,
+                result.reviewedAt()));
+    }
+
+    private String applySuggestion(String instructions, InstructionReviewIssue issue) {
+        var source = normalize(instructions);
+        var start = issue.startOffset();
+        var end = issue.endOffset();
+        if (start < 0 || end <= start || end > source.length()) {
+            return null;
+        }
+        var replacement = issue.suggestedReplacement().trim();
+        var normalizedSource = normalizeForSuggestionComparison(source);
+        var normalizedReplacement = normalizeForSuggestionComparison(replacement);
+        var prefix = normalizeForSuggestionComparison(source.substring(0, start));
+        var wholeReplacement = normalizedReplacement.startsWith(normalizedSource)
+                || (prefix.length() >= 12 && normalizedReplacement.startsWith(prefix));
+        return normalize(wholeReplacement
+                ? replacement
+                : source.substring(0, start) + replacement + source.substring(end));
+    }
+
+    private static String normalizeForSuggestionComparison(String value) {
+        return value.replaceAll("\\s+", " ").trim();
     }
 
     private ReviewKey key(UUID professorId, String title, String instructions) {

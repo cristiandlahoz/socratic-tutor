@@ -15,6 +15,7 @@ class TrainingActivityDialogStyleTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(stylesheet).contains(".training-activity-dialog-instructions {");
+        assertThat(stylesheet).contains("flex-shrink: 0;");
         assertThat(stylesheet).contains("margin-block-end: var(--vaadin-padding-m, 1rem);");
         assertThat(stylesheet).doesNotContain("--lumo-");
     }
