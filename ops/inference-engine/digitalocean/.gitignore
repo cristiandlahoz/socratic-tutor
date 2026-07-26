@@ -1,0 +1,7 @@
+.env
+tofu/.terraform/
+tofu/terraform.tfvars
+tofu/*.tfstate
+tofu/*.tfstate.*
+tofu/*.tfplan
+ansible/*.retry

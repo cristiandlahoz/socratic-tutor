@@ -4,6 +4,10 @@ Server-side inference setup for Socratic Tutor.
 
 It uses `llama-swap` as a single OpenAI-compatible endpoint and routes requests by the OpenAI `model` field.
 
+For reproducible DigitalOcean GPU infrastructure, 1Password-backed provider
+authentication, Ansible provisioning, systemd services, and Ollama setup, see
+[`digitalocean/README.md`](digitalocean/README.md).
+
 ## Models and purpose
 
 ### Main tutor model

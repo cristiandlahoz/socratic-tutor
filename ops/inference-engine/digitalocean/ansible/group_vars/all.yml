@@ -1,0 +1,22 @@
+---
+inference_user: inference
+inference_group: inference
+inference_root: /opt/socratic-inference
+inference_data_root: /srv/inference
+inference_volume_name: socratic-tutor-inference-data
+inference_volume_device: "/dev/disk/by-id/scsi-0DO_Volume_{{ inference_volume_name }}"
+
+# llama-swap and Ollama listen on all Droplet interfaces; the DO firewall only
+# admits inference_client_cidrs. Their child llama-server processes stay local.
+llama_swap_host: 0.0.0.0
+llama_swap_port: 8080
+llama_backend_host: 127.0.0.1
+ollama_host: 0.0.0.0:11434
+ollama_embedding_model: qwen3-embedding:0.6b
+
+llama_swap_version: "233"
+llama_cpp_ref: ""
+llama_cpp_build_jobs: "4"
+warm_up_models: >-
+  AtomicChat/ornith-9b-GGUF:UD-Q4_K_XL
+  unsloth/gemma-4-E4B-it-GGUF:IQ4_XS

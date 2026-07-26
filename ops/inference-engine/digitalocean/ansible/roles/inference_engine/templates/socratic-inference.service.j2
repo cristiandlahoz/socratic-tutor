@@ -1,0 +1,21 @@
+[Unit]
+Description=Socratic Tutor llama-swap inference engine
+After=network-online.target local-fs.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ inference_user }}
+Group={{ inference_group }}
+WorkingDirectory={{ inference_root }}
+EnvironmentFile=/etc/socratic-inference.env
+ExecStartPre=/usr/bin/nvidia-smi
+ExecStart={{ inference_root }}/bootstrap-inference_engine.sh
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=infinity
+TimeoutStopSec=120
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

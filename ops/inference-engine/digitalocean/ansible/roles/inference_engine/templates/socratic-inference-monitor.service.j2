@@ -1,0 +1,16 @@
+[Unit]
+Description=Socratic Tutor inference GPU promotion monitor
+After=socratic-inference.service
+Requires=socratic-inference.service
+
+[Service]
+Type=simple
+User={{ inference_user }}
+Group={{ inference_group }}
+EnvironmentFile=/etc/socratic-inference.env
+ExecStart={{ inference_root }}/inference-engine-monitor.sh
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

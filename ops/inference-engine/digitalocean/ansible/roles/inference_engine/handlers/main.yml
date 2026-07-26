@@ -1,0 +1,22 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Restart Ollama
+  ansible.builtin.systemd_service:
+    name: ollama
+    enabled: true
+    state: restarted
+
+- name: Restart inference engine
+  ansible.builtin.systemd_service:
+    name: socratic-inference
+    enabled: true
+    state: restarted
+
+- name: Restart inference monitor
+  ansible.builtin.systemd_service:
+    name: socratic-inference-monitor
+    enabled: true
+    state: restarted

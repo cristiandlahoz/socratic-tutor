@@ -1,0 +1,16 @@
+---
+- name: Provision Socratic Tutor inference server
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars_files:
+    - group_vars/all.yml
+
+  pre_tasks:
+    - name: Wait for the new Droplet to accept SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+  roles:
+    - inference_engine

@@ -1,0 +1,237 @@
+---
+- name: Require the DigitalOcean Ubuntu NVIDIA image
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family == "Debian"
+      - ansible_facts.architecture == "x86_64"
+    fail_msg: This role supports the DigitalOcean Ubuntu NVIDIA x86_64 image.
+
+- name: Install build and runtime dependencies
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - ca-certificates
+      - cmake
+      - coreutils
+      - curl
+      - findutils
+      - git
+      - jq
+      - libcurl4-openssl-dev
+      - libssl-dev
+      - ninja-build
+      - pkg-config
+      - procps
+      - python3
+      - tar
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Verify NVIDIA GPU and driver
+  ansible.builtin.command: nvidia-smi -L
+  register: nvidia_smi
+  changed_when: false
+
+- name: Verify CUDA compiler
+  ansible.builtin.command: nvcc --version
+  register: nvcc_version
+  changed_when: false
+
+- name: Create inference service group
+  ansible.builtin.group:
+    name: "{{ inference_group }}"
+    system: true
+
+- name: Create inference service user
+  ansible.builtin.user:
+    name: "{{ inference_user }}"
+    group: "{{ inference_group }}"
+    home: "{{ inference_data_root }}/home"
+    create_home: false
+    system: true
+    shell: /usr/sbin/nologin
+
+- name: Wait for attached block volume device
+  ansible.builtin.wait_for:
+    path: "{{ inference_volume_device }}"
+    timeout: 120
+
+- name: Create persistent mount point
+  ansible.builtin.file:
+    path: "{{ inference_data_root }}"
+    state: directory
+    mode: "0755"
+
+- name: Mount persistent inference volume
+  ansible.posix.mount:
+    path: "{{ inference_data_root }}"
+    src: "{{ inference_volume_device }}"
+    fstype: ext4
+    opts: defaults,nofail
+    state: mounted
+
+- name: Create persistent inference directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ inference_user }}"
+    group: "{{ inference_group }}"
+    mode: "0755"
+  loop:
+    - "{{ inference_data_root }}/bin"
+    - "{{ inference_data_root }}/cache"
+    - "{{ inference_data_root }}/home"
+    - "{{ inference_data_root }}/huggingface/hub"
+    - "{{ inference_data_root }}/llama-cache"
+    - "{{ inference_data_root }}/logs"
+    - "{{ inference_data_root }}/monitor-state"
+    - "{{ inference_data_root }}/run"
+
+- name: Create inference engine install directory
+  ansible.builtin.file:
+    path: "{{ inference_root }}"
+    state: directory
+    owner: "{{ inference_user }}"
+    group: "{{ inference_group }}"
+    mode: "0755"
+
+- name: Deploy inference engine configuration
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../{{ item }}"
+    dest: "{{ inference_root }}/{{ item }}"
+    owner: "{{ inference_user }}"
+    group: "{{ inference_group }}"
+    mode: "0644"
+  loop:
+    - config.yaml
+  notify: Restart inference engine
+
+- name: Deploy inference engine scripts
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../{{ item }}"
+    dest: "{{ inference_root }}/{{ item }}"
+    owner: "{{ inference_user }}"
+    group: "{{ inference_group }}"
+    mode: "0755"
+  loop:
+    - bootstrap-inference_engine.sh
+    - inference-engine-monitor.sh
+    - run-inference-engine.sh
+    - start-llama-server.sh
+  notify:
+    - Restart inference engine
+    - Restart inference monitor
+
+- name: Configure inference engine environment
+  ansible.builtin.template:
+    src: inference.env.j2
+    dest: /etc/socratic-inference.env
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Restart inference engine
+    - Restart inference monitor
+
+- name: Install inference engine systemd unit
+  ansible.builtin.template:
+    src: socratic-inference.service.j2
+    dest: /etc/systemd/system/socratic-inference.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart inference engine
+
+- name: Install inference monitor systemd unit
+  ansible.builtin.template:
+    src: socratic-inference-monitor.service.j2
+    dest: /etc/systemd/system/socratic-inference-monitor.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart inference monitor
+
+- name: Check for Ollama binary
+  ansible.builtin.stat:
+    path: /usr/local/bin/ollama
+  register: ollama_binary
+
+- name: Download official Ollama installer
+  ansible.builtin.get_url:
+    url: https://ollama.com/install.sh
+    dest: /tmp/install-ollama.sh
+    mode: "0755"
+  when: not ollama_binary.stat.exists
+
+- name: Install Ollama
+  ansible.builtin.command: /tmp/install-ollama.sh
+  when: not ollama_binary.stat.exists
+  notify: Restart Ollama
+
+- name: Create persistent Ollama model directory
+  ansible.builtin.file:
+    path: "{{ inference_data_root }}/ollama"
+    state: directory
+    owner: ollama
+    group: ollama
+    mode: "0755"
+
+- name: Create Ollama systemd override directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/ollama.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure Ollama service and persistent model cache
+  ansible.builtin.template:
+    src: ollama-override.conf.j2
+    dest: /etc/systemd/system/ollama.service.d/override.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart Ollama
+
+- name: Apply service changes before model downloads
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure inference services are enabled and started
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - ollama
+    - socratic-inference
+    - socratic-inference-monitor
+
+- name: Wait for Ollama API
+  ansible.builtin.uri:
+    url: http://127.0.0.1:11434/api/tags
+    status_code: 200
+  register: ollama_health
+  retries: 30
+  delay: 2
+  until: ollama_health.status == 200
+
+- name: Pull configured Ollama embedding model
+  ansible.builtin.command: "/usr/local/bin/ollama pull {{ ollama_embedding_model }}"
+  register: ollama_pull
+  changed_when: "'pulling manifest' in ollama_pull.stdout"
+
+- name: Wait for llama-swap health after build and warm-up
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ llama_swap_port }}/health"
+    status_code: 200
+  register: llama_swap_health
+  retries: 180
+  delay: 10
+  until: llama_swap_health.status == 200
