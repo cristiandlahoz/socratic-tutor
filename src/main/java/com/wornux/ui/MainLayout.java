@@ -84,6 +84,7 @@ public class MainLayout extends AppLayout {
         setPrimarySection(Section.DRAWER);
         addToNavbar(createDrawerToggle(UiCss.SHELL_DRAWER_TOGGLE, "Abrir menú"));
         this.viewModel.initializeShellState();
+        addAttachListener(_ -> this.viewModel.applyUiPreferences());
 
         UiCss.SHELL_DRAWER_CONTENT.addTo(drawerContent);
         UiCss.APP_SIDEBAR.addTo(drawerContent);

@@ -82,9 +82,13 @@ public class ConversationViewModel implements Serializable {
 
     public void initializeShellState() {
         ensureThemePreferenceLoaded();
+        refreshConversationHistory();
+    }
+
+    public void applyUiPreferences() {
+        ensureThemePreferenceLoaded();
         applyThemePreference(state.themePreference().peek());
         applyBaseFontSize(themePreferenceService.getBaseFontSize());
-        refreshConversationHistory();
     }
 
     public int baseFontSize() {
@@ -103,8 +107,6 @@ public class ConversationViewModel implements Serializable {
     }
 
     RouteInitialization initializeFromRoute(String requestedThreadId, boolean refreshEvent) {
-        ensureThemePreferenceLoaded();
-        applyThemePreference(state.themePreference().peek());
         state.setupRequired().set(contextResolver.resolveCurrent().isEmpty());
 
         if (refreshEvent && state.responseInProgress().peek()) {
