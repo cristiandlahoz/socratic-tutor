@@ -71,6 +71,7 @@ arconia:
   dev:
     services:
       docling:
+        enabled: false
         image-name: ghcr.io/docling-project/docling-serve-cpu:v1.18.0
         startup-timeout: 3m
 

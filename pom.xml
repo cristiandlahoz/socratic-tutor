@@ -200,7 +200,7 @@
         <dependency>
             <groupId>io.arconia</groupId>
             <artifactId>arconia-dev-services-docling</artifactId>
-            <scope>runtime</scope>
+            <scope>test</scope>
             <optional>true</optional>
         </dependency>
 
