@@ -67,7 +67,7 @@ class GuardClassifierServiceTest {
             var options = (OpenAiChatOptions) prompt.getOptions();
             assertThat(options.getModel()).isEqualTo("guard-model");
             assertThat(options.getTemperature()).isZero();
-            assertThat(options.getMaxTokens()).isEqualTo(256);
+            assertThat(options.getMaxTokens()).isEqualTo(2048);
             assertThat(options.getOutputSchema()).contains("safeUserMessage", "directResponse");
         });
     }

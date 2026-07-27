@@ -38,7 +38,7 @@ public class GuardClassifierService {
     public static final String TECHNICAL_FAILURE_RESPONSE =
             "No pude verificar este mensaje de forma segura. Inténtalo de nuevo en un momento.";
 
-    private static final int MAX_OUTPUT_TOKENS = 256;
+    private static final int MAX_OUTPUT_TOKENS = 2048;
     private static final String SUBJECT_CONTEXT_QUERY =
             """
             select s.code, s.name, coalesce(s.syllabus, '') as syllabus
