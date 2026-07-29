@@ -1,0 +1,100 @@
+name: Purge inference TTL
+
+on:
+  schedule:
+    # 2026-07-31 00:15 AST (UTC-4). The year guard makes this one-time.
+    - cron: "15 4 31 7 *"
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Delete inference Droplet and volume
+        env:
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+          DROPLET_NAME: socratic-tutor-inference
+          VOLUME_NAME: socratic-tutor-inference-data
+        run: |
+          set -euo pipefail
+
+          if [[ $(date -u +%Y) != 2026 ]]; then
+            echo "TTL already expired; skipping."
+            exit 0
+          fi
+
+          api=https://api.digitalocean.com/v2
+          auth="Authorization: Bearer ${DIGITALOCEAN_TOKEN:?missing repository secret}"
+
+          get() {
+            curl --fail-with-body --silent --show-error \
+              --header "$auth" "$api/$1"
+          }
+
+          droplets=$(get "droplets?per_page=200")
+          mapfile -t droplet_ids < <(
+            jq -r --arg name "$DROPLET_NAME" \
+              '.droplets[] | select(.name == $name) | .id' <<<"$droplets"
+          )
+
+          volumes=$(get "volumes?per_page=200")
+          mapfile -t volume_ids < <(
+            jq -r --arg name "$VOLUME_NAME" \
+              '.volumes[] | select(.name == $name) | .id' <<<"$volumes"
+          )
+
+          (( ${#droplet_ids[@]} <= 1 )) || {
+            echo "Refusing to delete multiple Droplets named $DROPLET_NAME." >&2
+            exit 1
+          }
+          (( ${#volume_ids[@]} <= 1 )) || {
+            echo "Refusing to delete multiple volumes named $VOLUME_NAME." >&2
+            exit 1
+          }
+
+          if (( ${#droplet_ids[@]} == 1 )); then
+            echo "Deleting Droplet $DROPLET_NAME (${droplet_ids[0]})..."
+            curl --fail-with-body --silent --show-error \
+              --request DELETE --header "$auth" \
+              "$api/droplets/${droplet_ids[0]}"
+          else
+            echo "Droplet already absent."
+          fi
+
+          if (( ${#volume_ids[@]} == 0 )); then
+            echo "Volume already absent."
+            exit 0
+          fi
+
+          volume_id=${volume_ids[0]}
+          echo "Waiting for volume detachment..."
+          for _ in {1..60}; do
+            status=$(curl --silent --show-error --output /tmp/volume.json \
+              --write-out '%{http_code}' --header "$auth" \
+              "$api/volumes/$volume_id")
+
+            if [[ $status == 404 ]]; then
+              echo "Volume already absent."
+              exit 0
+            fi
+            [[ $status == 200 ]] || {
+              cat /tmp/volume.json >&2
+              exit 1
+            }
+
+            if [[ $(jq '.volume.droplet_ids | length' /tmp/volume.json) == 0 ]]; then
+              echo "Deleting volume $VOLUME_NAME ($volume_id)..."
+              curl --fail-with-body --silent --show-error \
+                --request DELETE --header "$auth" \
+                "$api/volumes/$volume_id"
+              echo "Inference Droplet and volume deleted."
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Volume did not detach within 10 minutes." >&2
+          exit 1
